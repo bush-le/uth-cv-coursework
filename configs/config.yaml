@@ -1,0 +1,40 @@
+# ==============================================================================
+# Master Configuration (configs/config.yaml)
+# Centralized configuration entrypoint for UTH Computer Vision Coursework.
+# ==============================================================================
+
+defaults:
+  - dataset: default
+  - model: template
+  - experiment: template
+  - _self_
+
+project:
+  name: "uth-cv-coursework"
+  description: "Coursework project in Computer Vision & Deep Learning at UTH"
+  version: "0.1.0"
+  seed: 42
+  device: "cuda" # "cuda" or "cpu"
+
+training:
+  seed: 42
+  device: "cuda"
+  epochs: 50
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  early_stopping_patience: 10
+  mixed_precision: true # torch.cuda.amp.autocast
+  deterministic: true
+
+paths:
+  data_dir: "data"
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  samples_dir: "data/samples"
+  checkpoints_dir: "experiments/checkpoints"
+  logs_dir: "experiments/logs"
+  predictions_dir: "experiments/predictions"
+  runs_dir: "experiments/runs"

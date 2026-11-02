@@ -1,0 +1,9 @@
+# Developer Tools, Linters, Type Checkers & Testing Frameworks
+pytest>=7.4.0
+pytest-cov>=4.1.0
+ruff>=0.6.0
+black>=24.0.0
+mypy>=1.11.0
+pre-commit>=3.6.0
+types-PyYAML>=6.0.12
+types-requests>=2.31.0

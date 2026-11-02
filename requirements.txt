@@ -1,0 +1,3 @@
+# Master requirements entrypoint
+-r requirements/base.txt
+-r requirements/dev.txt
