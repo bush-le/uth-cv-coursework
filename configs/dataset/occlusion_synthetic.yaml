@@ -1,0 +1,49 @@
+# Dataset Configuration for Facial Occlusion Segmentation
+dataset_name: "facial_occlusion_synthetic"
+task_type: "semantic_segmentation"
+
+# Image and Mask Specifications
+image_size: [512, 512]
+channels: 3
+num_classes: 6
+ignore_index: 255
+
+# Class Taxonomy
+classes:
+  - id: 0
+    name: "background_face"
+    color: [0, 0, 0]
+  - id: 1
+    name: "mask_protective"
+    color: [255, 0, 0]
+  - id: 2
+    name: "eyeglasses"
+    color: [0, 255, 0]
+  - id: 3
+    name: "hand_self"
+    color: [0, 0, 255]
+  - id: 4
+    name: "held_object"
+    color: [255, 255, 0]
+  - id: 5
+    name: "apparel_organic"
+    color: [255, 0, 255]
+
+# Paths
+paths:
+  train_images: "data/synthetic_diffusion/images/train"
+  train_masks: "data/synthetic_diffusion/masks/train"
+  val_images: "data/synthetic_diffusion/images/val"
+  val_masks: "data/synthetic_diffusion/masks/val"
+  test_images: "data/real_eval/images/test"
+  test_masks: "data/real_eval/masks/test"
+
+# Normalization (ImageNet Statistics)
+normalization:
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+
+# DataLoader settings
+batch_size: 8
+num_workers: 4
+pin_memory: true
