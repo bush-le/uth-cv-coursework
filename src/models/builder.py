@@ -28,6 +28,11 @@ def build_model(
     if arch in ("custom_cnn", "simple_cnn", "default"):
         return SimpleCVCNN(in_channels=in_channels, num_classes=num_classes)
 
+    if arch in ("occlusion_segmenter", "segformer", "unet_baseline"):
+        from src.models.deep.segmentation import FacialOcclusionSegmenter
+
+        return FacialOcclusionSegmenter(in_channels=in_channels, num_classes=num_classes, **kwargs)
+
     # Fallback to torchvision if available
     try:
         import torchvision.models as tv_models
