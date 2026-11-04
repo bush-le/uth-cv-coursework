@@ -22,10 +22,14 @@ When operating in this workspace, you are acting as a **Principal Computer Visio
 
 ## 2. ⚡ Non-Negotiable Operational Principles
 
-1. **Script-Only Training**:
-   - **NEVER** run long training loops, gradient updates, or model training inside Jupyter Notebooks (`notebooks/`).
-   - All training pipelines must be maintainable, resumable Python scripts in [`src/pipelines/`](src/pipelines/) or [`scripts/`](scripts/) that save full-state checkpoints (`best_model.pt`, `last_model.pt`).
-   - Notebooks are strictly reserved for: Exploratory Data Analysis (EDA), sanity checks on transforms, and visual prediction analysis.
+1. **Strict Modular Architecture & Script vs. Notebook Separation**:
+   - **Modular Clean Code (`src/`)**: All domain logic, datasets, transforms, model definitions, metrics, and visualization utilities must be written as modular, reusable, type-annotated Python files in `src/`.
+   - **Script-Only Training (`src/pipelines/` & `scripts/`)**:
+     - **NEVER** run training loops, gradient updates, or model optimization inside Jupyter Notebooks (`notebooks/`).
+     - All training and evaluation pipelines must be executable, resumable Python scripts in [`src/pipelines/`](src/pipelines/) or [`scripts/`](scripts/) that accept YAML configs and save full-state checkpoints (`best_model.pt`, `last_model.pt`).
+   - **Notebooks as Visualization & Inspection Clients Only (`notebooks/`)**:
+     - Notebooks are strictly reserved for: Exploratory Data Analysis (EDA), sanity checks on transforms, and visual prediction/error analysis.
+     - **No monolithic code inside notebooks**: Notebooks must NEVER implement raw model classes, training loops, or complex data processing from scratch. They MUST import and call modular functions and classes from `src/` (e.g. `from src.data import FacialOcclusionDataset`, `from src.models import build_model`, `from src.common.visualizer import plot_prediction_gallery`).
 2. **Strict File Separation (Agents vs Docs)**:
    - [`.agents/`](.agents/): The immutable constitution. Contains ONLY reusable rules and document templates. Never place project-specific logs or phase deliverables here.
    - [`docs/`](docs/): The evolving research memory. Phase specs go to `docs/phases/`, task tracking to `docs/progress/`, and reports to `docs/reports/`.
