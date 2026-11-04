@@ -2,5 +2,6 @@
 
 from src.data.dataset import StandardCVDataset
 from src.data.datamodule import CVDataModule
+from src.data.occlusion_dataset import FacialOcclusionDataset
 
-__all__ = ["StandardCVDataset", "CVDataModule"]
+__all__ = ["StandardCVDataset", "CVDataModule", "FacialOcclusionDataset"]
