@@ -1,6 +1,9 @@
-# Phase 2: Fine-Grained Segmentation Baseline Specification
+# Phase 2 (Archived / Auxiliary): Fine-Grained Segmentation Baseline Specification
 
-- **Motivation/Background**: Formulates the architectural standards, loss configurations, boundary metrics, and training protocol for the downstream occlusion segmentation network.
+> [!NOTE]
+> **Topic Pivot Notice**: The primary downstream coursework objective has evolved to **Facial De-occlusion (Face Restoration & Reconstruction)**. Please refer to [PHASE_02_DEOCCLUSION_BASELINE_SPEC.md](PHASE_02_DEOCCLUSION_BASELINE_SPEC.md) for the active primary baseline specification. This document is retained solely for auxiliary mask localization and dual-stage inpainting pipelines.
+
+- **Motivation/Background**: Formulates the architectural standards, loss configurations, boundary metrics, and training protocol for the auxiliary occlusion segmentation network.
 - **Purpose**: Serve as the technical contract for implementing `src/models/builder.py`, `src/common/metrics.py`, and `src/pipelines/train.py`.
 - **Overview Pipeline**: Input normalization -> Hierarchical Transformer / CNN backbone -> Multiscale feature decoding -> Composite loss backpropagation -> Boundary metric evaluation.
 - **Detailed Plan**: §1 Model Architectural Standards; §2 Forward Pass & Tensor Shapes; §3 Composite Loss Formulation; §4 Evaluation Metrics (Area & Boundary IoU); §5 Hyperparameters & Optimization Schedule.

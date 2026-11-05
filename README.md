@@ -5,9 +5,9 @@
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
-- **Motivation/Background**: Không gian đồ án môn học Thị giác Máy tính (Computer Vision Coursework) tại Trường Đại học Giao thông Vận tải TP.HCM (UTH). Dự án kế thừa cấu trúc phân tầng chuẩn mực từ các dự án Khoa học Dữ liệu lớn (Data Mining Lakehouse) và bộ khung thị giác máy tính chuyên sâu (`uth-cv-labs`).
-- **Purpose**: Cung cấp kiến trúc Clean Architecture, cơ chế quản trị AI Agent bất biến (`/.agents`), phân tầng dữ liệu Medallion, quy trình huấn luyện script-only và hệ thống kiểm thử tự động phục vụ nghiên cứu và hoàn thành đồ án môn học.
-- **Overview Pipeline**: Tiếp nhận yêu cầu & đặc tả bài toán (`docs/PURPOSE.md`) -> Khảo sát dữ liệu (`notebooks/exploratory/`) -> Đóng gói module dữ liệu & mô hình (`src/data/`, `src/models/`) -> Huấn luyện & lưu checkpoint (`scripts/run_pipeline.sh`) -> Đánh giá & lập báo cáo kỹ thuật (`docs/reports/`).
+- **Motivation/Background**: Không gian đồ án môn học Thị giác Máy tính (Computer Vision Coursework) tại Trường Đại học Giao thông Vận tải TP.HCM (UTH). Đề tài: "Xây dựng bộ dữ liệu khuôn mặt bị che khuất tổng hợp bằng mô hình Diffusion phục vụ bài toán phục hồi khuôn mặt" (Diffusion-Based Synthetic Occluded Face Dataset Generation for Facial De-occlusion).
+- **Purpose**: Cung cấp kiến trúc Clean Architecture, cơ chế quản trị AI Agent bất biến (`/.agents`), chuẩn dữ liệu triplet $(I_{\text{clean}}, I_{\text{occ}}, M)$, quy trình huấn luyện script-only và hệ thống đánh giá phục hồi khuôn mặt (PSNR, SSIM, LPIPS, ArcFace ID similarity).
+- **Overview Pipeline**: Tiếp nhận yêu cầu & đặc tả bài toán (`docs/PURPOSE.md`) -> Khảo sát dữ liệu (`notebooks/exploratory/`) -> Đóng gói module sinh triplet & mô hình phục hồi (`src/data/`, `src/models/`) -> Huấn luyện & lưu checkpoint (`scripts/run_pipeline.sh`) -> Đánh giá phục hồi & lập báo cáo kỹ thuật (`docs/reports/`).
 - **Detailed Plan**: §1 Kiến trúc Hệ thống Tổng thể; §2 Cấu trúc Thư mục Dự án; §3 Hệ thống Quản trị AI-First (`/.agents`); §4 Hướng dẫn Cài đặt & Vận hành; §5 Bảng Lệnh Tự Động Hóa Makefile.
 - **References**: `.agents/rules/FOLDER_STRUCTURE.md`, `.agents/rules/MD_CONVENTION.md`, `.agents/AI_REFERENCE.md`, `docs/PURPOSE.md`, `docs/OVERVIEW.md`.
 - **Created**: 2026-11-02T07:22:00+07:00
@@ -46,7 +46,7 @@ flowchart TD
     subgraph RUNTIME_TIER ["3. Runtime Artifacts (/experiments)"]
         CKPTS["experiments/checkpoints/<br/>(best_model.pt, last_model.pt)"]
         LOGS["experiments/logs/<br/>(training traces & JSONL)"]
-        PREDS["experiments/predictions/<br/>(plots, boxes, masks)"]
+        PREDS["experiments/predictions/<br/>(restored faces, error maps, galleries)"]
         RUNS["experiments/runs/<br/>(TensorBoard / WandB)"]
     end
 
@@ -90,7 +90,7 @@ uth-cv-coursework/
 │   └── README.md                      # Hướng dẫn tầng dữ liệu & data dictionary
 ├── docs/                              # Bộ nhớ dự án & Báo cáo kỹ thuật (Evolving Memory)
 │   ├── README.md                      # Mục lục tài liệu dự án
-│   ├── PURPOSE.md                     # Bản đặc tả đề tài đồ án & tiêu chí đánh giá
+│   ├── PURPOSE.md                     # Bản đặc tả đề tài đồ án phục hồi khuôn mặt & tiêu chí đánh giá
 │   ├── OVERVIEW.md                    # Lộ trình đồ án (Roadmap) & quản lý milestone
 │   ├── coursework/                    # Tài liệu đề bài, barem điểm & hướng dẫn đồ án
 │   ├── phases/                        # Đặc tả kỹ thuật từng giai đoạn (Phase Specs)

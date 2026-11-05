@@ -22,11 +22,11 @@
 ```text
 docs/
 ├── README.md                 # Master documentation index (this file)
-├── PURPOSE.md                # Project mission statement, problem definition & success criteria
+├── PURPOSE.md                # Project mission statement, facial de-occlusion problem definition & success criteria
 ├── OVERVIEW.md               # Living roadmap, milestones & deliverables tracker
 ├── coursework/               # Coursework topic specifications, rubric & submission artifacts
 │   └── .gitkeep
-├── phases/                   # Technical phase specifications (01_DATA_PREP.md, 02_BASELINE.md, etc.)
+├── phases/                   # Technical phase specifications (PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md, PHASE_02_DEOCCLUSION_BASELINE_SPEC.md, etc.)
 │   └── .gitkeep
 ├── progress/                 # Live Kanban trackers (01_DATA_PREP_STATUS.md, etc.)
 │   └── .gitkeep

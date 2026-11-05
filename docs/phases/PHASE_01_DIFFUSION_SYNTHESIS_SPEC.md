@@ -1,26 +1,26 @@
 # Phase 1: Diffusion-Based Occlusion Synthesis Pipeline Specification
 
-- **Motivation/Background**: Outlines the end-to-end generative pipeline that synthesizes photo-realistic facial occlusions paired with automatic, sub-pixel accurate ground-truth segmentation masks.
+- **Motivation/Background**: Outlines the end-to-end generative pipeline that synthesizes photo-realistic facial occlusions paired with clean ground-truth faces and automatic sub-pixel accurate occlusion masks.
 - **Purpose**: Serve as the engineering blueprint for `src/pipelines/generate_synthetic.py` and generative modules in `src/data/`.
-- **Overview Pipeline**: Clean portrait loading -> Stochastic bounding region generation -> Prompt synthesis -> Stable Diffusion Inpainting -> Cross-attention & SAM boundary extraction -> Multi-stage quality curation.
-- **Detailed Plan**: §1 Algorithmic Pipeline Overview; §2 Generative Diffusion Architecture; §3 Automated Mask Extraction & Boundary Refinement; §4 Prompt Engineering & Stochastic Occlusion Placement; §5 Automated Quality Filtering Gates.
-- **References**: `docs/PURPOSE.md`, `docs/coursework/TAXONOMY_AND_DATA_SPEC.md`, DiffuMask (CVPR 2023), SAM (ICCV 2023).
+- **Overview Pipeline**: Clean portrait loading -> Stochastic bounding region generation -> Prompt synthesis -> Stable Diffusion Inpainting -> Cross-attention & SAM boundary extraction -> Triplet quality curation -> Standardized triplet export.
+- **Detailed Plan**: §1 Algorithmic Pipeline Overview; §2 Generative Diffusion Architecture; §3 Automated Mask Extraction & Boundary Refinement; §4 Prompt Engineering & Stochastic Occlusion Placement; §5 Automated Quality Filtering Gates (including Identity Invariance).
+- **References**: `docs/PURPOSE.md`, `docs/coursework/TAXONOMY_AND_DATA_SPEC.md`, DiffuMask (CVPR 2023), SAM (ICCV 2023), ArcFace (CVPR 2019).
 - **Created**: 2026-11-04T08:18:00+07:00
-- **Last Updated**: 2026-11-04T08:18:00+07:00
+- **Last Updated**: 2026-11-05T18:30:00+07:00
 
 ---
 
 ## 1. Algorithmic Pipeline Overview
 
-The data factory operates as a 5-stage automated assembly line:
+The data factory operates as a 5-stage automated assembly line generating synchronized **Triplets $(I_{\text{clean}}, I_{\text{occ}}, M_{\text{occ}})$**:
 
 ```mermaid
 flowchart LR
     A["1. Clean Face Image<br/>(CelebA-HQ / FFHQ)"] --> B["2. Region & Prompt Bank<br/>(Category Specific)"]
     B --> C["3. Latent Diffusion Inpainting<br/>(SD v1.5 / ControlNet)"]
     C --> D["4. Automated Mask Extractor<br/>(Attention Map + SAM)"]
-    D --> E["5. Quality Gate Curation<br/>(CLIP + Face Retain)"]
-    E --> F["Curated Synthetic Dataset<br/>(Images & Integer Masks)"]
+    D --> E["5. Quality Gate Curation<br/>(CLIP + Retention + ArcFace)"]
+    E --> F["Curated Triplet Dataset<br/>(Clean, Occluded, Masks)"]
 ```
 
 ---
@@ -29,13 +29,13 @@ flowchart LR
 
 - **Base Generative Model**: Stable Diffusion Inpainting v1.5 (`runwayml/stable-diffusion-inpainting`) or SDXL Inpainting (`diffusers/stable-diffusion-xl-1.0-inpainting-0.1`).
 - **Conditioning Inputs**:
-  - Latent representation $z_0 = \mathcal{E}(I_{\text{clean}})$ of clean face image.
+  - Clean source face $I_{\text{clean}}$ and its latent representation $z_0 = \mathcal{E}(I_{\text{clean}})$.
   - Inpainting binary guidance region $M_{\text{guide}} \in \{0, 1\}^{H \times W}$.
   - Text Prompt $y$ (e.g. *"a person wearing dark black modern sunglasses, high quality, photorealistic, 8k"*).
 - **Denoising Dynamics**:
   At each reverse diffusion step $t = T, \dots, 1$, the unmasked latent space is conditioned by preserving the original unoccluded face:
   $$\hat{z}_t = (1 - M_{\text{latent}}) \odot z_{t,\text{orig}} + M_{\text{latent}} \odot z_{t,\text{denoised}}$$
-  This guarantees that facial identity, eyes (when not occluded), and background skin outside the bounding region remain mathematically identical to the clean ground-truth face.
+  This guarantees that facial identity, eyes (when not occluded), and background skin outside the bounding region remain mathematically identical to the clean ground-truth face $I_{\text{clean}}$.
 
 ---
 
@@ -52,8 +52,8 @@ Thresholding $A_{\text{token}} \ge \tau_{\text{attn}}$ isolates the coarse objec
 
 ### Stage 3.2: Sub-pixel Snapping with SAM (Segment Anything Model)
 Using the bounding box $M_{\text{guide}}$ and high-activation points from $A_{\text{token}}$ as spatial prompts, **SAM-ViT-B** segments the exact object boundary:
-$$M_{\text{refined}} = \text{SAM}\left(I_{\text{synthetic}}, \text{point\_prompts}=\text{argmax}(A_{\text{token}}), \text{box\_prompt}=\text{bbox}(M_{\text{guide}})\right)$$
-$M_{\text{refined}}$ is assigned the corresponding Class ID $\in \{1, 2, 3, 4, 5\}$.
+$$M_{\text{refined}} = \text{SAM}\left(I_{\text{occ}}, \text{point\_prompts}=\operatorname{argmax}(A_{\text{token}}), \text{box\_prompt}=\operatorname{bbox}(M_{\text{guide}})\right)$$
+$M_{\text{refined}}$ is saved as an 8-bit PNG binary mask $\{0, 255\}$ (or category ID $\in \{1, 2, 3, 4, 5\}$).
 
 ---
 
@@ -71,14 +71,18 @@ $M_{\text{refined}}$ is assigned the corresponding Class ID $\in \{1, 2, 3, 4, 5
 
 ## 5. Automated Quality Filtering Gates
 
-Each candidate pair $(I_{\text{syn}}, M_{\text{refined}})$ is verified against 3 programmatic quality criteria:
+Each candidate triplet $(I_{\text{clean}}, I_{\text{occ}}, M_{\text{refined}})$ is verified against 4 programmatic quality criteria:
 
 1. **Facial Identity Retention**:
-   The generated image $I_{\text{syn}}$ must detect a face with confidence $\ge 0.85$ via lightweight face detection (YuNet / MTCNN). If the diffusion model corrupted facial anatomy into an unrecognizable blob, the sample is discarded.
+   The generated image $I_{\text{occ}}$ must detect a face with confidence $\ge 0.85$ via lightweight face detection (YuNet / RetinaFace). If the diffusion model corrupted facial anatomy into an unrecognizable blob, the triplet is discarded.
 2. **CLIP Alignment Score**:
-   $$\text{CLIP\_Score}(I_{\text{syn}}, y) = \cos(\mathbf{e}_{\text{img}}, \mathbf{e}_{\text{text}}) \ge 0.28$$
+   $$\text{CLIP\_Score}(I_{\text{occ}}, y) = \cos(\mathbf{e}_{\text{img}}, \mathbf{e}_{\text{text}}) \ge 0.28$$
    Ensures the requested occlusion object was actually synthesized.
 3. **Geometric Area Sanity**:
-   The refined mask area must satisfy $0.05 \le \frac{\sum M}{512 \times 512} \le 0.65$. Samples with empty masks or completely obscured faces are rejected.
+   The refined mask area must satisfy $0.05 \le \frac{\sum (M > 0)}{512 \times 512} \le 0.65$. Triplets with empty masks or completely obscured faces are rejected.
+4. **Identity Invariance Outside Mask**:
+   $$\text{ID\_Sim}_{\text{valid}} = \cos\left( \mathcal{F}_{\text{ArcFace}}\left(I_{\text{clean}} \odot (1 - M)\right), \, \mathcal{F}_{\text{ArcFace}}\left(I_{\text{occ}} \odot (1 - M)\right) \right) \ge 0.88$$
+   Guarantees diffusion synthesis did not introduce identity drift in the unoccluded facial structure.
 
 Rejected samples are logged with error codes to `data/synthetic_diffusion/rejected_log.json` to enable yield rate tracking.
+Curated triplets are saved to `data/synthetic_diffusion/clean/`, `data/synthetic_diffusion/occluded/`, and `data/synthetic_diffusion/masks/`.

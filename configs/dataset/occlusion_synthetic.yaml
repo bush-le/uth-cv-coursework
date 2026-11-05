@@ -1,6 +1,6 @@
-# Dataset Configuration for Facial Occlusion Segmentation
+# Dataset Configuration for Facial De-occlusion via Diffusion Synthesis
 dataset_name: "facial_occlusion_synthetic"
-task_type: "semantic_segmentation"
+task_type: "facial_deocclusion"
 
 # Image and Mask Specifications
 image_size: [512, 512]
@@ -8,7 +8,7 @@ channels: 3
 num_classes: 6
 ignore_index: 255
 
-# Class Taxonomy
+# Class Taxonomy (Categories for Prompt Conditioning & Difficulty Breakdown)
 classes:
   - id: 0
     name: "background_face"
@@ -29,14 +29,21 @@ classes:
     name: "apparel_organic"
     color: [255, 0, 255]
 
-# Paths
+# Synchronized Triplet Paths (Clean GT, Occluded Input, Mask)
 paths:
-  train_images: "data/synthetic_diffusion/images/train"
+  # Triplet paths
+  train_clean: "data/synthetic_diffusion/clean/train"
+  train_occluded: "data/synthetic_diffusion/occluded/train"
   train_masks: "data/synthetic_diffusion/masks/train"
-  val_images: "data/synthetic_diffusion/images/val"
+  val_clean: "data/synthetic_diffusion/clean/val"
+  val_occluded: "data/synthetic_diffusion/occluded/val"
   val_masks: "data/synthetic_diffusion/masks/val"
   test_images: "data/real_eval/images/test"
   test_masks: "data/real_eval/masks/test"
+  
+  # Backward-compatible aliases
+  train_images: "data/synthetic_diffusion/occluded/train"
+  val_images: "data/synthetic_diffusion/occluded/val"
 
 # Normalization (ImageNet Statistics)
 normalization:
