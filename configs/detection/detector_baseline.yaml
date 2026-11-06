@@ -1,0 +1,29 @@
+# Downstream Deepfake Image Detector Configuration
+model:
+  name: "deepfake_image_detector"
+  spatial_backbone: "resnet18"
+  pretrained_backbone: false
+  num_classes: 1
+  dropout: 0.3
+
+training:
+  num_epochs: 15
+  learning_rate: 0.0002
+  weight_decay: 0.00001
+  batch_size: 16
+  clip_grad_norm: 1.0
+  device: "cuda"
+  use_amp: true
+
+loss:
+  name: "binary_cross_entropy"
+  label_smoothing: 0.05
+
+evaluation:
+  metrics:
+    - "accuracy"
+    - "roc_auc"
+    - "f1_score"
+    - "precision"
+    - "recall"
+  save_best_metric: "roc_auc"

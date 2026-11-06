@@ -1,0 +1,28 @@
+# Generation Configuration: Stable Diffusion Deepfake Factory
+model_type: "stable_diffusion"
+pretrained_model_name: "runwayml/stable-diffusion-v1-5"
+
+generation:
+  height: 256
+  width: 256
+  num_inference_steps: 30
+  guidance_scale: 7.5
+  negative_prompt: "deformed, blurry, bad anatomy, bad eyes, disfigured, poorly drawn face"
+  seed: 42
+  use_amp: true
+  dtype: "float16"
+
+manipulation_modes:
+  text2img:
+    default_prompt: "a photorealistic headshot portrait of a person, studio lighting, high resolution, 8k"
+  inpaint:
+    default_prompt: "a realistic face with smiling expression and natural skin texture"
+    mask_blur: 4
+  img2img:
+    strength: 0.65
+    default_prompt: "a photorealistic portrait of an altered face, natural skin"
+
+curation_thresholds:
+  min_sharpness: 50.0
+  min_clip_score: 0.28
+  min_face_confidence: 0.85

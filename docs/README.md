@@ -24,14 +24,10 @@ docs/
 ├── README.md                 # Master documentation index (this file)
 ├── PURPOSE.md                # Project mission statement, facial de-occlusion problem definition & success criteria
 ├── OVERVIEW.md               # Living roadmap, milestones & deliverables tracker
-├── coursework/               # Coursework topic specifications, rubric & submission artifacts
-│   └── .gitkeep
-├── phases/                   # Technical phase specifications (PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md, PHASE_02_DEOCCLUSION_BASELINE_SPEC.md, etc.)
-│   └── .gitkeep
-├── progress/                 # Live Kanban trackers (01_DATA_PREP_STATUS.md, etc.)
-│   └── .gitkeep
+├── coursework/               # Coursework topic specifications, taxonomy & literature review
+├── phases/                   # Technical phase specifications (PHASE_01, PHASE_02, etc.)
+├── progress/                 # Macro roadmap & live milestone trackers
 ├── experiments/              # Empirical test logs & 5W1H experiment reports
-│   └── .gitkeep
 ├── reports/                  # Comprehensive technical reports (Markdown + Interactive HTML)
 │   └── .gitkeep
 ├── shared/                   # Shared SOPs, developer onboarding manuals & handoffs

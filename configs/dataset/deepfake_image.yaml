@@ -1,0 +1,34 @@
+# Dataset Configuration: 2D Deepfake Image Dataset
+name: "deepfake_image_dataset"
+dataset_dir: "data/processed/images"
+raw_dir: "data/raw/faces"
+manifest_path: "data/processed/manifest.jsonl"
+
+image:
+  size: [256, 256] # [H, W]
+  channels: 3
+  color_space: "RGB"
+  normalization:
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+
+splits:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  seed: 42
+
+loader:
+  batch_size: 16
+  num_workers: 2
+  pin_memory: true
+  drop_last: false
+
+labels:
+  0: "real"
+  1: "fake"
+
+manipulations:
+  - "sd_text2img"
+  - "sd_inpaint"
+  - "sd_img2img"
