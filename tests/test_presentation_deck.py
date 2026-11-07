@@ -133,4 +133,161 @@ def test_svg_text_elements_respect_min_font_size_and_no_overflow():
             assert len(clean) <= 58, f"SVG <text> too long ({len(clean)} chars), risks clipping: {clean}"
 
 
+def test_chrome_controls_are_anchored_inside_deck_stage():
+    html = DECK_PATH.read_text(encoding="utf-8")
+    stage_split = html.split('id="deck-stage"')[1]
+    assert 'id="slide-counter"' in stage_split
+    assert 'class="nav-controls"' in stage_split
+    assert 'id="progress-bar"' in stage_split
+    assert ".intent-footer {\n      margin-top: auto;" in html or "margin-top: auto" in html
+
+
+def test_rendered_dom_and_svg_geometry_in_headless_chrome():
+    import base64
+    import json
+    import os
+    import shutil
+    import socket
+    import struct
+    import subprocess
+    import time
+    import urllib.request
+
+    if not shutil.which("google-chrome"):
+        return
+
+    port = 9244
+    proc = subprocess.Popen(
+        [
+            "google-chrome",
+            "--headless",
+            "--disable-gpu",
+            "--no-sandbox",
+            f"--remote-debugging-port={port}",
+            "--window-size=1920,1080",
+            f"file://{DECK_PATH}",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        time.sleep(1.8)
+        targets = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/json").read().decode())
+        ws_url = next(t["webSocketDebuggerUrl"] for t in targets if t.get("type") == "page")
+        rest = ws_url.split("ws://")[1]
+        host_port, path = rest.split("/", 1)
+        host, p = host_port.split(":")
+        sock = socket.create_connection((host, int(p)), timeout=15)
+        key = base64.b64encode(os.urandom(16)).decode()
+        sock.sendall(
+            (
+                f"GET /{path} HTTP/1.1\r\nHost: {host_port}\r\n"
+                f"Upgrade: websocket\r\nConnection: Upgrade\r\n"
+                f"Sec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n"
+            ).encode()
+        )
+        resp = b""
+        while b"\r\n\r\n" not in resp:
+            resp += sock.recv(4096)
+
+        def cdp_call(msg_id: int, method: str, params: dict | None = None) -> dict:
+            payload = json.dumps({"id": msg_id, "method": method, "params": params or {}}).encode()
+            header = bytearray([0x81])
+            n = len(payload)
+            if n < 126:
+                header.append(0x80 | n)
+            elif n < 65536:
+                header.append(0x80 | 126)
+                header.extend(struct.pack("!H", n))
+            else:
+                header.append(0x80 | 127)
+                header.extend(struct.pack("!Q", n))
+            mask = os.urandom(4)
+            header.extend(mask)
+            sock.sendall(header + bytearray(b ^ mask[i % 4] for i, b in enumerate(payload)))
+
+            def recv_exact(k: int) -> bytes:
+                buf = b""
+                while len(buf) < k:
+                    buf += sock.recv(k - len(buf))
+                return buf
+
+            while True:
+                b1, b2 = recv_exact(2)
+                length = b2 & 0x7F
+                if length == 126:
+                    length = struct.unpack("!H", recv_exact(2))[0]
+                elif length == 127:
+                    length = struct.unpack("!Q", recv_exact(8))[0]
+                raw = recv_exact(length)
+                data = json.loads(raw.decode("utf-8", errors="replace"))
+                if data.get("id") == msg_id:
+                    return data
+
+        cdp_call(1, "Runtime.enable")
+        cdp_call(
+            2,
+            "Emulation.setDeviceMetricsOverride",
+            {"width": 1920, "height": 1080, "deviceScaleFactor": 1, "mobile": False},
+        )
+        time.sleep(0.5)
+
+        js_check = r"""
+        (function() {
+          const slides = Array.from(document.querySelectorAll('.slide'));
+          const errors = [];
+          slides.forEach((slide, idx) => {
+            slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+            const title = slide.querySelector('.slide-title');
+            if (title && title.clientHeight > 54) {
+              errors.push(`${slide.id}: .slide-title wrapped to 2 lines (${title.clientHeight}px)`);
+            }
+            slide.querySelectorAll('.card-grid-4 .intent-card h3').forEach(h3 => {
+              if (h3.clientHeight > 30) {
+                errors.push(`${slide.id}: .card-grid-4 h3 wrapped to 2 lines (${h3.innerText})`);
+              }
+            });
+            slide.querySelectorAll('.svg-stage').forEach(stage => {
+              const sr = stage.getBoundingClientRect();
+              const svg = stage.querySelector('svg');
+              if (svg && svg.viewBox.baseVal.width > 0) {
+                const vb = svg.viewBox.baseVal;
+                const mismatch = Math.abs((sr.width / sr.height) - (vb.width / vb.height)) / (vb.width / vb.height);
+                if (mismatch > 0.22) {
+                  errors.push(`${slide.id}: SVG aspect mismatch ${Math.round(mismatch * 100)}%`);
+                }
+              }
+            });
+            slide.querySelectorAll('svg').forEach(svg => {
+              const rects = Array.from(svg.querySelectorAll('rect')).map(r => {
+                const b = r.getBBox();
+                const m = svg.getCTM().inverse().multiply(r.getCTM());
+                return { x: b.x + m.e, y: b.y + m.f, w: b.width, h: b.height, right: b.x + m.e + b.width, bottom: b.y + m.f + b.height };
+              });
+              svg.querySelectorAll('text').forEach(t => {
+                const b = t.getBBox();
+                const m = svg.getCTM().inverse().multiply(t.getCTM());
+                const tx = b.x + m.e, ty = b.y + m.f, tr = tx + b.width, tb = ty + b.height;
+                const tcx = (tx + tr) / 2, tcy = (ty + tb) / 2;
+                const cands = rects.filter(r => tcx >= r.x && tcx <= r.right && tcy >= r.y && tcy <= r.bottom).sort((a, b) => (a.w * a.h) - (b.w * b.h));
+                if (cands.length > 0) {
+                  const enc = cands[0];
+                  if (tx < enc.x + 2 || tr > enc.right - 2) {
+                    errors.push(`${slide.id}: SVG text '${t.textContent.trim()}' (${Math.round(b.width)}px) overflows rect (${Math.round(enc.w)}px)`);
+                  }
+                }
+              });
+            });
+          });
+          return errors;
+        })()
+        """
+        res = cdp_call(3, "Runtime.evaluate", {"expression": js_check, "returnByValue": True})
+        errors = res["result"]["result"]["value"]
+        assert errors == [], f"Presentation layout bugs detected: {errors}"
+    finally:
+        proc.terminate()
+
+
+
 
