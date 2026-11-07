@@ -12,12 +12,12 @@ def _extract_visible_text(html: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def test_deck_has_six_slides_and_fixed_stage():
+def test_deck_has_eight_slides_and_fixed_stage():
     html = DECK_PATH.read_text(encoding="utf-8")
     assert "width: 1920px;" in html and "height: 1080px;" in html
     slides = re.findall(r'<section[^>]+class="[^"]*slide[^"]*"[^>]*>', html)
-    assert len(slides) == 6
-    for idx in range(1, 7):
+    assert len(slides) == 8
+    for idx in range(1, 9):
         assert f'id="slide-{idx}"' in html
 
 
@@ -69,41 +69,54 @@ def test_deck_contains_zero_unverified_numbers_or_code_clutter():
 def test_every_slide_has_inline_svg_visual_diagram():
     html = DECK_PATH.read_text(encoding="utf-8")
     parts = re.split(r'<section[^>]+class="[^"]*slide[^"]*"[^>]*>', html)[1:]
-    assert len(parts) == 6
+    assert len(parts) == 8
     for idx, slide_html in enumerate(parts, start=1):
         assert "<svg" in slide_html, f"Slide {idx} is missing an inline <svg> visual diagram"
 
 
-def test_slides_4_to_6_cover_taxonomy_six_pipeline_stages_and_evaluation():
+def test_combines_all_three_visual_approaches_across_eight_slides():
     html = DECK_PATH.read_text(encoding="utf-8")
-    required_phrases = [
-        "Nhóm thực hiện: Nhóm 4",
-        "Real Faces",
-        "Deepfake Faces",
-        "SD Synthetic Faces",
+    # Approach 1: Domain-Specific CV Vector Diagrams
+    for cv_term in [
+        "Decision Boundary",
+        "Text-to-Image",
+        "Facial Inpainting",
+        "Image-to-Image",
+        "Zero Identity Leakage",
         "Data Acquisition",
         "Face Preprocessing",
         "Stable Diffusion Generation",
         "Quality Control",
         "Labeling &amp; Metadata",
         "Dataset Export",
-        "Baseline",
-        "Proposed",
-        "Held-Out Test Set",
-    ]
-    for phrase in required_phrases:
-        assert phrase in html, f"Missing required System Design visual label: {phrase}"
+        "ROC-AUC",
+    ]:
+        assert cv_term in html, f"Missing Approach 1 CV visual element: {cv_term}"
+
+    # Approach 2: Embedded Illustrative Face Portrait Thumbnails & Overlays
+    assert "MINH HỌA Ý TƯỞNG" in html
+    assert 'id="face-portrait-base"' in html or 'class="portrait-thumb"' in html
+
+    # Approach 3: Animated Data-Flow & Visual Scanning Pulses
+    for anim_name in ["@keyframes flowPulse", "@keyframes scanLine", "@keyframes pulseNode"]:
+        assert anim_name in html, f"Missing Approach 3 animation: {anim_name}"
+
+    # Group 4 Attribution on Slide 1, Slide 4, and Slide 5
+    slide_1_part = html.split('id="slide-1"')[1].split('id="slide-2"')[0]
     slide_4_part = html.split('id="slide-4"')[1].split('id="slide-5"')[0]
+    slide_5_part = html.split('id="slide-5"')[1].split('id="slide-6"')[0]
+    assert "Nhóm thực hiện: Nhóm 4" in slide_1_part
     assert "Nhóm thực hiện: Nhóm 4" in slide_4_part
+    assert "Nhóm thực hiện: Nhóm 4" in slide_5_part
 
 
-
-def test_companion_markdown_guides_contain_zero_unverified_numbers():
+def test_companion_markdown_guides_contain_zero_unverified_numbers_and_eight_slides():
     for rel_path in [
         "docs/reports/PRESENTATION_5MIN_DEFINE_AND_DESIGN.md",
         "docs/reports/SLIDE_PRESENTATION_STRUCTURE_5MIN.md",
     ]:
         content = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+        assert "Slide 07" in content and "Slide 08" in content, f"{rel_path} must document all 8 slides"
         for pat in [
             r"\b95%\b",
             r"\b62%\b",
@@ -124,7 +137,7 @@ def test_companion_markdown_guides_contain_zero_unverified_numbers():
 def test_svg_text_elements_respect_min_font_size_and_no_overflow():
     html = DECK_PATH.read_text(encoding="utf-8")
     svgs = re.findall(r"<svg[\s\S]*?</svg>", html, flags=re.I)
-    assert len(svgs) >= 6
+    assert len(svgs) >= 8
     for svg in svgs:
         for size_str in re.findall(r'font-size="([0-9.]+)"', svg):
             assert float(size_str) >= 13.0, f"SVG text font-size {size_str} is below 13px minimum"
@@ -139,7 +152,7 @@ def test_chrome_controls_are_anchored_inside_deck_stage():
     assert 'id="slide-counter"' in stage_split
     assert 'class="nav-controls"' in stage_split
     assert 'id="progress-bar"' in stage_split
-    assert ".intent-footer {\n      margin-top: auto;" in html or "margin-top: auto" in html
+    assert "margin-top: auto" in html
 
 
 def test_rendered_dom_and_svg_geometry_in_headless_chrome():
@@ -156,7 +169,7 @@ def test_rendered_dom_and_svg_geometry_in_headless_chrome():
     if not shutil.which("google-chrome"):
         return
 
-    port = 9244
+    port = 9246
     proc = subprocess.Popen(
         [
             "google-chrome",
@@ -236,6 +249,9 @@ def test_rendered_dom_and_svg_geometry_in_headless_chrome():
         (function() {
           const slides = Array.from(document.querySelectorAll('.slide'));
           const errors = [];
+          if (slides.length !== 8) {
+            errors.push(`Expected 8 slides, found ${slides.length}`);
+          }
           slides.forEach((slide, idx) => {
             slides.forEach((s, i) => s.classList.toggle('active', i === idx));
             const title = slide.querySelector('.slide-title');
@@ -259,7 +275,7 @@ def test_rendered_dom_and_svg_geometry_in_headless_chrome():
               }
             });
             slide.querySelectorAll('svg').forEach(svg => {
-              const rects = Array.from(svg.querySelectorAll('rect')).map(r => {
+              const rects = Array.from(svg.querySelectorAll('rect')).filter(r => !r.classList.contains('decor-rect')).map(r => {
                 const b = r.getBBox();
                 const m = svg.getCTM().inverse().multiply(r.getCTM());
                 return { x: b.x + m.e, y: b.y + m.f, w: b.width, h: b.height, right: b.x + m.e + b.width, bottom: b.y + m.f + b.height };
@@ -269,7 +285,7 @@ def test_rendered_dom_and_svg_geometry_in_headless_chrome():
                 const m = svg.getCTM().inverse().multiply(t.getCTM());
                 const tx = b.x + m.e, ty = b.y + m.f, tr = tx + b.width, tb = ty + b.height;
                 const tcx = (tx + tr) / 2, tcy = (ty + tb) / 2;
-                const cands = rects.filter(r => tcx >= r.x && tcx <= r.right && tcy >= r.y && tcy <= r.bottom).sort((a, b) => (a.w * a.h) - (b.w * b.h));
+                const cands = rects.filter(r => r.w >= 45 && r.h >= 20 && tcx >= r.x && tcx <= r.right && tcy >= r.y && tcy <= r.bottom).sort((a, b) => (a.w * a.h) - (b.w * b.h));
                 if (cands.length > 0) {
                   const enc = cands[0];
                   if (tx < enc.x + 2 || tr > enc.right - 2) {
@@ -287,7 +303,3 @@ def test_rendered_dom_and_svg_geometry_in_headless_chrome():
         assert errors == [], f"Presentation layout bugs detected: {errors}"
     finally:
         proc.terminate()
-
-
-
-

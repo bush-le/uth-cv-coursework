@@ -1,113 +1,107 @@
-# Technical Design Spec: 5-Minute Visual Define & System Design Slide Deck
-## Topic 11: Stable Diffusion-Based Synthetic Facial Image Dataset Generation for Deepfake Detection
+# 5-Minute Ultra-Visual Define & System Design Slide Deck Specification (8-Slide Edition)
 
-- **Status**: Approved Direction (Visual-First, Zero Unverified Numbers, Intent-Focused)
-- **Target Deliverable**: `docs/reports/presentation_5min_define_and_design.html`
-- **Design System**: `Blue Professional` (`#fdfae7` warm cream canvas, `#1e2bfa` single electric cobalt accent, `Space Grotesk` + `Inter`) + `frontend-slides` (`viewport-base.css` fixed `1920×1080` 16:9 stage)
-- **Duration**: 5 Minutes (6 High-Impact Visual Slides)
-
----
-
-## 1. Core Intent & Strict Content Guardrails
-
-### 1.1 Presentation Goal
-Trình bày **Define (Định nghĩa Bài toán, Phạm vi, Cấu trúc Dataset)** và **Design System (Luồng Pipeline Dự Kiến & Thiết Kế Thực Nghiệm Đánh Giá)** trong đúng 5 phút bằng ngôn ngữ thị giác (sơ đồ khối SVG, luồng mũi tên, thẻ trực quan lấp đầy 100% khung hình `1920×1080`).
-
-### 1.2 Strict Content Exclusions (TUYỆT ĐỐI KHÔNG ĐƯA VÀO SLIDE)
-1. **Không đưa bất kỳ con số/số liệu nào chưa thực hiện hoặc chưa kiểm chứng**:
-   - Cấm tuyệt đối các con số giả định/chưa chạy như `95% -> 62%`, `>= 92%`, `>= 85%`, `Laplacian >= 50`, `CLIP >= 0.28`, `0.85`, `78.4`, `0.312`, `3,000 - 5,000`, `256x256`, `512x512`, `70% / 15% / 15%`, `< 6GB VRAM`, `50 steps`, `seed 42`, `alpha = 0.4`, `lr = 1e-4`.
-2. **Không đưa chi tiết kỹ thuật vụn vặt / đường dẫn code / JSON thô**:
-   - Không hiển thị tên file code (`src/...`, `data/...`), không dùng khối `<pre><code>` JSON đen, không nêu `SHA-256`, `FP16`, `AdamW`, `BCEWithLogitsLoss`, hay giải thích toán học U-Net/VAE/Fourier.
-3. **Không dùng màu sắc cầu vồng hoặc thanh công cụ thừa**:
-   - Loại bỏ toàn bộ màu cam (`#d97706`), đỏ (`#dc2626`), xanh lá (`#059669`), tím (`#9333ea`) trên viền/nền thẻ và loại bỏ thanh HUD đen + ngăn kéo Speaker Notes.
-   - Tuân thủ 100% kỷ luật đơn sắc của `Blue Professional`: nền kem `#fdfae7`, điểm nhấn duy nhất xanh cobalt `#1e2bfa`, thẻ phủ sắc xanh 4% (`rgba(30, 43, 250, 0.04)`) với viền mờ 20% (`rgba(30, 43, 250, 0.2)`).
-4. **Không để bất kỳ khoảng trống chết nào trên khung hình `1920×1080`**:
-   - Mọi slide phải dùng bố cục CSS Grid / Flex `stretch` lấp đầy toàn bộ vùng nội dung `1776×820`, chữ to rõ từ xa (`18px–60px`).
+- **Project**: `uth-cv-coursework` — Topic 11: *Stable Diffusion-Based Synthetic Facial Image Dataset Generation for Deepfake Detection*
+- **Group Attribution**: `Nhóm thực hiện: Nhóm 4`
+- **Target Artifact**: `docs/reports/presentation_5min_define_and_design.html` (with companion guides `docs/reports/PRESENTATION_5MIN_DEFINE_AND_DESIGN.md` and `docs/reports/SLIDE_PRESENTATION_STRUCTURE_5MIN.md`)
+- **Design System**: `Blue Professional` (`#fdfae7` warm cream canvas, `#1e2bfa` single electric cobalt blue accent) + `frontend-slides/viewport-base.css` (`1920×1080` fixed 16:9 stage).
 
 ---
 
-## 2. Visual Slide-by-Slide Architecture (6 Slides)
+## 1. Intent & Why
 
-### Slide 01: Title & 4-Pillar Visual Roadmap (`layout-cover-split`)
-- **Left Column (54% width)**:
-  - Eyebrow & Tag Pill: `COMPUTER VISION COURSEWORK • TOPIC 11`
-  - Accent Line (`60×4px` cobalt)
-  - `H1`: *Stable Diffusion-Based Synthetic Facial Image Dataset Generation for Deepfake Detection*
-  - Subtitle: *Định Nghĩa Bài Toán & Thiết Kế Hệ Thống Sinh Dữ Liệu Khuôn Mặt Tổng Hợp*
-  - Bottom Presenter Card: Thông tin sinh viên thực hiện, trường UTH, và định hướng báo cáo.
-- **Right Column (46% width, full height)**:
-  - Khối sơ đồ 4 Trụ Cột Luận Chứng kết nối trực quan bằng mũi tên SVG:
-    1. `01 / Define Problem` — Khoảng trống dữ liệu trong phát hiện Deepfake
-    2. `02 / Define Scope` — Mục tiêu & 3 chế độ sinh ảnh khuôn mặt 2D
-    3. `03 / Design Dataset & System` — Phân nhóm dữ liệu & Pipeline 6 bước
-    4. `04 / Design Evaluation` — Thực nghiệm đối chứng & Kết quả kỳ vọng
+The presentation must communicate **Problem Definition (Define)** and **Proposed System Architecture (Design System)** in 5 minutes with maximum visual impact. To eliminate the "text-in-boxes" feel while strictly avoiding any unexecuted numbers or fabricated experimental results, this design combines **three visual layers** across an expanded **8-slide structure**:
 
-### Slide 02: 01 / Define the Problem (`layout-problem`)
-- **Header**: Eyebrow `01 / PROBLEM DEFINITION` | Tag `Research Motivation` | `H2`: *Tại Sao Cần Sinh Dữ Liệu Khuôn Mặt Tổng Hợp Cho Bài Toán Phát Hiện Deepfake?*
-- **Top Visual Zone (62% height) — SVG Contrast Diagram**:
-  - **Nhánh Trên (Hạn Chế Của Hướng Tiếp Cận Dữ Liệu Hiện Tại)**:
-    `Thu Thập Ảnh Thật & Deepfake Sẵn Có` $\to$ `Rào Cản Riêng Tư, Chi Phí Gán Nhãn & Kém Đa Dạng` $\to$ `Mô Hình Phát Hiện Khó Tổng Quát Hóa Trước Kỹ Thuật Sinh Mới`
-  - **Nhánh Dưới (Hướng Đi Đề Xuất Với Stable Diffusion)**:
-    `Chủ Động Sinh Khuôn Mặt Tổng Hợp Có Kiểm Soát` $\to$ `Đa Dạng Hóa Thuộc Tính & Tự Động Hóa Nhãn Nguồn Gốc` $\to$ `Bổ Sung Dữ Liệu Giúp Cải Thiện Mô Hình Phát Hiện Deepfake`
-- **Bottom Zone (38% height) — 3 Equal Visual Cards**:
-  1. `01. Sự Phụ Thuộc Vào Dữ Liệu`: Hiệu năng của các mô hình Deepfake Detection phụ thuộc trực tiếp vào độ đa dạng và chất lượng của dữ liệu huấn luyện.
-  2. `02. Điểm Nghẽn Thu Thập & Gán Nhãn`: Dữ liệu khuôn mặt thực tế bị giới hạn bởi quyền riêng tư sinh trắc học và chi phí gán nhãn thủ công.
-  3. `03. Câu Hỏi Nghiên Cứu Trọng Tâm`: Liệu dữ liệu khuôn mặt tổng hợp từ Stable Diffusion có giúp mở rộng độ đa dạng và nâng cao hiệu quả phát hiện Deepfake?
+1. **Approach 1 — Domain-Specific Computer Vision Vector Graphics & 50% Text Reduction**:
+   - Replace wordy bullet paragraphs and plain text rectangles with recognizable Computer Vision illustrations: 2D feature-space decision boundaries, Gaussian latent noise grids ($z_T \to z_0$), 5-point facial landmarks, face crop bounding boxes, binary inpainting masks, biometric identity vaults, a 3-stage quality control sieve/funnel, neural network detector blocks (`CNN / ViT`), and a conceptual ROC curve schematic.
+2. **Approach 2 — Embedded Illustrative Face Thumbnails & Technical Overlays**:
+   - Embed self-contained, stylized facial portrait thumbnails (constructed via high-craft layered SVG portraits with realistic shading, facial contours, landmark nodes, mask overlays, and noise patterns, explicitly badged as `MINH HỌA Ý TƯỞNG / CONCEPTUAL ILLUSTRATION`) inside Slides 01, 02, 03, 05, and 07 so viewers immediately see how faces are aligned, masked, synthesized, grouped by identity, and filtered.
+3. **Approach 3 — Animated Data-Flow & Visual Scanning Pulses**:
+   - Add pure CSS/SVG keyframe animations (`@keyframes flowPulse` on pipeline connectors, `@keyframes scanLine` on facial landmark detection boxes, and `@keyframes pulseNode` on active synthesis/gate nodes) to guide the audience's eye along the pipeline flow during live presentation.
 
-### Slide 03: 02 / Define Objectives & Scope (`layout-scope`)
-- **Header**: Eyebrow `02 / OBJECTIVES & SCOPE` | Tag `System Boundaries` | `H2`: *Mục Tiêu Hệ Thống & Phạm Vi Ba Chế Độ Tạo Sinh Khuôn Mặt*
-- **Top Visual Zone (64% height) — 3 Visual Mode Cards (Each with SVG Input → Process → Output Diagram)**:
-  1. **Text-to-Image (T2I)**:
-     - SVG Flow: `[Văn Bản Mô Tả (Prompt)]` $\to$ `[Stable Diffusion]` $\to$ `[Khuôn Mặt Tổng Hợp Mới]`
-     - Ý định: Tạo các nhân dạng khuôn mặt mới hoàn toàn nhằm tăng độ đa dạng cho tập dữ liệu.
-  2. **Facial Inpainting**:
-     - SVG Flow: `[Ảnh Mặt Thật + Vùng Chọn]` $\to$ `[Stable Diffusion]` $\to$ `[Khuôn Mặt Chỉnh Sửa Cục Bộ]`
-     - Ý định: Thay đổi cục bộ từng vùng trên khuôn mặt (như mắt, miệng, biểu cảm) trên nền ảnh thật.
-  3. **Image-to-Image (Img2Img)**:
-     - SVG Flow: `[Ảnh Mặt Thật + Điều Kiện]` $\to$ `[Stable Diffusion]` $\to$ `[Khuôn Mặt Biến Đổi Bề Mặt]`
-     - Ý định: Biến đổi diện mạo, ánh sáng hoặc thuộc tính khuôn mặt trong khi giữ bố cục gốc.
-- **Bottom Zone (36% height) — 2-Column Visual Scope Matrix**:
-  - **Trong Phạm Vi Nghiên Cứu (In-Scope)**: Tập trung vào **ảnh khuôn mặt tĩnh 2D**; xây dựng quy trình sinh, lọc và đóng gói dữ liệu bằng Stable Diffusion; đánh giá tác động trên mô hình phát hiện Deepfake.
-  - **Ngoài Phạm Vi Nghiên Cứu (Out-of-Scope)**: **Không** xử lý Video Diffusion hay chuỗi thời gian; **không** huấn luyện mới mô hình Diffusion từ đầu; **không** đi sâu mổ xẻ kiến trúc nội bộ U-Net/VAE.
+---
 
-### Slide 04: 03 / Dataset Design & Provenance (`layout-dataset`)
-- **Header**: Eyebrow `03 / DATASET DESIGN` | Tag `Taxonomy & Split Integrity` | `H2`: *Thiết Kế Ba Nhóm Dữ Liệu Độc Lập & Nguyên Tắc Phân Tập Chống Rò Rỉ*
-- **Left Column (48% width, full height) — Visual 3-Group Taxonomy Stack**:
-  - Sơ đồ 3 khối phân biệt rõ bản chất dữ liệu (không đánh đồng ảnh SD với Deepfake truyền thống):
-    1. **`01. Real Faces` (Ảnh Mặt Thật)**: Ảnh chân dung người thật nguyên bản làm chuẩn đối chiếu.
-    2. **`02. Deepfake Faces` (Ảnh Mặt Bị Thao Túng)**: Khuôn mặt thật bị hoán đổi hoặc làm giả bằng kỹ thuật Deepfake.
-    3. **`03. SD Synthetic Faces` (Ảnh Sinh Từ Stable Diffusion)**: Khuôn mặt tổng hợp hoặc biến đổi có kiểm soát từ pipeline đề xuất.
-  - Callout Box: Giữ 3 nhóm tách biệt trong metadata để bảo toàn nguồn gốc (*provenance*) và hỗ trợ phân tích độc lập từng loại.
-- **Right Column (52% width, full height) — 2 Visual Architecture Panels**:
-  - **Top Panel — SVG Identity-Disjoint Split Diagram**:
-    Minh họa trực quan: Toàn bộ ảnh gốc và các ảnh biến thể sinh ra từ cùng một nhân dạng bắt buộc đi vào cùng một tập (`Train`, `Validation`, hoặc `Test`), ngăn chặn mô hình học thuộc khuôn mặt.
-  - **Bottom Panel — Visual Metadata Schema Map**:
-    6 khối thẻ thuộc tính trực quan (`Mã Định Danh Ảnh`, `Nhãn Phân Loại`, `Nhóm Nguồn Gốc`, `Chế Độ Sinh Ảnh`, `Liên Kết Ảnh Gốc`, `Câu Lệnh Prompt`) thay cho code JSON thô.
+## 2. Goals, Non-Goals, Anti-Goals & Hard Constraints
 
-### Slide 05: 04 / System Architecture — Proposed Pipeline (`layout-architecture` — HERO SLIDE)
-- **Header**: Eyebrow `04 / SYSTEM ARCHITECTURE` | Tag `Proposed End-to-End Pipeline` | `H2`: *Kiến Trúc Luồng Hệ Thống Dự Kiến Qua Sáu Giai Đoạn Khép Kín*
-- **Main Visual Zone (72% height) — Full-Canvas 6-Stage Pipeline SVG (`1776×620`)**:
-  Sơ đồ luồng trực quan lớn, rõ nét, thể hiện ý định xuyên suốt từ đầu vào đến đầu ra:
-  - **Stage 01: Data Acquisition** (*Thu thập nguồn ảnh mặt thật & Deepfake*)
-    $\to$ **Stage 02: Face Preprocessing** (*Phát hiện khuôn mặt, căn chỉnh & cắt chuẩn hóa*)
-    $\to$ **Stage 03: SD Generation** (*Sinh ảnh tổng hợp qua 3 chế độ T2I, Inpaint, Img2Img*)
-    $\to$ **Stage 04: Quality Control** (*Kiểm tra độ nét, cấu trúc khuôn mặt & khớp mô tả* — nhánh **Đạt** đi tiếp, nhánh **Không đạt** loại bỏ)
-    $\to$ **Stage 05: Labeling & Metadata** (*Gán nhãn nhóm dữ liệu & ghi nhận thông tin nguồn gốc*)
-    $\to$ **Stage 06: Dataset Export** (*Tổ chức tập dữ liệu Train / Val / Test theo danh tính*)
-    $\implies$ **Downstream Task: Deepfake Detection & Evaluation** (*Đưa vào huấn luyện & đánh giá mô hình phát hiện*)
-- **Bottom Zone (28% height) — 3 Architecture Intent Cards**:
-  1. `Thiết Kế Module Hóa`: Tách biệt rõ khâu tiền xử lý, sinh ảnh, lọc chất lượng và đóng gói dữ liệu.
-  2. `Kiểm Soát Chất Lượng Tự Động`: Ngăn chặn các mẫu ảnh sinh bị lỗi biến dạng khuôn mặt hoặc sai lệch mô tả lọt vào dataset.
-  3. `Sẵn Sàng Cho Huấn Luyện Hạ Nguồn`: Xuất bản dữ liệu có cấu trúc đồng nhất kèm metadata đầy đủ cho mô hình phát hiện.
+- **Goals**:
+  - Expand the deck to **8 slides (`#slide-1` through `#slide-8`)** so each slide has one unmistakable visual centerpiece and zero visual crowding.
+  - Ensure 100% canvas fill (`1920×1080` stage, `1776×820` content stage) with zero dead space, zero text clipping (`SVG_TEXT_OVERFLOWS_RECT = 0`), and matched SVG `viewBox` aspect ratios (`SVG_ASPECT_RATIO_MISMATCH <= 22%`).
+  - Display **`Nhóm thực hiện: Nhóm 4`** prominently on Slide 01 (Cover), Slide 04 (Scope), and Slide 05 (Dataset Design).
+- **Non-Goals & Anti-Goals**:
+  - **Zero Unverified Numbers / Thresholds / Code Clutter**: Forbidden in visible text: `95%`, `62%`, `92%`, `85%`, `50.0`, `>= 50`, `0.28`, `0.30`, `0.85`, `78.4`, `0.312`, `3,000`, `5,000`, `256`, `512`, `70%`, `15%`, `6GB`, `50 steps`, `30 steps`, `SHA-256`, `FP16`, `1e-4`, `src/`, `data/`, `<pre>`.
+  - **Zero Rainbow / Dark Colors**: Strictly enforce `--bg: #fdfae7`, `--primary: #1e2bfa`, `--text: #111111`, `--text-muted: #6b6b6b`. Forbidden hex codes: `#d97706`, `#dc2626`, `#059669`, `#9333ea`, `#1e293b`, `#111827`.
 
-### Slide 06: 05 / Evaluation Design & Expected Outcomes (`layout-evaluation`)
-- **Header**: Eyebrow `05 / EVALUATION & OUTCOMES` | Tag `Validation & Deliverables` | `H2`: *Thiết Kế Thực Nghiệm Đối Chứng & Bốn Kết Quả Đầu Ra Dự Kiến*
-- **Top Visual Zone (56% height) — SVG A/B Comparative Experiment Diagram**:
-  - **Nhánh Baseline**: `[Dữ Liệu: Real + Deepfake]` $\to$ `[Huấn Luyện Mô Hình Phát Hiện (CNN / ViT)]`
-  - **Nhánh Proposed**: `[Dữ Liệu: Real + Deepfake + SD Synthetic]` $\to$ `[Huấn Luyện Cùng Kiến Trúc Mô Hình]`
-  - Hai nhánh hội tụ vào: **`[Đánh Giá Trên Cùng Tập Test Độc Lập]`** $\to$ **`[So Sánh: Accuracy, Precision, Recall, F1, ROC-AUC & Độ Tổng Quát Hóa]`**
-- **Bottom Zone (44% height) — 4 Visual Deliverable Cards**:
-  1. `01. Structured Facial Dataset`: Bộ dữ liệu ảnh khuôn mặt phân tách rõ 3 nhóm kèm metadata nguồn gốc.
-  2. `02. Automated Generation Pipeline`: Quy trình tự động từ tiền xử lý, sinh ảnh Stable Diffusion đến lọc chất lượng.
-  3. `03. Detection Benchmark Setup`: Mô hình cơ sở và kịch bản thực nghiệm đối chứng đánh giá giá trị dữ liệu.
-  4. `04. Empirical Evaluation Report`: Phân tích thực nghiệm về đóng góp của dữ liệu tổng hợp cho phát hiện Deepfake.
+---
+
+## 3. Approaches Considered & Selected
+
+| Approach | Summary | Trade-off | Decision |
+| :--- | :--- | :--- | :--- |
+| **1. CV Vector Illustrations + 50% Text Reduction** | Replace text boxes with CV diagrams (landmarks, latent grids, decision boundaries, funnels). | Crisp and self-contained, but needs portrait thumbnails for immediate human-face recognition. | **Selected (Combined)** |
+| **2. Embedded Illustrative Face Thumbnails + Overlays** | Show visual face portraits for Real, Deepfake, T2I, Inpainting Mask, Img2Img, and QC Rejection. | High visual engagement; must be clearly badged as conceptual illustrations (`Minh họa ý tưởng`) to uphold academic honesty. | **Selected (Combined)** |
+| **3. Animated Pipeline Flow & Scanning Pulses** | Animate arrows (`stroke-dashoffset`), landmark scan lines, and quality gate pulses. | Guides attention dynamically during live defense; best layered on top of Approaches 1 & 2. | **Selected (Combined)** |
+
+---
+
+## 4. 8-Slide Visual Architecture Specification
+
+### Slide 01 (`#slide-1`) — Cover & Core System Vision (`Nhóm thực hiện: Nhóm 4`)
+- **Left Column**:
+  - Top badge: `COMPUTER VISION COURSEWORK • TOPIC 11 • NHÓM THỰC HIỆN: NHÓM 4`.
+  - Headline: *Stable Diffusion-Based Synthetic Facial Image Dataset Generation for Deepfake Detection*.
+  - Middle Visual Panel: **Visual Face-to-Detector Thesis Strip** (`viewBox="0 0 880 310"`) featuring an illustrated source portrait with landmark nodes $\to$ animated Stable Diffusion latent prism $\to$ Quality Gate shield $\to$ Deepfake Detector network.
+  - Bottom 2×2 Metadata Grid (`Nhóm thực hiện: Nhóm 4 — Đề tài 11`).
+- **Right Column**:
+  - Full-height **4-Pillar Visual Roadmap** (`01 Define Problem` $\to$ `02 Define Mechanisms & Scope` $\to$ `03 Design Dataset & Architecture` $\to$ `04 Design Evaluation`) with animated spine connectors.
+
+### Slide 02 (`#slide-2`) — `01 / PROBLEM DEFINITION`: Dịch Chuyển Miền & Biên Quyết Định
+- **Top Row (2-Column Visual Split)**:
+  - **Left Panel (`Visual Artifact Contrast`)**: Side-by-side face portrait comparison (`viewBox="0 0 800 380"`) contrasting *Classic Face-Swap Artifacts (Vết ghép biên mặt cục bộ)* vs. *Stable Diffusion Synthesis (Khử nhiễu toàn cục mượt từ Latent)* with animated scan-line overlays.
+  - **Right Panel (`Conceptual Feature Space & Decision Boundary`)**: 2D feature-space diagram (`viewBox="0 0 800 380"`) showing clusters of `Real Faces`, `Classic Deepfakes`, and `Unseen Diffusion Samples` crossing the old static decision boundary vs. the expanded boundary achieved by active Stable Diffusion data generation.
+- **Bottom Row**: 3 concise visual cards (*01. Dịch Chuyển Miền Tạo Sinh*, *02. Kiểm Soát Thuộc Tính Chủ Động*, *03. Mở Rộng Biên Quyết Định*).
+
+### Slide 03 (`#slide-3`) — `02 / GENERATION MECHANISMS`: 3 Chế Độ Tạo Sinh Khuôn Mặt (Visual Showcase)
+- **Full-Stage 3-Column Visual Gallery** (`grid-template-columns: repeat(3, 1fr)`):
+  - **Column 1 (`01. Text-to-Image`)**: Full-height SVG (`viewBox="0 0 510 560"`) showing structured prompt attribute tags $\to$ Gaussian noise grid ($z_T$) $\to$ animated denoising progression $\to$ **Synthesized Portrait Thumbnail** with clean facial geometry.
+  - **Column 2 (`02. Facial Inpainting`)**: Full-height SVG (`viewBox="0 0 510 560"`) showing **Real Portrait Thumbnail + Binary Mask Overlay on Eyes/Mouth** $\to$ Masked Latent Denoising $\to$ **Locally Manipulated Portrait Thumbnail** preserving outer facial contour.
+  - **Column 3 (`03. Image-to-Image`)**: Full-height SVG (`viewBox="0 0 510 560"`) showing **Source Portrait Thumbnail + 5-Point Landmark Wireframe** $\to$ Guided Attribute Transfer $\to$ **Translated Portrait Thumbnail** preserving pose geometry with altered lighting/expression.
+
+### Slide 04 (`#slide-4`) — `03 / SCOPE & BOUNDARIES`: Phạm Vi Thực Hiện & Giới Hạn (`Nhóm thực hiện: Nhóm 4`)
+- **Header**: Includes prominent **`Nhóm thực hiện: Nhóm 4`** cobalt badge.
+- **Body (2-Column Visual Matrix)**:
+  - **Left Panel (`Phạm Vi Trọng Tâm — In-Scope`)**: Large visual diagram (`viewBox="0 0 800 420"`) + 4 compact cards with custom CV icons (*Miền ảnh tĩnh khuôn mặt 2D*, *Đường ống đa chế độ & Lọc tự động*, *Phân tập độc lập danh tính*, *Thực nghiệm đối chứng Detector*).
+  - **Right Panel (`Giới Hạn Loại Trừ — Out-of-Scope`)**: Large visual boundary diagram (`viewBox="0 0 800 420"`) + 4 compact exclusion cards (*Không xử lý Video / Audio thời gian thực*, *Không Pre-train lại Stable Diffusion*, *Không mạo danh cá nhân thật*, *Không tối ưu phần cứng biên Edge*).
+
+### Slide 05 (`#slide-5`) — `04 / DATASET DESIGN`: Ba Nhóm Nguồn Gốc & Két Khóa Danh Tính (`Nhóm thực hiện: Nhóm 4`)
+- **Header**: Includes **`Nhóm thực hiện: Nhóm 4`** badge.
+- **Left Column**:
+  - 3 Visual Taxonomy Cards (`01. Real Faces`, `02. Deepfake Faces`, `03. SD Synthetic Faces`) with portrait avatar icons and dual-label badges (`Real vs. Fake` + `Sub-group Provenance`).
+  - Bottom **Visual Sample ID Card** illustrating the 6 metadata attributes (`Mã Định Danh`, `Nhãn Nhị Phân`, `Nhóm Nguồn Gốc`, `Chế Độ Sinh`, `Khóa Danh Tính Gốc`, `Đặc Tả Prompt`) as a visual ID badge.
+- **Right Column**:
+  - Full-height **Identity-Disjoint Biometric Vault SVG (`viewBox="0 0 880 680`)**:
+    - Left Vault (`Cụm Danh Tính Gốc A`): Portrait A + 3 variant thumbnails locked inside `Tập Train & Validation`.
+    - Center Animated Barrier: **`RÀO CHẮN ĐỘC LẬP DANH TÍNH (ZERO IDENTITY LEAKAGE)`** with shield icon.
+    - Right Vault (`Cụm Danh Tính Gốc B`): Portrait B + 3 variant thumbnails locked inside `Tập Kiểm Thử (Held-Out Test)`.
+
+### Slide 06 (`#slide-6`) — `05 / SYSTEM ARCHITECTURE`: Đường Ống 6 Giai Đoạn Dự Kiến (Hero Animated Pipeline)
+- **Top Row**: Full-canvas **6-Stage Animated Pipeline SVG (`viewBox="0 0 1700 465"`)**:
+  - `STAGE 01: Data Acquisition` $\to$ `STAGE 02: Face Preprocessing` $\to$ `STAGE 03: Stable Diffusion Generation` $\to$ `STAGE 04: Quality Control` $\to$ `STAGE 05: Labeling & Metadata` $\to$ `STAGE 06: Dataset Export` $\implies$ Full-width **`TÁC VỤ HẠ NGUỒN (DOWNSTREAM): Deepfake Detection & Evaluation`**.
+  - Every connector arrow features an animated data-flow pulse (`@keyframes flowPulse`), and each stage includes a custom visual icon alongside concise labels.
+- **Bottom Row**: 3 Architectural Intent cards (*Thiết Kế Mô-Đun Hóa*, *Chốt Chặn Kiểm Định Tự Động*, *Khớp Nối Trực Tiếp Tác Vụ Phát Hiện*).
+
+### Slide 07 (`#slide-7`) — `06 / AUTOMATED CURATION GATE`: Cơ Chế Tiền Xử Lý & Phễu Sàng Lọc Tự Động (Visual Deep-Dive)
+- **Left Panel (`Stage 02 Deep-Dive: Tiền Xử Lý & Căn Chỉnh Khuôn Mặt`)**:
+  - Visual SVG (`viewBox="0 0 800 560"`) illustrating:
+    1. *Ảnh đầu vào* với khung quét **Bounding Box + 5 Điểm Mốc (Mắt, Mũi, Miệng)** có hiệu ứng tia quét (`@keyframes scanLine`).
+    2. *Căn chỉnh hình học (Affine Alignment)* đưa khuôn mặt về trục chuẩn.
+    3. *Trích xuất mặt nạ ngữ nghĩa (Semantic Mask)* khoanh vùng mắt, mũi, miệng phục vụ Inpainting.
+- **Right Panel (`Stage 04 Deep-Dive: Phễu Kiểm Định Chất Lượng 3 Tầng`)**:
+  - Visual Funnel SVG (`viewBox="0 0 800 560"`) showing raw synthesized portraits entering a 3-layer sieve:
+    1. *Tầng 1 — Độ Sắc Nét (Sharpness Gate)*: Loại bỏ ảnh mờ nhòe.
+    2. *Tầng 2 — Cấu Trúc Giải Phẫu Mặt (Landmark Integrity)*: Loại bỏ ảnh méo mặt / biến dạng.
+    3. *Tầng 3 — Độ Khớp Ngữ Nghĩa (Prompt-Image Alignment)*: Loại bỏ ảnh lệch mô tả.
+  - Bottom split: **Nhánh Loại Bỏ (Mẫu mờ / biến dạng)** vs. **Nhánh Đạt Chuẩn (Chuyển tiếp sang Stage 05 Gán nhãn)**.
+
+### Slide 08 (`#slide-8`) — `07 / EVALUATION & EXPECTED OUTCOMES`: Thiết Kế Thực Nghiệm Đối Chứng & Sản Phẩm Đầu Ra
+- **Top Row**: Full-width SVG (`viewBox="0 0 1680 340"`) of the **2-Branch Comparative Experiment**:
+  - `Nhánh Baseline (Real + Deepfake)` vs. `Nhánh Proposed (Real + Deepfake + SD Synthetic)` $\to$ **Shared `Deepfake Detector` Network Diagram** $\to$ `Held-Out Test Set` $\to$ **Conceptual ROC / Generalization Curve Plot** visually showing the expected upward curve shift from Baseline (dashed) to Proposed (solid cobalt) alongside key evaluation criteria (`Accuracy`, `Precision`, `Recall`, `F1-Score`, `ROC-AUC`).
+- **Bottom Row**: 4 Equal-Width Deliverable Cards (*01. Bộ Dữ Liệu Chuẩn Hóa*, *02. Đường Ống Sinh & Lọc*, *03. Thực Nghiệm Đối Chứng*, *04. Báo Cáo Học Thuật*).
