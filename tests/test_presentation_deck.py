@@ -77,6 +77,7 @@ def test_every_slide_has_inline_svg_visual_diagram():
 def test_slides_4_to_6_cover_taxonomy_six_pipeline_stages_and_evaluation():
     html = DECK_PATH.read_text(encoding="utf-8")
     required_phrases = [
+        "Nhóm thực hiện: Nhóm 4",
         "Real Faces",
         "Deepfake Faces",
         "SD Synthetic Faces",
@@ -92,6 +93,9 @@ def test_slides_4_to_6_cover_taxonomy_six_pipeline_stages_and_evaluation():
     ]
     for phrase in required_phrases:
         assert phrase in html, f"Missing required System Design visual label: {phrase}"
+    slide_4_part = html.split('id="slide-4"')[1].split('id="slide-5"')[0]
+    assert "Nhóm thực hiện: Nhóm 4" in slide_4_part
+
 
 
 def test_companion_markdown_guides_contain_zero_unverified_numbers():
