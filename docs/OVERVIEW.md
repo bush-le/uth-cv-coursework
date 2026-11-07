@@ -1,47 +1,59 @@
-# Coursework Project Living Roadmap & Overview (`/docs/OVERVIEW.md`)
+# SD video ? Project overview
 
-- **Motivation/Background**: Track overarching coursework progress across sequential milestones, linking active specifications, status trackers, and verifiable artifacts.
-- **Purpose**: Serve as the dynamic project dashboard and roadmap for the UTH Computer Vision Coursework.
-- **Overview Pipeline**: Milestone 0 (Scaffold & Governance) -> Milestone 1 (EDA & Data Pipeline) -> Milestone 2 (Baseline Modeling) -> Milestone 3 (Advanced Exploration & Optimization) -> Milestone 4 (Evaluation & Final Report).
-- **Detailed Plan**: §1 Milestone Roadmap; §2 Phase Specifications Directory; §3 Active Progress Trackers; §4 Deliverables Checklist.
-- **References**: `.agents/rules/PROJECT_ROADMAP_TEMPLATE.md`, `.agents/AI_FIRST_LIFECYCLE.md`, `docs/PURPOSE.md`.
+- **Motivation/Background**: C?n ??c t? SD-video nh?t qu?n tr??c benchmark pretrained.
+- **Purpose**: T?ng h?p ph?m vi, t?i li?u, thi?t k? v? tr?ng th?i b?ng ch?ng.
+- **Overview Pipeline**: DEFINE -> DESIGN -> Pretrained benchmark -> Selection -> Dataset -> Conditional detector.
+- **Detailed Plan**: C?c m?c b?n d??i tr?nh b?y scope, ki?n tr?c, protocol, milestones v? gi?i h?n.
+- **References**: [Lifecycle](../.agents/AI_FIRST_LIFECYCLE.md), [DEFINE](PURPOSE.md), [DESIGN](phases/SD_VIDEO_SYSTEM_DESIGN.md).
 - **Created**: 2026-11-02T07:22:00+07:00
-- **Last Updated**: 2026-11-02T07:22:00+07:00
+- **Last Updated**: 2026-11-07T14:21:07+07:00
 
 ---
 
-## 1. Milestone Roadmap
+[STATUS: ACTIVE]
 
-| Milestone | Phase Name | Focus & Objectives | Target DoD | Status |
-| :---: | :--- | :--- | :--- | :---: |
-| **M0** | Scaffold & Governance | Setup repo structure, governance, configs, tests | Scaffolding verified, make test passing | **DONE** |
-| **M1** | Data Pipeline & EDA | Dataset ingestion, transforms, validation & DataModule | DataModule verified, smoke tests pass | **PLANNED** |
-| **M2** | Baseline Modeling | Build baseline CV model architecture, train pipeline | Training loop running, baseline metrics logged | **PLANNED** |
-| **M3** | Advanced Optimization | Architectural tuning, augmentations, loss refinements | Target metric improvement verified | **PLANNED** |
-| **M4** | Evaluation & Reports | Comprehensive benchmarking, HTML report, slide deck | Final report & demo ready for submission | **PLANNED** |
+## 1. H??ng d? ?n
+
+Benchmark pretrained SD video face swapping tr??c, ch?n c?u h?nh r?i sinh dataset. Fine-tune generator optional; detector utility phase sau. Kh?ng k? th?a image baseline code ho?c k?t qu? m? ph?ng.
+
+## 2. T?i li?u chu?n
+
+- [DEFINE](PURPOSE.md).
+- [DESIGN](phases/SD_VIDEO_SYSTEM_DESIGN.md).
+- [Protocol v? metrics hai phase](experiments/SD_VIDEO_BASELINE_PROTOCOL.md).
+- [Milestones v? DoD](progress/SD_VIDEO_ROADMAP.md).
+- [Report Markdown](reports/SD_VIDEO_DEFINE_AND_DESIGN.md) / [HTML tr?c quan](reports/SD_VIDEO_DEFINE_AND_DESIGN.html).
+
+## 3. Tr?ng th?i
+
+M0 t?i li?u ?? c?; M1?M5 implementation/benchmark/dataset ch?a ch?y. M6 detector c? ?i?u ki?n; M7 report th?c nghi?m ch?a c?. Tests generic c?a skeleton kh?ng ch?ng minh inference video ch?y ???c. Ch?a c? model chi?n th?ng ho?c t?c ?? ?? x?c minh.
+
+## 4. Deliverables checklist
+
+- [x] DEFINE, DESIGN, protocol v? roadmap SD-only.
+- [ ] Data integrity, normalization v? grouped split.
+- [ ] Feasibility b?n backend, c? log c? failures.
+- [ ] Pilot comparison, QA v? holdout selection.
+- [ ] Dataset versioned, provenance v? batch resume.
+- [ ] Detector utility n?u v??t gate d? li?u/budget.
+- [ ] B?o c?o th?c nghi?m v? demo t?i l?p.
 
 ---
 
-## 2. Phase Specifications Directory
+## References & Technical Documentation
 
-- `docs/phases/01_DATA_PIPELINE.md`: Data ingestion, splitting, and augmentation specs. *(Pending M1)*
-- `docs/phases/02_BASELINE_MODEL.md`: Baseline model architecture and training loop specs. *(Pending M2)*
-- `docs/phases/03_ADVANCED_EXPERIMENTS.md`: Exploration of advanced backbones and loss functions. *(Pending M3)*
-- `docs/phases/04_FINAL_EVALUATION.md`: Final benchmark protocol and report preparation. *(Pending M4)*
+### Official API Docs
 
----
+[Diffusers](https://huggingface.co/docs/diffusers/index), [PyTorch](https://docs.pytorch.org/docs/stable/index.html).
 
-## 3. Active Progress Trackers
+### Technical Standards
 
-- `docs/progress/00_SCAFFOLD_STATUS.md`: Initial repository initialization tracker.
-- `docs/progress/01_DATA_PIPELINE_STATUS.md`: Active task tracker for data phase.
+[JSON Lines](https://jsonlines.org/), [FFmpeg](https://ffmpeg.org/ffmpeg.html).
 
----
+### CV Conventions
 
-## 4. Deliverables Checklist
+[Face-Adapter](https://github.com/FaceAdapter/Face-Adapter), [REFace](https://github.com/Sanoojan/REFace), [VFace](https://github.com/Sanoojan/VFace), [VividFace](https://github.com/deepcs233/VividFace).
 
-- [x] Repository scaffolding, CI tooling, Makefile & AI Governance.
-- [ ] Exploratory Jupyter Notebook with initial dataset analysis.
-- [ ] Modular Python package (`src/`) implementing data, model, and training pipelines.
-- [ ] Reproducible experiment checkpoints under `experiments/checkpoints/`.
-- [ ] Comprehensive Markdown technical report and interactive HTML visual report under `docs/reports/`.
+### Internal Architecture Links
+
+[DEFINE](PURPOSE.md), [DESIGN](phases/SD_VIDEO_SYSTEM_DESIGN.md), [PROTOCOL](experiments/SD_VIDEO_BASELINE_PROTOCOL.md), [ROADMAP](progress/SD_VIDEO_ROADMAP.md).
