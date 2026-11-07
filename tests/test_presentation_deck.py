@@ -117,3 +117,16 @@ def test_companion_markdown_guides_contain_zero_unverified_numbers():
             assert not re.search(pat, content, flags=re.I), f"Forbidden number {pat} in {rel_path}"
 
 
+def test_svg_text_elements_respect_min_font_size_and_no_overflow():
+    html = DECK_PATH.read_text(encoding="utf-8")
+    svgs = re.findall(r"<svg[\s\S]*?</svg>", html, flags=re.I)
+    assert len(svgs) >= 6
+    for svg in svgs:
+        for size_str in re.findall(r'font-size="([0-9.]+)"', svg):
+            assert float(size_str) >= 13.0, f"SVG text font-size {size_str} is below 13px minimum"
+        for text_content in re.findall(r"<text[^>]*>(.*?)</text>", svg):
+            clean = re.sub(r"&[a-zA-Z0-9#]+;", "X", text_content).strip()
+            assert len(clean) <= 58, f"SVG <text> too long ({len(clean)} chars), risks clipping: {clean}"
+
+
+
