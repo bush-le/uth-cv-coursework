@@ -72,3 +72,48 @@ def test_every_slide_has_inline_svg_visual_diagram():
     assert len(parts) == 6
     for idx, slide_html in enumerate(parts, start=1):
         assert "<svg" in slide_html, f"Slide {idx} is missing an inline <svg> visual diagram"
+
+
+def test_slides_4_to_6_cover_taxonomy_six_pipeline_stages_and_evaluation():
+    html = DECK_PATH.read_text(encoding="utf-8")
+    required_phrases = [
+        "Real Faces",
+        "Deepfake Faces",
+        "SD Synthetic Faces",
+        "Data Acquisition",
+        "Face Preprocessing",
+        "Stable Diffusion Generation",
+        "Quality Control",
+        "Labeling &amp; Metadata",
+        "Dataset Export",
+        "Baseline",
+        "Proposed",
+        "Held-Out Test Set",
+    ]
+    for phrase in required_phrases:
+        assert phrase in html, f"Missing required System Design visual label: {phrase}"
+
+
+def test_companion_markdown_guides_contain_zero_unverified_numbers():
+    for rel_path in [
+        "docs/reports/PRESENTATION_5MIN_DEFINE_AND_DESIGN.md",
+        "docs/reports/SLIDE_PRESENTATION_STRUCTURE_5MIN.md",
+    ]:
+        content = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+        for pat in [
+            r"\b95%\b",
+            r"\b62%\b",
+            r"\b92%\b",
+            r"\b85%\b",
+            r"\b0\.28\b",
+            r"\b0\.85\b",
+            r"\b78\.4\b",
+            r"\b3,000\b",
+            r"\b5,000\b",
+            r"\b256\b",
+            r"\b512\b",
+            r"\b6GB\b",
+        ]:
+            assert not re.search(pat, content, flags=re.I), f"Forbidden number {pat} in {rel_path}"
+
+

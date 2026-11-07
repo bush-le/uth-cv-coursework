@@ -948,34 +948,498 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 04: 03 / DATASET DESIGN (Shell for Task 1 -> Populated in Task 2)
+           SLIDE 04: 03 / DATASET DESIGN
            ==================================================================== -->
       <section class="slide" id="slide-4" data-title="03 / Dataset Design">
         <div class="slide-inner">
-          <div class="svg-stage">
-            <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="400" fill="#fdfae7"/></svg>
+          <header class="slide-header">
+            <div class="header-left">
+              <span class="section-tag">03 / DATASET DESIGN &bull; THIẾT KẾ CẤU TRÚC BỘ DỮ LIỆU</span>
+              <h2 class="slide-title">Phân Nhóm Nguồn Gốc Dữ Liệu &amp; <span>Chiến Lược Phân Tập Độc Lập</span></h2>
+            </div>
+            <div class="header-summary">
+              Tổ chức dữ liệu theo <strong>3 nhóm nguồn gốc tường minh</strong> và tách biệt hoàn toàn theo <strong>danh tính khuôn mặt gốc</strong> để chống rò rỉ sinh trắc học.
+            </div>
+          </header>
+
+          <div class="slide-body" style="grid-template-columns: 0.94fr 1.06fr; gap: 28px;">
+            <!-- Left Column: 3-Group Provenance Stack + Governance Callout -->
+            <div style="display: grid; grid-template-rows: 1fr 1fr 1fr auto; gap: 16px; min-height: 0;">
+              <div class="intent-card" style="padding: 18px 22px;">
+                <div class="intent-card-top">
+                  <div class="icon-box soft">01</div>
+                  <div>
+                    <h3>Real Faces (Nhóm Ảnh Khuôn Mặt Thật)</h3>
+                    <span class="meta-label">NHÃN HUẤN LUYỆN: REAL &bull; NGUỒN THAM CHIẾU GỐC</span>
+                  </div>
+                </div>
+                <p style="font-size: 15.5px;">
+                  Các ảnh khuôn mặt tự nhiên đã qua căn chỉnh chuẩn hóa, đóng vai trò lớp đối chứng chân thực và làm nguồn đầu vào cho các chế độ biến đổi có điều kiện.
+                </p>
+              </div>
+
+              <div class="intent-card" style="padding: 18px 22px;">
+                <div class="intent-card-top">
+                  <div class="icon-box soft">02</div>
+                  <div>
+                    <h3>Deepfake Faces (Nhóm Giả Mạo Truyền Thống)</h3>
+                    <span class="meta-label">NHÃN HUẤN LUYỆN: FAKE &bull; NGUỒN GIẢ MẠO ĐỐI CHỨNG</span>
+                  </div>
+                </div>
+                <p style="font-size: 15.5px;">
+                  Các mẫu khuôn mặt can thiệp bằng kỹ thuật hoán đổi hoặc tái diễn truyền thống, giúp bộ phát hiện duy trì năng lực nhận diện các dạng giả mạo quen thuộc.
+                </p>
+              </div>
+
+              <div class="intent-card highlight" style="padding: 18px 22px;">
+                <div class="intent-card-top">
+                  <div class="icon-box">03</div>
+                  <div>
+                    <h3>SD Synthetic Faces (Nhóm Tổng Hợp Stable Diffusion)</h3>
+                    <span class="meta-label">NHÃN HUẤN LUYỆN: FAKE / SYNTHETIC &bull; TRỌNG TÂM ĐỀ TÀI</span>
+                  </div>
+                </div>
+                <p style="font-size: 15.5px;">
+                  Các mẫu khuôn mặt khởi tạo từ <strong>Text-to-Image, Facial Inpainting, Image-to-Image</strong> đã vượt qua cổng kiểm định chất lượng và được lưu vết phương thức sinh.
+                </p>
+              </div>
+
+              <div class="visual-panel cobalt-solid" style="padding: 16px 22px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                  <div>
+                    <div style="font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85;">NGUYÊN TẮC QUẢN TRỊ NHÃN KÉP</div>
+                    <div style="font-family: var(--font-display); font-size: 18px; font-weight: 700; margin-top: 2px;">Phân loại nhị phân (Real vs. Fake) kết hợp nhãn nguồn gốc chi tiết (Sub-group Provenance)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Identity-Disjoint Partitioning SVG + Metadata Schema Grid -->
+            <div style="display: grid; grid-template-rows: 1.25fr 0.75fr; gap: 20px; min-height: 0;">
+              <div class="visual-panel surface-tint">
+                <div class="panel-header">
+                  <div class="panel-title">Cơ Chế Phân Tập Độc Lập Theo Danh Tính (Identity-Disjoint Split)</div>
+                  <span class="step-badge">Chống Rò Rỉ Dữ Liệu</span>
+                </div>
+                <div class="svg-stage">
+                  <svg viewBox="0 0 880 310" xmlns="http://www.w3.org/2000/svg" aria-label="Identity-Disjoint Partitioning Diagram">
+                    <defs>
+                      <marker id="arr-s4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 1 L 9 5 L 0 9 z" fill="#1e2bfa"/>
+                      </marker>
+                    </defs>
+
+                    <!-- Left Cluster: Identity Group A -> Train/Val -->
+                    <rect x="16" y="16" width="376" height="278" rx="14" fill="rgba(30,43,250,0.04)" stroke="#1e2bfa" stroke-width="2"/>
+                    <rect x="36" y="34" width="336" height="78" rx="10" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="204" y="65" text-anchor="middle" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="18" font-weight="700">Cụm Danh Tính Gốc A</text>
+                    <text x="204" y="92" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14">Ảnh mặt thật A + Toàn bộ biến thể Inpaint / Img2Img</text>
+
+                    <line x1="204" y1="112" x2="204" y2="162" stroke="#1e2bfa" stroke-width="3" marker-end="url(#arr-s4)"/>
+
+                    <rect x="36" y="170" width="336" height="102" rx="10" fill="#1e2bfa"/>
+                    <text x="204" y="212" text-anchor="middle" fill="#fdfae7" font-family="Space Grotesk, sans-serif" font-size="20" font-weight="700">Tập Train &amp; Validation</text>
+                    <text x="204" y="242" text-anchor="middle" fill="rgba(253,250,231,0.9)" font-family="Inter, sans-serif" font-size="14">Phục vụ học biểu diễn &amp; tinh chỉnh mô hình</text>
+
+                    <!-- Center Barrier: Strict Isolation Wall -->
+                    <line x1="440" y1="12" x2="440" y2="298" stroke="#1e2bfa" stroke-width="3.5" stroke-dasharray="9 6"/>
+                    <rect x="404" y="108" width="72" height="94" rx="10" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2.5"/>
+                    <text x="440" y="146" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">RÀO CHẮN</text>
+                    <text x="440" y="166" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">ĐỘC LẬP</text>
+                    <text x="440" y="186" text-anchor="middle" fill="#111111" font-family="Inter, sans-serif" font-size="11" font-weight="700">KHÔNG GIAO</text>
+
+                    <!-- Right Cluster: Identity Group B -> Held-Out Test -->
+                    <rect x="488" y="16" width="376" height="278" rx="14" fill="rgba(30,43,250,0.04)" stroke="#1e2bfa" stroke-width="2"/>
+                    <rect x="508" y="34" width="336" height="78" rx="10" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="676" y="65" text-anchor="middle" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="18" font-weight="700">Cụm Danh Tính Gốc B</text>
+                    <text x="676" y="92" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14">Ảnh mặt thật B + Toàn bộ biến thể Inpaint / Img2Img</text>
+
+                    <line x1="676" y1="112" x2="676" y2="162" stroke="#1e2bfa" stroke-width="3" marker-end="url(#arr-s4)"/>
+
+                    <rect x="508" y="170" width="336" height="102" rx="10" fill="rgba(30,43,250,0.12)" stroke="#1e2bfa" stroke-width="2.5"/>
+                    <text x="676" y="212" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="20" font-weight="700">Tập Kiểm Thử (Held-Out Test)</text>
+                    <text x="676" y="242" text-anchor="middle" fill="#111111" font-family="Inter, sans-serif" font-size="14" font-weight="600">Đánh giá khách quan trên khuôn mặt chưa từng gặp</text>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Bottom Right: 6-Cell Visual Metadata Attribute Grid -->
+              <div class="visual-panel">
+                <div class="panel-header">
+                  <div class="panel-title">Cấu Trúc Thuộc Tính Metadata Chuẩn Hóa Cho Từng Mẫu Ảnh</div>
+                  <span class="step-badge outline">6 Trường Cốt Lõi</span>
+                </div>
+                <div class="card-grid-3" style="gap: 12px; flex: 1;">
+                  <div class="meta-item" style="padding: 12px 16px;">
+                    <span class="meta-label">01. Mã Định Danh Mẫu</span>
+                    <span class="meta-value" style="font-size: 15px;">Khóa nhận diện duy nhất cho từng mẫu ảnh trong bộ dữ liệu.</span>
+                  </div>
+                  <div class="meta-item" style="padding: 12px 16px;">
+                    <span class="meta-label">02. Nhãn Phân Lớp</span>
+                    <span class="meta-value" style="font-size: 15px;">Nhãn huấn luyện trực tiếp (Real hoặc Fake / Synthetic).</span>
+                  </div>
+                  <div class="meta-item" style="padding: 12px 16px;">
+                    <span class="meta-label">03. Nhóm Nguồn Gốc</span>
+                    <span class="meta-value" style="font-size: 15px;">Phân định rõ Real Faces, Deepfake hay SD Synthetic.</span>
+                  </div>
+                  <div class="meta-item" style="padding: 12px 16px;">
+                    <span class="meta-label">04. Chế Độ Tạo Sinh</span>
+                    <span class="meta-value" style="font-size: 15px;">Ghi nhận nhánh Text-to-Image, Inpainting hoặc Img2Img.</span>
+                  </div>
+                  <div class="meta-item" style="padding: 12px 16px;">
+                    <span class="meta-label">05. Liên Kết Danh Tính</span>
+                    <span class="meta-value" style="font-size: 15px;">Truy vết khuôn mặt gốc để khóa phân tập độc lập.</span>
+                  </div>
+                  <div class="meta-item" style="padding: 12px 16px;">
+                    <span class="meta-label">06. Đặc Tả Điều Kiện</span>
+                    <span class="meta-value" style="font-size: 15px;">Lưu thông tin ngữ cảnh văn bản và vùng mặt can thiệp.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           SLIDE 05: 04 / SYSTEM ARCHITECTURE (Shell for Task 1 -> Populated in Task 2)
+           SLIDE 05: 04 / SYSTEM ARCHITECTURE (HERO PIPELINE SLIDE)
            ==================================================================== -->
       <section class="slide" id="slide-5" data-title="04 / System Architecture">
         <div class="slide-inner">
-          <div class="svg-stage">
-            <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="400" fill="#fdfae7"/></svg>
+          <header class="slide-header">
+            <div class="header-left">
+              <span class="section-tag">04 / SYSTEM ARCHITECTURE &bull; KIẾN TRÚC LUỒNG PIPELINE ĐỀ XUẤT</span>
+              <h2 class="slide-title">Sơ Đồ Tổng Thể <span>Đường Ống 6 Giai Đoạn Dự Kiến</span></h2>
+            </div>
+            <div class="header-summary">
+              Luồng xử lý tuần tự khép kín từ <strong>thu thập &amp; chuẩn hóa khuôn mặt</strong>, <strong>tạo sinh đa chế độ</strong>, <strong>sàng lọc chất lượng</strong> đến <strong>huấn luyện phát hiện hạ nguồn</strong>.
+            </div>
+          </header>
+
+          <div class="slide-body" style="grid-template-rows: 1.56fr 0.64fr; gap: 22px;">
+            <!-- Top Row: Hero Full-Canvas 6-Stage Pipeline SVG Diagram -->
+            <div class="visual-panel surface-tint" style="padding: 20px 24px;">
+              <div class="panel-header" style="margin-bottom: 8px;">
+                <div class="panel-title">Luồng Kiến Trúc Hệ Thống Dự Kiến (End-to-End Proposed System Pipeline)</div>
+                <span class="step-badge">6 Giai Đoạn Tuần Tự &rarr; Tác Vụ Hạ Nguồn</span>
+              </div>
+              <div class="svg-stage">
+                <svg viewBox="0 0 1700 470" xmlns="http://www.w3.org/2000/svg" aria-label="6-Stage Proposed System Architecture Pipeline">
+                  <defs>
+                    <marker id="arr-hero" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1e2bfa"/>
+                    </marker>
+                    <marker id="arr-hero-light" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                      <path d="M 0 1 L 9 5 L 0 9 z" fill="#6b6b6b"/>
+                    </marker>
+                  </defs>
+
+                  <!-- =========================================================
+                       STAGE 01: DATA ACQUISITION
+                       ========================================================= -->
+                  <g transform="translate(10, 12)">
+                    <rect x="0" y="0" width="246" height="236" rx="16" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2.5"/>
+                    <rect x="18" y="18" width="108" height="28" rx="6" fill="rgba(30,43,250,0.1)"/>
+                    <text x="72" y="37" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">STAGE 01</text>
+                    <text x="18" y="76" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="21" font-weight="700">Data Acquisition</text>
+                    <text x="18" y="102" fill="#1e2bfa" font-family="Inter, sans-serif" font-size="14" font-weight="700">Thu Thập Nguồn Dữ Liệu</text>
+                    <line x1="18" y1="118" x2="228" y2="118" stroke="rgba(30,43,250,0.2)" stroke-width="1.5"/>
+                    <text x="18" y="146" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Ảnh khuôn mặt thật gốc</text>
+                    <text x="18" y="174" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Mẫu giả mạo đối chứng</text>
+                    <text x="18" y="202" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Tập kịch bản mô tả thuộc tính</text>
+                  </g>
+
+                  <line x1="256" y1="130" x2="286" y2="130" stroke="#1e2bfa" stroke-width="3.5" marker-end="url(#arr-hero)"/>
+
+                  <!-- =========================================================
+                       STAGE 02: FACE PREPROCESSING
+                       ========================================================= -->
+                  <g transform="translate(294, 12)">
+                    <rect x="0" y="0" width="246" height="236" rx="16" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2.5"/>
+                    <rect x="18" y="18" width="108" height="28" rx="6" fill="rgba(30,43,250,0.1)"/>
+                    <text x="72" y="37" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">STAGE 02</text>
+                    <text x="18" y="76" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="21" font-weight="700">Face Preprocessing</text>
+                    <text x="18" y="102" fill="#1e2bfa" font-family="Inter, sans-serif" font-size="14" font-weight="700">Tiền Xử Lý Khuôn Mặt</text>
+                    <line x1="18" y1="118" x2="228" y2="118" stroke="rgba(30,43,250,0.2)" stroke-width="1.5"/>
+                    <text x="18" y="146" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Phát hiện &amp; định vị vùng mặt</text>
+                    <text x="18" y="174" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Căn chỉnh điểm mốc hình học</text>
+                    <text x="18" y="202" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Tạo mặt nạ vùng chỉnh sửa</text>
+                  </g>
+
+                  <line x1="540" y1="130" x2="570" y2="130" stroke="#1e2bfa" stroke-width="3.5" marker-end="url(#arr-hero)"/>
+
+                  <!-- =========================================================
+                       STAGE 03: STABLE DIFFUSION GENERATION (Highlighted Core)
+                       ========================================================= -->
+                  <g transform="translate(578, 12)">
+                    <rect x="0" y="0" width="276" height="236" rx="16" fill="#1e2bfa" stroke="#1e2bfa" stroke-width="3"/>
+                    <rect x="18" y="18" width="154" height="28" rx="6" fill="rgba(253,250,231,0.2)"/>
+                    <text x="95" y="37" text-anchor="middle" fill="#fdfae7" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">STAGE 03 &bull; CORE</text>
+                    <text x="18" y="74" fill="#fdfae7" font-family="Space Grotesk, sans-serif" font-size="20.5" font-weight="700">Stable Diffusion Generation</text>
+                    <text x="18" y="100" fill="rgba(253,250,231,0.9)" font-family="Inter, sans-serif" font-size="14" font-weight="600">Tạo Sinh Khuôn Mặt Đa Chế Độ</text>
+                    <line x1="18" y1="116" x2="258" y2="116" stroke="rgba(253,250,231,0.3)" stroke-width="1.5"/>
+                    <rect x="18" y="128" width="240" height="28" rx="6" fill="rgba(253,250,231,0.14)"/>
+                    <text x="138" y="147" text-anchor="middle" fill="#fdfae7" font-family="Inter, sans-serif" font-size="13.5" font-weight="600">1. Text-to-Image (Sinh toàn phần)</text>
+                    <rect x="18" y="162" width="240" height="28" rx="6" fill="rgba(253,250,231,0.14)"/>
+                    <text x="138" y="181" text-anchor="middle" fill="#fdfae7" font-family="Inter, sans-serif" font-size="13.5" font-weight="600">2. Facial Inpainting (Sửa cục bộ)</text>
+                    <rect x="18" y="196" width="240" height="28" rx="6" fill="rgba(253,250,231,0.14)"/>
+                    <text x="138" y="215" text-anchor="middle" fill="#fdfae7" font-family="Inter, sans-serif" font-size="13.5" font-weight="600">3. Image-to-Image (Chuyển đổi)</text>
+                  </g>
+
+                  <line x1="854" y1="130" x2="884" y2="130" stroke="#1e2bfa" stroke-width="3.5" marker-end="url(#arr-hero)"/>
+
+                  <!-- =========================================================
+                       STAGE 04: QUALITY CONTROL (With Reject Branch)
+                       ========================================================= -->
+                  <g transform="translate(892, 12)">
+                    <rect x="0" y="0" width="246" height="236" rx="16" fill="rgba(30,43,250,0.08)" stroke="#1e2bfa" stroke-width="2.5"/>
+                    <rect x="18" y="18" width="144" height="28" rx="6" fill="#1e2bfa"/>
+                    <text x="90" y="37" text-anchor="middle" fill="#fdfae7" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">STAGE 04 &bull; GATE</text>
+                    <text x="18" y="76" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="21" font-weight="700">Quality Control</text>
+                    <text x="18" y="102" fill="#1e2bfa" font-family="Inter, sans-serif" font-size="14" font-weight="700">Cổng Kiểm Định Tự Động</text>
+                    <line x1="18" y1="118" x2="228" y2="118" stroke="rgba(30,43,250,0.25)" stroke-width="1.5"/>
+                    <text x="18" y="146" fill="#111111" font-family="Inter, sans-serif" font-size="14.5" font-weight="500">&bull; Kiểm tra độ sắc nét ảnh</text>
+                    <text x="18" y="174" fill="#111111" font-family="Inter, sans-serif" font-size="14.5" font-weight="500">&bull; Xác thực cấu trúc khuôn mặt</text>
+                    <text x="18" y="202" fill="#111111" font-family="Inter, sans-serif" font-size="14.5" font-weight="500">&bull; Đối chiếu độ khớp mô tả</text>
+                  </g>
+
+                  <!-- Reject Sub-branch from Stage 04 -->
+                  <line x1="1015" y1="248" x2="1015" y2="286" stroke="#6b6b6b" stroke-width="2.5" stroke-dasharray="5 4" marker-end="url(#arr-hero-light)"/>
+                  <rect x="892" y="294" width="246" height="44" rx="10" fill="#fdfae7" stroke="#6b6b6b" stroke-width="1.8" stroke-dasharray="6 4"/>
+                  <text x="1015" y="321" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="13.5" font-weight="600">Loại bỏ mẫu mờ / biến dạng</text>
+
+                  <!-- Pass Arrow to Stage 05 -->
+                  <line x1="1138" y1="130" x2="1168" y2="130" stroke="#1e2bfa" stroke-width="3.5" marker-end="url(#arr-hero)"/>
+
+                  <!-- =========================================================
+                       STAGE 05: LABELING & METADATA
+                       ========================================================= -->
+                  <g transform="translate(1176, 12)">
+                    <rect x="0" y="0" width="246" height="236" rx="16" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2.5"/>
+                    <rect x="18" y="18" width="108" height="28" rx="6" fill="rgba(30,43,250,0.1)"/>
+                    <text x="72" y="37" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">STAGE 05</text>
+                    <text x="18" y="76" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="20.5" font-weight="700">Labeling &amp; Metadata</text>
+                    <text x="18" y="102" fill="#1e2bfa" font-family="Inter, sans-serif" font-size="14" font-weight="700">Định Danh &amp; Lưu Vết</text>
+                    <line x1="18" y1="118" x2="228" y2="118" stroke="rgba(30,43,250,0.2)" stroke-width="1.5"/>
+                    <text x="18" y="146" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Gán nhãn phân lớp nhị phân</text>
+                    <text x="18" y="174" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Ghi nhận phương thức sinh</text>
+                    <text x="18" y="202" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Liên kết khóa danh tính gốc</text>
+                  </g>
+
+                  <line x1="1422" y1="130" x2="1452" y2="130" stroke="#1e2bfa" stroke-width="3.5" marker-end="url(#arr-hero)"/>
+
+                  <!-- =========================================================
+                       STAGE 06: DATASET EXPORT
+                       ========================================================= -->
+                  <g transform="translate(1460, 12)">
+                    <rect x="0" y="0" width="230" height="236" rx="16" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2.5"/>
+                    <rect x="18" y="18" width="108" height="28" rx="6" fill="rgba(30,43,250,0.1)"/>
+                    <text x="72" y="37" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">STAGE 06</text>
+                    <text x="18" y="76" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="21" font-weight="700">Dataset Export</text>
+                    <text x="18" y="102" fill="#1e2bfa" font-family="Inter, sans-serif" font-size="14" font-weight="700">Đóng Gói &amp; Phân Tập</text>
+                    <line x1="18" y1="118" x2="212" y2="118" stroke="rgba(30,43,250,0.2)" stroke-width="1.5"/>
+                    <text x="18" y="146" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Chia Train / Val / Test</text>
+                    <text x="18" y="174" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Đảm bảo độc lập danh tính</text>
+                    <text x="18" y="202" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="14.5">&bull; Xuất bảng chỉ mục chuẩn</text>
+                  </g>
+
+                  <!-- =========================================================
+                       DOWNSTREAM CONDUIT: DEEPFAKE DETECTION & EVALUATION
+                       ========================================================= -->
+                  <path d="M 1575 248 L 1575 408 L 1390 408" fill="none" stroke="#1e2bfa" stroke-width="4" marker-end="url(#arr-hero)"/>
+
+                  <rect x="10" y="358" width="1368" height="98" rx="16" fill="rgba(30,43,250,0.06)" stroke="#1e2bfa" stroke-width="2.5"/>
+                  <rect x="30" y="378" width="290" height="58" rx="10" fill="#1e2bfa"/>
+                  <text x="175" y="404" text-anchor="middle" fill="#fdfae7" font-family="Space Grotesk, sans-serif" font-size="15" font-weight="700">TÁC VỤ HẠ NGUỒN (DOWNSTREAM)</text>
+                  <text x="175" y="424" text-anchor="middle" fill="rgba(253,250,231,0.9)" font-family="Inter, sans-serif" font-size="13">Deepfake Detection &amp; Evaluation</text>
+
+                  <rect x="348" y="378" width="470" height="58" rx="10" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2"/>
+                  <text x="583" y="404" text-anchor="middle" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="17" font-weight="700">Huấn Luyện Bộ Phát Hiện Khuôn Mặt Giả Mạo</text>
+                  <text x="583" y="425" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="13.5">Học đặc trưng phân biệt ảnh thật và ảnh tổng hợp / can thiệp</text>
+
+                  <line x1="818" y1="407" x2="868" y2="407" stroke="#1e2bfa" stroke-width="3" marker-end="url(#arr-hero)"/>
+
+                  <rect x="876" y="378" width="476" height="58" rx="10" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2"/>
+                  <text x="1114" y="404" text-anchor="middle" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="17" font-weight="700">Đánh Giá Đối Chứng Hiệu Năng Nhận Diện</text>
+                  <text x="1114" y="425" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="13.5">Đo lường mức cải thiện khả năng tổng quát hóa của mô hình</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Bottom Row: 3 Architectural Intent Cards -->
+            <div class="card-grid-3">
+              <div class="intent-card">
+                <div class="intent-card-top">
+                  <div class="icon-box">01</div>
+                  <h3>Thiết Kế Phân Tầng Mô-Đun Hóa</h3>
+                </div>
+                <p>
+                  Tách biệt rõ ràng giữa <strong>tiền xử lý hình học</strong>, <strong>khởi tạo bằng Stable Diffusion</strong> và <strong>quản trị dữ liệu</strong>, giúp hệ thống dễ bảo trì, mở rộng và tái lập thực nghiệm.
+                </p>
+              </div>
+
+              <div class="intent-card highlight">
+                <div class="intent-card-top">
+                  <div class="icon-box">02</div>
+                  <h3>Chốt Chặn Kiểm Định Tự Động</h3>
+                </div>
+                <p>
+                  Đặt <strong>Quality Control Gate</strong> ngay sau bước tạo sinh để loại bỏ sớm các mẫu biến dạng giải phẫu hoặc lệch ngữ nghĩa trước khi đưa vào tập huấn luyện.
+                </p>
+              </div>
+
+              <div class="intent-card">
+                <div class="intent-card-top">
+                  <div class="icon-box">03</div>
+                  <h3>Khớp Nối Trực Tiếp Tác Vụ Phát Hiện</h3>
+                </div>
+                <p>
+                  Đầu ra của đường ống dữ liệu được chuẩn hóa đồng bộ về định dạng và nhãn phân tập để cấp trực tiếp cho quy trình <strong>huấn luyện và kiểm thử Deepfake Detector</strong>.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           SLIDE 06: 05 / EVALUATION & EXPECTED OUTCOMES (Shell for Task 1 -> Populated in Task 2)
+           SLIDE 06: 05 / EVALUATION & EXPECTED OUTCOMES
            ==================================================================== -->
       <section class="slide" id="slide-6" data-title="05 / Evaluation &amp; Expected Outcomes">
         <div class="slide-inner">
-          <div class="svg-stage">
-            <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="400" fill="#fdfae7"/></svg>
+          <header class="slide-header">
+            <div class="header-left">
+              <span class="section-tag">05 / EVALUATION &amp; EXPECTED OUTCOMES &bull; ĐÁNH GIÁ &amp; ĐẦU RA DỰ KIẾN</span>
+              <h2 class="slide-title">Kịch Bản Thực Nghiệm Đối Chứng &amp; <span>Sản Phẩm Đầu Ra Dự Kiến</span></h2>
+            </div>
+            <div class="header-summary">
+              Kiểm chứng trực tiếp giá trị của dữ liệu tổng hợp Stable Diffusion thông qua <strong>thực nghiệm so sánh có kiểm soát</strong> trên cùng mô hình phát hiện.
+            </div>
+          </header>
+
+          <div class="slide-body" style="grid-template-rows: 1.26fr 0.84fr; gap: 22px;">
+            <!-- Top Row: 2-Branch Comparative Experiment SVG -->
+            <div class="visual-panel surface-tint">
+              <div class="panel-header">
+                <div class="panel-title">Thiết Kế Thực Nghiệm So Sánh: Baseline Training vs. Proposed Training</div>
+                <span class="step-badge">Kiểm Chứng Thực Nghiệm Có Kiểm Soát</span>
+              </div>
+              <div class="svg-stage">
+                <svg viewBox="0 0 1680 340" xmlns="http://www.w3.org/2000/svg" aria-label="2-Branch Comparative Evaluation Design">
+                  <defs>
+                    <marker id="arr-s6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1e2bfa"/>
+                    </marker>
+                  </defs>
+
+                  <!-- Branch A: Baseline -->
+                  <rect x="20" y="24" width="460" height="122" rx="14" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2" stroke-dasharray="8 5"/>
+                  <rect x="42" y="42" width="196" height="26" rx="6" fill="rgba(30,43,250,0.1)"/>
+                  <text x="140" y="60" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">NHÁNH ĐỐI CHỨNG (BASELINE)</text>
+                  <text x="42" y="96" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="21" font-weight="700">Real Faces + Deepfake Faces</text>
+                  <text x="42" y="124" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="15">Huấn luyện trên tập dữ liệu giả mạo truyền thống</text>
+
+                  <!-- Branch B: Proposed -->
+                  <rect x="20" y="186" width="460" height="130" rx="14" fill="#1e2bfa" stroke="#1e2bfa" stroke-width="2.5"/>
+                  <rect x="42" y="204" width="204" height="26" rx="6" fill="rgba(253,250,231,0.2)"/>
+                  <text x="144" y="222" text-anchor="middle" fill="#fdfae7" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">NHÁNH ĐỀ XUẤT (PROPOSED)</text>
+                  <text x="42" y="258" fill="#fdfae7" font-family="Space Grotesk, sans-serif" font-size="21" font-weight="700">Real + Deepfake + SD Synthetic Faces</text>
+                  <text x="42" y="288" fill="rgba(253,250,231,0.9)" font-family="Inter, sans-serif" font-size="15">Bổ sung dữ liệu khuôn mặt tổng hợp từ Stable Diffusion</text>
+
+                  <!-- Converging Arrows into Shared Detector -->
+                  <path d="M 480 85 L 552 85 L 552 145 L 598 145" fill="none" stroke="#1e2bfa" stroke-width="3" marker-end="url(#arr-s6)"/>
+                  <path d="M 480 251 L 552 251 L 552 195 L 598 195" fill="none" stroke="#1e2bfa" stroke-width="3.5" marker-end="url(#arr-s6)"/>
+
+                  <!-- Center Node: Shared Detector Architecture -->
+                  <rect x="608" y="76" width="336" height="188" rx="16" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2.5"/>
+                  <rect x="632" y="98" width="288" height="28" rx="6" fill="rgba(30,43,250,0.1)"/>
+                  <text x="776" y="117" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">CÙNG KIẾN TRÚC PHÁT HIỆN</text>
+                  <text x="776" y="160" text-anchor="middle" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="22" font-weight="700">Deepfake Detector</text>
+                  <text x="776" y="190" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="15">Giữ cố định kiến trúc mạng</text>
+                  <text x="776" y="214" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="15">&amp; cấu hình huấn luyện</text>
+
+                  <line x1="944" y1="170" x2="1006" y2="170" stroke="#1e2bfa" stroke-width="3.5" marker-end="url(#arr-s6)"/>
+
+                  <!-- Right Node 1: Held-Out Test Set -->
+                  <rect x="1016" y="76" width="296" height="188" rx="16" fill="rgba(30,43,250,0.06)" stroke="#1e2bfa" stroke-width="2.5"/>
+                  <rect x="1040" y="98" width="248" height="28" rx="6" fill="#1e2bfa"/>
+                  <text x="1164" y="117" text-anchor="middle" fill="#fdfae7" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">BENCHMARK ĐỘC LẬP</text>
+                  <text x="1164" y="160" text-anchor="middle" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="22" font-weight="700">Held-Out Test Set</text>
+                  <text x="1164" y="190" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="15">Kiểm thử trên các danh tính</text>
+                  <text x="1164" y="214" text-anchor="middle" fill="#6b6b6b" font-family="Inter, sans-serif" font-size="15">hoàn toàn tách biệt</text>
+
+                  <line x1="1312" y1="170" x2="1374" y2="170" stroke="#1e2bfa" stroke-width="3.5" marker-end="url(#arr-s6)"/>
+
+                  <!-- Right Node 2: Metrics & Generalization -->
+                  <rect x="1384" y="54" width="276" height="232" rx="16" fill="#fdfae7" stroke="#1e2bfa" stroke-width="2.5"/>
+                  <rect x="1406" y="74" width="232" height="28" rx="6" fill="rgba(30,43,250,0.1)"/>
+                  <text x="1522" y="93" text-anchor="middle" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="700">THƯỚC ĐO ĐÁNH GIÁ</text>
+                  <text x="1410" y="132" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="17" font-weight="700">&bull; Accuracy &amp; Precision</text>
+                  <text x="1410" y="164" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="17" font-weight="700">&bull; Recall &amp; F1-Score</text>
+                  <text x="1410" y="196" fill="#111111" font-family="Space Grotesk, sans-serif" font-size="17" font-weight="700">&bull; Diện tích ROC-AUC</text>
+                  <text x="1410" y="228" fill="#1e2bfa" font-family="Space Grotesk, sans-serif" font-size="17" font-weight="700">&bull; Độ tổng quát hóa miền</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Bottom Row: 4 Equal-Width Deliverable Cards -->
+            <div class="card-grid-4">
+              <div class="intent-card">
+                <div class="intent-card-top">
+                  <div class="icon-box">01</div>
+                  <h3>Bộ Dữ Liệu Khuôn Mặt Chuẩn Hóa</h3>
+                </div>
+                <p>
+                  Tập dữ liệu ảnh tĩnh có cấu trúc gồm <strong>Real, Deepfake và SD Synthetic</strong> với bảng chỉ mục metadata đầy đủ và phân tập độc lập danh tính.
+                </p>
+                <div class="intent-footer">
+                  <span>DELIVERABLE 01</span>
+                  <span>CURATED DATASET</span>
+                </div>
+              </div>
+
+              <div class="intent-card">
+                <div class="intent-card-top">
+                  <div class="icon-box">02</div>
+                  <h3>Đường Ống Tạo Sinh &amp; Kiểm Định</h3>
+                </div>
+                <p>
+                  Hệ thống phần mềm mô-đun hóa thực thi tự động từ <strong>tiền xử lý khuôn mặt, sinh ảnh đa chế độ</strong> đến <strong>sàng lọc chất lượng</strong>.
+                </p>
+                <div class="intent-footer">
+                  <span>DELIVERABLE 02</span>
+                  <span>MODULAR PIPELINE</span>
+                </div>
+              </div>
+
+              <div class="intent-card highlight">
+                <div class="intent-card-top">
+                  <div class="icon-box">03</div>
+                  <h3>Thực Nghiệm Phát Hiện Đối Chứng</h3>
+                </div>
+                <p>
+                  Kịch bản huấn luyện và đánh giá khách quan chứng minh vai trò của dữ liệu tổng hợp đối với <strong>hiệu năng phát hiện ảnh giả mạo</strong>.
+                </p>
+                <div class="intent-footer">
+                  <span>DELIVERABLE 03</span>
+                  <span>DETECTION BENCHMARK</span>
+                </div>
+              </div>
+
+              <div class="intent-card">
+                <div class="intent-card-top">
+                  <div class="icon-box">04</div>
+                  <h3>Báo Cáo &amp; Phân Tích Học Thuật</h3>
+                </div>
+                <p>
+                  Tài liệu đặc tả toàn diện phương pháp luận, thiết kế hệ thống, phân tích trực quan mẫu sinh và <strong>kết quả kiểm chứng thực nghiệm</strong>.
+                </p>
+                <div class="intent-footer">
+                  <span>DELIVERABLE 04</span>
+                  <span>TECHNICAL REPORT</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
