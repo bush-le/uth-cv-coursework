@@ -6,7 +6,7 @@
 - **Detailed Plan**: C?c m?c b?n d??i tr?nh b?y scope, ki?n tr?c, protocol, milestones v? gi?i h?n.
 - **References**: [Lifecycle](../.agents/AI_FIRST_LIFECYCLE.md), [DEFINE](PURPOSE.md), [DESIGN](phases/SD_VIDEO_SYSTEM_DESIGN.md).
 - **Created**: 2026-11-02T07:22:00+07:00
-- **Last Updated**: 2026-11-07T14:21:07+07:00
+- **Last Updated**: 2026-11-07T14:54:10+07:00
 
 ---
 
@@ -18,7 +18,7 @@
 2. [SYSTEM DESIGN](phases/SD_VIDEO_SYSTEM_DESIGN.md): architecture, modules, dataflow, interfaces, milestones, risks.
 3. [BASELINE PROTOCOL](experiments/SD_VIDEO_BASELINE_PROTOCOL.md): b?n repo SD, controls, quality/cost v? detector utility.
 4. [ROADMAP](progress/SD_VIDEO_ROADMAP.md): milestones c? DoD v? tr?ng th?i th?t.
-5. [REPORT](reports/SD_VIDEO_DEFINE_AND_DESIGN.md) / [HTML](reports/SD_VIDEO_DEFINE_AND_DESIGN.html): b?n t?ng h?p review.
+5. [REPORT](reports/SD_VIDEO_DEFINE_AND_DESIGN.md) / [HTML](reports/SD_VIDEO_DEFINE_AND_DESIGN_SLIDES.html): b?n t?ng h?p review.
 
 ## 2. Quy t?c
 
@@ -47,3 +47,8 @@
 ### Internal Architecture Links
 
 [DEFINE](PURPOSE.md), [DESIGN](phases/SD_VIDEO_SYSTEM_DESIGN.md), [PROTOCOL](experiments/SD_VIDEO_BASELINE_PROTOCOL.md), [ROADMAP](progress/SD_VIDEO_ROADMAP.md).
+
+## SD video presentation
+
+- [HTML slide deck (8 slides / 5 minutes)](reports/SD_VIDEO_DEFINE_AND_DESIGN_SLIDES.html)
+- [Speaker notes](reports/SD_VIDEO_DEFINE_AND_DESIGN_SLIDES.md)

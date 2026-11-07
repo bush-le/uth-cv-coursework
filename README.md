@@ -11,7 +11,7 @@
 - **Detailed Plan**: §1 Kiến trúc Hệ thống Tổng thể; §2 Cấu trúc Thư mục Dự án; §3 Hệ thống Quản trị AI-First (`/.agents`); §4 Hướng dẫn Cài đặt & Vận hành; §5 Bảng Lệnh Tự Động Hóa Makefile.
 - **References**: `.agents/rules/FOLDER_STRUCTURE.md`, `.agents/rules/MD_CONVENTION.md`, `.agents/AI_REFERENCE.md`, `docs/PURPOSE.md`, `docs/OVERVIEW.md`.
 - **Created**: 2026-11-02T07:22:00+07:00
-- **Last Updated**: 2026-11-07T14:21:07+07:00
+- **Last Updated**: 2026-11-07T14:54:10+07:00
 
 ---
 
@@ -19,7 +19,7 @@
 
 Nh?nh b?t ??u t? main skeleton, ch?a tri?n khai inference ho?c c? s? li?u. M?c ti?u tr??c m?t: so s?nh pretrained SD video face swapping ? Face-Adapter, REFace, VFace v? VividFace ? r?i ch?n c?u h?nh ?? sinh dataset.
 
-??c [DEFINE](docs/PURPOSE.md), [DESIGN](docs/phases/SD_VIDEO_SYSTEM_DESIGN.md), [protocol hai phase](docs/experiments/SD_VIDEO_BASELINE_PROTOCOL.md), [milestones](docs/progress/SD_VIDEO_ROADMAP.md) v? [HTML report](docs/reports/SD_VIDEO_DEFINE_AND_DESIGN.html). Fine-tune generator optional; detector utility ch? m? sau dataset h?p l?.
+??c [DEFINE](docs/PURPOSE.md), [DESIGN](docs/phases/SD_VIDEO_SYSTEM_DESIGN.md), [protocol hai phase](docs/experiments/SD_VIDEO_BASELINE_PROTOCOL.md), [milestones](docs/progress/SD_VIDEO_ROADMAP.md) v? [HTML slides](docs/reports/SD_VIDEO_DEFINE_AND_DESIGN_SLIDES.html). Fine-tune generator optional; detector utility ch? m? sau dataset h?p l?.
 
 ---
 

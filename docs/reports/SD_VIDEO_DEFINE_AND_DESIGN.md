@@ -6,7 +6,7 @@
 - **Detailed Plan**: C?c m?c b?n d??i tr?nh b?y scope, ki?n tr?c, protocol, milestones v? gi?i h?n.
 - **References**: [Lifecycle](../../.agents/AI_FIRST_LIFECYCLE.md), [DEFINE](../PURPOSE.md), [DESIGN](../phases/SD_VIDEO_SYSTEM_DESIGN.md).
 - **Created**: 2026-11-07T14:12:25+07:00
-- **Last Updated**: 2026-11-07T14:21:07+07:00
+- **Last Updated**: 2026-11-07T14:54:10+07:00
 
 ---
 
@@ -66,7 +66,7 @@ M0 t?i li?u -> M1 input integrity -> M2 upstream feasibility -> M3 pilot compari
 
 GPU Kaggle th?c, dependency/VRAM/latency t?ng backend; to?n b? file ph? tr? v? licenses; quy?n input/output; danh s?ch identities/pairs; development/holdout size; operating thresholds v? dataset budget ch?a ?o. Public README ch? l? ?i?u ki?n kh?o s?t, kh?ng ch?ng minh ?? ch?y.
 
-Source v?n skeleton, kh?ng c?ng b? command video gi? g?i module ch?a c?. [HTML companion](SD_VIDEO_DEFINE_AND_DESIGN.html) l? b?n tr?c quan offline c?a ??c t?, kh?ng ph?i b?o c?o th?c nghi?m. Results ch? ?i?n t? run artifacts sau implementation.
+Source v?n skeleton, kh?ng c?ng b? command video gi? g?i module ch?a c?. [HTML slides](SD_VIDEO_DEFINE_AND_DESIGN_SLIDES.html) l? b?n tr?c quan offline c?a ??c t?, kh?ng ph?i b?o c?o th?c nghi?m. Results ch? ?i?n t? run artifacts sau implementation.
 
 ---
 
