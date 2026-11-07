@@ -105,6 +105,12 @@
       50% { opacity: 0.65; transform: scale(1.06); }
     }
 
+    @keyframes playhead {
+      0% { transform: translateX(0px); }
+      50% { transform: translateX(280px); }
+      100% { transform: translateX(0px); }
+    }
+
     .anim-flow {
       stroke-dasharray: 10 8;
       animation: flowPulse 1.4s linear infinite;
@@ -120,8 +126,12 @@
       animation: pulseNode 2.4s ease-in-out infinite;
     }
 
+    .anim-playhead {
+      animation: playhead 3.6s ease-in-out infinite;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .anim-flow, .anim-scan, .anim-pulse {
+      .anim-flow, .anim-scan, .anim-pulse, .anim-playhead {
         animation: none !important;
       }
     }
@@ -754,75 +764,82 @@
       </svg>
 
       <!-- ====================================================================
-           SLIDE 01: COVER & CORE SYSTEM VISION (NHÓM THỰC HIỆN: NHÓM 4)
+           SLIDE 01: COVER & UNIFIED 2-TRACK VISION (NHÓM THỰC HIỆN: NHÓM 4)
            ==================================================================== -->
-      <section class="slide active" id="slide-1" data-title="Cover &amp; System Vision">
+      <section class="slide active" id="slide-1" data-title="Cover &amp; Unified Vision">
         <div class="slide-inner">
           <div class="cover-grid">
-            <!-- Left Column: Topic Identity + Visual Face-to-Detector Strip -->
+            <!-- Left Column: Topic Identity + Visual 2D-to-Video Thesis Strip -->
             <div class="cover-left">
               <div>
                 <div class="cover-kicker">
                   <span>COMPUTER VISION COURSEWORK • TOPIC 11 • NHÓM THỰC HIỆN: NHÓM 4</span>
                 </div>
                 <h1 class="cover-title">
-                  Stable Diffusion-Based <span class="accent">Synthetic Facial Image Dataset</span> Generation for Deepfake Detection
+                  Stable Diffusion-Based <span class="accent">Synthetic Facial Dataset</span> Generation for Deepfake Detection
                 </h1>
                 <p class="cover-subtitle">
-                  Định nghĩa bài toán dịch chuyển miền tạo sinh và thiết kế kiến trúc hệ thống xây dựng bộ dữ liệu khuôn mặt tổng hợp có kiểm soát phục vụ huấn luyện mô hình phát hiện Deepfake.
+                  Định nghĩa bài toán tạo sinh khuôn mặt 2D &amp; mở rộng chiều thời gian trên Video hoán đổi danh tính (A←B) phục vụ huấn luyện và đối chứng mô hình phát hiện Deepfake.
                 </p>
               </div>
 
-              <!-- Middle Visual Panel: Face -> Latent Prism -> Quality Gate -> Detector -->
+              <!-- Middle Visual Panel: Chặng 1 (2D) -> Chặng 2 (Video A<-B) -> QA Gate -> Detector (D0/D1/D2) -->
               <div class="cover-visual-strip">
                 <div class="panel-title-bar" style="margin-bottom: 4px;">
                   <div class="panel-title" style="font-size: 15px;">
                     <span class="panel-title-dot"></span>
-                    Ý Tưởng Cốt Lõi: Tạo Sinh Có Kiểm Soát &amp; Mở Rộng Biên Phát Hiện
+                    Kiến Trúc Hợp Nhất 2 Chặng: Từ Nền Tảng Ảnh Tĩnh 2D Đến Mở Rộng Video A←B
                   </div>
                   <span class="panel-badge">MINH HỌA Ý TƯỞNG</span>
                 </div>
                 <div class="svg-stage">
-                  <svg viewBox="0 0 880 230" aria-label="Core Thesis Visual Pipeline">
-                    <!-- Node 1: Source Portrait with Landmarks -->
-                    <use href="#face-portrait-landmarks" x="18" y="34" transform="scale(1.08)"/>
-                    <text x="83" y="210" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="14" font-weight="800" fill="#111111">1. Khuôn Mặt Gốc</text>
+                  <svg viewBox="0 0 880 230" aria-label="Unified 2D and Video Thesis Visual Pipeline">
+                    <!-- Node 1: 2D Spatial Synthesis -->
+                    <rect class="decor-rect" x="12" y="24" width="194" height="176" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                    <g transform="translate(22, 36) scale(0.70)">
+                      <use href="#face-portrait-landmarks" x="0" y="0"/>
+                    </g>
+                    <text x="154" y="78" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">CHẶNG 01</text>
+                    <text x="154" y="104" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="14.5" font-weight="800" fill="#111111">Ảnh Tĩnh 2D</text>
+                    <text x="109" y="176" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">T2I • Inpaint • Img2Img</text>
 
                     <!-- Animated Connector 1 -->
-                    <line x1="158" y1="112" x2="218" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
+                    <line x1="212" y1="112" x2="246" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
-                    <!-- Node 2: Stable Diffusion Multi-Mode Latent Prism -->
-                    <rect x="226" y="34" width="205" height="154" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
-                    <circle cx="328" cy="88" r="26" fill="#ffffff" stroke="#1e2bfa" stroke-width="2" class="anim-pulse"/>
-                    <circle cx="320" cy="82" r="3" fill="#1e2bfa"/>
-                    <circle cx="336" cy="82" r="3" fill="#1e2bfa"/>
-                    <circle cx="328" cy="95" r="3" fill="#1e2bfa"/>
-                    <text x="328" y="138" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16" font-weight="800" fill="#1e2bfa">2. Stable Diffusion</text>
-                    <text x="328" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">T2I • Inpainting • Img2Img</text>
-                    <text x="328" y="178" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Khử nhiễu Latent</text>
+                    <!-- Node 2: Temporal Video Extension A<-B -->
+                    <rect class="decor-rect" x="254" y="24" width="234" height="176" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
+                    <rect x="272" y="42" width="56" height="58" rx="8" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
+                    <text x="300" y="76" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">t1</text>
+                    <rect x="342" y="42" width="56" height="58" rx="8" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
+                    <text x="370" y="76" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">t2</text>
+                    <rect x="412" y="42" width="56" height="58" rx="8" fill="#1e2bfa"/>
+                    <text x="440" y="76" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">t3</text>
+                    <text x="371" y="128" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15.5" font-weight="800" fill="#1e2bfa">Chặng 2: Video A←B</text>
+                    <text x="371" y="152" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#111111">4 Backend SD Tiền huấn luyện</text>
+                    <text x="371" y="176" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Danh tính A + Chuyển động B</text>
 
                     <!-- Animated Connector 2 -->
-                    <line x1="436" y1="112" x2="494" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
+                    <line x1="494" y1="112" x2="528" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
-                    <!-- Node 3: 3-Layer Quality Gate Shield -->
-                    <rect x="502" y="34" width="166" height="154" rx="14" fill="#ffffff" stroke="#111111" stroke-width="2"/>
-                    <path d="M 585 52 L 615 64 L 615 92 C 615 112 585 124 585 124 C 585 124 555 112 555 92 L 555 64 Z" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
-                    <path d="M 575 88 L 583 96 L 598 78" fill="none" stroke="#1e2bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <text x="585" y="148" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">3. Phễu Lọc 3 Tầng</text>
-                    <text x="585" y="170" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Loại ảnh mờ &amp; méo</text>
+                    <!-- Node 3: Multi-Axis QA & Connected Vault -->
+                    <rect class="decor-rect" x="536" y="24" width="160" height="176" rx="14" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+                    <path d="M 616 44 L 644 56 L 644 82 C 644 102 616 114 616 114 C 616 114 588 102 588 82 L 588 56 Z" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
+                    <path d="M 606 78 L 614 86 L 628 68" fill="none" stroke="#1e2bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <text x="616" y="142" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">3. Cổng QA &amp; Két</text>
+                    <text x="616" y="166" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Khóa ID &amp; Video cha</text>
 
                     <!-- Animated Connector 3 -->
-                    <line x1="674" y1="112" x2="726" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
+                    <line x1="702" y1="112" x2="732" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
-                    <!-- Node 4: Deepfake Detector Network -->
-                    <rect x="734" y="34" width="132" height="154" rx="14" fill="#1e2bfa"/>
-                    <circle cx="775" cy="76" r="6" fill="#ffffff"/>
-                    <circle cx="775" cy="102" r="6" fill="#ffffff"/>
-                    <circle cx="825" cy="89" r="8" fill="#fdfae7"/>
-                    <line x1="781" y1="76" x2="817" y2="89" stroke="#ffffff" stroke-width="2"/>
-                    <line x1="781" y1="102" x2="817" y2="89" stroke="#ffffff" stroke-width="2"/>
-                    <text x="800" y="144" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#ffffff">4. Detector</text>
-                    <text x="800" y="166" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#eef0ff">Real vs. Fake</text>
+                    <!-- Node 4: Deepfake Detector D0/D1/D2 -->
+                    <rect class="decor-rect" x="740" y="24" width="128" height="176" rx="14" fill="#1e2bfa"/>
+                    <circle cx="778" cy="70" r="6" fill="#ffffff"/>
+                    <circle cx="778" cy="96" r="6" fill="#ffffff"/>
+                    <circle cx="826" cy="83" r="8" fill="#fdfae7"/>
+                    <line x1="784" y1="70" x2="818" y2="83" stroke="#ffffff" stroke-width="2"/>
+                    <line x1="784" y1="96" x2="818" y2="83" stroke="#ffffff" stroke-width="2"/>
+                    <text x="804" y="140" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#ffffff">4. Detector</text>
+                    <text x="804" y="164" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#eef0ff">D0 / D1 / D2</text>
                   </svg>
                 </div>
               </div>
@@ -834,8 +851,8 @@
                   <div class="meta-val" style="color: var(--primary);">Nhóm thực hiện: Nhóm 4 — Đề tài 11</div>
                 </div>
                 <div class="meta-box">
-                  <div class="meta-label">TRỌNG TÂM BÁO CÁO</div>
-                  <div class="meta-val">Problem Definition &amp; System Design (8 Slides)</div>
+                  <div class="meta-label">CẤU TRÚC BÁO CÁO HỢP NHẤT</div>
+                  <div class="meta-val">Nền Tảng Ảnh 2D &amp; Mở Rộng Video (11 Slides)</div>
                 </div>
               </div>
             </div>
@@ -845,12 +862,12 @@
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Cấu Trúc Trình Bày: 4 Trụ Cột Định Nghĩa &amp; Thiết Kế Hệ Thống
+                  Lộ Trình Trình Bày: 4 Chặng Kiến Trúc Hợp Nhất (11 Slides)
                 </div>
-                <span class="panel-badge">8-SLIDE ARCHITECTURE FLOW</span>
+                <span class="panel-badge">11-SLIDE UNIFIED FLOW</span>
               </div>
               <div class="svg-stage">
-                <svg viewBox="0 0 760 820" aria-label="Presentation 4-Pillar Structural Roadmap">
+                <svg viewBox="0 0 760 820" aria-label="Presentation 4-Pillar Unified Roadmap">
                   <!-- Vertical Flow Spine -->
                   <line x1="78" y1="95" x2="78" y2="725" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow"/>
 
@@ -858,40 +875,40 @@
                   <g transform="translate(24, 24)">
                     <circle cx="54" cy="68" r="34" fill="#1e2bfa"/>
                     <text x="54" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="20" font-weight="800" fill="#ffffff">01</text>
-                    <rect x="112" y="8" width="596" height="128" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 02 • PROBLEM DEFINITION &amp; BOUNDARY</text>
-                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="22" font-weight="800" fill="#111111">Dịch Chuyển Miền &amp; Mở Rộng Biên Quyết Định</text>
-                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Đối chiếu vết ghép cổ điển, khử nhiễu Latent &amp; biên 2D.</text>
+                    <rect class="decor-rect" x="112" y="8" width="596" height="128" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 02 &amp; 03 • PROBLEM &amp; TWO-TIER SCOPE</text>
+                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Dịch Chuyển Miền &amp; Phạm Vi 2 Tầng (2D + Video)</text>
+                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Khoảng trống biên quyết định &amp; ma trận ranh giới thực thi.</text>
                   </g>
 
                   <!-- Pillar 2 -->
                   <g transform="translate(24, 222)">
                     <circle cx="54" cy="68" r="34" fill="#ffffff" stroke="#1e2bfa" stroke-width="3"/>
                     <text x="54" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="20" font-weight="800" fill="#1e2bfa">02</text>
-                    <rect x="112" y="8" width="596" height="128" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
-                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 03 &amp; 04 • GENERATION MODES &amp; SCOPE</text>
-                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="22" font-weight="800" fill="#111111">3 Chế Độ Tạo Sinh &amp; Ranh Giới Phạm Vi Đề Tài</text>
-                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Minh họa T2I, Inpainting, Img2Img &amp; ma trận phạm vi.</text>
+                    <rect class="decor-rect" x="112" y="8" width="596" height="128" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 04, 05 &amp; 06 • 2D IMAGE FOUNDATION</text>
+                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">3 Chế Độ Tạo Sinh 2D, Đường Ống &amp; Phễu Lọc</text>
+                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">T2I, Inpainting, Img2Img, luồng 6 bước &amp; lọc 3 tầng.</text>
                   </g>
 
                   <!-- Pillar 3 -->
                   <g transform="translate(24, 420)">
                     <circle cx="54" cy="68" r="34" fill="#1e2bfa"/>
                     <text x="54" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="20" font-weight="800" fill="#ffffff">03</text>
-                    <rect x="112" y="8" width="596" height="128" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 05, 06 &amp; 07 • DATASET &amp; PIPELINE</text>
-                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="22" font-weight="800" fill="#111111">Két Danh Tính, Đường Ống 6 Bước &amp; Phễu Lọc</text>
-                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Chống rò rỉ danh tính, luồng 6 bước &amp; phễu lọc 3 tầng.</text>
+                    <rect class="decor-rect" x="112" y="8" width="596" height="128" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 07, 08 &amp; 09 • SD-VIDEO EXTENSION</text>
+                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Mở Rộng Video A←B, 4 Backend &amp; Cổng QA 3 Trục</text>
+                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Face-Adapter, REFace, VFace, VividFace &amp; lọc thời gian.</text>
                   </g>
 
                   <!-- Pillar 4 -->
                   <g transform="translate(24, 618)">
                     <circle cx="54" cy="68" r="34" fill="#ffffff" stroke="#1e2bfa" stroke-width="3"/>
                     <text x="54" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="20" font-weight="800" fill="#1e2bfa">04</text>
-                    <rect x="112" y="8" width="596" height="128" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
-                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 08 • EVALUATION &amp; DELIVERABLES</text>
-                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="22" font-weight="800" fill="#111111">Thực Nghiệm Đối Chứng &amp; Sản Phẩm Bàn Giao</text>
-                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Đối sánh Baseline vs. Proposed trên đường cong ROC-AUC.</text>
+                    <rect class="decor-rect" x="112" y="8" width="596" height="128" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 10 &amp; 11 • VAULT &amp; D0/D1/D2 EVALUATION</text>
+                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Két Cụm Liên Thông, Đối Chứng D0/D1/D2 &amp; Lộ Trình</text>
+                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Khóa kép Danh tính + Video cha &amp; đo ROC-AUC (M0→M7).</text>
                   </g>
                 </svg>
               </div>
@@ -1092,17 +1109,167 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 03: 02 / GENERATION MECHANISMS — 3 STABLE DIFFUSION MODES
+           SLIDE 03: 02 / UNIFIED SCOPE & BOUNDARIES (NHÓM THỰC HIỆN: NHÓM 4)
            ==================================================================== -->
-      <section class="slide" id="slide-3" data-title="02 / Generation Mechanisms">
+      <section class="slide" id="slide-3" data-title="02 / Unified Scope &amp; Boundaries">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
-                <span class="section-tag">02 / GENERATION MECHANISMS</span>
+                <span class="group-pill">Nhóm thực hiện: Nhóm 4</span>
+                <span class="section-tag">02 / UNIFIED SCOPE &amp; BOUNDARIES</span>
+                <span class="section-subtitle">TWO-TIER IN-SCOPE ARCHITECTURE (2D + VIDEO) &amp; EXPLICIT EXCLUSIONS</span>
+              </div>
+              <h2 class="slide-title">Phạm Vi Hợp Nhất 2 Tầng &amp; <span>Giới Hạn Loại Trừ</span></h2>
+            </div>
+            <div class="header-right">
+              <div class="header-takeaway">
+                Nhóm thực hiện: Nhóm 4 kết hợp nền tảng ảnh tĩnh 2D với nhánh mở rộng Video ngắn A←B và khóa chặt ranh giới loại trừ.
+              </div>
+            </div>
+          </header>
+
+          <div class="slide-body">
+            <div class="split-2col">
+              <!-- Left Column: Two-Tier In-Scope Visual Matrix -->
+              <div class="visual-panel accent-border">
+                <div class="panel-title-bar">
+                  <div class="panel-title">
+                    <span class="panel-title-dot"></span>
+                    Phạm Vi Thực Hiện 2 Tầng (In-Scope — Nhóm thực hiện: Nhóm 4)
+                  </div>
+                  <span class="panel-badge">2-TIER CORE SCOPE</span>
+                </div>
+                <div class="svg-stage">
+                  <svg viewBox="0 0 810 620" aria-label="In-Scope Two-Tier Visual Commitments Matrix">
+                    <rect class="decor-rect" x="20" y="14" width="770" height="66" rx="14" fill="#1e2bfa"/>
+                    <text x="405" y="54" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="19.5" font-weight="800" fill="#ffffff">TRỌNG TÂM HỢP NHẤT 2 TẦNG CỦA NHÓM THỰC HIỆN: NHÓM 4</text>
+
+                    <!-- Card 1: Tier 1 - 2D Static Facial Synthesis -->
+                    <rect class="decor-rect" x="20" y="102" width="372" height="236" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
+                    <circle cx="60" cy="148" r="22" fill="#1e2bfa"/>
+                    <text x="60" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">01</text>
+                    <text x="96" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Tầng 1: Nền Tảng Ảnh Tĩnh 2D</text>
+                    <text x="96" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">STATIC 2D FACIAL DOMAIN</text>
+                    <line x1="36" y1="190" x2="372" y2="190" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
+                    <text x="36" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Sinh ảnh T2I, Inpainting, Img2Img</text>
+                    <text x="36" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Căn chỉnh 5 điểm mốc &amp; tách mask</text>
+                    <text x="36" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Phễu lọc tự động 3 tầng không gian</text>
+
+                    <!-- Card 2: Tier 2 - Short Video Face Swap Extension -->
+                    <rect class="decor-rect" x="418" y="102" width="372" height="236" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
+                    <circle cx="458" cy="148" r="22" fill="#1e2bfa"/>
+                    <text x="458" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">02</text>
+                    <text x="494" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Tầng 2: Mở Rộng Video A←B</text>
+                    <text x="494" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">TEMPORAL VIDEO EXTENSION</text>
+                    <line x1="434" y1="190" x2="770" y2="190" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
+                    <text x="434" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Ghép Ảnh A vào Video chuyển động B</text>
+                    <text x="434" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Đối sánh 4 Backend SD trong 2 họ</text>
+                    <text x="434" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Kiểm định 3 trục &amp; mặt nạ che khuất</text>
+
+                    <!-- Card 3: Connected-Component Split Lock -->
+                    <rect class="decor-rect" x="20" y="360" width="372" height="240" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
+                    <circle cx="60" cy="406" r="22" fill="#1e2bfa"/>
+                    <text x="60" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">03</text>
+                    <text x="96" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Khóa Cụm Liên Thông Kép</text>
+                    <text x="96" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">ZERO ID &amp; VIDEO LEAKAGE</text>
+                    <line x1="36" y1="448" x2="372" y2="448" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
+                    <text x="36" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Khóa đồng thời Danh tính gốc A</text>
+                    <text x="36" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Khóa đồng thời Video cha B</text>
+                    <text x="36" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Chống rò rỉ chéo giữa Train &amp; Test</text>
+
+                    <!-- Card 4: Controlled D0 / D1 / D2 Detector Benchmark -->
+                    <rect class="decor-rect" x="418" y="360" width="372" height="240" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
+                    <circle cx="458" cy="406" r="22" fill="#1e2bfa"/>
+                    <text x="458" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">04</text>
+                    <text x="494" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Đối Chứng D0 / D1 / D2</text>
+                    <text x="494" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">THREE-REGIME EVALUATION</text>
+                    <line x1="434" y1="448" x2="770" y2="448" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
+                    <text x="434" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Đối sánh Gốc (D0) vs. Augment (D1)</text>
+                    <text x="434" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Đo đóng góp thực của SD qua QA (D2)</text>
+                    <text x="434" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Cùng Detector &amp; ngân sách huấn luyện</text>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Right Column: Out-of-Scope Visual Boundary Matrix -->
+              <div class="visual-panel">
+                <div class="panel-title-bar">
+                  <div class="panel-title">
+                    <span class="panel-title-dot" style="background: var(--text-muted);"></span>
+                    Giới Hạn Loại Trừ Có Chủ Đích (Out-of-Scope Boundaries)
+                  </div>
+                  <span class="panel-badge">4 EXPLICIT EXCLUSIONS</span>
+                </div>
+                <div class="svg-stage">
+                  <svg viewBox="0 0 810 620" aria-label="Out-of-Scope Exclusions Matrix">
+                    <rect class="decor-rect" x="20" y="14" width="770" height="66" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                    <text x="405" y="54" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="800" fill="#111111">RANH GIỚI LOẠI TRỪ ĐỂ BẢO ĐẢM TÍNH KHẢ THI &amp; ĐẠO ĐỨC</text>
+
+                    <!-- Exclusion 1 -->
+                    <rect class="decor-rect" x="20" y="102" width="372" height="236" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.6" stroke-dasharray="7 4"/>
+                    <circle cx="60" cy="148" r="22" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                    <text x="60" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#111111">X1</text>
+                    <text x="96" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Không Sinh Audio &amp; Giọng Nói</text>
+                    <text x="96" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">NO AUDIO / VOICE CLONING</text>
+                    <line x1="36" y1="190" x2="372" y2="190" stroke="#111111" stroke-opacity="0.15" stroke-width="1.5"/>
+                    <text x="36" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không tổng hợp tiếng nói nhân tạo</text>
+                    <text x="36" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không xét đồng bộ môi theo âm thanh</text>
+                    <text x="36" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Tập trung thuần túy miền thị giác</text>
+
+                    <!-- Exclusion 2 -->
+                    <rect class="decor-rect" x="418" y="102" width="372" height="236" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.6" stroke-dasharray="7 4"/>
+                    <circle cx="458" cy="148" r="22" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                    <text x="458" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#111111">X2</text>
+                    <text x="494" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Không Pre-train Lại Từ Đầu</text>
+                    <text x="494" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">NO FOUNDATION PRETRAINING</text>
+                    <line x1="434" y1="190" x2="770" y2="190" stroke="#111111" stroke-opacity="0.15" stroke-width="1.5"/>
+                    <text x="434" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không huấn luyện lại backbone SD</text>
+                    <text x="434" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Khai thác trọng số pretrained mở</text>
+                    <text x="434" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Tinh chỉnh nhẹ chỉ khi có bằng chứng</text>
+
+                    <!-- Exclusion 3 -->
+                    <rect class="decor-rect" x="20" y="360" width="372" height="240" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.6" stroke-dasharray="7 4"/>
+                    <circle cx="60" cy="406" r="22" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                    <text x="60" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#111111">X3</text>
+                    <text x="96" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Không Mạo Danh Người Thật</text>
+                    <text x="96" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">ETHICAL &amp; PRIVACY GUARD</text>
+                    <line x1="36" y1="448" x2="372" y2="448" stroke="#111111" stroke-opacity="0.15" stroke-width="1.5"/>
+                    <text x="36" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không giả mạo cá nhân ngoài đời</text>
+                    <text x="36" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Chỉ dùng bộ dữ liệu học thuật mở</text>
+                    <text x="36" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Đóng dấu rõ nguồn gốc nghiên cứu</text>
+
+                    <!-- Exclusion 4 -->
+                    <rect class="decor-rect" x="418" y="360" width="372" height="240" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.6" stroke-dasharray="7 4"/>
+                    <circle cx="458" cy="406" r="22" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                    <text x="458" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#111111">X4</text>
+                    <text x="494" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Không Tối Ưu Thiết Bị Biên</text>
+                    <text x="494" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">NO EDGE DEPLOYMENT</text>
+                    <line x1="434" y1="448" x2="770" y2="448" stroke="#111111" stroke-opacity="0.15" stroke-width="1.5"/>
+                    <text x="434" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không nén mô hình cho di động</text>
+                    <text x="434" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Ưu tiên chất lượng dữ liệu &amp; QA</text>
+                    <text x="434" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Đảm bảo tính tái lập thực nghiệm</text>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SLIDE 04: 03 / 2D GENERATION MECHANISMS (NHÓM THỰC HIỆN: NHÓM 4)
+           ==================================================================== -->
+      <section class="slide" id="slide-4" data-title="03 / 2D Generation Mechanisms">
+        <div class="slide-inner">
+          <header class="slide-header">
+            <div class="header-left">
+              <div class="eyebrow-row">
+                <span class="group-pill">Nhóm thực hiện: Nhóm 4</span>
+                <span class="section-tag">03 / 2D GENERATION MECHANISMS</span>
                 <span class="section-subtitle">THREE COMPLEMENTARY FACIAL SYNTHESIS PARADIGMS</span>
               </div>
-              <h2 class="slide-title">Ba Chế Độ Tạo Sinh Khuôn Mặt Bằng <span>Stable Diffusion</span></h2>
+              <h2 class="slide-title">Nền Tảng Ảnh Tĩnh 2D: <span>Ba Chế Độ Tạo Sinh Khuôn Mặt</span></h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
@@ -1273,352 +1440,17 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 04: 03 / SCOPE & BOUNDARIES (NHÓM THỰC HIỆN: NHÓM 4)
+           SLIDE 05: 04 / 2D SYSTEM ARCHITECTURE — 6-STAGE ANIMATED PIPELINE
            ==================================================================== -->
-      <section class="slide" id="slide-4" data-title="03 / Scope &amp; Boundaries">
+      <section class="slide" id="slide-5" data-title="04 / 2D System Architecture">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
-                <span class="group-pill">Nhóm thực hiện: Nhóm 4</span>
-                <span class="section-tag">03 / SCOPE &amp; BOUNDARIES</span>
-                <span class="section-subtitle">STRICT ACADEMIC &amp; ETHICAL BOUNDARY MATRIX</span>
-              </div>
-              <h2 class="slide-title">Phạm Vi Thực Hiện Trọng Tâm &amp; <span>Giới Hạn Loại Trừ</span></h2>
-            </div>
-            <div class="header-right">
-              <div class="header-takeaway">
-                Nhóm thực hiện: Nhóm 4 xác lập ranh giới rõ ràng giữa phạm vi thực thi cốt lõi và các hạng mục loại trừ để bảo đảm tính khả thi.
-              </div>
-            </div>
-          </header>
-
-          <div class="slide-body">
-            <div class="split-2col">
-              <!-- Left Column: In-Scope Visual Matrix -->
-              <div class="visual-panel accent-border">
-                <div class="panel-title-bar">
-                  <div class="panel-title">
-                    <span class="panel-title-dot"></span>
-                    Phạm Vi Thực Hiện Trọng Tâm (In-Scope — Nhóm 4)
-                  </div>
-                  <span class="panel-badge">4 CORE COMMITMENTS</span>
-                </div>
-                <div class="svg-stage">
-                  <svg viewBox="0 0 810 620" aria-label="In-Scope Visual Commitments Matrix">
-                    <!-- Central Hub Header -->
-                    <rect x="20" y="14" width="770" height="66" rx="14" fill="#1e2bfa"/>
-                    <text x="405" y="54" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="800" fill="#ffffff">TRỌNG TÂM TRIỂN KHAI CỦA NHÓM THỰC HIỆN: NHÓM 4</text>
-
-                    <!-- Card 1: 2D Static Facial Domain -->
-                    <rect x="20" y="102" width="372" height="236" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
-                    <circle cx="60" cy="148" r="22" fill="#1e2bfa"/>
-                    <text x="60" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">01</text>
-                    <text x="96" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Miền Ảnh Tĩnh Khuôn Mặt 2D</text>
-                    <text x="96" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">STATIC 2D FACIAL CROPS</text>
-                    <line x1="36" y1="190" x2="372" y2="190" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
-                    <text x="36" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Xử lý ảnh chân dung khuôn mặt tĩnh</text>
-                    <text x="36" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Chuẩn hóa phát hiện &amp; căn chỉnh mốc</text>
-                    <text x="36" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Đồng bộ quy cách giữa 3 nhóm mẫu</text>
-
-                    <!-- Card 2: Multi-Mode Automated Pipeline -->
-                    <rect x="418" y="102" width="372" height="236" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
-                    <circle cx="458" cy="148" r="22" fill="#1e2bfa"/>
-                    <text x="458" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">02</text>
-                    <text x="494" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Đường Ống Sinh &amp; Lọc</text>
-                    <text x="494" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">END-TO-END PIPELINE</text>
-                    <line x1="434" y1="190" x2="770" y2="190" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
-                    <text x="434" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Tích hợp T2I, Inpainting, Img2Img</text>
-                    <text x="434" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Cổng lọc tự động loại bỏ mẫu lỗi</text>
-                    <text x="434" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Lưu vết siêu dữ liệu từng mẫu</text>
-
-                    <!-- Card 3: Identity-Disjoint Partitioning -->
-                    <rect x="20" y="360" width="372" height="240" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
-                    <circle cx="60" cy="406" r="22" fill="#1e2bfa"/>
-                    <text x="60" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">03</text>
-                    <text x="96" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Phân Tập Độc Lập Danh Tính</text>
-                    <text x="96" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">IDENTITY-DISJOINT SPLIT</text>
-                    <line x1="36" y1="448" x2="372" y2="448" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
-                    <text x="36" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Khóa danh tính gốc trước khi chia</text>
-                    <text x="36" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Biến thể cùng mặt gốc ở chung tập</text>
-                    <text x="36" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Chống học vẹt sinh trắc học</text>
-
-                    <!-- Card 4: Controlled Detector Benchmark -->
-                    <rect x="418" y="360" width="372" height="240" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
-                    <circle cx="458" cy="406" r="22" fill="#1e2bfa"/>
-                    <text x="458" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">04</text>
-                    <text x="494" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Đối Chứng Detector</text>
-                    <text x="494" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">CONTROLLED BENCHMARK</text>
-                    <line x1="434" y1="448" x2="770" y2="448" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
-                    <text x="434" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Đối sánh Baseline vs. Proposed</text>
-                    <text x="434" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Cố định kiến trúc mạng phát hiện</text>
-                    <text x="434" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Đo trên tập kiểm thử độc lập</text>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Right Column: Out-of-Scope Visual Boundary Matrix -->
-              <div class="visual-panel">
-                <div class="panel-title-bar">
-                  <div class="panel-title">
-                    <span class="panel-title-dot" style="background: var(--text-muted);"></span>
-                    Giới Hạn Loại Trừ Có Chủ Đích (Out-of-Scope Boundaries)
-                  </div>
-                  <span class="panel-badge">4 EXPLICIT EXCLUSIONS</span>
-                </div>
-                <div class="svg-stage">
-                  <svg viewBox="0 0 810 620" aria-label="Out-of-Scope Exclusions Matrix">
-                    <!-- Central Header -->
-                    <rect x="20" y="14" width="770" height="66" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
-                    <text x="405" y="54" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="800" fill="#111111">RANH GIỚI LOẠI TRỪ ĐỂ BẢO ĐẢM TÍNH KHẢ THI &amp; ĐẠO ĐỨC</text>
-
-                    <!-- Exclusion 1 -->
-                    <rect x="20" y="102" width="372" height="236" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.6" stroke-dasharray="7 4"/>
-                    <circle cx="60" cy="148" r="22" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
-                    <text x="60" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#111111">X1</text>
-                    <text x="96" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Không Xử Lý Video &amp; Audio</text>
-                    <text x="96" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">NO TEMPORAL DEEPFAKE</text>
-                    <line x1="36" y1="190" x2="372" y2="190" stroke="#111111" stroke-opacity="0.15" stroke-width="1.5"/>
-                    <text x="36" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không xét chuỗi khung hình video</text>
-                    <text x="36" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không xét đồng bộ khẩu hình – âm</text>
-                    <text x="36" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Giữ đúng trọng tâm ảnh tĩnh 2D</text>
-
-                    <!-- Exclusion 2 -->
-                    <rect x="418" y="102" width="372" height="236" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.6" stroke-dasharray="7 4"/>
-                    <circle cx="458" cy="148" r="22" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
-                    <text x="458" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#111111">X2</text>
-                    <text x="494" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Không Pre-train Từ Đầu</text>
-                    <text x="494" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">NO MODEL PRETRAINING</text>
-                    <line x1="434" y1="190" x2="770" y2="190" stroke="#111111" stroke-opacity="0.15" stroke-width="1.5"/>
-                    <text x="434" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không huấn luyện lại nền tảng SD</text>
-                    <text x="434" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Dùng trọng số tiền huấn luyện</text>
-                    <text x="434" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Phù hợp tài nguyên đồ án môn học</text>
-
-                    <!-- Exclusion 3 -->
-                    <rect x="20" y="360" width="372" height="240" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.6" stroke-dasharray="7 4"/>
-                    <circle cx="60" cy="406" r="22" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
-                    <text x="60" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#111111">X3</text>
-                    <text x="96" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Không Mạo Danh Người Thật</text>
-                    <text x="96" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">ETHICAL &amp; PRIVACY GUARD</text>
-                    <line x1="36" y1="448" x2="372" y2="448" stroke="#111111" stroke-opacity="0.15" stroke-width="1.5"/>
-                    <text x="36" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không giả mạo người nổi tiếng</text>
-                    <text x="36" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Chỉ dùng dữ liệu học thuật mở</text>
-                    <text x="36" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Tuân thủ đạo đức nghiên cứu AI</text>
-
-                    <!-- Exclusion 4 -->
-                    <rect x="418" y="360" width="372" height="240" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.6" stroke-dasharray="7 4"/>
-                    <circle cx="458" cy="406" r="22" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
-                    <text x="458" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#111111">X4</text>
-                    <text x="494" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Không Tối Ưu Thiết Bị Biên</text>
-                    <text x="494" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">NO EDGE DEPLOYMENT</text>
-                    <line x1="434" y1="448" x2="770" y2="448" stroke="#111111" stroke-opacity="0.15" stroke-width="1.5"/>
-                    <text x="434" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Không nén mô hình cho di động</text>
-                    <text x="434" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Tập trung chất lượng bộ dữ liệu</text>
-                    <text x="434" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Ưu tiên tính tái lập thực nghiệm</text>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ====================================================================
-           SLIDE 05: 04 / DATASET DESIGN — TAXONOMY & BIOMETRIC VAULT (NHÓM 4)
-           ==================================================================== -->
-      <section class="slide" id="slide-5" data-title="04 / Dataset Design">
-        <div class="slide-inner">
-          <header class="slide-header">
-            <div class="header-left">
-              <div class="eyebrow-row">
-                <span class="group-pill">Nhóm thực hiện: Nhóm 4</span>
-                <span class="section-tag">04 / DATASET DESIGN</span>
-                <span class="section-subtitle">THREE-PROVENANCE TAXONOMY &amp; ZERO IDENTITY LEAKAGE</span>
-              </div>
-              <h2 class="slide-title">Thiết Kế Bộ Dữ Liệu 3 Nguồn Gốc &amp; <span>Két Khóa Độc Lập Danh Tính</span></h2>
-            </div>
-            <div class="header-right">
-              <div class="header-takeaway">
-                Nhóm thực hiện: Nhóm 4 thiết kế cấu trúc nhãn kép và khóa cụm danh tính gốc để ngăn chặn rò rỉ sinh trắc học sang tập kiểm thử.
-              </div>
-            </div>
-          </header>
-
-          <div class="slide-body">
-            <div class="split-2col">
-              <!-- Left Panel: 3 Provenance Groups + Visual Sample ID Card -->
-              <div class="visual-panel">
-                <div class="panel-title-bar">
-                  <div class="panel-title">
-                    <span class="panel-title-dot"></span>
-                    Ba Nhóm Nguồn Gốc Dữ Liệu &amp; Thẻ Định Danh Mẫu Chuẩn Hóa
-                  </div>
-                  <span class="panel-badge">DUAL-LEVEL SCHEMA</span>
-                </div>
-                <div class="svg-stage">
-                  <svg viewBox="0 0 810 620" aria-label="Three Provenance Groups and Sample ID Card">
-                    <!-- Group 1: Real Faces -->
-                    <rect class="decor-rect" x="16" y="12" width="778" height="122" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.6"/>
-                    <g transform="translate(32, 20) scale(0.75)">
-                      <use href="#face-portrait-base" x="0" y="0"/>
-                    </g>
-                    <text x="142" y="46" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="800" fill="#111111">01. Real Faces (Nhóm Ảnh Khuôn Mặt Thật)</text>
-                    <text x="142" y="74" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Thu thập từ tập khuôn mặt công khai làm mốc chuẩn.</text>
-                    <rect x="142" y="90" width="182" height="28" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
-                    <text x="233" y="109" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#111111">Label: real (Class 0)</text>
-                    <rect x="336" y="90" width="248" height="28" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
-                    <text x="460" y="109" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Sub-group: real_reference</text>
-
-                    <!-- Group 2: Deepfake Faces -->
-                    <rect class="decor-rect" x="16" y="148" width="778" height="122" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                    <g transform="translate(32, 156) scale(0.75)">
-                      <use href="#face-portrait-masked" x="0" y="0"/>
-                    </g>
-                    <text x="142" y="182" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="800" fill="#111111">02. Deepfake Faces (Nhóm Giả Mạo Cổ Điển)</text>
-                    <text x="142" y="210" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Mẫu giả mạo cắt ghép có sẵn cho nhánh đối chứng.</text>
-                    <rect x="142" y="226" width="182" height="28" rx="6" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
-                    <text x="233" y="245" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">Label: fake (Class 1)</text>
-                    <rect x="336" y="226" width="248" height="28" rx="6" fill="#f5f1da" stroke="#111111" stroke-width="1.3"/>
-                    <text x="460" y="245" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Sub-group: classic_deepfake</text>
-
-                    <!-- Group 3: SD Synthetic Faces -->
-                    <rect class="decor-rect" x="16" y="284" width="778" height="126" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
-                    <g transform="translate(32, 294) scale(0.75)">
-                      <use href="#face-portrait-variant" x="0" y="0"/>
-                    </g>
-                    <text x="142" y="318" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="800" fill="#1e2bfa">03. SD Synthetic Faces (Tạo Sinh Stable Diffusion)</text>
-                    <text x="142" y="346" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">Sinh mới qua 3 chế độ SD và đạt cổng kiểm định.</text>
-                    <rect x="142" y="364" width="182" height="28" rx="6" fill="#1e2bfa"/>
-                    <text x="233" y="383" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Label: fake (Class 1)</text>
-                    <rect x="336" y="364" width="388" height="28" rx="6" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.5"/>
-                    <text x="530" y="383" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">sd_text2img • sd_inpainting • sd_img2img</text>
-
-                    <!-- Visual Sample ID Card (6 Metadata Attributes) -->
-                    <rect class="decor-rect" x="16" y="428" width="778" height="178" rx="16" fill="#ffffff" stroke="#111111" stroke-width="2"/>
-                    <rect x="16" y="428" width="778" height="38" rx="14" fill="#111111"/>
-                    <text x="405" y="452" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">THẺ ĐỊNH DANH SIÊU DỮ LIỆU MẪU (6 TRƯỜNG BẮT BUỘC)</text>
-
-                    <rect x="34" y="480" width="236" height="50" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
-                    <text x="152" y="501" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">1. Mã Định Danh Mẫu</text>
-                    <text x="152" y="520" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Khóa duy nhất toàn bộ dữ liệu</text>
-
-                    <rect x="286" y="480" width="236" height="50" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
-                    <text x="404" y="501" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">2. Nhãn Nhị Phân</text>
-                    <text x="404" y="520" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Phân lớp Real vs. Fake</text>
-
-                    <rect x="538" y="480" width="238" height="50" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
-                    <text x="657" y="501" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">3. Nhóm Nguồn Gốc</text>
-                    <text x="657" y="520" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Phân rã đánh giá theo nhóm</text>
-
-                    <rect x="34" y="542" width="236" height="50" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
-                    <text x="152" y="563" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">4. Chế Độ Tạo Sinh</text>
-                    <text x="152" y="582" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">T2I / Inpainting / Img2Img</text>
-
-                    <rect x="286" y="542" width="236" height="50" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
-                    <text x="404" y="563" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">5. Khóa Danh Tính Gốc</text>
-                    <text x="404" y="582" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Chống rò rỉ giữa các phân tập</text>
-
-                    <rect x="538" y="542" width="238" height="50" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
-                    <text x="657" y="563" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">6. Đặc Tả Prompt</text>
-                    <text x="657" y="582" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Truy vết điều kiện sinh ảnh</text>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Right Panel: Identity-Disjoint Biometric Vault SVG -->
-              <div class="visual-panel accent-border">
-                <div class="panel-title-bar">
-                  <div class="panel-title">
-                    <span class="panel-title-dot"></span>
-                    Két Khóa Độc Lập Danh Tính (Zero Identity Leakage)
-                  </div>
-                  <span class="panel-badge">MINH HỌA Ý TƯỞNG</span>
-                </div>
-                <div class="svg-stage">
-                  <svg viewBox="0 0 810 620" aria-label="Identity-Disjoint Biometric Vault Diagram">
-                    <!-- Left Vault: Identity Cluster A -> Train & Val -->
-                    <rect x="16" y="16" width="336" height="588" rx="18" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
-                    <rect x="36" y="34" width="296" height="44" rx="10" fill="#1e2bfa"/>
-                    <text x="184" y="62" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17" font-weight="800" fill="#ffffff">KÉT A: CỤM DANH TÍNH GỐC A</text>
-
-                    <!-- Root Portrait A -->
-                    <g transform="translate(124, 96)">
-                      <use href="#face-portrait-base" x="0" y="0"/>
-                    </g>
-                    <text x="184" y="258" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Khuôn Mặt Gốc (Source ID #A)</text>
-
-                    <!-- Branch Arrows to Derived Variants -->
-                    <line x1="184" y1="268" x2="96" y2="308" stroke="#1e2bfa" stroke-width="2.4" class="anim-flow" marker-end="url(#arrow-blue)"/>
-                    <line x1="184" y1="268" x2="272" y2="308" stroke="#1e2bfa" stroke-width="2.4" class="anim-flow" marker-end="url(#arrow-blue)"/>
-
-                    <g transform="translate(46, 316) scale(0.76)">
-                      <use href="#face-portrait-masked" x="0" y="0"/>
-                    </g>
-                    <g transform="translate(226, 316) scale(0.76)">
-                      <use href="#face-portrait-variant" x="0" y="0"/>
-                    </g>
-                    <text x="184" y="446" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#1e2bfa">Mọi biến thể Inpainting &amp; Img2Img của ID #A</text>
-
-                    <line x1="184" y1="458" x2="184" y2="496" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
-
-                    <rect x="36" y="504" width="296" height="80" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="184" y="538" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#1e2bfa">Tập Train &amp; Validation</text>
-                    <text x="184" y="564" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Phục vụ học đặc trưng &amp; tinh chỉnh</text>
-
-                    <!-- Center Barrier: Zero Identity Leakage Shield -->
-                    <line x1="405" y1="20" x2="405" y2="600" stroke="#1e2bfa" stroke-width="4" stroke-dasharray="10 7"/>
-                    <rect x="364" y="218" width="82" height="184" rx="14" fill="#1e2bfa" class="anim-pulse"/>
-                    <text x="405" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ZERO</text>
-                    <text x="405" y="310" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ID</text>
-                    <text x="405" y="334" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">LEAK</text>
-
-                    <!-- Right Vault: Identity Cluster B -> Held-Out Test -->
-                    <rect x="458" y="16" width="336" height="588" rx="18" fill="#f5f1da" stroke="#111111" stroke-width="2.2"/>
-                    <rect x="478" y="34" width="296" height="44" rx="10" fill="#111111"/>
-                    <text x="626" y="62" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17" font-weight="800" fill="#ffffff">KÉT B: CỤM DANH TÍNH GỐC B</text>
-
-                    <!-- Root Portrait B -->
-                    <g transform="translate(566, 96)">
-                      <use href="#face-portrait-landmarks" x="0" y="0"/>
-                    </g>
-                    <text x="626" y="258" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Khuôn Mặt Gốc Mới (Unseen ID #B)</text>
-
-                    <line x1="626" y1="268" x2="538" y2="308" stroke="#111111" stroke-width="2.4" marker-end="url(#arrow-dark)"/>
-                    <line x1="626" y1="268" x2="714" y2="308" stroke="#111111" stroke-width="2.4" marker-end="url(#arrow-dark)"/>
-
-                    <g transform="translate(488, 316) scale(0.76)">
-                      <use href="#face-portrait-base" x="0" y="0"/>
-                    </g>
-                    <g transform="translate(668, 316) scale(0.76)">
-                      <use href="#face-portrait-variant" x="0" y="0"/>
-                    </g>
-                    <text x="626" y="446" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">Biến thể của danh tính hoàn toàn chưa từng gặp</text>
-
-                    <line x1="626" y1="458" x2="626" y2="496" stroke="#111111" stroke-width="3" marker-end="url(#arrow-dark)"/>
-
-                    <rect x="478" y="504" width="296" height="80" rx="12" fill="#ffffff" stroke="#111111" stroke-width="2"/>
-                    <text x="626" y="538" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Tập Kiểm Thử (Held-Out Test)</text>
-                    <text x="626" y="564" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Đo lường chính xác năng lực tổng quát hóa</text>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ====================================================================
-           SLIDE 06: 05 / SYSTEM ARCHITECTURE — 6-STAGE ANIMATED PIPELINE
-           ==================================================================== -->
-      <section class="slide" id="slide-6" data-title="05 / System Architecture">
-        <div class="slide-inner">
-          <header class="slide-header">
-            <div class="header-left">
-              <div class="eyebrow-row">
-                <span class="section-tag">05 / SYSTEM ARCHITECTURE</span>
+                <span class="section-tag">04 / 2D SYSTEM ARCHITECTURE</span>
                 <span class="section-subtitle">SIX-STAGE MODULAR PIPELINE &amp; DOWNSTREAM HANDOFF</span>
               </div>
-              <h2 class="slide-title">Kiến Trúc Hệ Thống: <span>Đường Ống 6 Giai Đoạn Dự Kiến</span></h2>
+              <h2 class="slide-title">Kiến Trúc Nền Tảng 2D: <span>Đường Ống 6 Giai Đoạn Dự Kiến</span></h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
@@ -1789,14 +1621,14 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 07: 06 / AUTOMATED CURATION GATE — PREPROCESSING & 3-LAYER FUNNEL
+           SLIDE 06: 05 / 2D AUTOMATED CURATION GATE — PREPROCESSING & 3-LAYER FUNNEL
            ==================================================================== -->
-      <section class="slide" id="slide-7" data-title="06 / Automated Curation Gate">
+      <section class="slide" id="slide-6" data-title="05 / 2D Automated Curation Gate">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
-                <span class="section-tag">06 / AUTOMATED CURATION GATE</span>
+                <span class="section-tag">05 / 2D AUTOMATED CURATION GATE</span>
                 <span class="section-subtitle">STAGE 02 PREPROCESSING &amp; STAGE 04 THREE-LAYER QUALITY FUNNEL</span>
               </div>
               <h2 class="slide-title">Tiền Xử Lý Hình Học &amp; <span>Phễu Sàng Lọc Chất Lượng 3 Tầng</span></h2>
@@ -1933,133 +1765,165 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 08: 07 / EVALUATION & EXPECTED OUTCOMES — ROC & DELIVERABLES
+           SLIDE 07: 06 / VIDEO EXTENSION: DEFINE — IDENTITY A + VIDEO B -> VIDEO A<-B
            ==================================================================== -->
-      <section class="slide" id="slide-8" data-title="07 / Evaluation &amp; Deliverables">
+      <section class="slide" id="slide-7" data-title="06 / Video Extension: Define">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
-                <span class="section-tag">07 / EVALUATION &amp; EXPECTED OUTCOMES</span>
-                <span class="section-subtitle">TWO-BRANCH COMPARATIVE PROTOCOL &amp; CONCEPTUAL ROC-AUC CURVE</span>
+                <span class="section-tag">06 / VIDEO EXTENSION: DEFINE</span>
+                <span class="section-subtitle">TEMPORAL FACE SWAP FORMULATION (IMAGE A + VIDEO B → VIDEO A←B)</span>
               </div>
-              <h2 class="slide-title">Thiết Kế Thực Nghiệm Đối Chứng &amp; <span>Sản Phẩm Đầu Ra Dự Kiến</span></h2>
+              <h2 class="slide-title">Mở Rộng Chiều Thời Gian: <span>Hoán Đổi Khuôn Mặt Trên Video (A←B)</span></h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
-                Đánh giá trực tiếp giá trị của dữ liệu tổng hợp Stable Diffusion thông qua độ nâng đường cong ROC-AUC trên tập kiểm thử độc lập.
+                Ghép danh tính từ Ảnh tĩnh A vào chuỗi khung hình chuyển động Video B đồng thời giữ ổn định thời gian và vùng che khuất.
               </div>
             </div>
           </header>
 
           <div class="slide-body">
-            <!-- Top Row: Full-Width 2-Branch Comparative Experiment + Conceptual ROC-AUC Plot -->
+            <!-- Top Row: Full-Width Visual Identity + Motion Equation SVG -->
             <div class="visual-panel accent-border" style="flex: 1;">
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Sơ Đồ Thực Nghiệm Đối Chứng 2 Nhánh (Baseline vs. Proposed) &amp; Kỳ Vọng Đường Cong ROC-AUC
+                  Phương Trình Thị Giác Chiều Thời Gian: Ảnh Danh Tính A + Video Chuyển Động B → Video Hoán Đổi A←B
                 </div>
-                <span class="panel-badge">CONTROLLED COMPARATIVE BENCHMARK</span>
+                <span class="panel-badge">MINH HỌA Ý TƯỞNG • TEMPORAL FORMULATION</span>
               </div>
               <div class="svg-stage">
-                <svg viewBox="0 0 1680 470" aria-label="Comparative Evaluation and Conceptual ROC Curve">
-                  <!-- Branch A: Baseline -->
-                  <rect class="decor-rect" x="18" y="34" width="440" height="176" rx="16" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
-                  <rect x="38" y="56" width="196" height="32" rx="6" fill="#111111"/>
-                  <text x="136" y="77" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">NHÁNH 01: BASELINE</text>
-                  <text x="38" y="124" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Real Faces + Deepfake Faces</text>
-                  <text x="38" y="162" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#6b6b6b">Huấn luyện chỉ với ảnh thật &amp; giả mạo cổ điển</text>
+                <svg viewBox="0 0 1680 465" aria-label="Video Face Swap Formulation Diagram">
+                  <!-- Box 1: Source Identity Image A -->
+                  <rect class="decor-rect" x="18" y="16" width="336" height="432" rx="18" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
+                  <rect class="decor-rect" x="38" y="34" width="296" height="36" rx="8" fill="#1e2bfa"/>
+                  <text x="186" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẦU VÀO 01: ẢNH DANH TÍNH A</text>
+                  <g transform="translate(102, 92) scale(1.4)">
+                    <use href="#face-portrait-variant" x="0" y="0"/>
+                  </g>
+                  <text x="186" y="324" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#1e2bfa">Người A (Source Identity)</text>
+                  <text x="186" y="354" text-anchor="middle" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Cung cấp đặc trưng nhận dạng</text>
+                  <rect class="decor-rect" x="42" y="378" width="288" height="44" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.5"/>
+                  <text x="186" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Khung mặt chuẩn hóa (1 ảnh)</text>
 
-                  <!-- Branch B: Proposed -->
-                  <rect class="decor-rect" x="18" y="252" width="440" height="184" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
-                  <rect x="38" y="274" width="196" height="32" rx="6" fill="#1e2bfa"/>
-                  <text x="136" y="295" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">NHÁNH 02: PROPOSED</text>
-                  <text x="38" y="342" font-family="Plus Jakarta Sans, sans-serif" font-size="20" font-weight="800" fill="#1e2bfa">Real + Deepfake + SD Synthetic Faces</text>
-                  <text x="38" y="380" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">Tích hợp thêm dữ liệu tổng hợp từ 3 chế độ SD</text>
+                  <!-- Operator + -->
+                  <circle cx="392" cy="232" r="24" fill="#111111"/>
+                  <text x="392" y="241" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="26" font-weight="800" fill="#ffffff">+</text>
 
-                  <!-- Converging Animated Arrows into Shared Detector -->
-                  <path d="M 462 122 L 538 192" fill="none" stroke="#6b6b6b" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#arrow-dark)"/>
-                  <path d="M 462 344 L 538 274" fill="none" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+                  <!-- Box 2: Target Motion Video B (t1, t2, t3 filmstrip with hand occlusion at t3) -->
+                  <rect class="decor-rect" x="430" y="16" width="564" height="432" rx="18" fill="#f5f1da" stroke="#111111" stroke-width="2"/>
+                  <rect class="decor-rect" x="450" y="34" width="524" height="36" rx="8" fill="#111111"/>
+                  <text x="712" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẦU VÀO 02: VIDEO CHUYỂN ĐỘNG B (CHUỖI FRAME)</text>
 
-                  <!-- Center: Shared Deepfake Detector Backbone -->
-                  <rect x="546" y="76" width="316" height="318" rx="18" fill="#ffffff" stroke="#1e2bfa" stroke-width="2.4"/>
-                  <text x="704" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">CỐ ĐỊNH KIẾN TRÚC ĐỐI CHỨNG</text>
-                  <text x="704" y="168" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="23" font-weight="800" fill="#111111">Deepfake Detector</text>
-                  <text x="704" y="204" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#6b6b6b">Mạng phân lớp nhị phân (CNN / ViT)</text>
-                  <rect x="576" y="236" width="256" height="44" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.4"/>
-                  <text x="704" y="264" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#1e2bfa">Cố định Hyperparameters</text>
-                  <text x="704" y="332" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">Đo trên Held-Out Test Set</text>
+                  <!-- Frame t1 (Head tilted left) -->
+                  <rect class="decor-rect" x="452" y="92" width="160" height="206" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
+                  <text x="532" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#6b6b6b">FRAME t1 (-7°)</text>
+                  <g transform="translate(478, 128) scale(0.9) rotate(-6 60 70)">
+                    <use href="#face-portrait-base" x="0" y="0"/>
+                  </g>
+                  <text x="532" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#111111">Nghiêng trái</text>
 
-                  <line x1="866" y1="235" x2="918" y2="235" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+                  <!-- Frame t2 (Frontal expression) -->
+                  <rect class="decor-rect" x="632" y="92" width="160" height="206" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
+                  <text x="712" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#6b6b6b">FRAME t2 (0°)</text>
+                  <g transform="translate(658, 128) scale(0.9)">
+                    <use href="#face-portrait-base" x="0" y="0"/>
+                  </g>
+                  <text x="712" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#111111">Chính diện</text>
 
-                  <!-- Right: Conceptual ROC-AUC Curve + Evaluation Criteria -->
-                  <rect class="decor-rect" x="926" y="26" width="736" height="418" rx="18" fill="#fdfae7" stroke="#111111" stroke-width="1.8"/>
-                  <text x="1116" y="64" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Đồ Thị Minh Họa Kỳ Vọng ROC-AUC</text>
+                  <!-- Frame t3 (Head tilted right + Hand Occlusion across chin/cheek) -->
+                  <rect class="decor-rect" x="812" y="92" width="160" height="206" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
+                  <text x="892" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">FRAME t3 (+7°)</text>
+                  <g transform="translate(838, 128) scale(0.9) rotate(6 60 70)">
+                    <use href="#face-portrait-base" x="0" y="0"/>
+                    <!-- Hand / Object Occlusion Band across lower face -->
+                    <path d="M 18 76 C 46 64, 78 66, 104 82 L 104 102 C 76 92, 46 90, 18 98 Z" fill="#dcd6b8" stroke="#111111" stroke-width="2"/>
+                  </g>
+                  <text x="892" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Tay che ngang mặt</text>
 
-                  <!-- Mini ROC Plot Frame -->
-                  <rect class="decor-rect" x="960" y="92" width="310" height="292" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
-                  <line x1="960" y1="384" x2="1270" y2="92" stroke="#9a9a9a" stroke-width="1.4" stroke-dasharray="4 4"/>
-                  <path d="M 960 384 Q 1008 188 1270 92" fill="none" stroke="#6b6b6b" stroke-width="2.8" stroke-dasharray="7 5"/>
-                  <path d="M 960 384 Q 968 106 1270 92" fill="none" stroke="#1e2bfa" stroke-width="4"/>
-                  <rect class="decor-rect" x="1018" y="122" width="166" height="28" rx="6" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.2"/>
-                  <text x="1101" y="141" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">Proposed (Kỳ vọng)</text>
-                  <rect class="decor-rect" x="1106" y="236" width="102" height="26" rx="6" fill="#f5f1da" stroke="#6b6b6b" stroke-width="1.1"/>
-                  <text x="1157" y="254" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Baseline</text>
-                  <text x="1115" y="416" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#111111">False Positive Rate (FPR) →</text>
+                  <text x="712" y="336" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17.5" font-weight="800" fill="#111111">Video B: Nguồn Góc Đầu, Biểu Cảm &amp; Vật Cản Che Khuất</text>
+                  <rect class="decor-rect" x="454" y="378" width="516" height="44" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.4"/>
+                  <text x="712" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Chuỗi khung hình ngắn liên tiếp (t1 → t2 → t3)</text>
 
-                  <!-- Metrics List on Far Right -->
-                  <rect class="decor-rect" x="1296" y="92" width="342" height="292" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.8"/>
-                  <text x="1467" y="132" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">CHỈ SỐ ĐO LƯỜNG CHUẨN</text>
-                  <text x="1318" y="178" font-family="Inter, sans-serif" font-size="15.5" font-weight="700" fill="#111111">• Accuracy &amp; Precision</text>
-                  <text x="1318" y="218" font-family="Inter, sans-serif" font-size="15.5" font-weight="700" fill="#111111">• Recall &amp; F1-Score</text>
-                  <text x="1318" y="258" font-family="Inter, sans-serif" font-size="15.5" font-weight="700" fill="#1e2bfa">• Diện tích đường cong ROC-AUC</text>
-                  <text x="1318" y="298" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Độ bền vững mẫu chưa gặp</text>
-                  <text x="1318" y="342" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">(MINH HỌA Ý TƯỞNG)</text>
+                  <!-- Animated Stable Diffusion Arrow -->
+                  <line x1="1002" y1="232" x2="1074" y2="232" stroke="#1e2bfa" stroke-width="4" class="anim-flow" marker-end="url(#arrow-blue)"/>
+                  <rect class="decor-rect" x="1004" y="176" width="68" height="36" rx="8" fill="#1e2bfa"/>
+                  <text x="1038" y="199" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">SD</text>
+
+                  <!-- Box 3: Swapped Output Video A<-B -->
+                  <rect class="decor-rect" x="1084" y="16" width="578" height="432" rx="18" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.6"/>
+                  <rect class="decor-rect" x="1104" y="34" width="538" height="36" rx="8" fill="#1e2bfa"/>
+                  <text x="1373" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẦU RA: VIDEO HOÁN ĐỔI A←B (DANH TÍNH A + DIỄN XUẤT B)</text>
+
+                  <!-- Output Frame t1 -->
+                  <rect class="decor-rect" x="1108" y="92" width="162" height="206" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                  <text x="1189" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">OUT t1 (-7°)</text>
+                  <g transform="translate(1135, 128) scale(0.9) rotate(-6 60 70)">
+                    <use href="#face-portrait-variant" x="0" y="0"/>
+                  </g>
+                  <text x="1189" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Mặt A nghiêng trái</text>
+
+                  <!-- Output Frame t2 -->
+                  <rect class="decor-rect" x="1292" y="92" width="162" height="206" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                  <text x="1373" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">OUT t2 (0°)</text>
+                  <g transform="translate(1319, 128) scale(0.9)">
+                    <use href="#face-portrait-variant" x="0" y="0"/>
+                  </g>
+                  <text x="1373" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Mặt A chính diện</text>
+
+                  <!-- Output Frame t3 (Preserves hand occlusion cleanly without ghosting) -->
+                  <rect class="decor-rect" x="1476" y="92" width="162" height="206" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                  <text x="1557" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">OUT t3 (+7°)</text>
+                  <g transform="translate(1503, 128) scale(0.9) rotate(6 60 70)">
+                    <use href="#face-portrait-variant" x="0" y="0"/>
+                    <path d="M 18 76 C 46 64, 78 66, 104 82 L 104 102 C 76 92, 46 90, 18 98 Z" fill="#dcd6b8" stroke="#1e2bfa" stroke-width="2.2"/>
+                  </g>
+                  <text x="1557" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Giữ đúng tay che</text>
+
+                  <text x="1373" y="336" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17.5" font-weight="800" fill="#1e2bfa">Video A←B: Mượt Theo Thời Gian &amp; Bảo Toàn Vật Cản</text>
+
+                  <!-- Animated Timeline Playback Track -->
+                  <rect class="decor-rect" x="1108" y="378" width="530" height="44" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.8"/>
+                  <line x1="1180" y1="400" x2="1520" y2="400" stroke="#1e2bfa" stroke-opacity="0.28" stroke-width="4" stroke-linecap="round"/>
+                  <circle cx="1200" cy="400" r="8" fill="#1e2bfa" class="anim-playhead"/>
+                  <text x="1144" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">PLAY</text>
+                  <text x="1580" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">t1→t3</text>
                 </svg>
               </div>
             </div>
 
-            <!-- Bottom Row: 4 Equal-Width Deliverable Cards -->
-            <div class="card-grid-4">
+            <!-- Bottom Row: 3 Core Technical Requirements -->
+            <div class="card-grid-3">
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">SẢN PHẨM 01</span>
-                  <span class="intent-role">DATASET</span>
+                  <span class="intent-index">01 / YÊU CẦU DANH TÍNH</span>
+                  <span class="intent-role">IDENTITY PRESERVATION</span>
                 </div>
-                <h3>01. Bộ Dữ Liệu Chuẩn Hóa</h3>
-                <p>Tập ảnh khuôn mặt đa nguồn gốc (Real, Deepfake, SD Synthetic) kèm sổ cái siêu dữ liệu và phân tập độc lập danh tính.</p>
-                <div class="intent-footer">→ Sẵn sàng tái sử dụng học thuật</div>
+                <h3>Khớp Đặc Trưng Nhận Dạng Với Ảnh A</h3>
+                <p>Khuôn mặt sinh ra trên toàn bộ chuỗi khung hình phải mang đặc trưng nhận dạng của Người A và thay thế danh tính gốc trong Video B.</p>
+                <div class="intent-footer">→ Đo bằng độ tương đồng Cosine vector nhận dạng</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">SẢN PHẨM 02</span>
-                  <span class="intent-role">PIPELINE</span>
+                  <span class="intent-index">02 / YÊU CẦU DIỄN XUẤT</span>
+                  <span class="intent-role">MOTION &amp; POSE FIDELITY</span>
                 </div>
-                <h3>02. Đường Ống Sinh &amp; Lọc</h3>
-                <p>Hệ thống mô-đun hóa tự động thực thi tiền xử lý, tạo sinh 3 chế độ Stable Diffusion và kiểm định chất lượng 3 tầng.</p>
-                <div class="intent-footer">→ Cấu hình hóa &amp; tái lập hoàn toàn</div>
+                <h3>Bảo Toàn Góc Đầu &amp; Biểu Cảm Của Video B</h3>
+                <p>Giữ đúng hướng xoay đầu, chuyển động cơ mặt và nhịp điệu diễn xuất tự nhiên của chuỗi khung hình đích theo thời gian.</p>
+                <div class="intent-footer">→ Chống hiện tượng đơ mặt hoặc lệch tư thế đầu</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">SẢN PHẨM 03</span>
-                  <span class="intent-role">BENCHMARK</span>
+                  <span class="intent-index">03 / YÊU CẦU THỜI GIAN</span>
+                  <span class="intent-role">TEMPORAL &amp; OCCLUSION</span>
                 </div>
-                <h3>03. Thực Nghiệm Đối Chứng</h3>
-                <p>Quy trình huấn luyện và đánh giá công bằng giữa nhánh Baseline và nhánh Proposed trên tập kiểm thử độc lập.</p>
-                <div class="intent-footer">→ Định lượng rõ đóng góp của dữ liệu</div>
-              </article>
-
-              <article class="intent-card">
-                <div class="intent-card-top">
-                  <span class="intent-index">SẢN PHẨM 04</span>
-                  <span class="intent-role">REPORT</span>
-                </div>
-                <h3>04. Báo Cáo Học Thuật</h3>
-                <p>Tài liệu phân tích toàn diện kiến trúc hệ thống, hiệu quả sàng lọc mẫu lỗi và tác động lên biên quyết định của Detector.</p>
-                <div class="intent-footer">→ Nhóm thực hiện: Nhóm 4</div>
+                <h3>Chống Nhấp Nháy &amp; Xử Lý Vật Cản Che Mặt</h3>
+                <p>Duy trì sự ổn định màu sắc, viền ghép giữa t1 → t2 → t3 và không vẽ đè khuôn mặt lên bàn tay hoặc vật cản che ngang ở t3.</p>
+                <div class="intent-footer">→ Câu hỏi RQ1: Cân bằng chất lượng &amp; chi phí tính toán</div>
               </article>
             </div>
           </div>
@@ -2067,9 +1931,687 @@
       </section>
 
       <!-- ====================================================================
+           SLIDE 08: 07 / VIDEO MODEL CANDIDATES — 4 MODELS IN 2 FAMILIES & PILOT
+           ==================================================================== -->
+      <section class="slide" id="slide-8" data-title="07 / Video Model Candidates">
+        <div class="slide-inner">
+          <header class="slide-header">
+            <div class="header-left">
+              <div class="eyebrow-row">
+                <span class="section-tag">07 / VIDEO MODEL CANDIDATES</span>
+                <span class="section-subtitle">FOUR PRETRAINED SD VIDEO BACKENDS GROUPED INTO TWO ARCHITECTURAL FAMILIES</span>
+              </div>
+              <h2 class="slide-title">Bốn Mô Hình SD Video Ứng Viên Trong <span>Hai Họ Kiến Trúc</span></h2>
+            </div>
+            <div class="header-right">
+              <div class="header-takeaway">
+                Đối sánh khách quan họ xử lý từng frame độc lập (Face-Adapter, REFace) với họ có liên kết thời gian (VFace, VividFace).
+              </div>
+            </div>
+          </header>
+
+          <div class="slide-body">
+            <!-- Top 2-Column Visual Comparison of the Two Model Families -->
+            <div class="split-2col">
+              <!-- Left Panel: Family 01 — Frame-by-Frame Wrapper -->
+              <div class="visual-panel">
+                <div class="panel-title-bar">
+                  <div class="panel-title">
+                    <span class="panel-title-dot" style="background: var(--text-muted);"></span>
+                    Họ 01: Xử Lý Độc Lập Từng Frame (Frame-by-Frame Wrapper)
+                  </div>
+                  <span class="panel-badge">FACE-ADAPTER &amp; REFACE</span>
+                </div>
+                <div class="svg-stage">
+                  <svg viewBox="0 0 810 470" aria-label="Family 01 Frame-by-Frame Wrapper Architecture">
+                    <!-- Top Flow Diagram -->
+                    <rect class="decor-rect" x="18" y="14" width="774" height="214" rx="16" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                    <rect class="decor-rect" x="36" y="42" width="136" height="156" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="104" y="88" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17" font-weight="800" fill="#1e2bfa">Ảnh A</text>
+                    <text x="104" y="116" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Danh tính gốc</text>
+                    <text x="104" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Cố định</text>
+
+                    <!-- 3 Independent Frame Inference Columns -->
+                    <rect class="decor-rect" x="212" y="34" width="162" height="118" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
+                    <text x="293" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">Frame t1</text>
+                    <text x="293" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Suy luận riêng</text>
+                    <text x="293" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ Out t1</text>
+
+                    <rect class="decor-rect" x="404" y="34" width="162" height="118" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
+                    <text x="485" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">Frame t2</text>
+                    <text x="485" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Suy luận riêng</text>
+                    <text x="485" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ Out t2</text>
+
+                    <rect class="decor-rect" x="596" y="34" width="162" height="118" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
+                    <text x="677" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">Frame t3</text>
+                    <text x="677" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Suy luận riêng</text>
+                    <text x="677" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ Out t3</text>
+
+                    <rect class="decor-rect" x="212" y="168" width="546" height="42" rx="8" fill="#ffffff" stroke="#6b6b6b" stroke-width="1.4" stroke-dasharray="6 4"/>
+                    <text x="485" y="195" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#6b6b6b">Thiếu liên kết t1–t2–t3 → Dễ lệch nhẹ giữa các frame</text>
+
+                    <!-- Bottom 2 Model Cards -->
+                    <rect class="decor-rect" x="18" y="248" width="374" height="206" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                    <rect class="decor-rect" x="38" y="268" width="174" height="30" rx="6" fill="#111111"/>
+                    <text x="125" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MÔ HÌNH 01</text>
+                    <text x="38" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Face-Adapter</text>
+                    <text x="38" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Bộ điều hợp gọn nhẹ tiền huấn luyện</text>
+                    <text x="38" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Làm mốc cơ sở kiểm tra đường chạy</text>
+                    <text x="38" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Vai trò: Baseline tốc độ &amp; khả thi</text>
+
+                    <rect class="decor-rect" x="418" y="248" width="374" height="206" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                    <rect class="decor-rect" x="438" y="268" width="174" height="30" rx="6" fill="#1e2bfa"/>
+                    <text x="525" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MÔ HÌNH 02</text>
+                    <text x="438" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">REFace</text>
+                    <text x="438" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Tối ưu độ chân thực từng khung hình</text>
+                    <text x="438" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Giữ đặc trưng nhận dạng Người A mạnh</text>
+                    <text x="438" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Vai trò: Đối chứng trực tiếp với VFace</text>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Right Panel: Family 02 — Temporal-Aware -->
+              <div class="visual-panel accent-border">
+                <div class="panel-title-bar">
+                  <div class="panel-title">
+                    <span class="panel-title-dot"></span>
+                    Họ 02: Có Thành Phần Liên Kết Thời Gian (Temporal-Aware)
+                  </div>
+                  <span class="panel-badge">VFACE &amp; VIVIDFACE</span>
+                </div>
+                <div class="svg-stage">
+                  <svg viewBox="0 0 810 470" aria-label="Family 02 Temporal-Aware Architecture">
+                    <!-- Top Flow Diagram -->
+                    <rect class="decor-rect" x="18" y="14" width="774" height="214" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
+                    <rect class="decor-rect" x="36" y="42" width="136" height="156" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="104" y="88" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17" font-weight="800" fill="#1e2bfa">Ảnh A</text>
+                    <text x="104" y="116" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">+ Điểm mốc B</text>
+                    <text x="104" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Chuỗi liên kết</text>
+
+                    <!-- 3 Temporally Linked Frames -->
+                    <rect class="decor-rect" x="212" y="34" width="152" height="118" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="288" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">Frame t1</text>
+                    <text x="288" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">Khối thời gian</text>
+
+                    <line x1="368" y1="93" x2="404" y2="93" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                    <rect class="decor-rect" x="410" y="34" width="152" height="118" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="486" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">Frame t2</text>
+                    <text x="486" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">Khối thời gian</text>
+
+                    <line x1="566" y1="93" x2="602" y2="93" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                    <rect class="decor-rect" x="608" y="34" width="152" height="118" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="684" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">Frame t3</text>
+                    <text x="684" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">Khối thời gian</text>
+
+                    <rect class="decor-rect" x="212" y="168" width="548" height="42" rx="8" fill="#1e2bfa"/>
+                    <text x="486" y="195" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#ffffff">Truyền thông tin liên frame (t1 ↔ t2 ↔ t3) giảm nhấp nháy</text>
+
+                    <!-- Bottom 2 Model Cards -->
+                    <rect class="decor-rect" x="18" y="248" width="374" height="206" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2.2"/>
+                    <rect class="decor-rect" x="38" y="268" width="174" height="30" rx="6" fill="#1e2bfa"/>
+                    <text x="125" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MÔ HÌNH 03</text>
+                    <text x="38" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">VFace</text>
+                    <text x="38" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Mở rộng trực tiếp từ nền REFace</text>
+                    <text x="38" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Bổ sung cơ chế liên kết thời gian</text>
+                    <text x="38" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Lưu ý: Cùng gốc REFace, thêm Temporal</text>
+
+                    <rect class="decor-rect" x="418" y="248" width="374" height="206" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2.2"/>
+                    <rect class="decor-rect" x="438" y="268" width="174" height="30" rx="6" fill="#1e2bfa"/>
+                    <text x="525" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MÔ HÌNH 04</text>
+                    <text x="438" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">VividFace</text>
+                    <text x="438" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Điều kiện hóa theo bbox &amp; điểm mốc</text>
+                    <text x="438" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Suy luận theo cụm frame chồng lấp</text>
+                    <text x="438" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Vai trò: Ổn định chuyển động &amp; che khuất</text>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Row: Pilot Matrix & Fair Comparison Principles -->
+            <div class="card-grid-3">
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">MA TRẬN PILOT</span>
+                  <span class="intent-role">PILOT TRIAL MATRIX</span>
+                </div>
+                <h3>Tập Cặp Đầu Vào Đại Diện × 4 Backend</h3>
+                <p>Chạy thử nghiệm Pilot quy mô nhỏ với các cặp (Ảnh A, Video B) đa dạng góc nghiêng, biểu cảm và che khuất trước khi mở rộng.</p>
+                <div class="intent-footer">→ Phát hiện sớm lỗi mất mặt &amp; tràn bộ nhớ</div>
+              </article>
+
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">TIỀN XỬ LÝ</span>
+                  <span class="intent-role">BACKEND-SPECIFIC PREP</span>
+                </div>
+                <h3>Tôn Trọng Tiền Xử Lý Đặc Thù Từng Mô Hình</h3>
+                <p>Dùng chung cặp đầu vào và giao thức chấm điểm, nhưng giữ nguyên quy cách mặt nạ và điểm mốc riêng của từng backend.</p>
+                <div class="intent-footer">→ Không ép chung một bộ căn chỉnh gây giảm chất lượng</div>
+              </article>
+
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">TRỌNG SỐ</span>
+                  <span class="intent-role">PRETRAINED FIRST</span>
+                </div>
+                <h3>Ưu Tiên Suy Luận Pretrained Trước Tinh Chỉnh</h3>
+                <p>Khai thác trọng số công bố sẵn để so sánh khách quan; chỉ xét tinh chỉnh nhẹ có điều kiện sau khi phân tích rõ lỗi từ Pilot.</p>
+                <div class="intent-footer">→ Phù hợp ngân sách tính toán thực tế trên Kaggle</div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SLIDE 09: 08 / VIDEO PIPELINE & 3-AXIS QA — REPRODUCIBLE FLOW & METRICS
+           ==================================================================== -->
+      <section class="slide" id="slide-9" data-title="08 / Video Pipeline &amp; 3-Axis QA">
+        <div class="slide-inner">
+          <header class="slide-header">
+            <div class="header-left">
+              <div class="eyebrow-row">
+                <span class="section-tag">08 / VIDEO PIPELINE &amp; 3-AXIS QA</span>
+                <span class="section-subtitle">REPRODUCIBLE BATCH PIPELINE &amp; THREE-AXIS TEMPORAL QUALITY GATE</span>
+              </div>
+              <h2 class="slide-title">Đường Ống Sinh Video Tái Lập &amp; <span>Cổng Kiểm Định 3 Trục</span></h2>
+            </div>
+            <div class="header-right">
+              <div class="header-takeaway">
+                Chốt cấu hình trên tập Development trước khi chạy Holdout và sàng lọc tự động theo 3 trục: Danh tính, Diễn xuất, Thời gian.
+              </div>
+            </div>
+          </header>
+
+          <div class="slide-body">
+            <!-- Hero Full-Width Video Pipeline + 3-Axis QA Gate SVG -->
+            <div class="visual-panel accent-border" style="flex: 1;">
+              <div class="panel-title-bar">
+                <div class="panel-title">
+                  <span class="panel-title-dot"></span>
+                  Luồng Thực Thi 6 Bước Có Khóa Tập Development &amp; Sơ Đồ Chấm Điểm 3 Trục Video
+                </div>
+                <span class="panel-badge">REPRODUCIBLE SD-VIDEO PIPELINE</span>
+              </div>
+              <div class="svg-stage">
+                <svg viewBox="0 0 1700 470" aria-label="SD-Video Pipeline and Three-Axis QA Gate">
+                  <!-- Top Row: 6-Step Video Pipeline -->
+                  <rect class="decor-rect" x="14" y="14" width="248" height="154" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                  <text x="138" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 01 • INPUT PAIRS</text>
+                  <text x="138" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Ảnh A + Video B</text>
+                  <text x="138" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Chuẩn hóa mặt &amp; chuỗi frame</text>
+                  <text x="138" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Đầu vào chuẩn</text>
+
+                  <line x1="266" y1="91" x2="294" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                  <rect class="decor-rect" x="300" y="14" width="248" height="154" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                  <text x="424" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 02 • MANIFEST</text>
+                  <text x="424" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Mã Cặp &amp; Khóa Cụm</text>
+                  <text x="424" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Gán pair_id &amp; cụm liên thông</text>
+                  <text x="424" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Chia Dev / Holdout</text>
+
+                  <line x1="552" y1="91" x2="580" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                  <rect class="decor-rect" x="586" y="14" width="268" height="154" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
+                  <text x="720" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 03 • 4 BACKENDS</text>
+                  <text x="720" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">Suy Luận Pretrained</text>
+                  <text x="720" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">Face-Adapter • REFace</text>
+                  <text x="720" y="144" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">VFace • VividFace</text>
+
+                  <line x1="858" y1="91" x2="886" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                  <rect class="decor-rect" x="892" y="14" width="248" height="154" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
+                  <text x="1016" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 04 • 3-AXIS QA</text>
+                  <text x="1016" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">Đánh Giá &amp; Sàng Lọc</text>
+                  <text x="1016" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#111111">Identity • Motion • Temporal</text>
+                  <text x="1016" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Khóa cấu hình trên Dev</text>
+
+                  <line x1="1144" y1="91" x2="1172" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                  <rect class="decor-rect" x="1178" y="14" width="248" height="154" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                  <text x="1302" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 05 • BATCH QUEUE</text>
+                  <text x="1302" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Sinh Hàng Loạt</text>
+                  <text x="1302" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Hàng đợi &amp; khôi phục mẫu lỗi</text>
+                  <text x="1302" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Lưu mã kiểm tra toàn vẹn</text>
+
+                  <line x1="1430" y1="91" x2="1458" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                  <rect class="decor-rect" x="1464" y="14" width="222" height="154" rx="14" fill="#1e2bfa"/>
+                  <text x="1575" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#eef0ff">BƯỚC 06 • EXPORT</text>
+                  <text x="1575" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#ffffff">Dataset + Card</text>
+                  <text x="1575" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#eef0ff">Video A←B đạt chuẩn</text>
+                  <text x="1575" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#ffffff">Sẵn sàng cho D2</text>
+
+                  <!-- Middle Governance Ribbon -->
+                  <rect class="decor-rect" x="14" y="184" width="1672" height="44" rx="10" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.6"/>
+                  <text x="850" y="212" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">CHỌN CẤU HÌNH TRÊN DEVELOPMENT → KHÓA TRƯỚC TẬP HOLDOUT</text>
+
+                  <!-- Bottom Row: 3 Evaluation Axes + QA Gate Outcome -->
+                  <!-- Axis 01: Identity -->
+                  <rect class="decor-rect" x="14" y="246" width="402" height="208" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                  <rect class="decor-rect" x="34" y="266" width="190" height="30" rx="6" fill="#1e2bfa"/>
+                  <text x="129" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 01 / IDENTITY</text>
+                  <text x="34" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Độ Giữ Danh Tính Người A</text>
+                  <text x="34" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Độ tương đồng Cosine vector mặt</text>
+                  <text x="34" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• So sánh Output ↔ Ảnh A &amp; Người B</text>
+                  <text x="34" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Đảm bảo nhận dạng đúng Người A</text>
+
+                  <!-- Axis 02: Motion & Pose -->
+                  <rect class="decor-rect" x="434" y="246" width="402" height="208" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                  <rect class="decor-rect" x="454" y="266" width="190" height="30" rx="6" fill="#1e2bfa"/>
+                  <text x="549" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 02 / MOTION</text>
+                  <text x="454" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Độ Khớp Góc Đầu &amp; Biểu Cảm</text>
+                  <text x="454" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Độ lệch góc xoay đầu theo Video B</text>
+                  <text x="454" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Độ khớp chuyển động mốc biểu cảm</text>
+                  <text x="454" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Loại bỏ hiện tượng mặt đơ cứng</text>
+
+                  <!-- Axis 03: Temporal & Occlusion -->
+                  <rect class="decor-rect" x="854" y="246" width="416" height="208" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                  <rect class="decor-rect" x="874" y="266" width="196" height="30" rx="6" fill="#1e2bfa"/>
+                  <text x="972" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 03 / TEMPORAL</text>
+                  <text x="874" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Ổn Định Thời Gian &amp; Che Khuất</text>
+                  <text x="874" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Căn chỉnh bù chuyển động (Warping)</text>
+                  <text x="874" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Kết hợp mặt nạ vùng hợp lệ &amp; vật cản</text>
+                  <text x="874" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Chống nhấp nháy &amp; lộ viền ghép</text>
+
+                  <!-- QA Gate Decision Box -->
+                  <rect class="decor-rect" x="1288" y="246" width="398" height="208" rx="16" fill="#f5f1da" stroke="#111111" stroke-width="2"/>
+                  <text x="1487" y="282" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">CỔNG QUYẾT ĐỊNH QA VIDEO</text>
+                  <rect class="decor-rect" x="1308" y="302" width="358" height="62" rx="10" fill="#1e2bfa"/>
+                  <text x="1487" y="329" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẠT CHUẨN (PASS QA GATE)</text>
+                  <text x="1487" y="351" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#eef0ff">→ Đưa vào tập dữ liệu tổng hợp D2</text>
+                  <rect class="decor-rect" x="1308" y="376" width="358" height="62" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.5" stroke-dasharray="6 4"/>
+                  <text x="1487" y="403" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">LOẠI BỎ (QUARANTINE)</text>
+                  <text x="1487" y="425" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">→ Cách ly &amp; lưu nhãn nguyên nhân lỗi</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Bottom Row: 3 Governance & Engineering Cards -->
+            <div class="card-grid-3">
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">01 / QUẢN TRỊ THỰC NGHIỆM</span>
+                  <span class="intent-role">DEV-ONLY SELECTION</span>
+                </div>
+                <h3>Khóa Cấu Hình Trước Tập Holdout</h3>
+                <p>Mọi quyết định chọn mô hình và ngưỡng lọc chất lượng đều được thực hiện trên tập Development, giữ tập Holdout độc lập hoàn toàn.</p>
+                <div class="intent-footer">→ Đảm bảo tính khách quan khoa học khi báo cáo</div>
+              </article>
+
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">02 / ĐO LƯỜNG CÓ MẶT NẠ</span>
+                  <span class="intent-role">OCCLUSION-AWARE QA</span>
+                </div>
+                <h3>Tách Biệt Nhấp Nháy Giả Và Vật Cản Thật</h3>
+                <p>Áp dụng bù chuyển động trên vùng mặt hợp lệ kết hợp mặt nạ che khuất để không phạt nhầm các frame có bàn tay đưa qua mặt.</p>
+                <div class="intent-footer">→ Đánh giá đúng chất lượng liên tục thời gian</div>
+              </article>
+
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">03 / VẬN HÀNH BỀN VỮNG</span>
+                  <span class="intent-role">RESUMABLE BATCH</span>
+                </div>
+                <h3>Hàng Đợi Lưu Vết &amp; Khôi Phục Từng Cặp Mẫu</h3>
+                <p>Mỗi cặp mẫu lưu kèm mã kiểm tra toàn vẹn, cấu hình suy luận và nhật ký lỗi, cho phép tiếp tục chạy lại đúng mẫu bị gián đoạn.</p>
+                <div class="intent-footer">→ Thích ứng với giới hạn phiên chạy trên đám mây</div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SLIDE 10: 09 / UNIFIED DATASET & ZERO LEAKAGE VAULT (NHÓM 4)
+           ==================================================================== -->
+      <section class="slide" id="slide-10" data-title="09 / Unified Dataset &amp; Vault">
+        <div class="slide-inner">
+          <header class="slide-header">
+            <div class="header-left">
+              <div class="eyebrow-row">
+                <span class="group-pill">Nhóm thực hiện: Nhóm 4</span>
+                <span class="section-tag">09 / UNIFIED DATASET &amp; ZERO LEAKAGE VAULT</span>
+                <span class="section-subtitle">THREE-PROVENANCE TAXONOMY &amp; CONNECTED-COMPONENT SPLIT LOCK</span>
+              </div>
+              <h2 class="slide-title">Bộ Dữ Liệu Hợp Nhất &amp; <span>Két Khóa Cụm Liên Thông</span></h2>
+            </div>
+            <div class="header-right">
+              <div class="header-takeaway">
+                Nhóm thực hiện: Nhóm 4 khóa đồng thời Danh tính gốc A lẫn Video cha B theo cụm liên thông để triệt tiêu rò rỉ dữ liệu.
+              </div>
+            </div>
+          </header>
+
+          <div class="slide-body">
+            <div class="split-2col">
+              <!-- Left Panel: Unified 3-Group Taxonomy + Sample Passport -->
+              <div class="visual-panel">
+                <div class="panel-title-bar">
+                  <div class="panel-title">
+                    <span class="panel-title-dot"></span>
+                    Ba Nhóm Nguồn Gốc Dữ Liệu &amp; Thẻ Căn Cước Mẫu Hợp Nhất (2D &amp; Video)
+                  </div>
+                  <span class="panel-badge">DUAL-LABEL SCHEMA</span>
+                </div>
+                <div class="svg-stage">
+                  <svg viewBox="0 0 810 620" aria-label="Unified Dataset Taxonomy and Sample Passport">
+                    <!-- Group 1: Real Faces & Videos -->
+                    <rect class="decor-rect" x="18" y="14" width="774" height="122" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                    <g transform="translate(34, 24) scale(0.72)">
+                      <use href="#face-portrait-base" x="0" y="0"/>
+                    </g>
+                    <text x="142" y="48" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">01. Real Faces &amp; Videos (Ảnh Tĩnh &amp; Video Thật)</text>
+                    <text x="142" y="76" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Khuôn mặt người thật nguyên bản làm mốc chuẩn phân lớp</text>
+                    <rect class="decor-rect" x="142" y="90" width="190" height="30" rx="6" fill="#111111"/>
+                    <text x="237" y="110" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Label: REAL (0)</text>
+                    <rect class="decor-rect" x="346" y="90" width="250" height="30" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+                    <text x="471" y="110" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Sub-group: real_authentic</text>
+
+                    <!-- Group 2: Classic Deepfakes -->
+                    <rect class="decor-rect" x="18" y="150" width="774" height="122" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                    <g transform="translate(34, 160) scale(0.72)">
+                      <use href="#face-portrait-masked" x="0" y="0"/>
+                    </g>
+                    <text x="142" y="184" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">02. Classic Deepfakes (Giả Mạo Cắt Ghép Truyền Thống)</text>
+                    <text x="142" y="212" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Mẫu giả mạo từ các bộ dữ liệu đối chiếu có sẵn</text>
+                    <rect class="decor-rect" x="142" y="226" width="190" height="30" rx="6" fill="#6b6b6b"/>
+                    <text x="237" y="246" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Label: FAKE (1)</text>
+                    <rect class="decor-rect" x="346" y="226" width="250" height="30" rx="6" fill="#f5f1da" stroke="#111111" stroke-width="1.3"/>
+                    <text x="471" y="246" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Sub-group: classic_deepfake</text>
+
+                    <!-- Group 3: SD Synthetic (2D & Video A<-B) -->
+                    <rect class="decor-rect" x="18" y="286" width="774" height="126" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
+                    <g transform="translate(34, 298) scale(0.72)">
+                      <use href="#face-portrait-variant" x="0" y="0"/>
+                    </g>
+                    <text x="142" y="320" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">03. SD Synthetic (Ảnh 2D &amp; Video Hoán Đổi A←B Qua QA)</text>
+                    <text x="142" y="348" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#111111">Sinh bởi 3 chế độ 2D &amp; 4 Backend Video qua cổng QA</text>
+                    <rect class="decor-rect" x="142" y="364" width="190" height="30" rx="6" fill="#1e2bfa"/>
+                    <text x="237" y="384" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Label: FAKE (1)</text>
+                    <rect class="decor-rect" x="346" y="364" width="424" height="30" rx="6" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.5"/>
+                    <text x="558" y="384" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Sub-group: sd_2d_* &amp; sd_video_*</text>
+
+                    <!-- Bottom Sample Passport Card -->
+                    <rect class="decor-rect" x="18" y="428" width="774" height="178" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="405" y="460" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">THẺ CĂN CƯỚC MẪU HỢP NHẤT (6 TRƯỜNG TRUY VẾT)</text>
+
+                    <rect class="decor-rect" x="34" y="476" width="236" height="52" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
+                    <text x="152" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">1. Mã Mẫu / pair_id</text>
+                    <text x="152" y="517" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Định danh duy nhất mẫu</text>
+
+                    <rect class="decor-rect" x="286" y="476" width="236" height="52" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
+                    <text x="404" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">2. Nhãn Nhị Phân</text>
+                    <text x="404" y="517" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Phân lớp Real vs. Fake</text>
+
+                    <rect class="decor-rect" x="538" y="476" width="238" height="52" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
+                    <text x="657" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">3. Chế Độ &amp; Backend</text>
+                    <text x="657" y="517" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">T2I / Inpaint / 4 Video SD</text>
+
+                    <rect class="decor-rect" x="34" y="540" width="236" height="52" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
+                    <text x="152" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">4. Khóa Danh Tính A</text>
+                    <text x="152" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">ID khuôn mặt nguồn</text>
+
+                    <rect class="decor-rect" x="286" y="540" width="236" height="52" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
+                    <text x="404" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">5. Khóa Video Cha B</text>
+                    <text x="404" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">ID video chuyển động gốc</text>
+
+                    <rect class="decor-rect" x="538" y="540" width="238" height="52" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
+                    <text x="657" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">6. Điểm Cổng QA</text>
+                    <text x="657" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Trạng thái Pass / Reject</text>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Right Panel: Connected-Component Biometric & Video Vault SVG -->
+              <div class="visual-panel accent-border">
+                <div class="panel-title-bar">
+                  <div class="panel-title">
+                    <span class="panel-title-dot"></span>
+                    Két Khóa Cụm Liên Thông (Zero Identity &amp; Parent-Video Leakage)
+                  </div>
+                  <span class="panel-badge">MINH HỌA Ý TƯỞNG</span>
+                </div>
+                <div class="svg-stage">
+                  <svg viewBox="0 0 810 620" aria-label="Connected-Component Zero Leakage Vault Diagram">
+                    <!-- Left Vault: Connected Component 1 -> Train & Dev -->
+                    <rect class="decor-rect" x="16" y="16" width="336" height="588" rx="18" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
+                    <rect class="decor-rect" x="36" y="34" width="296" height="44" rx="10" fill="#1e2bfa"/>
+                    <text x="184" y="62" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16.5" font-weight="800" fill="#ffffff">KÉT A: CỤM LIÊN THÔNG #01</text>
+
+                    <!-- Source ID A1 + Parent Video B1 -->
+                    <g transform="translate(52, 96) scale(0.82)">
+                      <use href="#face-portrait-base" x="0" y="0"/>
+                    </g>
+                    <rect class="decor-rect" x="176" y="106" width="144" height="96" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.8"/>
+                    <text x="248" y="142" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">Video Cha #B1</text>
+                    <text x="248" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#111111">Chuỗi t1 → t3</text>
+                    <text x="184" y="242" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Khóa Kép: ID #A1 + Video #B1</text>
+
+                    <line x1="184" y1="254" x2="104" y2="298" stroke="#1e2bfa" stroke-width="2.4" class="anim-flow" marker-end="url(#arrow-blue)"/>
+                    <line x1="184" y1="254" x2="264" y2="298" stroke="#1e2bfa" stroke-width="2.4" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                    <rect class="decor-rect" x="36" y="308" width="136" height="106" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
+                    <text x="104" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#1e2bfa">Biến Thể 2D</text>
+                    <text x="104" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Inpaint / Img2Img</text>
+
+                    <rect class="decor-rect" x="196" y="308" width="136" height="106" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
+                    <text x="264" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#1e2bfa">Video A1←B1</text>
+                    <text x="264" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">4 Backend SD</text>
+
+                    <text x="184" y="446" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#1e2bfa">Mọi mẫu chung A1 hoặc B1 ở cùng 1 két</text>
+                    <line x1="184" y1="458" x2="184" y2="496" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                    <rect class="decor-rect" x="36" y="504" width="296" height="80" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                    <text x="184" y="538" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#1e2bfa">Tập Train &amp; Development</text>
+                    <text x="184" y="564" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Huấn luyện &amp; chốt cấu hình QA</text>
+
+                    <!-- Center Barrier: Zero Identity & Video Leakage Shield -->
+                    <line x1="405" y1="20" x2="405" y2="600" stroke="#1e2bfa" stroke-width="4" stroke-dasharray="10 7"/>
+                    <rect class="decor-rect" x="364" y="206" width="82" height="208" rx="14" fill="#1e2bfa" class="anim-pulse"/>
+                    <text x="405" y="268" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ZERO</text>
+                    <text x="405" y="294" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ID &amp;</text>
+                    <text x="405" y="320" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">VIDEO</text>
+                    <text x="405" y="346" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">LEAK</text>
+
+                    <!-- Right Vault: Connected Component 2 -> Held-Out Test -->
+                    <rect class="decor-rect" x="458" y="16" width="336" height="588" rx="18" fill="#f5f1da" stroke="#111111" stroke-width="2.2"/>
+                    <rect class="decor-rect" x="478" y="34" width="296" height="44" rx="10" fill="#111111"/>
+                    <text x="626" y="62" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16.5" font-weight="800" fill="#ffffff">KÉT B: CỤM LIÊN THÔNG #02</text>
+
+                    <!-- Unseen Source ID A2 + Unseen Parent Video B2 -->
+                    <g transform="translate(494, 96) scale(0.82)">
+                      <use href="#face-portrait-landmarks" x="0" y="0"/>
+                    </g>
+                    <rect class="decor-rect" x="618" y="106" width="144" height="96" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                    <text x="690" y="142" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Video Cha #B2</text>
+                    <text x="690" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Hoàn toàn mới</text>
+                    <text x="626" y="242" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Độc Lập: ID #A2 + Video #B2</text>
+
+                    <line x1="626" y1="254" x2="546" y2="298" stroke="#111111" stroke-width="2.4" marker-end="url(#arrow-dark)"/>
+                    <line x1="626" y1="254" x2="706" y2="298" stroke="#111111" stroke-width="2.4" marker-end="url(#arrow-dark)"/>
+
+                    <rect class="decor-rect" x="478" y="308" width="136" height="106" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
+                    <text x="546" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">Biến Thể 2D</text>
+                    <text x="546" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Của riêng ID #A2</text>
+
+                    <rect class="decor-rect" x="638" y="308" width="136" height="106" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
+                    <text x="706" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">Video A2←B2</text>
+                    <text x="706" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Chưa từng gặp</text>
+
+                    <text x="626" y="446" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">Không trùng mặt gốc lẫn bối cảnh video</text>
+                    <line x1="626" y1="458" x2="626" y2="496" stroke="#111111" stroke-width="3" marker-end="url(#arrow-dark)"/>
+
+                    <rect class="decor-rect" x="478" y="504" width="296" height="80" rx="12" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+                    <text x="626" y="538" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Tập Kiểm Thử (Held-Out Test)</text>
+                    <text x="626" y="564" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Đo chính xác năng lực tổng quát hóa</text>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SLIDE 11: 10 / DETECTOR EVALUATION (D0 / D1 / D2) & ROADMAP M0->M7
+           ==================================================================== -->
+      <section class="slide" id="slide-11" data-title="10 / Detector Evaluation &amp; Roadmap">
+        <div class="slide-inner">
+          <header class="slide-header">
+            <div class="header-left">
+              <div class="eyebrow-row">
+                <span class="section-tag">10 / DETECTOR EVALUATION &amp; ROADMAP</span>
+                <span class="section-subtitle">THREE-REGIME BENCHMARK (D0 / D1 / D2), ROC-AUC CURVE &amp; MILESTONES M0→M7</span>
+              </div>
+              <h2 class="slide-title">Thực Nghiệm Đối Chứng <span>D0 / D1 / D2</span> &amp; Lộ Trình Thực Thi</h2>
+            </div>
+            <div class="header-right">
+              <div class="header-takeaway">
+                Đặt dữ liệu tổng hợp SD qua QA (D2) đối chứng trực tiếp với dữ liệu gốc (D0) và Augmentation thường (D1) trên cùng ngân sách.
+              </div>
+            </div>
+          </header>
+
+          <div class="slide-body">
+            <!-- Top Row: Full-Width 3-Regime Comparative Experiment (D0, D1, D2) + Conceptual ROC-AUC Plot -->
+            <div class="visual-panel accent-border" style="flex: 1;">
+              <div class="panel-title-bar">
+                <div class="panel-title">
+                  <span class="panel-title-dot"></span>
+                  Thiết Kế Đối Chứng 3 Chế Độ Huấn Luyện (D0 vs. D1 vs. D2) &amp; Kỳ Vọng Đường Cong ROC-AUC
+                </div>
+                <span class="panel-badge">CONTROLLED 3-REGIME BENCHMARK</span>
+              </div>
+              <div class="svg-stage">
+                <svg viewBox="0 0 1680 470" aria-label="Three-Regime Detector Evaluation and Conceptual ROC Curve">
+                  <!-- Regime D0: Original Baseline -->
+                  <rect class="decor-rect" x="18" y="20" width="452" height="128" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
+                  <rect class="decor-rect" x="36" y="38" width="196" height="28" rx="6" fill="#111111"/>
+                  <text x="134" y="57" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">CHẾ ĐỘ D0: BASELINE</text>
+                  <text x="36" y="96" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Dữ Liệu Gốc Ban Đầu (Original)</text>
+                  <text x="36" y="126" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Chỉ huấn luyện trên tập Real &amp; Deepfake gốc</text>
+
+                  <!-- Regime D1: Standard Augmentation Control -->
+                  <rect class="decor-rect" x="18" y="168" width="452" height="128" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                  <rect class="decor-rect" x="36" y="186" width="224" height="28" rx="6" fill="#6b6b6b"/>
+                  <text x="148" y="205" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">CHẾ ĐỘ D1: AUGMENTATION</text>
+                  <text x="36" y="244" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">D0 + Biến Đổi Ảnh/Video Thường</text>
+                  <text x="36" y="274" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Đối chứng công bằng cùng ngân sách mẫu</text>
+
+                  <!-- Regime D2: QA-Passed SD Synthetic -->
+                  <rect class="decor-rect" x="18" y="316" width="452" height="134" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
+                  <rect class="decor-rect" x="36" y="334" width="236" height="28" rx="6" fill="#1e2bfa"/>
+                  <text x="154" y="353" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">CHẾ ĐỘ D2: SD SYNTHETIC</text>
+                  <text x="36" y="392" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#1e2bfa">D0 + Dữ Liệu Tổng Hợp SD Qua QA</text>
+                  <text x="36" y="424" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#111111">Tích hợp Ảnh 2D &amp; Video A←B đạt chuẩn</text>
+
+                  <!-- Converging Arrows into Shared Detector -->
+                  <path d="M 474 84 L 542 184" fill="none" stroke="#6b6b6b" stroke-width="2.8" stroke-dasharray="6 4" marker-end="url(#arrow-dark)"/>
+                  <path d="M 474 232 L 542 232" fill="none" stroke="#111111" stroke-width="2.8" marker-end="url(#arrow-dark)"/>
+                  <path d="M 474 382 L 542 282" fill="none" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                  <!-- Center: Shared Deepfake Detector Backbone -->
+                  <rect class="decor-rect" x="550" y="64" width="322" height="342" rx="18" fill="#ffffff" stroke="#1e2bfa" stroke-width="2.4"/>
+                  <text x="711" y="112" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">CỐ ĐỊNH KIẾN TRÚC &amp; NGÂN SÁCH</text>
+                  <text x="711" y="156" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="23" font-weight="800" fill="#111111">Deepfake Detector</text>
+                  <text x="711" y="192" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#6b6b6b">Cùng Backbone &amp; Hyperparameters</text>
+                  <rect class="decor-rect" x="580" y="222" width="262" height="44" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.4"/>
+                  <text x="711" y="250" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#1e2bfa">Cùng số vòng lặp huấn luyện</text>
+                  <rect class="decor-rect" x="580" y="286" width="262" height="44" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.3"/>
+                  <text x="711" y="314" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#111111">Held-Out Test Set Độc Lập</text>
+                  <text x="711" y="368" text-anchor="middle" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#1e2bfa">Khóa trước khi chạy thực nghiệm</text>
+
+                  <line x1="876" y1="235" x2="918" y2="235" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
+
+                  <!-- Right: Conceptual ROC-AUC Curve + Evaluation Criteria -->
+                  <rect class="decor-rect" x="926" y="20" width="736" height="430" rx="18" fill="#fdfae7" stroke="#111111" stroke-width="1.8"/>
+                  <text x="1116" y="58" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Đồ Thị Minh Họa Kỳ Vọng ROC-AUC</text>
+
+                  <!-- Mini ROC Plot Frame -->
+                  <rect class="decor-rect" x="960" y="84" width="310" height="300" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+                  <line x1="960" y1="384" x2="1270" y2="84" stroke="#9a9a9a" stroke-width="1.4" stroke-dasharray="4 4"/>
+                  <!-- D0 Curve -->
+                  <path d="M 960 384 Q 1025 215 1270 84" fill="none" stroke="#6b6b6b" stroke-width="2.4" stroke-dasharray="5 5"/>
+                  <!-- D1 Curve -->
+                  <path d="M 960 384 Q 995 162 1270 84" fill="none" stroke="#111111" stroke-width="2.6" stroke-dasharray="9 5"/>
+                  <!-- D2 Curve -->
+                  <path d="M 960 384 Q 966 98 1270 84" fill="none" stroke="#1e2bfa" stroke-width="4"/>
+
+                  <rect class="decor-rect" x="1008" y="108" width="184" height="28" rx="6" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.2"/>
+                  <text x="1100" y="127" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">D2 (+ SD Qua QA)</text>
+                  <rect class="decor-rect" x="1062" y="182" width="152" height="26" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1.1"/>
+                  <text x="1138" y="200" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">D1 (+ Augment)</text>
+                  <rect class="decor-rect" x="1116" y="246" width="116" height="26" rx="6" fill="#f5f1da" stroke="#6b6b6b" stroke-width="1.1"/>
+                  <text x="1174" y="264" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">D0 (Gốc)</text>
+                  <text x="1115" y="416" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#111111">False Positive Rate (FPR) →</text>
+
+                  <!-- Metrics List on Far Right -->
+                  <rect class="decor-rect" x="1296" y="84" width="342" height="300" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.8"/>
+                  <text x="1467" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">THƯỚC ĐO ĐÁNH GIÁ HẠ NGUỒN</text>
+                  <text x="1316" y="168" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#1e2bfa">• Diện tích đường cong ROC-AUC</text>
+                  <text x="1316" y="206" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• Average Precision (AP)</text>
+                  <text x="1316" y="244" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• TPR tại mức FPR cố định</text>
+                  <text x="1316" y="282" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• F1-Score &amp; Độ nhạy theo nhóm</text>
+                  <text x="1316" y="320" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">• Phân rã theo từng chế độ &amp; backend</text>
+                  <text x="1316" y="358" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">(MINH HỌA Ý TƯỞNG)</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Bottom Row: 4 Equal-Width Milestone & Deliverable Cards (M0 -> M7) -->
+            <div class="card-grid-4">
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">MỐC M0</span>
+                  <span class="intent-role">DEFINE &amp; DESIGN</span>
+                </div>
+                <h3>01. M0: Đặc Tả &amp; Kiến Trúc</h3>
+                <p>Chốt định nghĩa bài toán 2D + Video A←B, ranh giới phạm vi 2 tầng và giao thức đánh giá chống rò rỉ dữ liệu.</p>
+                <div class="intent-footer">→ Hoàn tất thiết kế hệ thống hợp nhất</div>
+              </article>
+
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">MỐC M1 – M2</span>
+                  <span class="intent-role">INPUT &amp; PILOT</span>
+                </div>
+                <h3>02. M1–M2: Chuẩn Hóa &amp; Pilot</h3>
+                <p>Xây dựng manifest khóa cụm liên thông và chạy ma trận thử nghiệm Pilot trên 3 chế độ 2D cùng 4 backend Video.</p>
+                <div class="intent-footer">→ Kiểm chứng tính khả thi thực nghiệm</div>
+              </article>
+
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">MỐC M3 – M5</span>
+                  <span class="intent-role">QA GATE &amp; BATCH</span>
+                </div>
+                <h3>03. M3–M5: Kiểm Định &amp; Sinh Batch</h3>
+                <p>Chấm điểm đa trục, khóa cấu hình trên tập Development và vận hành hàng đợi sinh dữ liệu tổng hợp có kiểm soát.</p>
+                <div class="intent-footer">→ Đóng gói bộ dữ liệu chuẩn hóa</div>
+              </article>
+
+              <article class="intent-card">
+                <div class="intent-card-top">
+                  <span class="intent-index">MỐC M6 – M7</span>
+                  <span class="intent-role">D0/D1/D2 &amp; REPORT</span>
+                </div>
+                <h3>04. M6–M7: Đối Chứng &amp; Xuất Bản</h3>
+                <p>Thực nghiệm Detector hạ nguồn 3 chế độ D0 / D1 / D2, xuất bản Dataset Card và báo cáo học thuật hoàn chỉnh.</p>
+                <div class="intent-footer">→ Nhóm thực hiện: Nhóm 4</div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<!-- ====================================================================
            STAGE-ANCHORED NAVIGATION CHROME
            ==================================================================== -->
-      <div class="slide-counter" id="slide-counter">SLIDE 01 / 08</div>
+      <div class="slide-counter" id="slide-counter">SLIDE 01 / 11</div>
       <div class="nav-controls" aria-label="Slide navigation">
         <button class="nav-btn" id="prev-btn" type="button" title="Previous Slide (←)">‹</button>
         <div class="nav-dots" id="nav-dots"></div>
@@ -2167,3 +2709,4 @@
   </script>
 </body>
 </html>
+

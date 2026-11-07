@@ -12,22 +12,25 @@ def _extract_visible_text(html: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def test_deck_has_eight_slides_and_fixed_stage():
+def test_deck_has_eleven_slides_and_fixed_stage():
     html = DECK_PATH.read_text(encoding="utf-8")
     assert "width: 1920px;" in html and "height: 1080px;" in html
     slides = re.findall(r'<section[^>]+class="[^"]*slide[^"]*"[^>]*>', html)
-    assert len(slides) == 8
-    for idx in range(1, 9):
+    assert len(slides) == 11
+    for idx in range(1, 12):
         assert f'id="slide-{idx}"' in html
+    assert "01 / 11" in html
 
 
-def test_deck_enforces_blue_professional_single_accent_palette():
+def test_deck_enforces_blue_professional_palette_and_clean_ui():
     html = DECK_PATH.read_text(encoding="utf-8").lower()
     assert "#fdfae7" in html
     assert "#1e2bfa" in html
     for forbidden_hex in ["#d97706", "#dc2626", "#059669", "#9333ea", "#1e293b", "#111827"]:
         assert forbidden_hex not in html, f"Forbidden non-Blue-Professional color {forbidden_hex}"
     assert "notes-drawer" not in html
+    assert 'id="overlay"' not in html
+    assert "speaker-notes" not in html
     assert "<pre" not in html
 
 
@@ -69,54 +72,68 @@ def test_deck_contains_zero_unverified_numbers_or_code_clutter():
 def test_every_slide_has_inline_svg_visual_diagram():
     html = DECK_PATH.read_text(encoding="utf-8")
     parts = re.split(r'<section[^>]+class="[^"]*slide[^"]*"[^>]*>', html)[1:]
-    assert len(parts) == 8
+    assert len(parts) == 11
     for idx, slide_html in enumerate(parts, start=1):
         assert "<svg" in slide_html, f"Slide {idx} is missing an inline <svg> visual diagram"
 
 
-def test_combines_all_three_visual_approaches_across_eight_slides():
+def test_combines_2d_and_sd_video_across_eleven_slides():
     html = DECK_PATH.read_text(encoding="utf-8")
-    # Approach 1: Domain-Specific CV Vector Diagrams
-    for cv_term in [
+    # 2D & Unified CV Visual Elements
+    for term in [
         "Decision Boundary",
         "Text-to-Image",
         "Facial Inpainting",
         "Image-to-Image",
-        "Zero Identity Leakage",
         "Data Acquisition",
         "Face Preprocessing",
         "Stable Diffusion Generation",
         "Quality Control",
         "Labeling &amp; Metadata",
         "Dataset Export",
+        # SD-Video Extension Elements
+        "Face-Adapter",
+        "REFace",
+        "VFace",
+        "VividFace",
+        "A←B",
+        "D0",
+        "D1",
+        "D2",
         "ROC-AUC",
+        "M0",
+        "M7",
     ]:
-        assert cv_term in html, f"Missing Approach 1 CV visual element: {cv_term}"
+        assert term in html, f"Missing unified 2D/Video element: {term}"
 
-    # Approach 2: Embedded Illustrative Face Portrait Thumbnails & Overlays
+    # Embedded Illustrative Portrait Thumbnails & Overlays
     assert "MINH HỌA Ý TƯỞNG" in html
     assert 'id="face-portrait-base"' in html or 'class="portrait-thumb"' in html
 
-    # Approach 3: Animated Data-Flow & Visual Scanning Pulses
-    for anim_name in ["@keyframes flowPulse", "@keyframes scanLine", "@keyframes pulseNode"]:
-        assert anim_name in html, f"Missing Approach 3 animation: {anim_name}"
+    # Animated Data-Flow, Scanning & Video Playhead Pulses
+    for anim_name in ["@keyframes flowPulse", "@keyframes scanLine", "@keyframes pulseNode", "@keyframes playhead"]:
+        assert anim_name in html, f"Missing animation: {anim_name}"
 
-    # Group 4 Attribution on Slide 1, Slide 4, and Slide 5
+    # Group 4 Attribution on Slide 1, Slide 3, Slide 4, and Slide 10
     slide_1_part = html.split('id="slide-1"')[1].split('id="slide-2"')[0]
+    slide_3_part = html.split('id="slide-3"')[1].split('id="slide-4"')[0]
     slide_4_part = html.split('id="slide-4"')[1].split('id="slide-5"')[0]
-    slide_5_part = html.split('id="slide-5"')[1].split('id="slide-6"')[0]
+    slide_10_part = html.split('id="slide-10"')[1].split('id="slide-11"')[0]
     assert "Nhóm thực hiện: Nhóm 4" in slide_1_part
+    assert "Nhóm thực hiện: Nhóm 4" in slide_3_part
     assert "Nhóm thực hiện: Nhóm 4" in slide_4_part
-    assert "Nhóm thực hiện: Nhóm 4" in slide_5_part
+    assert "Nhóm thực hiện: Nhóm 4" in slide_10_part
 
 
-def test_companion_markdown_guides_contain_zero_unverified_numbers_and_eight_slides():
+def test_companion_markdown_guides_contain_zero_unverified_numbers_and_eleven_slides():
     for rel_path in [
         "docs/reports/PRESENTATION_5MIN_DEFINE_AND_DESIGN.md",
         "docs/reports/SLIDE_PRESENTATION_STRUCTURE_5MIN.md",
     ]:
         content = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
-        assert "Slide 07" in content and "Slide 08" in content, f"{rel_path} must document all 8 slides"
+        assert "Slide 09" in content and "Slide 10" in content and "Slide 11" in content, (
+            f"{rel_path} must document all 11 slides"
+        )
         for pat in [
             r"\b95%\b",
             r"\b62%\b",
@@ -137,7 +154,7 @@ def test_companion_markdown_guides_contain_zero_unverified_numbers_and_eight_sli
 def test_svg_text_elements_respect_min_font_size_and_no_overflow():
     html = DECK_PATH.read_text(encoding="utf-8")
     svgs = re.findall(r"<svg[\s\S]*?</svg>", html, flags=re.I)
-    assert len(svgs) >= 8
+    assert len(svgs) >= 11
     for svg in svgs:
         for size_str in re.findall(r'font-size="([0-9.]+)"', svg):
             assert float(size_str) >= 13.0, f"SVG text font-size {size_str} is below 13px minimum"
@@ -249,8 +266,8 @@ def test_rendered_dom_and_svg_geometry_in_headless_chrome():
         (function() {
           const slides = Array.from(document.querySelectorAll('.slide'));
           const errors = [];
-          if (slides.length !== 8) {
-            errors.push(`Expected 8 slides, found ${slides.length}`);
+          if (slides.length !== 11) {
+            errors.push(`Expected 11 slides, found ${slides.length}`);
           }
           slides.forEach((slide, idx) => {
             slides.forEach((s, i) => s.classList.toggle('active', i === idx));
