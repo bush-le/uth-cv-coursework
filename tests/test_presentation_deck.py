@@ -77,9 +77,9 @@ def test_every_slide_has_inline_svg_visual_diagram():
         assert "<svg" in slide_html, f"Slide {idx} is missing an inline <svg> visual diagram"
 
 
-def test_combines_2d_and_sd_video_across_eleven_slides():
+def test_combines_2d_and_dinovit_hard_sample_across_eleven_slides():
     html = DECK_PATH.read_text(encoding="utf-8")
-    # 2D & Unified CV Visual Elements
+    # 2D & Closed-Loop dinoViT + Hard Sample Visual Elements
     for term in [
         "Decision Boundary",
         "Text-to-Image",
@@ -91,12 +91,12 @@ def test_combines_2d_and_sd_video_across_eleven_slides():
         "Quality Control",
         "Labeling &amp; Metadata",
         "Dataset Export",
-        # SD-Video Extension Elements
-        "Face-Adapter",
-        "REFace",
-        "VFace",
-        "VividFace",
-        "A←B",
+        # Closed-Loop dinoViT & Hard-Sample Elements
+        "dinoViT",
+        "Hard Sample",
+        "Reject",
+        "Bypass",
+        "Fine-Tune",
         "D0",
         "D1",
         "D2",
@@ -104,7 +104,7 @@ def test_combines_2d_and_sd_video_across_eleven_slides():
         "M0",
         "M7",
     ]:
-        assert term in html, f"Missing unified 2D/Video element: {term}"
+        assert term in html, f"Missing closed-loop 2D/dinoViT/Hard-Sample element: {term}"
 
     # Embedded Illustrative Portrait Thumbnails & Overlays
     assert "MINH HỌA Ý TƯỞNG" in html

@@ -1,22 +1,34 @@
-# Downstream Deepfake Image Detector Configuration
+# DINO ViT (dinoViT) Baseline Benchmark, Hard-Sample Mining & Fine-Tuning Configuration
 model:
   name: "deepfake_image_detector"
-  spatial_backbone: "resnet18"
+  spatial_backbone: "dino_vit" # Self-supervised Vision Transformer (DINO / DINOv2)
   pretrained_backbone: false
+  embed_dim: 192
+  patch_size: 16
+  depth: 4
+  num_heads: 4
   num_classes: 1
   dropout: 0.3
 
-training:
+hard_sample_mining:
+  bypass_threshold: 0.50 # Synthetic DF samples with P(fake) < 0.50 bypass baseline -> Hard Samples
+  save_hard_manifest: "data/processed/hard_samples_manifest.jsonl"
+  save_annotated_manifest: "data/processed/annotated_synthetic_manifest.jsonl"
+
+finetuning:
   num_epochs: 15
   learning_rate: 0.0002
   weight_decay: 0.00001
   batch_size: 16
+  hard_sample_loss_weight: 2.0
+  hard_sample_oversample_factor: 2
+  unfreeze_last_n_blocks: 2
   clip_grad_norm: 1.0
   device: "cuda"
   use_amp: true
 
 loss:
-  name: "binary_cross_entropy"
+  name: "weighted_binary_cross_entropy"
   label_smoothing: 0.05
 
 evaluation:
@@ -26,4 +38,6 @@ evaluation:
     - "f1_score"
     - "precision"
     - "recall"
+    - "bypass_rate"
+    - "hard_sample_recall"
   save_best_metric: "roc_auc"

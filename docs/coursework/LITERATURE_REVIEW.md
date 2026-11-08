@@ -1,84 +1,45 @@
-# Facial Occlusion Synthesis & Facial De-occlusion: Literature Review & Academic Gap
+# Diffusion Deepfake Generation, DINO ViT Representation & Hard-Sample Mining: Literature Review
 
-- **Motivation/Background**: Establishes the academic foundation and analytical state-of-the-art (SOTA) review for generative facial occlusion synthesis and deep facial de-occlusion (facial completion and restoration).
-- **Purpose**: Articulate the core academic novelty and necessity of diffusion-based triplet generation by identifying the fundamental paired data bottleneck in facial de-occlusion.
-- **Overview Pipeline**: Downstream impact & problem formulation -> The Paired Data Dilemma in prior benchmarks -> Traditional vs. Generative synthesis -> Diffusion-based triplet supervision -> Academic gap & technical differentiation.
-- **Detailed Plan**: §1 Problem Context & Downstream Impact; §2 Prior Datasets & The Paired Data Scarcity Dilemma; §3 Traditional vs Generative Occlusion Synthesis; §4 Diffusion-Based Triplet Generation & Supervision; §5 Academic Gap & Technical Differentiation.
-- **References**: Din et al. (CVPR 2020), Suvorov et al. (LaMa, WACV 2022), Lugmayr et al. (RepPaint, CVPR 2022), Deng et al. (ArcFace, CVPR 2019), Wu et al. (DiffuMask, CVPR 2023), `docs/PURPOSE.md`.
+- **Motivation/Background**: Establishes the academic foundation and state-of-the-art (SOTA) review for Stable Diffusion facial manipulation synthesis, self-supervised Vision Transformer (`dinoViT`) representation learning, and adversarial hard-sample mining for deepfake detection.
+- **Purpose**: Articulate the academic gap between legacy GAN-trained detectors and modern Latent Diffusion Models (LDMs), and justify why combining `dinoViT` baseline benchmarking with hard-sample mining proves the utility of synthetic diffusion datasets.
+- **Overview Pipeline**: Cross-generator domain shift (GAN vs. LDM) -> Fourier spectral analysis -> Self-supervised DINO ViT feature space -> Bypass & hard-sample mining loop -> Closed-loop fine-tuning efficacy.
+- **Detailed Plan**: §1 Cross-Generator Generalization Collapse; §2 Why Self-Supervised `dinoViT` as the Baseline Detector; §3 The Role of Bypass Analysis & Hard-Sample Mining; §4 Closed-Loop Fine-Tuning (`Baseline + Syn + Hard Samples`).
+- **References**: Rombach et al. (Latent Diffusion, CVPR 2022), Caron et al. (DINO, ICCV 2021), Oquab et al. (DINOv2, TMLR 2024), Ojha et al. (Universal FakeDetect, CVPR 2023), Corvi et al. (ICIP 2023), `docs/PURPOSE.md`.
 - **Created**: 2026-11-04T08:15:00+07:00
-- **Last Updated**: 2026-11-05T18:30:00+07:00
+- **Last Updated**: 2026-11-08T17:48:00+07:00
 
 ---
 
-## 1. Problem Context & Downstream Impact
+## 1. Cross-Generator Generalization Collapse (GAN vs. Latent Diffusion)
 
-Facial occlusion occurs whenever objects, accessories, hands, or apparel obscure key facial components. In unconstrained computer vision, partial occlusion degrades:
-- **Biometric Face Verification**: Missing eyes, nose, or mouth contours severely alter deep embedding vectors in ArcFace/CosFace models.
-- **Facial Landmark Localization & Tracking**: Landmark heatmaps drift or collapse when facial contours are obstructed.
-- **Affective Computing & 3D Morphable Models (3DMM)**: Obscured surfaces prevent realistic facial expression recognition and 3D geometry reconstruction.
-
-While **occlusion segmentation** merely isolates corrupted pixels, **Facial De-occlusion (Face Restoration / Inpainting)** actively restores the underlying anatomy, skin texture, and biometric identity. Facial de-occlusion provides downstream models with clean, reconstructed facial signals ($\hat{I}_{\text{clean}}$), insulating all downstream biometrics without requiring custom occlusion-aware classifiers.
+Classical deepfake detectors trained on GAN benchmarks (ProGAN, StyleGAN2, StarGAN) rely heavily on periodic high-frequency checkerboard artifacts introduced by transposed convolution (`ConvTranspose2d`) up-sampling.
+- **Latent Diffusion Models (LDMs)**: Stable Diffusion performs iterative Markovian reverse denoising inside a compressed VAE latent space ($z_t \to z_0$) followed by continuous decoder reconstruction $\hat{I} = \mathcal{D}(z_0)$. Its power spectral density follows the natural $1/f^\alpha$ decay law without periodic spectral spikes.
+- **Resulting Vulnerability**: Even modern detectors trained on legacy datasets suffer severe False Negative rates (`Bypass`) when confronted with photo-realistic Stable Diffusion manipulations (`sd_text2img`, `sd_inpaint`, `sd_img2img`).
 
 ---
 
-## 2. Prior Datasets & The Paired Data Scarcity Dilemma
+## 2. Why Self-Supervised `dinoViT` as the Baseline Detector
 
-A fundamental barrier in facial de-occlusion is the **Paired Data Dilemma**:
-In the real world, it is physically impossible to capture the exact same human subject with and without occlusion simultaneously under identical head pose, gaze, micro-expression, and ambient illumination.
-
-| Benchmark Dataset | Year | Modality / Labels | Clean Target ($I_{\text{clean}}$) | Occlusion Types | De-occlusion Suitability |
-| :--- | :---: | :--- | :---: | :--- | :--- |
-| **CelebAMask-HQ** | 2020 | 19 semantic classes ($512 \times 512$) | None | Eyeglasses, cloth | Unsuitable (No paired unoccluded ground truth). |
-| **AR Face Dataset** | 1998 | Paired lab photos ($768 \times 576$) | Limited | Sunglasses, scarves | Extremely small scale, constrained lab lighting, low diversity. |
-| **RealOcc / FaceOcc** | 2022 | Real occluded images + masks | None | Masks, glasses, microphones, hands | Unsuitable for supervised de-occlusion (no ground-truth $I_{\text{clean}}$). |
-| **Synthetic 2D Paste** | Misc | Cut-and-paste overlays | Naive $I_{\text{clean}}$ | Random 2D objects | High domain gap; models fail on real depth and lighting. |
+Rather than using a naive CNN trained from scratch, recent forensics literature (Ojha et al., CVPR 2023; Oquab et al., 2024) demonstrates that **self-supervised Vision Transformers (DINO / DINOv2 — `dinoViT`)** provide a superior baseline for deepfake detection:
+1. **Rich Semantic & Structural Attention**: Self-distillation with no labels (`DINO`) forces the `[CLS]` token and multi-head self-attention maps to attend to fine-grained object parts (eyes, pupils, mouth contours, skin-hair boundaries) rather than memorizing generator-specific noise.
+2. **Rigorous Benchmark Bar**: Using `dinoViT` as the baseline benchmark sets a high, realistic defense bar. If a Stable Diffusion synthetic sample still **bypasses** `dinoViT`, it represents a genuinely challenging, high-value **Hard Sample**.
 
 ---
 
-## 3. Traditional vs. Generative Occlusion Synthesis
+## 3. The Role of Bypass Analysis & Hard-Sample Mining
 
-Prior attempts to construct training pairs for facial inpainting/de-occlusion rely heavily on 2D Cut-and-Paste:
-
-### 3.1 2D Cut-and-Paste (RandOcc / Masked Face Augmentation)
-- **Mechanism**: Transparent 2D object cutouts are pasted onto clean portraits via affine transformations.
-- **Critical Failure Modes for De-occlusion**:
-  1. *Absence of Contact Shadows*: 2D overlays cast no shadows onto the cheeks or nose bridge. Restoration networks learn to exploit unnatural edge boundaries and fail to erase real contact shadows.
-  2. *Lack of 3D Morphological Deformation*: Real face masks and glasses press against facial cartilage, bending skin contours. 2D pasted objects remain completely planar.
-  3. *Unrealistic Boundary Transitions*: Color transfer algorithms produce artificial halos, causing inpainting models to overfit to edge discontinuities.
-
-### 3.2 Generative Synthesis (Latent Diffusion Inpainting)
-- **Mechanism**: Conditioned on a clean portrait $I_{\text{clean}}$, Latent Diffusion Models (LDMs) synthesize occlusions inside a guided anatomical zone using text prompts.
-- **Advantages for De-occlusion**:
-  1. **Photometric Realism**: Accurately simulates skin contact shadows, ambient occlusion, and lens reflections.
-  2. **Geometric Coherence**: Synthesized objects conform naturally to 3D facial morphology.
-  3. **Identity Preservation Outside Mask**: Latent blending ensures regions outside the occlusion mask remain identical to $I_{\text{clean}}$.
+A central question raised in academic defense is: *How do we prove that the synthetic dataset generated in Phase 1 actually improves a detector?*
+- **Reject vs. Bypass Dichotomy**:
+  When curated synthetic Deepfake images ($y = 1$) are evaluated by the frozen Baseline `dinoViT` model:
+  - **Rejected Samples ($P(\text{fake}) \ge \tau$)**: Fakes that the baseline model already detects using its baseline decision boundary.
+  - **Bypassed Samples ($P(\text{fake}) < \tau$)**: Fakes that fool the baseline `dinoViT` into predicting "Real" (False Negatives). These samples lie inside the blind spot of the baseline feature space and are harvested as **Hard Samples** (`is_hard_sample = True`).
 
 ---
 
-## 4. Diffusion-Based Triplet Generation & Supervision
+## 4. Closed-Loop Fine-Tuning (`Data Baseline + Syn Data + Hard Samples`)
 
-To supervise facial de-occlusion, the data factory generates synchronized **Triplets $(I_{\text{clean}}, I_{\text{occ}}, M)$**:
-
-1. **Clean Source Anchor ($I_{\text{clean}}$)**: High-resolution clean face from CelebA-HQ/FFHQ.
-2. **Latent Inpainting ($I_{\text{occ}}$)**:
-   $$\hat{z}_t = (1 - M_{\text{latent}}) \odot z_{t,\text{clean}} + M_{\text{latent}} \odot z_{t,\text{denoised}}$$
-   guarantees that non-occluded facial features are preserved.
-3. **Sub-Pixel Mask Extraction ($M$)**:
-   Cross-attention activation maps $A_{\text{token}}$ isolate object attention, which is snapped to sub-pixel accuracy using SAM:
-   $$M = \text{SAM}\left(I_{\text{occ}}, \text{points}=\operatorname{argmax}(A_{\text{token}}), \text{box}=\operatorname{bbox}(M_{\text{guide}})\right)$$
-
----
-
-## 5. Academic Gap & Technical Differentiation
-
-| Dimension | 2D Cut-and-Paste | Real-World Benchmarks | **Our Diffusion Triplet Framework** |
-| :--- | :--- | :--- | :--- |
-| **Paired Supervision ($I_{\text{clean}}$)** | Yes (trivial) | **No (Missing)** | **Yes (Photorealistic Triplet)** |
-| **Contact Shadows & Lighting** | None (flat) | Natural | **Photorealistic (Diffusion synthesis)** |
-| **3D Morphological Fit** | None | Natural | **Conformal to facial structure** |
-| **Identity Consistency** | High (outside paste) | N/A | **Enforced via Latent Blending + ArcFace** |
-| **Annotation Cost** | Low | Extremely High | **Autonomous (Zero Human Labeling)** |
-| **De-occlusion Generalization** | Fails on real shadows | Evaluation only | **Superior transfer to real occlusions** |
-
-### Conclusion
-By overcoming the Paired Data Dilemma through Latent Diffusion triplet generation, this project establishes a scalable, photorealistic training dataset that enables deep facial de-occlusion networks to restore real-world occluded faces with high structural fidelity and biometric identity preservation.
+By combining:
+$$\mathcal{D}_{\text{finetune}} = \mathcal{D}_{\text{baseline}} \cup \mathcal{D}_{\text{syn}} \cup \mathcal{D}_{\text{hard}}$$
+and fine-tuning the top transformer blocks of `dinoViT` with hard-sample oversampling and weighted binary cross-entropy loss:
+$$\mathcal{L}_{\text{weighted}} = \frac{1}{B} \sum_{i=1}^{B} \left(1 + (\lambda_{\text{hard}} - 1)\cdot \mathbb{I}[\text{hard}_i]\right) \cdot \text{BCE}(\hat{y}_i, y_i)$$
+the fine-tuned `dinoViT` reshapes its decision boundary to capture subtle diffusion artifacts (inpainting boundary gradients, img2img skin over-smoothing, text2img corneal asymmetry) without catastrophic forgetting on baseline data. Catching the previously bypassed samples provides direct, indisputable proof of the synthetic dataset's utility.

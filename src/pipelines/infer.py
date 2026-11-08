@@ -1,16 +1,15 @@
-"""Inference pipeline for running qualitative predictions on test images."""
+"""Inference pipeline for running dinoViT deepfake detection on test images."""
 
 import argparse
-
 import torch
 
 from src.common.logger import get_logger
-from src.models.builder import build_model
+from src.models.detector.image_detector import DeepfakeImageDetector
 
 
 def parse_args() -> argparse.Namespace:
     """Parse inference command line arguments."""
-    parser = argparse.ArgumentParser(description="Infer Computer Vision Model")
+    parser = argparse.ArgumentParser(description="Infer dinoViT Deepfake Detector")
     parser.add_argument(
         "--config",
         type=str,
@@ -27,15 +26,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def infer_pipeline(config_path: str, input_path: str) -> None:
-    """Execute inference pipeline."""
+    """Execute dinoViT inference pipeline."""
     logger = get_logger("infer_pipeline")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = build_model(architecture="custom_cnn", num_classes=10)
+    model = DeepfakeImageDetector(backbone="dino_vit", num_classes=1)
     model.to(device)
     model.eval()
 
-    logger.info(f"Loaded model for inference on target: {input_path}")
+    logger.info("Loaded dinoViT detector for inference on target: %s", input_path)
 
 
 if __name__ == "__main__":

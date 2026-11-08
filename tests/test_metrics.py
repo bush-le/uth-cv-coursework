@@ -1,41 +1,60 @@
-"""Unit tests for segmentation metrics (mIoU and Boundary IoU)."""
+"""Unit tests for binary classification, ROC-AUC, and hard-sample mining metrics."""
 
 import numpy as np
 import pytest
+import torch
 
-from src.common.metrics import compute_boundary_iou, compute_miou
-
-
-def test_compute_miou_perfect_match():
-    # 2 classes: 0 and 1
-    targets = np.array([[0, 0], [1, 1]], dtype=np.int64)
-    preds = np.array([[0, 0], [1, 1]], dtype=np.int64)
-
-    metrics = compute_miou(preds, targets, num_classes=2)
-    assert "miou" in metrics
-    assert metrics["miou"] == pytest.approx(1.0)
-    assert metrics["iou_class_0"] == pytest.approx(1.0)
-    assert metrics["iou_class_1"] == pytest.approx(1.0)
+from src.common.metrics import (
+    compute_accuracy,
+    compute_bypass_rate,
+    compute_clip_similarity_proxy,
+    compute_hard_sample_recall,
+    compute_iou,
+    compute_laplacian_sharpness,
+    compute_roc_auc,
+)
 
 
-def test_compute_miou_partial_overlap():
-    targets = np.array([[0, 1], [1, 1]], dtype=np.int64)
-    preds = np.array([[0, 0], [1, 1]], dtype=np.int64)
+def test_compute_accuracy_perfect_match() -> None:
+    targets = np.array([0, 0, 1, 1], dtype=np.int64)
+    preds = np.array([0, 0, 1, 1], dtype=np.int64)
 
-    # Class 0: target has 1 pixel, pred has 2 pixels. Intersection = 1, Union = 2 -> IoU = 0.5
-    # Class 1: target has 3 pixels, pred has 2 pixels. Intersection = 2, Union = 3 -> IoU = 2/3
-    metrics = compute_miou(preds, targets, num_classes=2)
-    assert metrics["iou_class_0"] == pytest.approx(0.5)
-    assert metrics["iou_class_1"] == pytest.approx(2.0 / 3.0)
-    assert metrics["miou"] == pytest.approx((0.5 + 2.0 / 3.0) / 2.0)
+    acc = compute_accuracy(preds, targets)
+    assert acc == pytest.approx(1.0)
 
 
-def test_compute_boundary_iou_perfect_match():
-    # 10x10 grid with center box as class 1
-    targets = np.zeros((10, 10), dtype=np.int64)
-    targets[2:8, 2:8] = 1
-    preds = targets.copy()
+def test_compute_roc_auc_ranking() -> None:
+    targets = np.array([0, 0, 1, 1], dtype=np.int64)
+    probs = np.array([0.1, 0.2, 0.8, 0.95], dtype=np.float32)
 
-    biou = compute_boundary_iou(preds, targets, num_classes=2, dilation_radius=1)
-    assert "mean_biou" in biou
-    assert biou["biou_class_1"] == pytest.approx(1.0)
+    auc = compute_roc_auc(targets, probs)
+    assert auc == pytest.approx(1.0)
+
+
+def test_compute_bypass_rate() -> None:
+    # 4 fake samples: 2 caught (>= 0.5), 2 bypassed (< 0.5)
+    fake_probs = np.array([0.85, 0.72, 0.35, 0.15], dtype=np.float32)
+
+    bypass = compute_bypass_rate(fake_probs, threshold=0.5)
+    assert bypass == pytest.approx(0.5)
+
+
+def test_compute_hard_sample_recall() -> None:
+    preds = np.array([0, 1, 1, 0], dtype=np.int64)
+    targets = np.array([0, 1, 1, 1], dtype=np.int64)
+    is_hard = np.array([False, True, True, True], dtype=bool)
+
+    recall = compute_hard_sample_recall(preds, targets, is_hard)
+    assert recall == pytest.approx(2.0 / 3.0)
+
+
+def test_compute_iou_and_curation_metrics() -> None:
+    iou = compute_iou([0.0, 0.0, 10.0, 10.0], [0.0, 0.0, 10.0, 10.0], box_format="xyxy")
+    assert iou == pytest.approx(1.0)
+
+    img = torch.rand(3, 32, 32)
+    sharpness = compute_laplacian_sharpness(img)
+    assert sharpness >= 0.0
+
+    sim = compute_clip_similarity_proxy(img, "portrait of a person")
+    assert 0.0 <= sim <= 1.0

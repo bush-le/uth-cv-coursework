@@ -5,6 +5,7 @@ import torch
 
 from src.models.builder import build_model
 from src.models.deep import SimpleCVCNN
+from src.models.detector import DeepfakeImageDetector
 
 
 @pytest.mark.smoke
@@ -17,6 +18,19 @@ def test_simple_cv_cnn_forward(dummy_batch_tensor: torch.Tensor) -> None:
 
     assert out.shape == (2, 5)
     assert not torch.isnan(out).any()
+
+
+@pytest.mark.smoke
+def test_build_model_dinovit_factory(dummy_batch_tensor: torch.Tensor) -> None:
+    """Smoke test: verify factory builds DeepfakeImageDetector with dino_vit backbone."""
+    detector = build_model(architecture="dino_vit", num_classes=1)
+    assert isinstance(detector, DeepfakeImageDetector)
+    assert detector.backbone_name == "dino_vit"
+
+    detector.eval()
+    with torch.no_grad():
+        out = detector(dummy_batch_tensor)
+    assert out.shape == (2, 1)
 
 
 def test_build_model_factory() -> None:

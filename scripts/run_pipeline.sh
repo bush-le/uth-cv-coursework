@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Pipeline Execution Runner
+# Pipeline Execution Runner (Stable Diffusion + dinoViT Hard-Sample Mining Loop)
 # Usage:
 #   bash scripts/run_pipeline.sh [STAGE] [CONFIG_PATH]
-# Examples:
-#   bash scripts/run_pipeline.sh train configs/config.yaml
-#   bash scripts/run_pipeline.sh eval configs/config.yaml
+# Allowed stages:
+#   generate | curate | mine | train | eval | infer
 # ==============================================================================
 
 set -euo pipefail
@@ -32,20 +31,32 @@ echo "Python: $(${PYTHON} --version)"
 echo "=================================================="
 
 case "${STAGE}" in
+    "generate")
+        echo "[Phase 1a] Generating synthetic DF images via Stable Diffusion..."
+        ${PYTHON} -m src.pipelines.generate_deepfake_images
+        ;;
+    "curate")
+        echo "[Phase 1b] Filtering synthetic DF images via Curation Gate..."
+        ${PYTHON} -m src.pipelines.curate_image_dataset
+        ;;
+    "mine")
+        echo "[Phase 2] Running baseline dinoViT to mine bypassed Hard Samples..."
+        ${PYTHON} -m src.pipelines.mine_hard_samples
+        ;;
     "train")
-        echo "Launching training pipeline..."
+        echo "[Phase 3a] Fine-tuning dinoViT on Baseline + Synthetic + Hard Samples..."
         ${PYTHON} -m src.pipelines.train --config "${CONFIG}"
         ;;
     "eval"|"evaluate")
-        echo "Launching evaluation pipeline..."
+        echo "[Phase 3b] Evaluating dinoViT benchmark..."
         ${PYTHON} -m src.pipelines.evaluate --config "${CONFIG}"
         ;;
     "infer"|"inference")
-        echo "Launching inference pipeline..."
+        echo "Launching dinoViT inference pipeline..."
         ${PYTHON} -m src.pipelines.infer --config "${CONFIG}"
         ;;
     *)
-        echo "Error: Unknown stage '${STAGE}'. Allowed: train, eval, infer."
+        echo "Error: Unknown stage '${STAGE}'. Allowed: generate, curate, mine, train, eval, infer."
         exit 1
         ;;
 esac

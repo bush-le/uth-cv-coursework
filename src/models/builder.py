@@ -1,22 +1,22 @@
-"""Model factory for instantiating CV model architectures."""
+"""Model factory for instantiating CV and Deepfake Detector architectures."""
 
 from typing import Any
-
 import torch.nn as nn
 
 from src.models.deep import SimpleCVCNN
+from src.models.detector.image_detector import DeepfakeImageDetector
 
 
 def build_model(
-    architecture: str = "custom_cnn",
-    num_classes: int = 10,
+    architecture: str = "dino_vit",
+    num_classes: int = 1,
     in_channels: int = 3,
     **kwargs: Any,
 ) -> nn.Module:
     """Instantiate and configure model architecture.
 
     Args:
-        architecture: Name of the architecture ('custom_cnn', 'resnet18', etc.).
+        architecture: Name of the architecture ('dino_vit', 'dinov2_vitb14', 'resnet18', 'custom_cnn').
         num_classes: Number of output target classes.
         in_channels: Number of input image channels.
         **kwargs: Additional model parameters.
@@ -25,13 +25,11 @@ def build_model(
         Configured nn.Module instance.
     """
     arch = architecture.lower()
+    if arch in ("dino_vit", "dinovit", "dinov2", "dinov2_vitb14", "deepfake_detector"):
+        return DeepfakeImageDetector(backbone="dino_vit", num_classes=num_classes, **kwargs)
+
     if arch in ("custom_cnn", "simple_cnn", "default"):
         return SimpleCVCNN(in_channels=in_channels, num_classes=num_classes)
-
-    if arch in ("occlusion_segmenter", "segformer", "unet_baseline"):
-        from src.models.deep.segmentation import FacialOcclusionSegmenter
-
-        return FacialOcclusionSegmenter(in_channels=in_channels, num_classes=num_classes, **kwargs)
 
     # Fallback to torchvision if available
     try:

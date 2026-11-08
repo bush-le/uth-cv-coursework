@@ -1,12 +1,12 @@
 # Coursework Project Living Roadmap & Overview (`docs/OVERVIEW.md`)
 
-- **Motivation/Background**: Track overarching coursework progress across sequential milestones, linking active specifications, status trackers, and verifiable artifacts.
-- **Purpose**: Serve as the dynamic project dashboard and roadmap for the UTH Computer Vision Coursework on "Stable Diffusion-Based Synthetic Facial Image Dataset Generation for Deepfake Detection" (Topic 11).
-- **Overview Pipeline**: Milestone 0 (Scaffold & Governance) -> Milestone 1 (Image Data Contracts & Manifest) -> Milestone 2 (Stable Diffusion Generation Engine) -> Milestone 3 (Quality & Biometric Curation) -> Milestone 4 (Detector Benchmark & Final Report).
-- **Detailed Plan**: §1 Milestone Roadmap; §2 Phase Specifications Directory; §3 Active Progress Trackers; §4 Deliverables Checklist.
-- **References**: `docs/PURPOSE.md`, `docs/progress/PROJECT_ROADMAP.md`, `GEMINI.md`, [Hugging Face CV Course Unit 10](https://huggingface.co/learn/computer-vision-course/unit10/datagen-diffusion).
+- **Motivation/Background**: Track overarching coursework progress across sequential milestones for the closed-loop Stable Diffusion + `dinoViT` Hard-Sample Mining architecture.
+- **Purpose**: Serve as the dynamic project dashboard and roadmap for the UTH Computer Vision Coursework on "Stable Diffusion-Based Synthetic Facial Dataset Generation with DINO ViT Hard-Sample Mining for Deepfake Detection" (Topic 11).
+- **Overview Pipeline**: Milestone 0 (Scaffold & Clean Governance) -> Milestone 1 (2D Image & Hard-Sample Data Contracts) -> Milestone 2 (Phase 1: Stable Diffusion Generation & Curation) -> Milestone 3 (Phase 2: Baseline `dinoViT` & Bypass Hard-Sample Mining) -> Milestone 4 (Phase 3: Fine-Tuning on `Baseline + Syn + Hard` & Proof of Utility).
+- **Detailed Plan**: §1 Milestone Roadmap; §2 Active Specifications & Configurations; §3 Deliverables Checklist.
+- **References**: `docs/PURPOSE.md`, `docs/progress/PROJECT_ROADMAP.md`, `GEMINI.md`.
 - **Created**: 2026-11-07T00:05:00+07:00
-- **Last Updated**: 2026-11-07T00:05:00+07:00
+- **Last Updated**: 2026-11-08T17:45:00+07:00
 
 ---
 
@@ -14,37 +14,31 @@
 
 | Milestone | Phase Name | Focus & Objectives | Target DoD | Status |
 | :---: | :--- | :--- | :--- | :---: |
-| **M0** | Scaffold & Governance | Setup repo structure, governance, configs, tests | Scaffolding verified, test suite passing | **DONE** |
-| **M1** | 2D Image Contracts & Schema | Image tensor schema `(B, 3, H, W)`, manifest JSONL, `DeepfakeImageDataModule` | DataModule verified, tests pass | **IN PROGRESS** |
-| **M2** | Stable Diffusion Engine | Text2Img, Inpaint, and Img2Img generation pipelines with deterministic mock mode | Generation pipeline producing valid images | **PLANNED** |
-| **M3** | Quality Curation Gates | Laplacian sharpness, CLIP score proxy, face detection retention filters | Automated curation gates pruning low-quality images | **PLANNED** |
-| **M4** | Detector Benchmark & Report | Downstream Deepfake Image Detector training, ROC-AUC evaluation, academic report | Benchmark tables & final report ready | **PLANNED** |
+| **M0** | Clean Architecture & Refactor | Remove legacy occlusion/video code, lock 3-phase closed-loop governance | Clean workspace, zero legacy drift | **DONE** |
+| **M1** | 2D Data & Hard-Sample Schema | `ImageMetadata` (`is_hard_sample`, `baseline_score`), Identity-Disjoint `DeepfakeImageDataModule` | DataModule & oversampling verified | **DONE** |
+| **M2** | Phase 1: SD Data Factory & Gate | Text2Img, Inpaint, Img2Img synthesis + Laplacian/CLIP/Face Curation Gate | Curated synthetic DF manifest ready | **DONE** |
+| **M3** | Phase 2: `dinoViT` & Hard Mining | `DinoViTBackbone` baseline evaluation, `Reject` vs `Bypass` $\rightarrow$ `hard_samples_manifest.jsonl` | Hard-sample mining pipeline verified | **DONE** |
+| **M4** | Phase 3: Fine-Tune & Benchmark | Fine-tune `dinoViT` on `Baseline + Syn + Hard Samples`, prove utility via Before/After metrics | All unit tests & slide deck verified | **DONE** |
 
 ---
 
-## 2. Phase Specifications Directory
+## 2. Active Specifications & Configurations
 
-- `docs/plans/2026-11-06-stable-diffusion-deepfake-image-dataset.md`: Master refactoring plan.
-- `docs/PURPOSE.md`: Core coursework purpose and quantitative success metrics.
-- `configs/dataset/deepfake_image.yaml`: 2D image dataset specifications and tensor contracts.
-- `configs/generation/stable_diffusion.yaml`: Stable Diffusion generation parameters.
-- `configs/detection/detector_baseline.yaml`: Deepfake detector baseline configuration.
-
----
-
-## 3. Active Progress Trackers
-
-- `docs/progress/PROJECT_ROADMAP.md`: Master AI-First lifecycle tracker.
-- `docs/plans/2026-11-06-stable-diffusion-deepfake-image-dataset.ledger.md`: Active task execution ledger.
+- `docs/PURPOSE.md`: Core coursework purpose, closed-loop design, and quantitative KPIs.
+- `docs/phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md`: Phase 1 Stable Diffusion generation and curation specification.
+- `docs/phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md`: Phase 2 `dinoViT` baseline & hard-sample mining specification.
+- `docs/phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md`: Phase 3 fine-tuning, forensic audit, and comparative benchmark matrix.
+- `configs/dataset/deepfake_image.yaml`: 2D image & hard-sample dataset specifications.
+- `configs/generation/stable_diffusion.yaml`: Stable Diffusion generation & curation thresholds.
+- `configs/detection/detector_baseline.yaml`: `dinoViT` detector, bypass threshold, and fine-tuning configuration.
 
 ---
 
-## 4. Deliverables Checklist
+## 3. Deliverables Checklist
 
-- [x] Repository scaffolding, CI tooling, Makefile & AI Governance.
-- [ ] 2D deepfake image schema, metadata manifest, and DataModule.
-- [ ] Stable Diffusion synthetic deepfake generation engine and pipeline.
-- [ ] Multi-modal quality curation gates (sharpness, CLIP alignment, face detection).
-- [ ] Curated deepfake image dataset with standardized JSONL manifest.
-- [ ] Downstream 2D deepfake image detector and evaluation benchmark.
-- [ ] Comprehensive Markdown technical report and visual prediction gallery.
+- [x] Clean repository structure with all legacy occlusion/segmentation files removed.
+- [x] 2D deepfake image schema with `is_hard_sample` & `baseline_score` tracking and Identity-Disjoint DataModule.
+- [x] Phase 1: Stable Diffusion synthetic deepfake generation engine and multi-modal curation gate.
+- [x] Phase 2: Self-supervised `DinoViTBackbone` baseline detector and automated `mine_hard_samples.py` pipeline.
+- [x] Phase 3: Weighted hard-sample fine-tuning (`train_image_detector.py`) and comparative evaluation suite (`evaluate_image_benchmark.py`).
+- [x] Updated technical reports and 11-slide interactive HTML/Markdown presentation deck (`docs/reports/`).

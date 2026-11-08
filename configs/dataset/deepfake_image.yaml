@@ -1,8 +1,10 @@
-# Dataset Configuration: 2D Deepfake Image Dataset
+# Dataset Configuration: 2D Deepfake Image & Hard-Sample Dataset
 name: "deepfake_image_dataset"
 dataset_dir: "data/processed/images"
 raw_dir: "data/raw/faces"
-manifest_path: "data/processed/manifest.jsonl"
+baseline_manifest_path: "data/raw/manifest.jsonl"
+synthetic_manifest_path: "data/processed/curated_manifest.jsonl"
+hard_samples_manifest_path: "data/processed/hard_samples_manifest.jsonl"
 
 image:
   size: [256, 256] # [H, W]
@@ -16,6 +18,8 @@ splits:
   train_ratio: 0.70
   val_ratio: 0.15
   test_ratio: 0.15
+  identity_disjoint: true
+  hard_sample_oversample_factor: 2
   seed: 42
 
 loader:
@@ -27,6 +31,11 @@ loader:
 labels:
   0: "real"
   1: "fake"
+
+data_sources:
+  - "baseline"
+  - "synthetic"
+  - "hard_sample"
 
 manipulations:
   - "sd_text2img"

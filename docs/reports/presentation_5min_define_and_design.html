@@ -779,66 +779,64 @@
                   Stable Diffusion-Based <span class="accent">Synthetic Facial Dataset</span> Generation for Deepfake Detection
                 </h1>
                 <p class="cover-subtitle">
-                  Định nghĩa bài toán tạo sinh khuôn mặt 2D &amp; mở rộng chiều thời gian trên Video hoán đổi danh tính (A←B) phục vụ huấn luyện và đối chứng mô hình phát hiện Deepfake.
+                  Chu trình khép kín 3 Pha: Sinh dữ liệu khuôn mặt 2D bằng Stable Diffusion → Khai phá mẫu vượt rào (Bypass / Hard Sample) qua Baseline dinoViT → Tinh chỉnh chứng minh tác dụng.
                 </p>
               </div>
 
-              <!-- Middle Visual Panel: Chặng 1 (2D) -> Chặng 2 (Video A<-B) -> QA Gate -> Detector (D0/D1/D2) -->
+              <!-- Middle Visual Panel: Phase 1 (SD) -> Phase 2 (dinoViT Bypass/Hard) -> Phase 3 (Fine-Tune) -> Proof (D0/D1/D2) -->
               <div class="cover-visual-strip">
                 <div class="panel-title-bar" style="margin-bottom: 4px;">
                   <div class="panel-title" style="font-size: 15px;">
                     <span class="panel-title-dot"></span>
-                    Kiến Trúc Hợp Nhất 2 Chặng: Từ Nền Tảng Ảnh Tĩnh 2D Đến Mở Rộng Video A←B
+                    Kiến Trúc Khép Kín 3 Pha: Sinh Dữ Liệu SD → Khai Phá Hard Sample → Fine-Tune dinoViT
                   </div>
                   <span class="panel-badge">MINH HỌA Ý TƯỞNG</span>
                 </div>
                 <div class="svg-stage">
-                  <svg viewBox="0 0 880 230" aria-label="Unified 2D and Video Thesis Visual Pipeline">
-                    <!-- Node 1: 2D Spatial Synthesis -->
+                  <svg viewBox="0 0 880 230" aria-label="Closed-Loop SD and dinoViT Hard-Sample Pipeline">
+                    <!-- Node 1: Phase 1 SD Synthesis -->
                     <rect class="decor-rect" x="12" y="24" width="194" height="176" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
                     <g transform="translate(22, 36) scale(0.70)">
                       <use href="#face-portrait-landmarks" x="0" y="0"/>
                     </g>
-                    <text x="154" y="78" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">CHẶNG 01</text>
-                    <text x="154" y="104" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="14.5" font-weight="800" fill="#111111">Ảnh Tĩnh 2D</text>
+                    <text x="154" y="78" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">PHASE 01</text>
+                    <text x="154" y="104" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="14.5" font-weight="800" fill="#111111">Sinh Dữ Liệu SD</text>
                     <text x="109" y="176" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">T2I • Inpaint • Img2Img</text>
 
                     <!-- Animated Connector 1 -->
                     <line x1="212" y1="112" x2="246" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
-                    <!-- Node 2: Temporal Video Extension A<-B -->
+                    <!-- Node 2: Phase 2 Baseline dinoViT & Hard Sample -->
                     <rect class="decor-rect" x="254" y="24" width="234" height="176" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
-                    <rect x="272" y="42" width="56" height="58" rx="8" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
-                    <text x="300" y="76" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">t1</text>
-                    <rect x="342" y="42" width="56" height="58" rx="8" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
-                    <text x="370" y="76" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">t2</text>
-                    <rect x="412" y="42" width="56" height="58" rx="8" fill="#1e2bfa"/>
-                    <text x="440" y="76" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">t3</text>
-                    <text x="371" y="128" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15.5" font-weight="800" fill="#1e2bfa">Chặng 2: Video A←B</text>
-                    <text x="371" y="152" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#111111">4 Backend SD Tiền huấn luyện</text>
-                    <text x="371" y="176" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Danh tính A + Chuyển động B</text>
+                    <rect x="272" y="42" width="92" height="54" rx="8" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
+                    <text x="318" y="74" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">Reject</text>
+                    <rect x="378" y="42" width="92" height="54" rx="8" fill="#1e2bfa"/>
+                    <text x="424" y="74" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Bypass</text>
+                    <text x="371" y="128" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15.5" font-weight="800" fill="#1e2bfa">Phase 2: Baseline dinoViT</text>
+                    <text x="371" y="152" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#111111">Kiểm định Reject vs. Bypass</text>
+                    <text x="371" y="176" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Bypass → Hard Sample</text>
 
                     <!-- Animated Connector 2 -->
                     <line x1="494" y1="112" x2="528" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
-                    <!-- Node 3: Multi-Axis QA & Connected Vault -->
+                    <!-- Node 3: Combined Pool & Vault -->
                     <rect class="decor-rect" x="536" y="24" width="160" height="176" rx="14" fill="#ffffff" stroke="#111111" stroke-width="2"/>
                     <path d="M 616 44 L 644 56 L 644 82 C 644 102 616 114 616 114 C 616 114 588 102 588 82 L 588 56 Z" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
                     <path d="M 606 78 L 614 86 L 628 68" fill="none" stroke="#1e2bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <text x="616" y="142" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">3. Cổng QA &amp; Két</text>
-                    <text x="616" y="166" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Khóa ID &amp; Video cha</text>
+                    <text x="616" y="142" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">3. Gộp Dữ Liệu</text>
+                    <text x="616" y="166" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Base + Syn + Hard</text>
 
                     <!-- Animated Connector 3 -->
                     <line x1="702" y1="112" x2="732" y2="112" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
-                    <!-- Node 4: Deepfake Detector D0/D1/D2 -->
+                    <!-- Node 4: Fine-Tuned dinoViT D0/D1/D2 -->
                     <rect class="decor-rect" x="740" y="24" width="128" height="176" rx="14" fill="#1e2bfa"/>
                     <circle cx="778" cy="70" r="6" fill="#ffffff"/>
                     <circle cx="778" cy="96" r="6" fill="#ffffff"/>
                     <circle cx="826" cy="83" r="8" fill="#fdfae7"/>
                     <line x1="784" y1="70" x2="818" y2="83" stroke="#ffffff" stroke-width="2"/>
                     <line x1="784" y1="96" x2="818" y2="83" stroke="#ffffff" stroke-width="2"/>
-                    <text x="804" y="140" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#ffffff">4. Detector</text>
+                    <text x="804" y="140" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#ffffff">4. Fine-Tune</text>
                     <text x="804" y="164" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#eef0ff">D0 / D1 / D2</text>
                   </svg>
                 </div>
@@ -851,8 +849,8 @@
                   <div class="meta-val" style="color: var(--primary);">Nhóm thực hiện: Nhóm 4 — Đề tài 11</div>
                 </div>
                 <div class="meta-box">
-                  <div class="meta-label">CẤU TRÚC BÁO CÁO HỢP NHẤT</div>
-                  <div class="meta-val">Nền Tảng Ảnh 2D &amp; Mở Rộng Video (11 Slides)</div>
+                  <div class="meta-label">CẤU TRÚC VÒNG LẶP KHÉP KÍN</div>
+                  <div class="meta-val">SD Synthesis • dinoViT • Hard Sample (11 Slides)</div>
                 </div>
               </div>
             </div>
@@ -862,12 +860,12 @@
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Lộ Trình Trình Bày: 4 Chặng Kiến Trúc Hợp Nhất (11 Slides)
+                  Lộ Trình Trình Bày: 4 Chặng Kiến Trúc Khép Kín (11 Slides)
                 </div>
-                <span class="panel-badge">11-SLIDE UNIFIED FLOW</span>
+                <span class="panel-badge">11-SLIDE CLOSED-LOOP FLOW</span>
               </div>
               <div class="svg-stage">
-                <svg viewBox="0 0 760 820" aria-label="Presentation 4-Pillar Unified Roadmap">
+                <svg viewBox="0 0 760 820" aria-label="Presentation 4-Pillar Closed-Loop Roadmap">
                   <!-- Vertical Flow Spine -->
                   <line x1="78" y1="95" x2="78" y2="725" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow"/>
 
@@ -876,8 +874,8 @@
                     <circle cx="54" cy="68" r="34" fill="#1e2bfa"/>
                     <text x="54" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="20" font-weight="800" fill="#ffffff">01</text>
                     <rect class="decor-rect" x="112" y="8" width="596" height="128" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 02 &amp; 03 • PROBLEM &amp; TWO-TIER SCOPE</text>
-                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Dịch Chuyển Miền &amp; Phạm Vi 2 Tầng (2D + Video)</text>
+                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 02 &amp; 03 • PROBLEM &amp; CLOSED-LOOP SCOPE</text>
+                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Dịch Chuyển Miền &amp; Phạm Vi 3 Pha Khép Kín</text>
                     <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Khoảng trống biên quyết định &amp; ma trận ranh giới thực thi.</text>
                   </g>
 
@@ -886,8 +884,8 @@
                     <circle cx="54" cy="68" r="34" fill="#ffffff" stroke="#1e2bfa" stroke-width="3"/>
                     <text x="54" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="20" font-weight="800" fill="#1e2bfa">02</text>
                     <rect class="decor-rect" x="112" y="8" width="596" height="128" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
-                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 04, 05 &amp; 06 • 2D IMAGE FOUNDATION</text>
-                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">3 Chế Độ Tạo Sinh 2D, Đường Ống &amp; Phễu Lọc</text>
+                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 04, 05 &amp; 06 • PHASE 1: SD DATA FACTORY</text>
+                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">3 Chế Độ Tạo Sinh SD, Đường Ống &amp; Phễu Lọc</text>
                     <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">T2I, Inpainting, Img2Img, luồng 6 bước &amp; lọc 3 tầng.</text>
                   </g>
 
@@ -896,9 +894,9 @@
                     <circle cx="54" cy="68" r="34" fill="#1e2bfa"/>
                     <text x="54" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="20" font-weight="800" fill="#ffffff">03</text>
                     <rect class="decor-rect" x="112" y="8" width="596" height="128" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 07, 08 &amp; 09 • SD-VIDEO EXTENSION</text>
-                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Mở Rộng Video A←B, 4 Backend &amp; Cổng QA 3 Trục</text>
-                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Face-Adapter, REFace, VFace, VividFace &amp; lọc thời gian.</text>
+                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 07, 08 &amp; 09 • PHASE 2 &amp; 3: DINOVIT &amp; HARD SAMPLE</text>
+                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Baseline dinoViT, Khai Phá Bypass &amp; Tinh Chỉnh</text>
+                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Tách mẫu Reject vs. Bypass (Hard Sample) &amp; Fine-Tune.</text>
                   </g>
 
                   <!-- Pillar 4 -->
@@ -906,9 +904,9 @@
                     <circle cx="54" cy="68" r="34" fill="#ffffff" stroke="#1e2bfa" stroke-width="3"/>
                     <text x="54" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="20" font-weight="800" fill="#1e2bfa">04</text>
                     <rect class="decor-rect" x="112" y="8" width="596" height="128" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
-                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 10 &amp; 11 • VAULT &amp; D0/D1/D2 EVALUATION</text>
-                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Két Cụm Liên Thông, Đối Chứng D0/D1/D2 &amp; Lộ Trình</text>
-                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Khóa kép Danh tính + Video cha &amp; đo ROC-AUC (M0→M7).</text>
+                    <text x="138" y="44" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">SLIDE 10 &amp; 11 • VAULT &amp; PROOF OF UTILITY (D0/D1/D2)</text>
+                    <text x="138" y="78" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Két Khóa Danh Tính, Đối Chứng D0/D1/D2 &amp; Lộ Trình</text>
+                    <text x="138" y="108" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#6b6b6b">Bắt được mẫu Bypass sau Fine-Tune → Chứng minh tác dụng.</text>
                   </g>
                 </svg>
               </div>
@@ -1109,22 +1107,22 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 03: 02 / UNIFIED SCOPE & BOUNDARIES (NHÓM THỰC HIỆN: NHÓM 4)
+           SLIDE 03: 02 / CLOSED-LOOP SCOPE & BOUNDARIES (NHÓM THỰC HIỆN: NHÓM 4)
            ==================================================================== -->
-      <section class="slide" id="slide-3" data-title="02 / Unified Scope &amp; Boundaries">
+      <section class="slide" id="slide-3" data-title="02 / Closed-Loop Scope &amp; Boundaries">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
                 <span class="group-pill">Nhóm thực hiện: Nhóm 4</span>
-                <span class="section-tag">02 / UNIFIED SCOPE &amp; BOUNDARIES</span>
-                <span class="section-subtitle">TWO-TIER IN-SCOPE ARCHITECTURE (2D + VIDEO) &amp; EXPLICIT EXCLUSIONS</span>
+                <span class="section-tag">02 / CLOSED-LOOP SCOPE &amp; BOUNDARIES</span>
+                <span class="section-subtitle">THREE-PHASE CLOSED-LOOP ARCHITECTURE &amp; EXPLICIT EXCLUSIONS</span>
               </div>
-              <h2 class="slide-title">Phạm Vi Hợp Nhất 2 Tầng &amp; <span>Giới Hạn Loại Trừ</span></h2>
+              <h2 class="slide-title">Phạm Vi Chu Trình Khép Kín &amp; <span>Giới Hạn Loại Trừ</span></h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
-                Nhóm thực hiện: Nhóm 4 kết hợp nền tảng ảnh tĩnh 2D với nhánh mở rộng Video ngắn A←B và khóa chặt ranh giới loại trừ.
+                Nhóm thực hiện: Nhóm 4 kết hợp tạo sinh ảnh 2D bằng SD với khai phá mẫu khó qua Baseline dinoViT và khóa chặt ranh giới loại trừ.
               </div>
             </div>
           </header>
@@ -1136,58 +1134,58 @@
                 <div class="panel-title-bar">
                   <div class="panel-title">
                     <span class="panel-title-dot"></span>
-                    Phạm Vi Thực Hiện 2 Tầng (In-Scope — Nhóm thực hiện: Nhóm 4)
+                    Phạm Vi Thực Hiện 3 Pha Khép Kín (In-Scope — Nhóm thực hiện: Nhóm 4)
                   </div>
-                  <span class="panel-badge">2-TIER CORE SCOPE</span>
+                  <span class="panel-badge">3-PHASE CORE SCOPE</span>
                 </div>
                 <div class="svg-stage">
-                  <svg viewBox="0 0 810 620" aria-label="In-Scope Two-Tier Visual Commitments Matrix">
+                  <svg viewBox="0 0 810 620" aria-label="In-Scope Three-Phase Visual Commitments Matrix">
                     <rect class="decor-rect" x="20" y="14" width="770" height="66" rx="14" fill="#1e2bfa"/>
-                    <text x="405" y="54" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="19.5" font-weight="800" fill="#ffffff">TRỌNG TÂM HỢP NHẤT 2 TẦNG CỦA NHÓM THỰC HIỆN: NHÓM 4</text>
+                    <text x="405" y="54" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="19.5" font-weight="800" fill="#ffffff">TRỌNG TÂM 3 PHA KHÉP KÍN CỦA NHÓM THỰC HIỆN: NHÓM 4</text>
 
                     <!-- Card 1: Tier 1 - 2D Static Facial Synthesis -->
                     <rect class="decor-rect" x="20" y="102" width="372" height="236" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
                     <circle cx="60" cy="148" r="22" fill="#1e2bfa"/>
                     <text x="60" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">01</text>
-                    <text x="96" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Tầng 1: Nền Tảng Ảnh Tĩnh 2D</text>
+                    <text x="96" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Pha 1: Tạo Sinh Ảnh 2D SD</text>
                     <text x="96" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">STATIC 2D FACIAL DOMAIN</text>
                     <line x1="36" y1="190" x2="372" y2="190" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
                     <text x="36" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Sinh ảnh T2I, Inpainting, Img2Img</text>
                     <text x="36" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Căn chỉnh 5 điểm mốc &amp; tách mask</text>
                     <text x="36" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Phễu lọc tự động 3 tầng không gian</text>
 
-                    <!-- Card 2: Tier 2 - Short Video Face Swap Extension -->
+                    <!-- Card 2: Tier 2 - Baseline dinoViT & Hard-Sample Mining -->
                     <rect class="decor-rect" x="418" y="102" width="372" height="236" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
                     <circle cx="458" cy="148" r="22" fill="#1e2bfa"/>
                     <text x="458" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">02</text>
-                    <text x="494" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Tầng 2: Mở Rộng Video A←B</text>
-                    <text x="494" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">TEMPORAL VIDEO EXTENSION</text>
+                    <text x="494" y="146" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Pha 2: dinoViT &amp; Hard Sample</text>
+                    <text x="494" y="170" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">DINOVIT BYPASS MINING</text>
                     <line x1="434" y1="190" x2="770" y2="190" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
-                    <text x="434" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Ghép Ảnh A vào Video chuyển động B</text>
-                    <text x="434" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Đối sánh 4 Backend SD trong 2 họ</text>
-                    <text x="434" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Kiểm định 3 trục &amp; mặt nạ che khuất</text>
+                    <text x="434" y="222" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Đánh giá qua Baseline dinoViT</text>
+                    <text x="434" y="254" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Tách mẫu Reject vs. Bypass</text>
+                    <text x="434" y="286" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Thu thập mẫu Bypass làm Hard Sample</text>
 
-                    <!-- Card 3: Connected-Component Split Lock -->
+                    <!-- Card 3: Identity-Disjoint Split Lock -->
                     <rect class="decor-rect" x="20" y="360" width="372" height="240" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
                     <circle cx="60" cy="406" r="22" fill="#1e2bfa"/>
                     <text x="60" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">03</text>
-                    <text x="96" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Khóa Cụm Liên Thông Kép</text>
-                    <text x="96" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">ZERO ID &amp; VIDEO LEAKAGE</text>
+                    <text x="96" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Khóa Bất Biến Danh Tính</text>
+                    <text x="96" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">IDENTITY-DISJOINT SPLIT</text>
                     <line x1="36" y1="448" x2="372" y2="448" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
-                    <text x="36" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Khóa đồng thời Danh tính gốc A</text>
-                    <text x="36" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Khóa đồng thời Video cha B</text>
+                    <text x="36" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Khóa toàn bộ mẫu theo source_real_id</text>
+                    <text x="36" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Chung két cho Syn &amp; Hard Sample</text>
                     <text x="36" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Chống rò rỉ chéo giữa Train &amp; Test</text>
 
                     <!-- Card 4: Controlled D0 / D1 / D2 Detector Benchmark -->
                     <rect class="decor-rect" x="418" y="360" width="372" height="240" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2"/>
                     <circle cx="458" cy="406" r="22" fill="#1e2bfa"/>
                     <text x="458" y="413" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800" fill="#ffffff">04</text>
-                    <text x="494" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Đối Chứng D0 / D1 / D2</text>
-                    <text x="494" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">THREE-REGIME EVALUATION</text>
+                    <text x="494" y="404" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Fine-Tune D0 / D1 / D2</text>
+                    <text x="494" y="428" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">PROOF OF DATA UTILITY</text>
                     <line x1="434" y1="448" x2="770" y2="448" stroke="#1e2bfa" stroke-opacity="0.25" stroke-width="1.5"/>
-                    <text x="434" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Đối sánh Gốc (D0) vs. Augment (D1)</text>
-                    <text x="434" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Đo đóng góp thực của SD qua QA (D2)</text>
-                    <text x="434" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Cùng Detector &amp; ngân sách huấn luyện</text>
+                    <text x="434" y="480" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• D0: Baseline vs. D1: + Syn Data</text>
+                    <text x="434" y="512" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• D2: Baseline + Syn + Hard Sample</text>
+                    <text x="434" y="544" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Bắt được Bypass → Chứng minh tác dụng</text>
                   </svg>
                 </div>
               </div>
@@ -1765,131 +1763,128 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 07: 06 / VIDEO EXTENSION: DEFINE — IDENTITY A + VIDEO B -> VIDEO A<-B
+           SLIDE 07: 06 / PHASE 2: DINOVIT BENCHMARK & BYPASS HARD-SAMPLE MINING
            ==================================================================== -->
-      <section class="slide" id="slide-7" data-title="06 / Video Extension: Define">
+      <section class="slide" id="slide-7" data-title="06 / Phase 2: dinoViT &amp; Hard Samples">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
-                <span class="section-tag">06 / VIDEO EXTENSION: DEFINE</span>
-                <span class="section-subtitle">TEMPORAL FACE SWAP FORMULATION (IMAGE A + VIDEO B → VIDEO A←B)</span>
+                <span class="section-tag">06 / PHASE 2: DINOVIT &amp; HARD SAMPLE</span>
+                <span class="section-subtitle">BASELINE DINOVIT EVALUATION: REJECT VS. BYPASS → HARD SAMPLE MINING</span>
               </div>
-              <h2 class="slide-title">Mở Rộng Chiều Thời Gian: <span>Hoán Đổi Khuôn Mặt Trên Video (A←B)</span></h2>
+              <h2 class="slide-title">Phase 2: Đánh Giá Qua <span>Baseline dinoViT &amp; Tách Hard Sample</span></h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
-                Ghép danh tính từ Ảnh tĩnh A vào chuỗi khung hình chuyển động Video B đồng thời giữ ổn định thời gian và vùng che khuất.
+                Đưa ảnh giả Synthetic DF qua mô hình chuẩn dinoViT: mẫu nào vượt qua (Bypass) sẽ được thu thập thành Hard Sample.
               </div>
             </div>
           </header>
 
           <div class="slide-body">
-            <!-- Top Row: Full-Width Visual Identity + Motion Equation SVG -->
+            <!-- Top Row: Full-Width Visual Synthetic DF + Baseline dinoViT -> Reject/Bypass Equation SVG -->
             <div class="visual-panel accent-border" style="flex: 1;">
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Phương Trình Thị Giác Chiều Thời Gian: Ảnh Danh Tính A + Video Chuyển Động B → Video Hoán Đổi A←B
+                  Phương Trình Khai Phá Mẫu Khó: Ảnh Giả Synthetic DF + Baseline dinoViT → Tách Reject &amp; Bypass (Hard Sample)
                 </div>
-                <span class="panel-badge">MINH HỌA Ý TƯỞNG • TEMPORAL FORMULATION</span>
+                <span class="panel-badge">MINH HỌA Ý TƯỞNG • HARD SAMPLE MINING</span>
               </div>
               <div class="svg-stage">
-                <svg viewBox="0 0 1680 465" aria-label="Video Face Swap Formulation Diagram">
-                  <!-- Box 1: Source Identity Image A -->
+                <svg viewBox="0 0 1680 465" aria-label="dinoViT Bypass and Hard Sample Mining Diagram">
+                  <!-- Box 1: Phase 1 Synthetic DF Image -->
                   <rect class="decor-rect" x="18" y="16" width="336" height="432" rx="18" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
                   <rect class="decor-rect" x="38" y="34" width="296" height="36" rx="8" fill="#1e2bfa"/>
-                  <text x="186" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẦU VÀO 01: ẢNH DANH TÍNH A</text>
+                  <text x="186" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẦU VÀO 01: SYNTHETIC DF IMG</text>
                   <g transform="translate(102, 92) scale(1.4)">
                     <use href="#face-portrait-variant" x="0" y="0"/>
                   </g>
-                  <text x="186" y="324" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#1e2bfa">Người A (Source Identity)</text>
-                  <text x="186" y="354" text-anchor="middle" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Cung cấp đặc trưng nhận dạng</text>
+                  <text x="186" y="324" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#1e2bfa">Ảnh Giả Đạt Chuẩn (Phase 1)</text>
+                  <text x="186" y="354" text-anchor="middle" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Sinh bởi Stable Diffusion</text>
                   <rect class="decor-rect" x="42" y="378" width="288" height="44" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.5"/>
-                  <text x="186" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Khung mặt chuẩn hóa (1 ảnh)</text>
+                  <text x="186" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Đã vượt qua Curation Gate</text>
 
                   <!-- Operator + -->
                   <circle cx="392" cy="232" r="24" fill="#111111"/>
                   <text x="392" y="241" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="26" font-weight="800" fill="#ffffff">+</text>
 
-                  <!-- Box 2: Target Motion Video B (t1, t2, t3 filmstrip with hand occlusion at t3) -->
+                  <!-- Box 2: Baseline dinoViT Benchmark Evaluation -->
                   <rect class="decor-rect" x="430" y="16" width="564" height="432" rx="18" fill="#f5f1da" stroke="#111111" stroke-width="2"/>
                   <rect class="decor-rect" x="450" y="34" width="524" height="36" rx="8" fill="#111111"/>
-                  <text x="712" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẦU VÀO 02: VIDEO CHUYỂN ĐỘNG B (CHUỖI FRAME)</text>
+                  <text x="712" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">MÔ HÌNH CHUẨN: BASELINE DINOVIT (BENCHMARK)</text>
 
-                  <!-- Frame t1 (Head tilted left) -->
+                  <!-- Sub-step 1: Patch Tokenization -->
                   <rect class="decor-rect" x="452" y="92" width="160" height="206" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                  <text x="532" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#6b6b6b">FRAME t1 (-7°)</text>
-                  <g transform="translate(478, 128) scale(0.9) rotate(-6 60 70)">
-                    <use href="#face-portrait-base" x="0" y="0"/>
+                  <text x="532" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#6b6b6b">PATCH TOKENS</text>
+                  <g transform="translate(478, 128) scale(0.9)">
+                    <use href="#face-portrait-landmarks" x="0" y="0"/>
                   </g>
-                  <text x="532" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#111111">Nghiêng trái</text>
+                  <text x="532" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#111111">Chia lưới Patch</text>
 
-                  <!-- Frame t2 (Frontal expression) -->
+                  <!-- Sub-step 2: Self-Attention Blocks -->
                   <rect class="decor-rect" x="632" y="92" width="160" height="206" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                  <text x="712" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#6b6b6b">FRAME t2 (0°)</text>
+                  <text x="712" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#6b6b6b">SELF-ATTENTION</text>
                   <g transform="translate(658, 128) scale(0.9)">
                     <use href="#face-portrait-base" x="0" y="0"/>
                   </g>
-                  <text x="712" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#111111">Chính diện</text>
+                  <text x="712" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#111111">Liên kết toàn cục</text>
 
-                  <!-- Frame t3 (Head tilted right + Hand Occlusion across chin/cheek) -->
+                  <!-- Sub-step 3: [CLS] Token Score -->
                   <rect class="decor-rect" x="812" y="92" width="160" height="206" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                  <text x="892" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">FRAME t3 (+7°)</text>
-                  <g transform="translate(838, 128) scale(0.9) rotate(6 60 70)">
-                    <use href="#face-portrait-base" x="0" y="0"/>
-                    <!-- Hand / Object Occlusion Band across lower face -->
-                    <path d="M 18 76 C 46 64, 78 66, 104 82 L 104 102 C 76 92, 46 90, 18 98 Z" fill="#dcd6b8" stroke="#111111" stroke-width="2"/>
-                  </g>
-                  <text x="892" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Tay che ngang mặt</text>
-
-                  <text x="712" y="336" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17.5" font-weight="800" fill="#111111">Video B: Nguồn Góc Đầu, Biểu Cảm &amp; Vật Cản Che Khuất</text>
-                  <rect class="decor-rect" x="454" y="378" width="516" height="44" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.4"/>
-                  <text x="712" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Chuỗi khung hình ngắn liên tiếp (t1 → t2 → t3)</text>
-
-                  <!-- Animated Stable Diffusion Arrow -->
-                  <line x1="1002" y1="232" x2="1074" y2="232" stroke="#1e2bfa" stroke-width="4" class="anim-flow" marker-end="url(#arrow-blue)"/>
-                  <rect class="decor-rect" x="1004" y="176" width="68" height="36" rx="8" fill="#1e2bfa"/>
-                  <text x="1038" y="199" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">SD</text>
-
-                  <!-- Box 3: Swapped Output Video A<-B -->
-                  <rect class="decor-rect" x="1084" y="16" width="578" height="432" rx="18" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.6"/>
-                  <rect class="decor-rect" x="1104" y="34" width="538" height="36" rx="8" fill="#1e2bfa"/>
-                  <text x="1373" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẦU RA: VIDEO HOÁN ĐỔI A←B (DANH TÍNH A + DIỄN XUẤT B)</text>
-
-                  <!-- Output Frame t1 -->
-                  <rect class="decor-rect" x="1108" y="92" width="162" height="206" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                  <text x="1189" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">OUT t1 (-7°)</text>
-                  <g transform="translate(1135, 128) scale(0.9) rotate(-6 60 70)">
+                  <text x="892" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">SCORE P(FAKE)</text>
+                  <g transform="translate(838, 128) scale(0.9)">
                     <use href="#face-portrait-variant" x="0" y="0"/>
                   </g>
-                  <text x="1189" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Mặt A nghiêng trái</text>
+                  <text x="892" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">So ngưỡng quyết định</text>
 
-                  <!-- Output Frame t2 -->
+                  <text x="712" y="336" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17.5" font-weight="800" fill="#111111">Baseline dinoViT: Kiểm Định Khả Năng Vượt Rào Của Ảnh Giả</text>
+                  <rect class="decor-rect" x="454" y="378" width="516" height="44" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.4"/>
+                  <text x="712" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Trọng số Baseline cố định (Frozen Feature Extractor)</text>
+
+                  <!-- Animated Decision Arrow -->
+                  <line x1="1002" y1="232" x2="1074" y2="232" stroke="#1e2bfa" stroke-width="4" class="anim-flow" marker-end="url(#arrow-blue)"/>
+                  <rect class="decor-rect" x="1004" y="176" width="68" height="36" rx="8" fill="#1e2bfa"/>
+                  <text x="1038" y="199" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">GATE</text>
+
+                  <!-- Box 3: Partitioned Output -> Reject vs Bypass (Hard Sample) -->
+                  <rect class="decor-rect" x="1084" y="16" width="578" height="432" rx="18" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.6"/>
+                  <rect class="decor-rect" x="1104" y="34" width="538" height="36" rx="8" fill="#1e2bfa"/>
+                  <text x="1373" y="58" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẦU RA: PHÂN TÁCH REJECT VS. BYPASS (HARD SAMPLES)</text>
+
+                  <!-- Output 1: Rejected by Baseline -->
+                  <rect class="decor-rect" x="1108" y="92" width="162" height="206" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
+                  <text x="1189" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#6b6b6b">REJECTED DF</text>
+                  <g transform="translate(1135, 128) scale(0.9)">
+                    <use href="#face-portrait-rejected" x="0" y="0"/>
+                  </g>
+                  <text x="1189" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#111111">Baseline bắt được</text>
+
+                  <!-- Output 2: Bypassed Inpaint -->
                   <rect class="decor-rect" x="1292" y="92" width="162" height="206" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                  <text x="1373" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">OUT t2 (0°)</text>
+                  <text x="1373" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BYPASS #01</text>
                   <g transform="translate(1319, 128) scale(0.9)">
                     <use href="#face-portrait-variant" x="0" y="0"/>
                   </g>
-                  <text x="1373" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Mặt A chính diện</text>
+                  <text x="1373" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Vượt qua → Hard</text>
 
-                  <!-- Output Frame t3 (Preserves hand occlusion cleanly without ghosting) -->
+                  <!-- Output 3: Bypassed Img2Img -->
                   <rect class="decor-rect" x="1476" y="92" width="162" height="206" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                  <text x="1557" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">OUT t3 (+7°)</text>
-                  <g transform="translate(1503, 128) scale(0.9) rotate(6 60 70)">
+                  <text x="1557" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BYPASS #02</text>
+                  <g transform="translate(1503, 128) scale(0.9)">
                     <use href="#face-portrait-variant" x="0" y="0"/>
-                    <path d="M 18 76 C 46 64, 78 66, 104 82 L 104 102 C 76 92, 46 90, 18 98 Z" fill="#dcd6b8" stroke="#1e2bfa" stroke-width="2.2"/>
                   </g>
-                  <text x="1557" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Giữ đúng tay che</text>
+                  <text x="1557" y="282" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#1e2bfa">Gắn cờ Hard Sample</text>
 
-                  <text x="1373" y="336" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17.5" font-weight="800" fill="#1e2bfa">Video A←B: Mượt Theo Thời Gian &amp; Bảo Toàn Vật Cản</text>
+                  <text x="1373" y="336" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17.5" font-weight="800" fill="#1e2bfa">Mẫu Bypass Đánh Trúng Điểm Mù Của Baseline dinoViT</text>
 
-                  <!-- Animated Timeline Playback Track -->
+                  <!-- Animated Mining Track -->
                   <rect class="decor-rect" x="1108" y="378" width="530" height="44" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.8"/>
                   <line x1="1180" y1="400" x2="1520" y2="400" stroke="#1e2bfa" stroke-opacity="0.28" stroke-width="4" stroke-linecap="round"/>
                   <circle cx="1200" cy="400" r="8" fill="#1e2bfa" class="anim-playhead"/>
-                  <text x="1144" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">PLAY</text>
-                  <text x="1580" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">t1→t3</text>
+                  <text x="1144" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">MINE</text>
+                  <text x="1580" y="405" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">HARD</text>
                 </svg>
               </div>
             </div>
@@ -1898,32 +1893,32 @@
             <div class="card-grid-3">
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">01 / YÊU CẦU DANH TÍNH</span>
-                  <span class="intent-role">IDENTITY PRESERVATION</span>
+                  <span class="intent-index">01 / BENCHMARK MẠNH</span>
+                  <span class="intent-role">DINOVIT BASELINE</span>
                 </div>
-                <h3>Khớp Đặc Trưng Nhận Dạng Với Ảnh A</h3>
-                <p>Khuôn mặt sinh ra trên toàn bộ chuỗi khung hình phải mang đặc trưng nhận dạng của Người A và thay thế danh tính gốc trong Video B.</p>
-                <div class="intent-footer">→ Đo bằng độ tương đồng Cosine vector nhận dạng</div>
+                <h3>Dùng Self-Supervised dinoViT Làm Mốc Chuẩn</h3>
+                <p>Sử dụng kiến trúc Vision Transformer tự giám sát (dinoViT) trích xuất đặc trưng toàn cục làm hàng rào phòng thủ cơ sở.</p>
+                <div class="intent-footer">→ Đặt tiêu chuẩn kiểm định khắt khe ngay từ đầu</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">02 / YÊU CẦU DIỄN XUẤT</span>
-                  <span class="intent-role">MOTION &amp; POSE FIDELITY</span>
+                  <span class="intent-index">02 / PHÂN TÁCH REJECT / BYPASS</span>
+                  <span class="intent-role">BYPASS DETECTION</span>
                 </div>
-                <h3>Bảo Toàn Góc Đầu &amp; Biểu Cảm Của Video B</h3>
-                <p>Giữ đúng hướng xoay đầu, chuyển động cơ mặt và nhịp điệu diễn xuất tự nhiên của chuỗi khung hình đích theo thời gian.</p>
-                <div class="intent-footer">→ Chống hiện tượng đơ mặt hoặc lệch tư thế đầu</div>
+                <h3>Kiểm Tra Ảnh Giả Có Qua Mặt Được Baseline</h3>
+                <p>Nếu dinoViT phát hiện được (Reject) thì xếp vào tập Synthetic thường; nếu bị đánh lừa thành ảnh thật (Bypass) thì tách riêng.</p>
+                <div class="intent-footer">→ Chỉ ra lỗ hổng thực tế của mô hình trước dữ liệu SD</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">03 / YÊU CẦU THỜI GIAN</span>
-                  <span class="intent-role">TEMPORAL &amp; OCCLUSION</span>
+                  <span class="intent-index">03 / THU THẬP HARD SAMPLE</span>
+                  <span class="intent-role">HARD SAMPLE MINING</span>
                 </div>
-                <h3>Chống Nhấp Nháy &amp; Xử Lý Vật Cản Che Mặt</h3>
-                <p>Duy trì sự ổn định màu sắc, viền ghép giữa t1 → t2 → t3 và không vẽ đè khuôn mặt lên bàn tay hoặc vật cản che ngang ở t3.</p>
-                <div class="intent-footer">→ Câu hỏi RQ1: Cân bằng chất lượng &amp; chi phí tính toán</div>
+                <h3>Đóng Gói Tập Mẫu Khó Cho Quá Trình Fine-Tune</h3>
+                <p>Toàn bộ mẫu Bypass được gắn cờ is_hard_sample và xuất bản thành manifest chuyên biệt để ưu tiên huấn luyện ở Phase 3.</p>
+                <div class="intent-footer">→ Chìa khóa để chứng minh tác dụng của dữ liệu mới</div>
               </article>
             </div>
           </div>
@@ -1931,174 +1926,174 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 08: 07 / VIDEO MODEL CANDIDATES — 4 MODELS IN 2 FAMILIES & PILOT
+           SLIDE 08: 07 / DINOVIT ARCHITECTURE & REJECT VS. BYPASS DICHOTOMY
            ==================================================================== -->
-      <section class="slide" id="slide-8" data-title="07 / Video Model Candidates">
+      <section class="slide" id="slide-8" data-title="07 / dinoViT &amp; Bypass Analysis">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
-                <span class="section-tag">07 / VIDEO MODEL CANDIDATES</span>
-                <span class="section-subtitle">FOUR PRETRAINED SD VIDEO BACKENDS GROUPED INTO TWO ARCHITECTURAL FAMILIES</span>
+                <span class="section-tag">07 / DINOVIT &amp; BYPASS ANALYSIS</span>
+                <span class="section-subtitle">SELF-SUPERVISED VISION TRANSFORMER &amp; TWO-BRANCH OUTCOME ANALYSIS</span>
               </div>
-              <h2 class="slide-title">Bốn Mô Hình SD Video Ứng Viên Trong <span>Hai Họ Kiến Trúc</span></h2>
+              <h2 class="slide-title">Kiến Trúc <span>dinoViT Baseline</span> &amp; Cơ Chế Phân Nhánh</h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
-                Đối sánh khách quan họ xử lý từng frame độc lập (Face-Adapter, REFace) với họ có liên kết thời gian (VFace, VividFace).
+                Đối chiếu nhánh mẫu bị Baseline bắt giữ (Rejected) với nhánh mẫu vượt rào đánh lừa mô hình (Bypassed Hard Samples).
               </div>
             </div>
           </header>
 
           <div class="slide-body">
-            <!-- Top 2-Column Visual Comparison of the Two Model Families -->
+            <!-- Top 2-Column Visual Comparison of Rejected vs Bypassed Branches -->
             <div class="split-2col">
-              <!-- Left Panel: Family 01 — Frame-by-Frame Wrapper -->
+              <!-- Left Panel: Branch 01 — Rejected by Baseline dinoViT -->
               <div class="visual-panel">
                 <div class="panel-title-bar">
                   <div class="panel-title">
                     <span class="panel-title-dot" style="background: var(--text-muted);"></span>
-                    Họ 01: Xử Lý Độc Lập Từng Frame (Frame-by-Frame Wrapper)
+                    Nhánh 01: Mẫu Giả Bị Baseline Bắt Giữ (Rejected Synthetic DF)
                   </div>
-                  <span class="panel-badge">FACE-ADAPTER &amp; REFACE</span>
+                  <span class="panel-badge">CAUGHT BY BASELINE</span>
                 </div>
                 <div class="svg-stage">
-                  <svg viewBox="0 0 810 470" aria-label="Family 01 Frame-by-Frame Wrapper Architecture">
+                  <svg viewBox="0 0 810 470" aria-label="Branch 01 Rejected Synthetic Samples">
                     <!-- Top Flow Diagram -->
                     <rect class="decor-rect" x="18" y="14" width="774" height="214" rx="16" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
                     <rect class="decor-rect" x="36" y="42" width="136" height="156" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="104" y="88" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17" font-weight="800" fill="#1e2bfa">Ảnh A</text>
-                    <text x="104" y="116" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Danh tính gốc</text>
-                    <text x="104" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Cố định</text>
+                    <text x="104" y="88" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17" font-weight="800" fill="#1e2bfa">DF Img</text>
+                    <text x="104" y="116" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Dấu vết rõ</text>
+                    <text x="104" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">Label = Fake</text>
 
-                    <!-- 3 Independent Frame Inference Columns -->
+                    <!-- 3 Processing Steps -->
                     <rect class="decor-rect" x="212" y="34" width="162" height="118" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                    <text x="293" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">Frame t1</text>
-                    <text x="293" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Suy luận riêng</text>
-                    <text x="293" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ Out t1</text>
+                    <text x="293" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">Patch Embed</text>
+                    <text x="293" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Tách token mặt</text>
+                    <text x="293" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ Attention</text>
 
                     <rect class="decor-rect" x="404" y="34" width="162" height="118" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                    <text x="485" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">Frame t2</text>
-                    <text x="485" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Suy luận riêng</text>
-                    <text x="485" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ Out t2</text>
+                    <text x="485" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">[CLS] Token</text>
+                    <text x="485" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Đặc trưng lệch</text>
+                    <text x="485" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ Logit cao</text>
 
                     <rect class="decor-rect" x="596" y="34" width="162" height="118" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                    <text x="677" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">Frame t3</text>
-                    <text x="677" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Suy luận riêng</text>
-                    <text x="677" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ Out t3</text>
+                    <text x="677" y="68" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#111111">Quyết Định</text>
+                    <text x="677" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Bắt giữ thành công</text>
+                    <text x="677" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">→ REJECT DF</text>
 
                     <rect class="decor-rect" x="212" y="168" width="546" height="42" rx="8" fill="#ffffff" stroke="#6b6b6b" stroke-width="1.4" stroke-dasharray="6 4"/>
-                    <text x="485" y="195" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#6b6b6b">Thiếu liên kết t1–t2–t3 → Dễ lệch nhẹ giữa các frame</text>
+                    <text x="485" y="195" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#6b6b6b">Thuộc biên quyết định cũ → Mẫu tổng hợp thường</text>
 
-                    <!-- Bottom 2 Model Cards -->
+                    <!-- Bottom 2 Sub-Cards -->
                     <rect class="decor-rect" x="18" y="248" width="374" height="206" rx="16" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
                     <rect class="decor-rect" x="38" y="268" width="174" height="30" rx="6" fill="#111111"/>
-                    <text x="125" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MÔ HÌNH 01</text>
-                    <text x="38" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Face-Adapter</text>
-                    <text x="38" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Bộ điều hợp gọn nhẹ tiền huấn luyện</text>
-                    <text x="38" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Làm mốc cơ sở kiểm tra đường chạy</text>
-                    <text x="38" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Vai trò: Baseline tốc độ &amp; khả thi</text>
+                    <text x="125" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ĐẶC ĐIỂM 01</text>
+                    <text x="38" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#111111">Dấu Vết Toàn Cục Rõ</text>
+                    <text x="38" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Sai khác cấu trúc nền hoặc ánh sáng</text>
+                    <text x="38" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Baseline dinoViT nhận diện dễ dàng</text>
+                    <text x="38" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Nhãn: data_source = synthetic</text>
 
                     <rect class="decor-rect" x="418" y="248" width="374" height="206" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
                     <rect class="decor-rect" x="438" y="268" width="174" height="30" rx="6" fill="#1e2bfa"/>
-                    <text x="525" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MÔ HÌNH 02</text>
-                    <text x="438" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">REFace</text>
-                    <text x="438" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Tối ưu độ chân thực từng khung hình</text>
-                    <text x="438" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Giữ đặc trưng nhận dạng Người A mạnh</text>
-                    <text x="438" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Vai trò: Đối chứng trực tiếp với VFace</text>
+                    <text x="525" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ĐẶC ĐIỂM 02</text>
+                    <text x="438" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">Duy Trì Đa Dạng Phân Phối</text>
+                    <text x="438" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Giữ vai trò làm giàu tập huấn luyện</text>
+                    <text x="438" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Chống hiện tượng quên kiến thức cũ</text>
+                    <text x="438" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Trọng số hàm Loss: Chuẩn</text>
                   </svg>
                 </div>
               </div>
 
-              <!-- Right Panel: Family 02 — Temporal-Aware -->
+              <!-- Right Panel: Branch 02 — Bypassed Baseline -> Hard Samples -->
               <div class="visual-panel accent-border">
                 <div class="panel-title-bar">
                   <div class="panel-title">
                     <span class="panel-title-dot"></span>
-                    Họ 02: Có Thành Phần Liên Kết Thời Gian (Temporal-Aware)
+                    Nhánh 02: Mẫu Vượt Rào Đánh Lừa Baseline (Bypassed → Hard Samples)
                   </div>
-                  <span class="panel-badge">VFACE &amp; VIVIDFACE</span>
+                  <span class="panel-badge">BYPASSED → HARD SAMPLE</span>
                 </div>
                 <div class="svg-stage">
-                  <svg viewBox="0 0 810 470" aria-label="Family 02 Temporal-Aware Architecture">
+                  <svg viewBox="0 0 810 470" aria-label="Branch 02 Bypassed Hard Samples Architecture">
                     <!-- Top Flow Diagram -->
                     <rect class="decor-rect" x="18" y="14" width="774" height="214" rx="16" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
                     <rect class="decor-rect" x="36" y="42" width="136" height="156" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="104" y="88" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17" font-weight="800" fill="#1e2bfa">Ảnh A</text>
-                    <text x="104" y="116" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">+ Điểm mốc B</text>
-                    <text x="104" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Chuỗi liên kết</text>
+                    <text x="104" y="88" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="17" font-weight="800" fill="#1e2bfa">DF Tinh Vi</text>
+                    <text x="104" y="116" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Inpaint / Morph</text>
+                    <text x="104" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Phổ tự nhiên</text>
 
-                    <!-- 3 Temporally Linked Frames -->
+                    <!-- 3 Linked Steps -->
                     <rect class="decor-rect" x="212" y="34" width="152" height="118" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="288" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">Frame t1</text>
-                    <text x="288" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">Khối thời gian</text>
+                    <text x="288" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">dinoViT Base</text>
+                    <text x="288" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">Nhầm là ảnh thật</text>
 
                     <line x1="368" y1="93" x2="404" y2="93" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                     <rect class="decor-rect" x="410" y="34" width="152" height="118" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="486" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">Frame t2</text>
-                    <text x="486" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">Khối thời gian</text>
+                    <text x="486" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">BYPASS!</text>
+                    <text x="486" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">False Negative</text>
 
                     <line x1="566" y1="93" x2="602" y2="93" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                     <rect class="decor-rect" x="608" y="34" width="152" height="118" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="684" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">Frame t3</text>
-                    <text x="684" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">Khối thời gian</text>
+                    <text x="684" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">Hard Sample</text>
+                    <text x="684" y="106" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="#111111">Đưa vào Fine-Tune</text>
 
                     <rect class="decor-rect" x="212" y="168" width="548" height="42" rx="8" fill="#1e2bfa"/>
-                    <text x="486" y="195" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#ffffff">Truyền thông tin liên frame (t1 ↔ t2 ↔ t3) giảm nhấp nháy</text>
+                    <text x="486" y="195" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#ffffff">Vượt qua dinoViT → Trích xuất làm Hard Sample</text>
 
-                    <!-- Bottom 2 Model Cards -->
+                    <!-- Bottom 2 Sub-Cards -->
                     <rect class="decor-rect" x="18" y="248" width="374" height="206" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2.2"/>
                     <rect class="decor-rect" x="38" y="268" width="174" height="30" rx="6" fill="#1e2bfa"/>
-                    <text x="125" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MÔ HÌNH 03</text>
-                    <text x="38" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">VFace</text>
-                    <text x="38" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Mở rộng trực tiếp từ nền REFace</text>
-                    <text x="38" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Bổ sung cơ chế liên kết thời gian</text>
-                    <text x="38" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Lưu ý: Cùng gốc REFace, thêm Temporal</text>
+                    <text x="125" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MẪU KHÓ 01</text>
+                    <text x="38" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">Inpainting Cục Bộ Tinh Vi</text>
+                    <text x="38" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Giữ nguyên nền &amp; cấu trúc mặt thật</text>
+                    <text x="38" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Chỉ sửa đổi vùng mắt hoặc khẩu hình</text>
+                    <text x="38" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Dễ đánh lừa Self-Attention toàn cục</text>
 
                     <rect class="decor-rect" x="418" y="248" width="374" height="206" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2.2"/>
                     <rect class="decor-rect" x="438" y="268" width="174" height="30" rx="6" fill="#1e2bfa"/>
-                    <text x="525" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MÔ HÌNH 04</text>
-                    <text x="438" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">VividFace</text>
-                    <text x="438" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Điều kiện hóa theo bbox &amp; điểm mốc</text>
-                    <text x="438" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Suy luận theo cụm frame chồng lấp</text>
-                    <text x="438" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Vai trò: Ổn định chuyển động &amp; che khuất</text>
+                    <text x="525" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">MẪU KHÓ 02</text>
+                    <text x="438" y="330" font-family="Plus Jakarta Sans, sans-serif" font-size="21" font-weight="800" fill="#1e2bfa">Img2Img Hòa Trộn Latent</text>
+                    <text x="438" y="362" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Bảo toàn hình học 5 điểm mốc mặt</text>
+                    <text x="438" y="392" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#111111">• Tái tạo kết cấu da liền mạch từ VAE</text>
+                    <text x="438" y="422" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Vai trò: Trọng tâm cho Fine-Tuning</text>
                   </svg>
                 </div>
               </div>
             </div>
 
-            <!-- Bottom Row: Pilot Matrix & Fair Comparison Principles -->
+            <!-- Bottom Row: 3 Mining & Fine-Tuning Principles -->
             <div class="card-grid-3">
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">MA TRẬN PILOT</span>
-                  <span class="intent-role">PILOT TRIAL MATRIX</span>
+                  <span class="intent-index">KHAI PHÁ TỰ ĐỘNG</span>
+                  <span class="intent-role">AUTOMATED MINING</span>
                 </div>
-                <h3>Tập Cặp Đầu Vào Đại Diện × 4 Backend</h3>
-                <p>Chạy thử nghiệm Pilot quy mô nhỏ với các cặp (Ảnh A, Video B) đa dạng góc nghiêng, biểu cảm và che khuất trước khi mở rộng.</p>
-                <div class="intent-footer">→ Phát hiện sớm lỗi mất mặt &amp; tràn bộ nhớ</div>
+                <h3>Tự Động Quét &amp; Lọc Mẫu Vượt Rào</h3>
+                <p>Pipeline khai phá mẫu khó chạy suy luận hàng loạt trên tập ảnh giả đã qua kiểm duyệt để thu hoạch toàn bộ mẫu Bypass.</p>
+                <div class="intent-footer">→ Không cần gán nhãn hay chọn mẫu thủ công</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">TIỀN XỬ LÝ</span>
-                  <span class="intent-role">BACKEND-SPECIFIC PREP</span>
+                  <span class="intent-index">NHÂN BẢN MẪU KHÓ</span>
+                  <span class="intent-role">HARD OVERSAMPLING</span>
                 </div>
-                <h3>Tôn Trọng Tiền Xử Lý Đặc Thù Từng Mô Hình</h3>
-                <p>Dùng chung cặp đầu vào và giao thức chấm điểm, nhưng giữ nguyên quy cách mặt nạ và điểm mốc riêng của từng backend.</p>
-                <div class="intent-footer">→ Không ép chung một bộ căn chỉnh gây giảm chất lượng</div>
+                <h3>Tăng Tần Suất Xuất Hiện Trong Tập Train</h3>
+                <p>Các mẫu Hard Sample được nhân bản trong DataModule huấn luyện để mô hình tiếp xúc thường xuyên hơn với vùng điểm mù.</p>
+                <div class="intent-footer">→ Tăng tốc độ hội tụ biên quyết định mới</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">TRỌNG SỐ</span>
-                  <span class="intent-role">PRETRAINED FIRST</span>
+                  <span class="intent-index">TRỌNG SỐ LOSS</span>
+                  <span class="intent-role">WEIGHTED BCE LOSS</span>
                 </div>
-                <h3>Ưu Tiên Suy Luận Pretrained Trước Tinh Chỉnh</h3>
-                <p>Khai thác trọng số công bố sẵn để so sánh khách quan; chỉ xét tinh chỉnh nhẹ có điều kiện sau khi phân tích rõ lỗi từ Pilot.</p>
-                <div class="intent-footer">→ Phù hợp ngân sách tính toán thực tế trên Kaggle</div>
+                <h3>Đánh Trọng Số Phạt Cao Cho Mẫu Bypass</h3>
+                <p>Áp dụng hệ số phạt cao hơn trong hàm mất mát cho nhóm Hard Sample, buộc các khối cuối của dinoViT học đặc trưng vi mô.</p>
+                <div class="intent-footer">→ Bắt giữ thành công các mẫu từng vượt rào</div>
               </article>
             </div>
           </div>
@@ -2106,125 +2101,125 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 09: 08 / VIDEO PIPELINE & 3-AXIS QA — REPRODUCIBLE FLOW & METRICS
+           SLIDE 09: 08 / PHASE 3: CLOSED-LOOP FINE-TUNING — COMBINED POOL & LOSS
            ==================================================================== -->
-      <section class="slide" id="slide-9" data-title="08 / Video Pipeline &amp; 3-Axis QA">
+      <section class="slide" id="slide-9" data-title="08 / Phase 3: Closed-Loop Fine-Tuning">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
-                <span class="section-tag">08 / VIDEO PIPELINE &amp; 3-AXIS QA</span>
-                <span class="section-subtitle">REPRODUCIBLE BATCH PIPELINE &amp; THREE-AXIS TEMPORAL QUALITY GATE</span>
+                <span class="section-tag">08 / PHASE 3: CLOSED-LOOP FINE-TUNING</span>
+                <span class="section-subtitle">COMBINED DATA POOL (BASELINE + SYN + HARD SAMPLE) &amp; WEIGHTED OPTIMIZATION</span>
               </div>
-              <h2 class="slide-title">Đường Ống Sinh Video Tái Lập &amp; <span>Cổng Kiểm Định 3 Trục</span></h2>
+              <h2 class="slide-title">Pha 3: Tinh Chỉnh Khép Kín &amp; <span>Hội Tụ Biên Quyết Định Mới</span></h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
-                Chốt cấu hình trên tập Development trước khi chạy Holdout và sàng lọc tự động theo 3 trục: Danh tính, Diễn xuất, Thời gian.
+                Kết hợp Data Baseline + Synthetic Data + Hard Sample để tinh chỉnh các khối cuối của dinoViT, chứng minh tác dụng bắt lại mẫu vượt rào.
               </div>
             </div>
           </header>
 
           <div class="slide-body">
-            <!-- Hero Full-Width Video Pipeline + 3-Axis QA Gate SVG -->
+            <!-- Hero Full-Width Closed-Loop Fine-Tuning Pipeline SVG -->
             <div class="visual-panel accent-border" style="flex: 1;">
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Luồng Thực Thi 6 Bước Có Khóa Tập Development &amp; Sơ Đồ Chấm Điểm 3 Trục Video
+                  Luồng Tinh Chỉnh 6 Bước Trên Tập Gộp (Baseline + Syn + Hard Sample) &amp; Ba Trục Tối Ưu Hóa
                 </div>
-                <span class="panel-badge">REPRODUCIBLE SD-VIDEO PIPELINE</span>
+                <span class="panel-badge">CLOSED-LOOP FINE-TUNING PIPELINE</span>
               </div>
               <div class="svg-stage">
-                <svg viewBox="0 0 1700 470" aria-label="SD-Video Pipeline and Three-Axis QA Gate">
-                  <!-- Top Row: 6-Step Video Pipeline -->
+                <svg viewBox="0 0 1700 470" aria-label="Closed-Loop Fine-Tuning Pipeline and Three Optimization Axes">
+                  <!-- Top Row: 6-Step Closed-Loop Fine-Tuning Pipeline -->
                   <rect class="decor-rect" x="14" y="14" width="248" height="154" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
-                  <text x="138" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 01 • INPUT PAIRS</text>
-                  <text x="138" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Ảnh A + Video B</text>
-                  <text x="138" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Chuẩn hóa mặt &amp; chuỗi frame</text>
-                  <text x="138" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Đầu vào chuẩn</text>
+                  <text x="138" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 01 • DATA BASELINE</text>
+                  <text x="138" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Tập Gốc Đối Chứng</text>
+                  <text x="138" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Ảnh thật &amp; giả mạo chuẩn</text>
+                  <text x="138" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Nền tảng phân lớp</text>
 
                   <line x1="266" y1="91" x2="294" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                   <rect class="decor-rect" x="300" y="14" width="248" height="154" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
-                  <text x="424" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 02 • MANIFEST</text>
-                  <text x="424" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Mã Cặp &amp; Khóa Cụm</text>
-                  <text x="424" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Gán pair_id &amp; cụm liên thông</text>
-                  <text x="424" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Chia Dev / Holdout</text>
+                  <text x="424" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 02 • SYN + HARD</text>
+                  <text x="424" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Gộp Sổ Cái 3 Nguồn</text>
+                  <text x="424" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Tích hợp mẫu Reject &amp; Bypass</text>
+                  <text x="424" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Khóa chặt danh tính</text>
 
                   <line x1="552" y1="91" x2="580" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                   <rect class="decor-rect" x="586" y="14" width="268" height="154" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
-                  <text x="720" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 03 • 4 BACKENDS</text>
-                  <text x="720" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">Suy Luận Pretrained</text>
-                  <text x="720" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">Face-Adapter • REFace</text>
-                  <text x="720" y="144" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">VFace • VividFace</text>
+                  <text x="720" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 03 • OVERSAMPLE</text>
+                  <text x="720" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">Nhân Bản Hard Sample</text>
+                  <text x="720" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">Tăng mật độ mẫu Bypass</text>
+                  <text x="720" y="144" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">Chỉ áp dụng trên tập Train</text>
 
                   <line x1="858" y1="91" x2="886" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                   <rect class="decor-rect" x="892" y="14" width="248" height="154" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
-                  <text x="1016" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 04 • 3-AXIS QA</text>
-                  <text x="1016" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">Đánh Giá &amp; Sàng Lọc</text>
-                  <text x="1016" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#111111">Identity • Motion • Temporal</text>
-                  <text x="1016" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Khóa cấu hình trên Dev</text>
+                  <text x="1016" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 04 • UNFREEZE</text>
+                  <text x="1016" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">Mở Khóa Khối Cuối</text>
+                  <text x="1016" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#111111">Tinh chỉnh Attention + Head</text>
+                  <text x="1016" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Giữ cố định các khối đầu</text>
 
                   <line x1="1144" y1="91" x2="1172" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                   <rect class="decor-rect" x="1178" y="14" width="248" height="154" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
-                  <text x="1302" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 05 • BATCH QUEUE</text>
-                  <text x="1302" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Sinh Hàng Loạt</text>
-                  <text x="1302" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Hàng đợi &amp; khôi phục mẫu lỗi</text>
-                  <text x="1302" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Lưu mã kiểm tra toàn vẹn</text>
+                  <text x="1302" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">BƯỚC 05 • WEIGHTED LOSS</text>
+                  <text x="1302" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">Tối Ưu Trọng Số Cao</text>
+                  <text x="1302" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">Phạt nặng lỗi bỏ lọt Bypass</text>
+                  <text x="1302" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Dịch biên quyết định</text>
 
                   <line x1="1430" y1="91" x2="1458" y2="91" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                   <rect class="decor-rect" x="1464" y="14" width="222" height="154" rx="14" fill="#1e2bfa"/>
-                  <text x="1575" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#eef0ff">BƯỚC 06 • EXPORT</text>
-                  <text x="1575" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#ffffff">Dataset + Card</text>
-                  <text x="1575" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#eef0ff">Video A←B đạt chuẩn</text>
-                  <text x="1575" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#ffffff">Sẵn sàng cho D2</text>
+                  <text x="1575" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#eef0ff">BƯỚC 06 • VERIFY</text>
+                  <text x="1575" y="82" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#ffffff">Bắt Được Mẫu Khó</text>
+                  <text x="1575" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#eef0ff">Giảm mạnh tỷ lệ Bypass</text>
+                  <text x="1575" y="144" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#ffffff">Chứng minh tác dụng</text>
 
                   <!-- Middle Governance Ribbon -->
                   <rect class="decor-rect" x="14" y="184" width="1672" height="44" rx="10" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.6"/>
-                  <text x="850" y="212" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">CHỌN CẤU HÌNH TRÊN DEVELOPMENT → KHÓA TRƯỚC TẬP HOLDOUT</text>
+                  <text x="850" y="212" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">CHỐT THAM SỐ TRÊN VAL → ĐỐI CHỨNG TRÊN HOLDOUT TEST</text>
 
-                  <!-- Bottom Row: 3 Evaluation Axes + QA Gate Outcome -->
-                  <!-- Axis 01: Identity -->
+                  <!-- Bottom Row: 3 Optimization Axes + Outcome Decision Box -->
+                  <!-- Axis 01: Partial Unfreeze -->
                   <rect class="decor-rect" x="14" y="246" width="402" height="208" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
                   <rect class="decor-rect" x="34" y="266" width="190" height="30" rx="6" fill="#1e2bfa"/>
-                  <text x="129" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 01 / IDENTITY</text>
-                  <text x="34" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Độ Giữ Danh Tính Người A</text>
-                  <text x="34" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Độ tương đồng Cosine vector mặt</text>
-                  <text x="34" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• So sánh Output ↔ Ảnh A &amp; Người B</text>
-                  <text x="34" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Đảm bảo nhận dạng đúng Người A</text>
+                  <text x="129" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 01 / UNFREEZE</text>
+                  <text x="34" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Tinh Chỉnh Chọn Lọc dinoViT</text>
+                  <text x="34" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Đóng băng các tầng trích xuất đầu</text>
+                  <text x="34" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Mở khóa các khối Transformer cuối</text>
+                  <text x="34" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Chống học vẹt &amp; giữ đặc trưng gốc</text>
 
-                  <!-- Axis 02: Motion & Pose -->
+                  <!-- Axis 02: Hard Oversampling -->
                   <rect class="decor-rect" x="434" y="246" width="402" height="208" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
                   <rect class="decor-rect" x="454" y="266" width="190" height="30" rx="6" fill="#1e2bfa"/>
-                  <text x="549" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 02 / MOTION</text>
-                  <text x="454" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Độ Khớp Góc Đầu &amp; Biểu Cảm</text>
-                  <text x="454" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Độ lệch góc xoay đầu theo Video B</text>
-                  <text x="454" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Độ khớp chuyển động mốc biểu cảm</text>
-                  <text x="454" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Loại bỏ hiện tượng mặt đơ cứng</text>
+                  <text x="549" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 02 / SAMPLING</text>
+                  <text x="454" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Lấy Mẫu Ưu Tiên Hard Sample</text>
+                  <text x="454" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Tăng tần suất mẫu vượt rào trong batch</text>
+                  <text x="454" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Cân bằng với mẫu thật và mẫu Reject</text>
+                  <text x="454" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Hội tụ nhanh vào vùng điểm mù</text>
 
-                  <!-- Axis 03: Temporal & Occlusion -->
+                  <!-- Axis 03: Weighted BCE Loss -->
                   <rect class="decor-rect" x="854" y="246" width="416" height="208" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
                   <rect class="decor-rect" x="874" y="266" width="196" height="30" rx="6" fill="#1e2bfa"/>
-                  <text x="972" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 03 / TEMPORAL</text>
-                  <text x="874" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Ổn Định Thời Gian &amp; Che Khuất</text>
-                  <text x="874" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Căn chỉnh bù chuyển động (Warping)</text>
-                  <text x="874" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Kết hợp mặt nạ vùng hợp lệ &amp; vật cản</text>
-                  <text x="874" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Chống nhấp nháy &amp; lộ viền ghép</text>
+                  <text x="972" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">TRỤC 03 / LOSS</text>
+                  <text x="874" y="328" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Hàm Mất Mát Có Trọng Số</text>
+                  <text x="874" y="360" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Nhân hệ số phạt cho mẫu Hard Sample</text>
+                  <text x="874" y="390" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">• Ép gradient dịch chuyển biên phân lớp</text>
+                  <text x="874" y="424" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Tối đa hóa độ nhạy trên mẫu khó</text>
 
-                  <!-- QA Gate Decision Box -->
+                  <!-- Verification Decision Box -->
                   <rect class="decor-rect" x="1288" y="246" width="398" height="208" rx="16" fill="#f5f1da" stroke="#111111" stroke-width="2"/>
-                  <text x="1487" y="282" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">CỔNG QUYẾT ĐỊNH QA VIDEO</text>
+                  <text x="1487" y="282" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">KẾT QUẢ SAU KHI FINE-TUNE</text>
                   <rect class="decor-rect" x="1308" y="302" width="358" height="62" rx="10" fill="#1e2bfa"/>
-                  <text x="1487" y="329" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">ĐẠT CHUẨN (PASS QA GATE)</text>
-                  <text x="1487" y="351" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#eef0ff">→ Đưa vào tập dữ liệu tổng hợp D2</text>
+                  <text x="1487" y="329" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#ffffff">BẮT ĐƯỢC MẪU BYPASS</text>
+                  <text x="1487" y="351" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#eef0ff">→ Chứng minh rõ tác dụng dữ liệu SD</text>
                   <rect class="decor-rect" x="1308" y="376" width="358" height="62" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.5" stroke-dasharray="6 4"/>
-                  <text x="1487" y="403" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">LOẠI BỎ (QUARANTINE)</text>
-                  <text x="1487" y="425" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">→ Cách ly &amp; lưu nhãn nguyên nhân lỗi</text>
+                  <text x="1487" y="403" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">GIỮ VỮNG ĐỘ CHÍNH XÁC GỐC</text>
+                  <text x="1487" y="425" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">→ Không suy giảm trên tập Baseline</text>
                 </svg>
               </div>
             </div>
@@ -2234,31 +2229,31 @@
               <article class="intent-card">
                 <div class="intent-card-top">
                   <span class="intent-index">01 / QUẢN TRỊ THỰC NGHIỆM</span>
-                  <span class="intent-role">DEV-ONLY SELECTION</span>
+                  <span class="intent-role">FAIR COMPARISON</span>
                 </div>
-                <h3>Khóa Cấu Hình Trước Tập Holdout</h3>
-                <p>Mọi quyết định chọn mô hình và ngưỡng lọc chất lượng đều được thực hiện trên tập Development, giữ tập Holdout độc lập hoàn toàn.</p>
-                <div class="intent-footer">→ Đảm bảo tính khách quan khoa học khi báo cáo</div>
+                <h3>Cùng Kiến Trúc &amp; Ngân Sách Huấn Luyện</h3>
+                <p>Mô hình trước và sau khi tinh chỉnh dùng chung kiến trúc dinoViT và được kiểm định trên cùng tập Holdout độc lập hoàn toàn.</p>
+                <div class="intent-footer">→ Đảm bảo tính khách quan khi chứng minh tác dụng</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">02 / ĐO LƯỜNG CÓ MẶT NẠ</span>
-                  <span class="intent-role">OCCLUSION-AWARE QA</span>
+                  <span class="intent-index">02 / ĐO LƯỜNG MẪU KHÓ</span>
+                  <span class="intent-role">HARD-SAMPLE RECALL</span>
                 </div>
-                <h3>Tách Biệt Nhấp Nháy Giả Và Vật Cản Thật</h3>
-                <p>Áp dụng bù chuyển động trên vùng mặt hợp lệ kết hợp mặt nạ che khuất để không phạt nhầm các frame có bàn tay đưa qua mặt.</p>
-                <div class="intent-footer">→ Đánh giá đúng chất lượng liên tục thời gian</div>
+                <h3>Đo Trực Tiếp Độ Nhạy Trên Nhóm Bypass</h3>
+                <p>Bổ sung chỉ số Hard-Sample Recall và Bypass Rate bên cạnh ROC-AUC để định lượng trực tiếp số mẫu vượt rào bị bắt giữ lại.</p>
+                <div class="intent-footer">→ Minh chứng định lượng thuyết phục cho bộ dữ liệu</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
-                  <span class="intent-index">03 / VẬN HÀNH BỀN VỮNG</span>
-                  <span class="intent-role">RESUMABLE BATCH</span>
+                  <span class="intent-index">03 / VẬN HÀNH TÁI LẬP</span>
+                  <span class="intent-role">REPRODUCIBLE LOOP</span>
                 </div>
-                <h3>Hàng Đợi Lưu Vết &amp; Khôi Phục Từng Cặp Mẫu</h3>
-                <p>Mỗi cặp mẫu lưu kèm mã kiểm tra toàn vẹn, cấu hình suy luận và nhật ký lỗi, cho phép tiếp tục chạy lại đúng mẫu bị gián đoạn.</p>
-                <div class="intent-footer">→ Thích ứng với giới hạn phiên chạy trên đám mây</div>
+                <h3>Chu Trình Khép Kín Lưu Vết Toàn Phần</h3>
+                <p>Mỗi mẫu lưu kèm điểm xác suất Baseline, cờ Hard Sample và khóa danh tính gốc, cho phép tái lập chính xác mọi bước thực nghiệm.</p>
+                <div class="intent-footer">→ Đáp ứng tiêu chuẩn học thuật và kiểm định độc lập</div>
               </article>
             </div>
           </div>
@@ -2266,22 +2261,22 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 10: 09 / UNIFIED DATASET & ZERO LEAKAGE VAULT (NHÓM 4)
+           SLIDE 10: 09 / DATASET SCHEMA & ZERO LEAKAGE VAULT (NHÓM 4)
            ==================================================================== -->
-      <section class="slide" id="slide-10" data-title="09 / Unified Dataset &amp; Vault">
+      <section class="slide" id="slide-10" data-title="09 / Dataset Schema &amp; Vault">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
                 <span class="group-pill">Nhóm thực hiện: Nhóm 4</span>
-                <span class="section-tag">09 / UNIFIED DATASET &amp; ZERO LEAKAGE VAULT</span>
-                <span class="section-subtitle">THREE-PROVENANCE TAXONOMY &amp; CONNECTED-COMPONENT SPLIT LOCK</span>
+                <span class="section-tag">09 / DATASET SCHEMA &amp; ZERO LEAKAGE VAULT</span>
+                <span class="section-subtitle">THREE-SOURCE TAXONOMY &amp; IDENTITY-DISJOINT SPLIT LOCK</span>
               </div>
-              <h2 class="slide-title">Bộ Dữ Liệu Hợp Nhất &amp; <span>Két Khóa Cụm Liên Thông</span></h2>
+              <h2 class="slide-title">Cấu Trúc Bộ Dữ Liệu 3 Nguồn &amp; <span>Két Khóa Danh Tính Gốc</span></h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
-                Nhóm thực hiện: Nhóm 4 khóa đồng thời Danh tính gốc A lẫn Video cha B theo cụm liên thông để triệt tiêu rò rỉ dữ liệu.
+                Nhóm thực hiện: Nhóm 4 khóa toàn bộ ảnh gốc, ảnh tổng hợp và mẫu khó theo cùng danh tính gốc để triệt tiêu rò rỉ dữ liệu.
               </div>
             </div>
           </header>
@@ -2293,161 +2288,161 @@
                 <div class="panel-title-bar">
                   <div class="panel-title">
                     <span class="panel-title-dot"></span>
-                    Ba Nhóm Nguồn Gốc Dữ Liệu &amp; Thẻ Căn Cước Mẫu Hợp Nhất (2D &amp; Video)
+                    Ba Nguồn Dữ Liệu Huấn Luyện &amp; Thẻ Căn Cước Mẫu (6 Trường Truy Vết)
                   </div>
-                  <span class="panel-badge">DUAL-LABEL SCHEMA</span>
+                  <span class="panel-badge">THREE-SOURCE SCHEMA</span>
                 </div>
                 <div class="svg-stage">
-                  <svg viewBox="0 0 810 620" aria-label="Unified Dataset Taxonomy and Sample Passport">
-                    <!-- Group 1: Real Faces & Videos -->
+                  <svg viewBox="0 0 810 620" aria-label="Three-Source Dataset Taxonomy and Sample Passport">
+                    <!-- Group 1: Data Baseline (Real & Classic Fake) -->
                     <rect class="decor-rect" x="18" y="14" width="774" height="122" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
                     <g transform="translate(34, 24) scale(0.72)">
                       <use href="#face-portrait-base" x="0" y="0"/>
                     </g>
-                    <text x="142" y="48" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">01. Real Faces &amp; Videos (Ảnh Tĩnh &amp; Video Thật)</text>
-                    <text x="142" y="76" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Khuôn mặt người thật nguyên bản làm mốc chuẩn phân lớp</text>
+                    <text x="142" y="48" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">01. Data Baseline (Tập Gốc Real &amp; Deepfake Đối Chiếu)</text>
+                    <text x="142" y="76" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Khuôn mặt thật nguyên bản &amp; mẫu giả mạo làm mốc chuẩn</text>
                     <rect class="decor-rect" x="142" y="90" width="190" height="30" rx="6" fill="#111111"/>
-                    <text x="237" y="110" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Label: REAL (0)</text>
-                    <rect class="decor-rect" x="346" y="90" width="250" height="30" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
-                    <text x="471" y="110" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Sub-group: real_authentic</text>
+                    <text x="237" y="110" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Label: REAL / FAKE</text>
+                    <rect class="decor-rect" x="346" y="90" width="270" height="30" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+                    <text x="481" y="110" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">data_source: baseline</text>
 
-                    <!-- Group 2: Classic Deepfakes -->
+                    <!-- Group 2: Regular Synthetic Data (Rejected by dinoViT) -->
                     <rect class="decor-rect" x="18" y="150" width="774" height="122" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
                     <g transform="translate(34, 160) scale(0.72)">
                       <use href="#face-portrait-masked" x="0" y="0"/>
                     </g>
-                    <text x="142" y="184" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">02. Classic Deepfakes (Giả Mạo Cắt Ghép Truyền Thống)</text>
-                    <text x="142" y="212" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Mẫu giả mạo từ các bộ dữ liệu đối chiếu có sẵn</text>
+                    <text x="142" y="184" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#111111">02. Synthetic Data (Ảnh SD Bị Baseline dinoViT Bắt Giữ)</text>
+                    <text x="142" y="212" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Mẫu giả sinh từ 3 chế độ SD thuộc nhóm Reject</text>
                     <rect class="decor-rect" x="142" y="226" width="190" height="30" rx="6" fill="#6b6b6b"/>
                     <text x="237" y="246" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Label: FAKE (1)</text>
-                    <rect class="decor-rect" x="346" y="226" width="250" height="30" rx="6" fill="#f5f1da" stroke="#111111" stroke-width="1.3"/>
-                    <text x="471" y="246" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">Sub-group: classic_deepfake</text>
+                    <rect class="decor-rect" x="346" y="226" width="270" height="30" rx="6" fill="#f5f1da" stroke="#111111" stroke-width="1.3"/>
+                    <text x="481" y="246" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">data_source: synthetic</text>
 
-                    <!-- Group 3: SD Synthetic (2D & Video A<-B) -->
+                    <!-- Group 3: Hard Samples (Bypassed Baseline dinoViT) -->
                     <rect class="decor-rect" x="18" y="286" width="774" height="126" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
                     <g transform="translate(34, 298) scale(0.72)">
                       <use href="#face-portrait-variant" x="0" y="0"/>
                     </g>
-                    <text x="142" y="320" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">03. SD Synthetic (Ảnh 2D &amp; Video Hoán Đổi A←B Qua QA)</text>
-                    <text x="142" y="348" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#111111">Sinh bởi 3 chế độ 2D &amp; 4 Backend Video qua cổng QA</text>
+                    <text x="142" y="320" font-family="Plus Jakarta Sans, sans-serif" font-size="18.5" font-weight="800" fill="#1e2bfa">03. Hard Samples (Ảnh SD Vượt Rào Baseline dinoViT)</text>
+                    <text x="142" y="348" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#111111">Mẫu giả tinh vi đánh lừa dinoViT (Bypass → Hard Sample)</text>
                     <rect class="decor-rect" x="142" y="364" width="190" height="30" rx="6" fill="#1e2bfa"/>
-                    <text x="237" y="384" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">Label: FAKE (1)</text>
+                    <text x="237" y="384" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">is_hard_sample: True</text>
                     <rect class="decor-rect" x="346" y="364" width="424" height="30" rx="6" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.5"/>
-                    <text x="558" y="384" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">Sub-group: sd_2d_* &amp; sd_video_*</text>
+                    <text x="558" y="384" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#1e2bfa">data_source: hard_sample</text>
 
                     <!-- Bottom Sample Passport Card -->
                     <rect class="decor-rect" x="18" y="428" width="774" height="178" rx="16" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="405" y="460" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">THẺ CĂN CƯỚC MẪU HỢP NHẤT (6 TRƯỜNG TRUY VẾT)</text>
+                    <text x="405" y="460" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">THẺ CĂN CƯỚC MẪU CHUẨN HÓA (6 TRƯỜNG TRUY VẾT)</text>
 
                     <rect class="decor-rect" x="34" y="476" width="236" height="52" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
-                    <text x="152" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">1. Mã Mẫu / pair_id</text>
+                    <text x="152" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">1. Mã Mẫu (image_id)</text>
                     <text x="152" y="517" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Định danh duy nhất mẫu</text>
 
                     <rect class="decor-rect" x="286" y="476" width="236" height="52" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
-                    <text x="404" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">2. Nhãn Nhị Phân</text>
-                    <text x="404" y="517" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Phân lớp Real vs. Fake</text>
+                    <text x="404" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">2. Nhãn &amp; Chế Độ SD</text>
+                    <text x="404" y="517" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Real/Fake • T2I/Inpaint</text>
 
                     <rect class="decor-rect" x="538" y="476" width="238" height="52" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.2"/>
-                    <text x="657" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">3. Chế Độ &amp; Backend</text>
-                    <text x="657" y="517" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">T2I / Inpaint / 4 Video SD</text>
+                    <text x="657" y="497" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">3. Nguồn (data_source)</text>
+                    <text x="657" y="517" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">base / syn / hard_sample</text>
 
                     <rect class="decor-rect" x="34" y="540" width="236" height="52" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
-                    <text x="152" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">4. Khóa Danh Tính A</text>
-                    <text x="152" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">ID khuôn mặt nguồn</text>
+                    <text x="152" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">4. Khóa Danh Tính Gốc</text>
+                    <text x="152" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Trường source_real_id</text>
 
                     <rect class="decor-rect" x="286" y="540" width="236" height="52" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
-                    <text x="404" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">5. Khóa Video Cha B</text>
-                    <text x="404" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">ID video chuyển động gốc</text>
+                    <text x="404" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">5. Điểm Baseline</text>
+                    <text x="404" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Xác suất từ dinoViT gốc</text>
 
                     <rect class="decor-rect" x="538" y="540" width="238" height="52" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.3"/>
-                    <text x="657" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">6. Điểm Cổng QA</text>
-                    <text x="657" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Trạng thái Pass / Reject</text>
+                    <text x="657" y="561" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">6. Cờ Mẫu Khó</text>
+                    <text x="657" y="581" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#111111">Cờ is_hard_sample</text>
                   </svg>
                 </div>
               </div>
 
-              <!-- Right Panel: Connected-Component Biometric & Video Vault SVG -->
+              <!-- Right Panel: Identity-Disjoint Biometric Vault SVG -->
               <div class="visual-panel accent-border">
                 <div class="panel-title-bar">
                   <div class="panel-title">
                     <span class="panel-title-dot"></span>
-                    Két Khóa Cụm Liên Thông (Zero Identity &amp; Parent-Video Leakage)
+                    Két Khóa Danh Tính Gốc (Identity-Disjoint Zero Leakage Vault)
                   </div>
                   <span class="panel-badge">MINH HỌA Ý TƯỞNG</span>
                 </div>
                 <div class="svg-stage">
-                  <svg viewBox="0 0 810 620" aria-label="Connected-Component Zero Leakage Vault Diagram">
-                    <!-- Left Vault: Connected Component 1 -> Train & Dev -->
+                  <svg viewBox="0 0 810 620" aria-label="Identity-Disjoint Zero Leakage Vault Diagram">
+                    <!-- Left Vault: Identity Cluster 1 -> Train & Val -->
                     <rect class="decor-rect" x="16" y="16" width="336" height="588" rx="18" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.2"/>
                     <rect class="decor-rect" x="36" y="34" width="296" height="44" rx="10" fill="#1e2bfa"/>
-                    <text x="184" y="62" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16.5" font-weight="800" fill="#ffffff">KÉT A: CỤM LIÊN THÔNG #01</text>
+                    <text x="184" y="62" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16.5" font-weight="800" fill="#ffffff">KÉT A: CỤM DANH TÍNH #01</text>
 
-                    <!-- Source ID A1 + Parent Video B1 -->
+                    <!-- Source ID #01 + Derived Variants -->
                     <g transform="translate(52, 96) scale(0.82)">
                       <use href="#face-portrait-base" x="0" y="0"/>
                     </g>
                     <rect class="decor-rect" x="176" y="106" width="144" height="96" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.8"/>
-                    <text x="248" y="142" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">Video Cha #B1</text>
-                    <text x="248" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#111111">Chuỗi t1 → t3</text>
-                    <text x="184" y="242" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Khóa Kép: ID #A1 + Video #B1</text>
+                    <text x="248" y="142" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">ID Gốc #A1</text>
+                    <text x="248" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#111111">source_real_id</text>
+                    <text x="184" y="242" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Khóa Chung Tất Cả Biến Thể #A1</text>
 
                     <line x1="184" y1="254" x2="104" y2="298" stroke="#1e2bfa" stroke-width="2.4" class="anim-flow" marker-end="url(#arrow-blue)"/>
                     <line x1="184" y1="254" x2="264" y2="298" stroke="#1e2bfa" stroke-width="2.4" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                     <rect class="decor-rect" x="36" y="308" width="136" height="106" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
-                    <text x="104" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#1e2bfa">Biến Thể 2D</text>
-                    <text x="104" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Inpaint / Img2Img</text>
+                    <text x="104" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#1e2bfa">Mẫu Reject</text>
+                    <text x="104" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Syn Data #A1</text>
 
                     <rect class="decor-rect" x="196" y="308" width="136" height="106" rx="10" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.6"/>
-                    <text x="264" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#1e2bfa">Video A1←B1</text>
-                    <text x="264" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">4 Backend SD</text>
+                    <text x="264" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#1e2bfa">Mẫu Bypass</text>
+                    <text x="264" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Hard Sample #A1</text>
 
-                    <text x="184" y="446" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#1e2bfa">Mọi mẫu chung A1 hoặc B1 ở cùng 1 két</text>
+                    <text x="184" y="446" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#1e2bfa">Mọi mẫu sinh từ #A1 ở cùng 1 két</text>
                     <line x1="184" y1="458" x2="184" y2="496" stroke="#1e2bfa" stroke-width="3" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
                     <rect class="decor-rect" x="36" y="504" width="296" height="80" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="2"/>
-                    <text x="184" y="538" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#1e2bfa">Tập Train &amp; Development</text>
-                    <text x="184" y="564" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Huấn luyện &amp; chốt cấu hình QA</text>
+                    <text x="184" y="538" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#1e2bfa">Tập Huấn Luyện (Train / Val)</text>
+                    <text x="184" y="564" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Tinh chỉnh dinoViT &amp; chọn ngưỡng</text>
 
-                    <!-- Center Barrier: Zero Identity & Video Leakage Shield -->
+                    <!-- Center Barrier: Zero Identity Leakage Shield -->
                     <line x1="405" y1="20" x2="405" y2="600" stroke="#1e2bfa" stroke-width="4" stroke-dasharray="10 7"/>
                     <rect class="decor-rect" x="364" y="206" width="82" height="208" rx="14" fill="#1e2bfa" class="anim-pulse"/>
                     <text x="405" y="268" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ZERO</text>
-                    <text x="405" y="294" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ID &amp;</text>
-                    <text x="405" y="320" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">VIDEO</text>
+                    <text x="405" y="294" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">SOURCE</text>
+                    <text x="405" y="320" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">ID</text>
                     <text x="405" y="346" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">LEAK</text>
 
-                    <!-- Right Vault: Connected Component 2 -> Held-Out Test -->
+                    <!-- Right Vault: Identity Cluster 2 -> Held-Out Test -->
                     <rect class="decor-rect" x="458" y="16" width="336" height="588" rx="18" fill="#f5f1da" stroke="#111111" stroke-width="2.2"/>
                     <rect class="decor-rect" x="478" y="34" width="296" height="44" rx="10" fill="#111111"/>
-                    <text x="626" y="62" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16.5" font-weight="800" fill="#ffffff">KÉT B: CỤM LIÊN THÔNG #02</text>
+                    <text x="626" y="62" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16.5" font-weight="800" fill="#ffffff">KÉT B: CỤM DANH TÍNH #02</text>
 
-                    <!-- Unseen Source ID A2 + Unseen Parent Video B2 -->
+                    <!-- Unseen Source ID #A2 -->
                     <g transform="translate(494, 96) scale(0.82)">
                       <use href="#face-portrait-landmarks" x="0" y="0"/>
                     </g>
                     <rect class="decor-rect" x="618" y="106" width="144" height="96" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
-                    <text x="690" y="142" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Video Cha #B2</text>
+                    <text x="690" y="142" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">ID Gốc #A2</text>
                     <text x="690" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Hoàn toàn mới</text>
-                    <text x="626" y="242" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Độc Lập: ID #A2 + Video #B2</text>
+                    <text x="626" y="242" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#111111">Độc Lập Hoàn Toàn Với #A1</text>
 
                     <line x1="626" y1="254" x2="546" y2="298" stroke="#111111" stroke-width="2.4" marker-end="url(#arrow-dark)"/>
                     <line x1="626" y1="254" x2="706" y2="298" stroke="#111111" stroke-width="2.4" marker-end="url(#arrow-dark)"/>
 
                     <rect class="decor-rect" x="478" y="308" width="136" height="106" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                    <text x="546" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">Biến Thể 2D</text>
-                    <text x="546" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Của riêng ID #A2</text>
+                    <text x="546" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">Mẫu Reject</text>
+                    <text x="546" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Của riêng #A2</text>
 
                     <rect class="decor-rect" x="638" y="308" width="136" height="106" rx="10" fill="#ffffff" stroke="#111111" stroke-width="1.6"/>
-                    <text x="706" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">Video A2←B2</text>
+                    <text x="706" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="15" font-weight="800" fill="#111111">Mẫu Bypass</text>
                     <text x="706" y="380" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6b6b6b">Chưa từng gặp</text>
 
-                    <text x="626" y="446" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">Không trùng mặt gốc lẫn bối cảnh video</text>
+                    <text x="626" y="446" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#111111">Không trùng mặt gốc với tập Train</text>
                     <line x1="626" y1="458" x2="626" y2="496" stroke="#111111" stroke-width="3" marker-end="url(#arrow-dark)"/>
 
                     <rect class="decor-rect" x="478" y="504" width="296" height="80" rx="12" fill="#ffffff" stroke="#111111" stroke-width="2"/>
                     <text x="626" y="538" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#111111">Tập Kiểm Thử (Held-Out Test)</text>
-                    <text x="626" y="564" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Đo chính xác năng lực tổng quát hóa</text>
+                    <text x="626" y="564" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" font-weight="600" fill="#6b6b6b">Đo chính xác năng lực bắt mẫu khó</text>
                   </svg>
                 </div>
               </div>
@@ -2457,21 +2452,21 @@
       </section>
 
       <!-- ====================================================================
-           SLIDE 11: 10 / DETECTOR EVALUATION (D0 / D1 / D2) & ROADMAP M0->M7
+           SLIDE 11: 10 / PROOF OF UTILITY (D0 / D1 / D2) & ROADMAP M0->M7
            ==================================================================== -->
-      <section class="slide" id="slide-11" data-title="10 / Detector Evaluation &amp; Roadmap">
+      <section class="slide" id="slide-11" data-title="10 / Proof of Utility &amp; Roadmap">
         <div class="slide-inner">
           <header class="slide-header">
             <div class="header-left">
               <div class="eyebrow-row">
-                <span class="section-tag">10 / DETECTOR EVALUATION &amp; ROADMAP</span>
+                <span class="section-tag">10 / PROOF OF UTILITY &amp; ROADMAP</span>
                 <span class="section-subtitle">THREE-REGIME BENCHMARK (D0 / D1 / D2), ROC-AUC CURVE &amp; MILESTONES M0→M7</span>
               </div>
-              <h2 class="slide-title">Thực Nghiệm Đối Chứng <span>D0 / D1 / D2</span> &amp; Lộ Trình Thực Thi</h2>
+              <h2 class="slide-title">Chứng Minh Tác Dụng <span>D0 / D1 / D2</span> &amp; Lộ Trình Thực Thi</h2>
             </div>
             <div class="header-right">
               <div class="header-takeaway">
-                Đặt dữ liệu tổng hợp SD qua QA (D2) đối chứng trực tiếp với dữ liệu gốc (D0) và Augmentation thường (D1) trên cùng ngân sách.
+                Khi dinoViT tinh chỉnh trên D2 (Baseline + Syn + Hard Sample) bắt được các mẫu từng vượt rào → Chứng minh trọn vẹn giá trị dữ liệu.
               </div>
             </div>
           </header>
@@ -2484,46 +2479,46 @@
                   <span class="panel-title-dot"></span>
                   Thiết Kế Đối Chứng 3 Chế Độ Huấn Luyện (D0 vs. D1 vs. D2) &amp; Kỳ Vọng Đường Cong ROC-AUC
                 </div>
-                <span class="panel-badge">CONTROLLED 3-REGIME BENCHMARK</span>
+                <span class="panel-badge">PROOF OF SYNTHETIC DATA UTILITY</span>
               </div>
               <div class="svg-stage">
                 <svg viewBox="0 0 1680 470" aria-label="Three-Regime Detector Evaluation and Conceptual ROC Curve">
-                  <!-- Regime D0: Original Baseline -->
+                  <!-- Regime D0: Data Baseline -->
                   <rect class="decor-rect" x="18" y="20" width="452" height="128" rx="14" fill="#f5f1da" stroke="#111111" stroke-width="1.8"/>
                   <rect class="decor-rect" x="36" y="38" width="196" height="28" rx="6" fill="#111111"/>
                   <text x="134" y="57" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">CHẾ ĐỘ D0: BASELINE</text>
-                  <text x="36" y="96" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Dữ Liệu Gốc Ban Đầu (Original)</text>
-                  <text x="36" y="126" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Chỉ huấn luyện trên tập Real &amp; Deepfake gốc</text>
+                  <text x="36" y="96" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Chỉ Tập Dữ Liệu Gốc (Data Baseline)</text>
+                  <text x="36" y="126" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Bị đánh lừa bởi các mẫu khó (Bypass cao)</text>
 
-                  <!-- Regime D1: Standard Augmentation Control -->
+                  <!-- Regime D1: Baseline + Regular Syn Data -->
                   <rect class="decor-rect" x="18" y="168" width="452" height="128" rx="14" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
                   <rect class="decor-rect" x="36" y="186" width="224" height="28" rx="6" fill="#6b6b6b"/>
-                  <text x="148" y="205" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">CHẾ ĐỘ D1: AUGMENTATION</text>
-                  <text x="36" y="244" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">D0 + Biến Đổi Ảnh/Video Thường</text>
-                  <text x="36" y="274" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Đối chứng công bằng cùng ngân sách mẫu</text>
+                  <text x="148" y="205" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">CHẾ ĐỘ D1: + SYN DATA</text>
+                  <text x="36" y="244" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#111111">Data Baseline + Synthetic Data</text>
+                  <text x="36" y="274" font-family="Inter, sans-serif" font-size="14.5" font-weight="600" fill="#6b6b6b">Có thêm ảnh SD nhưng chưa nhấn trọng tâm mẫu khó</text>
 
-                  <!-- Regime D2: QA-Passed SD Synthetic -->
+                  <!-- Regime D2: Baseline + Syn Data + Hard Samples -->
                   <rect class="decor-rect" x="18" y="316" width="452" height="134" rx="14" fill="#eef0ff" stroke="#1e2bfa" stroke-width="2.4"/>
                   <rect class="decor-rect" x="36" y="334" width="236" height="28" rx="6" fill="#1e2bfa"/>
-                  <text x="154" y="353" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">CHẾ ĐỘ D2: SD SYNTHETIC</text>
-                  <text x="36" y="392" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#1e2bfa">D0 + Dữ Liệu Tổng Hợp SD Qua QA</text>
-                  <text x="36" y="424" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#111111">Tích hợp Ảnh 2D &amp; Video A←B đạt chuẩn</text>
+                  <text x="154" y="353" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#ffffff">CHẾ ĐỘ D2: + HARD SAMPLE</text>
+                  <text x="36" y="392" font-family="Plus Jakarta Sans, sans-serif" font-size="19" font-weight="800" fill="#1e2bfa">Baseline + Syn Data + Hard Sample</text>
+                  <text x="36" y="424" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#111111">Tinh chỉnh bắt được mẫu Bypass → Có tác dụng</text>
 
                   <!-- Converging Arrows into Shared Detector -->
                   <path d="M 474 84 L 542 184" fill="none" stroke="#6b6b6b" stroke-width="2.8" stroke-dasharray="6 4" marker-end="url(#arrow-dark)"/>
                   <path d="M 474 232 L 542 232" fill="none" stroke="#111111" stroke-width="2.8" marker-end="url(#arrow-dark)"/>
                   <path d="M 474 382 L 542 282" fill="none" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
-                  <!-- Center: Shared Deepfake Detector Backbone -->
+                  <!-- Center: Shared dinoViT Detector Backbone -->
                   <rect class="decor-rect" x="550" y="64" width="322" height="342" rx="18" fill="#ffffff" stroke="#1e2bfa" stroke-width="2.4"/>
-                  <text x="711" y="112" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">CỐ ĐỊNH KIẾN TRÚC &amp; NGÂN SÁCH</text>
-                  <text x="711" y="156" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="23" font-weight="800" fill="#111111">Deepfake Detector</text>
+                  <text x="711" y="112" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="800" fill="#1e2bfa">CỐ ĐỊNH KIẾN TRÚC ĐỐI CHỨNG</text>
+                  <text x="711" y="156" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="23" font-weight="800" fill="#111111">dinoViT Detector</text>
                   <text x="711" y="192" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#6b6b6b">Cùng Backbone &amp; Hyperparameters</text>
                   <rect class="decor-rect" x="580" y="222" width="262" height="44" rx="8" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.4"/>
-                  <text x="711" y="250" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#1e2bfa">Cùng số vòng lặp huấn luyện</text>
+                  <text x="711" y="250" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#1e2bfa">Cùng số vòng lặp Fine-Tune</text>
                   <rect class="decor-rect" x="580" y="286" width="262" height="44" rx="8" fill="#f5f1da" stroke="#111111" stroke-width="1.3"/>
                   <text x="711" y="314" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#111111">Held-Out Test Set Độc Lập</text>
-                  <text x="711" y="368" text-anchor="middle" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#1e2bfa">Khóa trước khi chạy thực nghiệm</text>
+                  <text x="711" y="368" text-anchor="middle" font-family="Inter, sans-serif" font-size="14.5" font-weight="700" fill="#1e2bfa">Khóa danh tính trước thực nghiệm</text>
 
                   <line x1="876" y1="235" x2="918" y2="235" stroke="#1e2bfa" stroke-width="3.5" class="anim-flow" marker-end="url(#arrow-blue)"/>
 
@@ -2542,21 +2537,21 @@
                   <path d="M 960 384 Q 966 98 1270 84" fill="none" stroke="#1e2bfa" stroke-width="4"/>
 
                   <rect class="decor-rect" x="1008" y="108" width="184" height="28" rx="6" fill="#eef0ff" stroke="#1e2bfa" stroke-width="1.2"/>
-                  <text x="1100" y="127" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">D2 (+ SD Qua QA)</text>
+                  <text x="1100" y="127" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1e2bfa">D2 (+ Hard Sample)</text>
                   <rect class="decor-rect" x="1062" y="182" width="152" height="26" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1.1"/>
-                  <text x="1138" y="200" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">D1 (+ Augment)</text>
+                  <text x="1138" y="200" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#111111">D1 (+ Syn Data)</text>
                   <rect class="decor-rect" x="1116" y="246" width="116" height="26" rx="6" fill="#f5f1da" stroke="#6b6b6b" stroke-width="1.1"/>
                   <text x="1174" y="264" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">D0 (Gốc)</text>
                   <text x="1115" y="416" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13.5" font-weight="700" fill="#111111">False Positive Rate (FPR) →</text>
 
                   <!-- Metrics List on Far Right -->
                   <rect class="decor-rect" x="1296" y="84" width="342" height="300" rx="12" fill="#ffffff" stroke="#1e2bfa" stroke-width="1.8"/>
-                  <text x="1467" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">THƯỚC ĐO ĐÁNH GIÁ HẠ NGUỒN</text>
+                  <text x="1467" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="800" fill="#1e2bfa">THƯỚC ĐO CHỨNG MINH TÁC DỤNG</text>
                   <text x="1316" y="168" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#1e2bfa">• Diện tích đường cong ROC-AUC</text>
-                  <text x="1316" y="206" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• Average Precision (AP)</text>
-                  <text x="1316" y="244" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• TPR tại mức FPR cố định</text>
-                  <text x="1316" y="282" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• F1-Score &amp; Độ nhạy theo nhóm</text>
-                  <text x="1316" y="320" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">• Phân rã theo từng chế độ &amp; backend</text>
+                  <text x="1316" y="206" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• Độ nhạy mẫu khó (Hard Recall)</text>
+                  <text x="1316" y="244" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• Mức giảm tỷ lệ lọt lưới (Bypass)</text>
+                  <text x="1316" y="282" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#111111">• F1-Score &amp; Độ nhạy toàn cục</text>
+                  <text x="1316" y="320" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#6b6b6b">• Phân rã theo từng chế độ SD</text>
                   <text x="1316" y="358" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#6b6b6b">(MINH HỌA Ý TƯỞNG)</text>
                 </svg>
               </div>
@@ -2569,38 +2564,38 @@
                   <span class="intent-index">MỐC M0</span>
                   <span class="intent-role">DEFINE &amp; DESIGN</span>
                 </div>
-                <h3>01. M0: Đặc Tả &amp; Kiến Trúc</h3>
-                <p>Chốt định nghĩa bài toán 2D + Video A←B, ranh giới phạm vi 2 tầng và giao thức đánh giá chống rò rỉ dữ liệu.</p>
-                <div class="intent-footer">→ Hoàn tất thiết kế hệ thống hợp nhất</div>
+                <h3>01. M0: Đặc Tả Chu Trình 3 Pha</h3>
+                <p>Chốt định nghĩa bài toán khép kín SD → Baseline dinoViT → Hard Sample và giao thức khóa danh tính chống rò rỉ.</p>
+                <div class="intent-footer">→ Hoàn tất thiết kế kiến trúc khép kín</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
                   <span class="intent-index">MỐC M1 – M2</span>
-                  <span class="intent-role">INPUT &amp; PILOT</span>
+                  <span class="intent-role">PHASE 1 SYNTHESIS</span>
                 </div>
-                <h3>02. M1–M2: Chuẩn Hóa &amp; Pilot</h3>
-                <p>Xây dựng manifest khóa cụm liên thông và chạy ma trận thử nghiệm Pilot trên 3 chế độ 2D cùng 4 backend Video.</p>
-                <div class="intent-footer">→ Kiểm chứng tính khả thi thực nghiệm</div>
+                <h3>02. M1–M2: Sinh &amp; Duyệt Ảnh SD</h3>
+                <p>Vận hành tạo sinh khuôn mặt trên 3 chế độ (T2I, Inpainting, Img2Img) và sàng lọc qua phễu kiểm duyệt 3 tầng.</p>
+                <div class="intent-footer">→ Thu hoạch tập ảnh giả đạt chuẩn</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
                   <span class="intent-index">MỐC M3 – M5</span>
-                  <span class="intent-role">QA GATE &amp; BATCH</span>
+                  <span class="intent-role">MINING &amp; VAULT</span>
                 </div>
-                <h3>03. M3–M5: Kiểm Định &amp; Sinh Batch</h3>
-                <p>Chấm điểm đa trục, khóa cấu hình trên tập Development và vận hành hàng đợi sinh dữ liệu tổng hợp có kiểm soát.</p>
-                <div class="intent-footer">→ Đóng gói bộ dữ liệu chuẩn hóa</div>
+                <h3>03. M3–M5: Khai Phá Hard Sample</h3>
+                <p>Đánh giá qua Baseline dinoViT để tách mẫu Reject vs. Bypass, trích xuất tập Hard Sample và gộp sổ cái 3 nguồn.</p>
+                <div class="intent-footer">→ Đóng gói bộ dữ liệu gộp chuẩn hóa</div>
               </article>
 
               <article class="intent-card">
                 <div class="intent-card-top">
                   <span class="intent-index">MỐC M6 – M7</span>
-                  <span class="intent-role">D0/D1/D2 &amp; REPORT</span>
+                  <span class="intent-role">FINE-TUNE &amp; PROOF</span>
                 </div>
-                <h3>04. M6–M7: Đối Chứng &amp; Xuất Bản</h3>
-                <p>Thực nghiệm Detector hạ nguồn 3 chế độ D0 / D1 / D2, xuất bản Dataset Card và báo cáo học thuật hoàn chỉnh.</p>
+                <h3>04. M6–M7: Tinh Chỉnh &amp; Chứng Minh</h3>
+                <p>Tinh chỉnh dinoViT trên D0 / D1 / D2, kiểm chứng khả năng bắt lại mẫu Bypass và hoàn thiện báo cáo học thuật.</p>
                 <div class="intent-footer">→ Nhóm thực hiện: Nhóm 4</div>
               </article>
             </div>

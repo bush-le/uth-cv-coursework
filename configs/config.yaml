@@ -1,31 +1,33 @@
 # ==============================================================================
 # Master Configuration (configs/config.yaml)
-# Centralized configuration entrypoint for UTH Computer Vision Coursework.
+# Centralized configuration for Stable Diffusion Synthetic DF + dinoViT Hard-Sample Mining
 # ==============================================================================
 
 defaults:
-  - dataset: default
-  - model: template
-  - experiment: template
+  - dataset: deepfake_image
+  - generation: stable_diffusion
+  - detection: detector_baseline
   - _self_
 
 project:
   name: "uth-cv-coursework"
-  description: "Coursework project in Computer Vision & Deep Learning at UTH"
-  version: "0.1.0"
+  description: "Stable Diffusion Deepfake Generation, dinoViT Baseline & Hard-Sample Fine-Tuning"
+  version: "0.2.0"
   seed: 42
   device: "cuda" # "cuda" or "cpu"
 
 training:
   seed: 42
   device: "cuda"
-  epochs: 50
-  batch_size: 32
-  num_workers: 4
+  epochs: 15
+  batch_size: 16
+  num_workers: 2
   pin_memory: true
-  learning_rate: 1.0e-3
-  weight_decay: 1.0e-4
-  early_stopping_patience: 10
+  learning_rate: 2.0e-4
+  weight_decay: 1.0e-5
+  hard_sample_loss_weight: 2.0
+  hard_sample_oversample_factor: 2
+  unfreeze_last_n_blocks: 2
   mixed_precision: true # torch.cuda.amp.autocast
   deterministic: true
 
@@ -34,6 +36,9 @@ paths:
   raw_data: "data/raw"
   processed_data: "data/processed"
   samples_dir: "data/samples"
+  baseline_manifest: "data/raw/manifest.jsonl"
+  synthetic_manifest: "data/processed/curated_manifest.jsonl"
+  hard_samples_manifest: "data/processed/hard_samples_manifest.jsonl"
   checkpoints_dir: "experiments/checkpoints"
   logs_dir: "experiments/logs"
   predictions_dir: "experiments/predictions"

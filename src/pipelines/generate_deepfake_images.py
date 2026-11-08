@@ -1,12 +1,12 @@
-"""Pipeline entrypoint: batch generate synthetic deepfake facial images via Stable Diffusion."""
+"""Pipeline entrypoint: Phase 1 batch generation of synthetic deepfake facial images via Stable Diffusion."""
 
 import argparse
 import json
 from pathlib import Path
 from typing import Dict, Optional
 import numpy as np
-import torch
 from PIL import Image
+import torch
 
 from src.common.logger import get_logger
 from src.common.seed import seed_everything
@@ -25,8 +25,8 @@ def run_image_generation(
     num_per_real: int = 1,
     seed: int = 42,
 ) -> int:
-    """Generate synthetic deepfake faces from real image manifest.
-    
+    """Generate synthetic deepfake faces (DF img) from real image manifest.
+
     Args:
         input_manifest: Path to real faces manifest.jsonl.
         output_manifest: Path to output synthetic faces manifest.jsonl.
@@ -35,7 +35,7 @@ def run_image_generation(
         mock_cache: Optional dictionary of tensors for headless testing.
         num_per_real: Number of synthetic variants to generate per real face.
         seed: Random seed for reproducibility.
-        
+
     Returns:
         Number of synthetic images generated.
     """
@@ -48,7 +48,7 @@ def run_image_generation(
     fake_records = []
 
     if not input_manifest.exists():
-        logger.warning(f"Input manifest {input_manifest} not found, generating minimal sample.")
+        logger.warning("Input manifest %s not found, generating minimal sample.", input_manifest)
         real_items = [{"image_id": "real_sample_01", "label": 0}]
     else:
         with open(input_manifest, "r", encoding="utf-8") as f:
@@ -56,8 +56,7 @@ def run_image_generation(
 
     for item in real_items:
         real_id = item["image_id"]
-        
-        # Get source image or generate
+
         if mock_cache and real_id in mock_cache:
             source_img = mock_cache[real_id]
         else:
@@ -67,26 +66,38 @@ def run_image_generation(
             fake_id = f"fake_{real_id}_{k}"
             out_file = output_dir / f"{fake_id}.png"
 
-            # Alternate between img2img and inpainting modes
-            if k % 2 == 0:
+            mode_idx = k % 3
+            if mode_idx == 0:
                 fake_tensor = engine.generate_img2img(
                     source_image=source_img,
-                    prompt="subtle facial manipulation",
+                    prompt="subtle facial manipulation, realistic skin texture",
                     strength=0.5,
                     seed=seed + k,
                 )
                 manip_type = "sd_img2img"
-            else:
+                prompt_used = "subtle facial manipulation, realistic skin texture"
+            elif mode_idx == 1:
                 h, w = source_img.shape[1], source_img.shape[2]
                 mask = torch.zeros(1, h, w)
                 mask[:, h // 4 : 3 * h // 4, w // 4 : 3 * w // 4] = 1.0
                 fake_tensor = engine.generate_inpaint(
                     source_image=source_img,
                     mask=mask,
-                    prompt="altered facial features",
+                    prompt="altered facial expression and eyes",
                     seed=seed + k,
                 )
                 manip_type = "sd_inpaint"
+                prompt_used = "altered facial expression and eyes"
+            else:
+                h, w = source_img.shape[1], source_img.shape[2]
+                fake_tensor = engine.generate_text2img(
+                    prompt="photorealistic portrait of a synthetic person",
+                    height=h,
+                    width=w,
+                    seed=seed + k,
+                )
+                manip_type = "sd_text2img"
+                prompt_used = "photorealistic portrait of a synthetic person"
 
             # Save PNG
             np_img = (fake_tensor.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
@@ -96,8 +107,11 @@ def run_image_generation(
                 image_id=fake_id,
                 label=1,
                 manipulation_type=manip_type,
+                prompt=prompt_used,
                 source_real_id=real_id,
                 file_path=str(out_file),
+                is_hard_sample=False,
+                data_source="synthetic",
             )
             fake_records.append(meta.to_dict())
             generated_count += 1
@@ -106,12 +120,16 @@ def run_image_generation(
         for r in fake_records:
             f.write(json.dumps(r) + "\n")
 
-    logger.info(f"Generation complete: {generated_count} synthetic faces saved to {output_manifest}.")
+    logger.info(
+        "Generation complete: %d synthetic faces saved to %s.", generated_count, output_manifest
+    )
     return generated_count
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate synthetic deepfake faces via Stable Diffusion.")
+    parser = argparse.ArgumentParser(
+        description="Generate synthetic deepfake faces via Stable Diffusion."
+    )
     parser.add_argument("--input-manifest", type=str, default="data/raw/manifest.jsonl")
     parser.add_argument("--output-manifest", type=str, default="data/processed/fake_manifest.jsonl")
     parser.add_argument("--output-dir", type=str, default="data/processed/synthetic_faces")

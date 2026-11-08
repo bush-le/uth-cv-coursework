@@ -5,61 +5,40 @@
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
-- **Motivation/Background**: Không gian đồ án môn học Thị giác Máy tính (Computer Vision Coursework) tại Trường Đại học Giao thông Vận tải TP.HCM (UTH). Đề tài: "Xây dựng bộ dữ liệu ảnh khuôn mặt Deepfake tổng hợp bằng Stable Diffusion phục vụ bài toán phát hiện Deepfake" (Stable Diffusion-Based Synthetic Facial Image Dataset Generation for Deepfake Detection - Topic 11, Hugging Face CV Course Unit 10).
-- **Purpose**: Cung cấp kiến trúc Clean Architecture, chuẩn dữ liệu ảnh 2D `(B, 3, H, W)`, pipeline sinh ảnh khuôn mặt giả mạo bằng Stable Diffusion (Text2Img, Inpainting, Img2Img), các cổng lọc chất lượng đa phương thức (Laplacian sharpness, CLIP score, face detection), và mô hình Deepfake Image Detector kèm benchmark đánh giá.
-- **Overview Pipeline**: Tiếp nhận yêu cầu & đặc tả bài toán (`docs/PURPOSE.md`) -> Quản lý dữ liệu ảnh & manifest (`src/data/`) -> Sinh ảnh Deepfake bằng Stable Diffusion (`src/pipelines/generate_deepfake_images.py`) -> Lọc chất lượng tự động (`src/pipelines/curate_image_dataset.py`) -> Huấn luyện & benchmark bộ phát hiện ảnh Deepfake (`src/pipelines/train_image_detector.py`, `src/pipelines/evaluate_image_benchmark.py`).
-- **Detailed Plan**: §1 Kiến trúc Hệ thống Tổng thể; §2 Cấu trúc Thư mục Dự án; §3 Hệ thống Quản trị AI-First (`/.agents`); §4 Hướng dẫn Cài đặt & Vận hành; §5 Bảng Lệnh Tự Động Hóa Makefile.
+- **Motivation/Background**: Không gian đồ án môn học Thị giác Máy tính (Computer Vision Coursework) tại Trường Đại học Giao thông Vận tải TP.HCM (UTH). Đề tài: "Xây dựng bộ dữ liệu ảnh khuôn mặt Deepfake tổng hợp bằng Stable Diffusion, Khai phá Mẫu khó (Hard-Sample Mining) và Tinh chỉnh mô hình DINO ViT (`dinoViT`) phục vụ bài toán phát hiện Deepfake" (Topic 11, Hugging Face CV Course Unit 10).
+- **Purpose**: Cung cấp kiến trúc Clean Architecture khép kín gồm: (1) Phase 1 — Sinh dữ liệu ảnh giả `Synthetic DF` từ ảnh thật qua Stable Diffusion (Text2Img, Inpainting, Img2Img) & Curation Gate; (2) Phase 2 — Đánh giá qua Baseline `dinoViT` để phân tách mẫu bị bắt (`Reject`) và mẫu vượt qua mô hình (`Bypass` $\rightarrow$ thu thập thành **Hard Samples**); (3) Phase 3 — Fine-tune `dinoViT` trên tổ hợp `Data Baseline + Synthetic Data + Hard Samples` để chứng minh tác dụng thực tiễn của dữ liệu tổng hợp.
+- **Overview Pipeline**: Ảnh thật (`data/raw`) + Stable Diffusion (`generate_deepfake_images.py`) -> Curation Gate (`curate_image_dataset.py`) -> Baseline `dinoViT` Benchmark & Bypass Mining (`mine_hard_samples.py`) -> Fine-tune `dinoViT` trên `Baseline + Syn + Hard Samples` (`train_image_detector.py`) -> Đối chứng trước/sau Fine-tune (`evaluate_image_benchmark.py`).
+- **Detailed Plan**: §1 Kiến trúc Vòng lặp Khép kín 3 Pha; §2 Cấu trúc Thư mục Dự án; §3 Hệ thống Quản trị AI-First (`/.agents`); §4 Hướng dẫn Cài đặt & Vận hành; §5 Bảng Lệnh Tự Động Hóa Makefile.
 - **References**: `.agents/rules/FOLDER_STRUCTURE.md`, `.agents/rules/MD_CONVENTION.md`, `.agents/AI_REFERENCE.md`, `docs/PURPOSE.md`, `docs/OVERVIEW.md`.
 - **Created**: 2026-11-02T07:22:00+07:00
-- **Last Updated**: 2026-11-02T07:22:00+07:00
+- **Last Updated**: 2026-11-08T17:45:00+07:00
 
 ---
 
-## 1. 🏗️ Kiến trúc Hệ thống Tổng thể (Architecture Overview)
+## 1. 🏗️ Kiến trúc Vòng lặp Khép kín 3 Pha (Closed-Loop Architecture)
 
-Dự án áp dụng mô hình phân tách trách nhiệm nghiêm ngặt (Separation of Concerns - SoC):
+Đề tài vận hành theo chu trình đối kháng khép kín nhằm **chứng minh trực tiếp tác dụng của dữ liệu tổng hợp Stable Diffusion**:
 
 ```mermaid
 flowchart TD
-    subgraph GOV ["0. Hiến Pháp & Quy Trình AI (/.agents)"]
-        RULES[".agents/rules/<br/>(Bất biến, Naming, Seeds, GPU, Commits)"]
-        TEMPLATES[".agents/templates/<br/>(Báo cáo, Milestone, Smoke Test)"]
-        WORKFLOW[".agents/WORKFLOW_OVERVIEW.md<br/>(AI-First Lifecycle & Pair Loop)"]
+    subgraph P1 ["Phase 1: Stable Diffusion Data Factory & Curation"]
+        IMG["Ảnh khuôn mặt thật (Real Faces)"] --> SD["StableDiffusionEngine<br/>(Text2Img, Inpainting, Img2Img)"]
+        SD --> QG["Multi-Modal Curation Gate<br/>(Laplacian Sharpness, CLIP, Face Retention)"]
+        QG --> SYN["Tập ảnh giả đạt chuẩn<br/>(Curated Synthetic DF Images)"]
     end
 
-    subgraph DATA_TIER ["1. Phân Tầng Dữ Liệu (/data)"]
-        RAW["data/raw/<br/>(Bất biến, Read-only)"]
-        INTERIM["data/interim/<br/>(Dữ liệu trung gian/crop)"]
-        PROCESSED["data/processed/<br/>(Tensors & train/val/test splits)"]
-        SAMPLES["data/samples/<br/>(Ảnh mẫu test CI/CD)"]
-        RAW --> INTERIM --> PROCESSED
+    subgraph P2 ["Phase 2: Baseline dinoViT Benchmark & Hard-Sample Mining"]
+        SYN --> DINO_BASE["Baseline Detector: dinoViT<br/>(Frozen Pretrained Backbone)"]
+        DINO_BASE --> DEC{"Dự đoán P(fake) >= tau?"}
+        DEC -- "Có (Reject / Bắt được)" --> EASY["Regular Synthetic Samples<br/>(Dữ liệu tổng hợp chuẩn)"]
+        DEC -- "Không (Bypass / Bị qua mặt)" --> HARD["Hard Samples (is_hard_sample=True)<br/>(Mẫu khó vượt qua Baseline)"]
     end
 
-    subgraph CODE_TIER ["2. Module Mã Nguồn Chuẩn (/src)"]
-        COMMON["src/common/<br/>(logger, seed, metrics, visualizer)"]
-        DATA_MOD["src/data/<br/>(transforms, dataset, datamodule)"]
-        MODELS["src/models/<br/>(builder, classical, deep CNNs/backbones)"]
-        PIPELINES["src/pipelines/<br/>(train, evaluate, infer)"]
-        COMMON --> DATA_MOD --> MODELS --> PIPELINES
+    subgraph P3 ["Phase 3: Closed-Loop Fine-Tuning & Proof of Utility"]
+        BASE_DATA["Data Baseline<br/>(Real + Legacy Fake)"] & EASY & HARD --> MIX["Combined Training Pool<br/>(Data Baseline + Syn Data + Hard Samples)"]
+        MIX --> FT["Fine-Tuned dinoViT<br/>(Unfreeze Top ViT Blocks + Hard-Sample Loss Weighting)"]
+        FT --> BENCH["Benchmark Đối chứng Trước vs. Sau Fine-Tune<br/>(Bắt được Hard Samples -> Chứng minh tác dụng!)"]
     end
-
-    subgraph RUNTIME_TIER ["3. Runtime Artifacts (/experiments)"]
-        CKPTS["experiments/checkpoints/<br/>(best_model.pt, last_model.pt)"]
-        LOGS["experiments/logs/<br/>(training traces & JSONL)"]
-        PREDS["experiments/predictions/<br/>(restored faces, error maps, galleries)"]
-        RUNS["experiments/runs/<br/>(TensorBoard / WandB)"]
-    end
-
-    subgraph DOCS_TIER ["4. Bộ Nhớ Tiến Hóa & Báo Cáo (/docs)"]
-        PURPOSE["docs/PURPOSE.md<br/>(Đặc tả đề tài & Success Criteria)"]
-        ROADMAP["docs/OVERVIEW.md<br/>(Milestone Roadmap)"]
-        REPORTS["docs/reports/<br/>(Dual MD + Interactive HTML Reports)"]
-    end
-
-    GOV -.-> CODE_TIER
-    DATA_TIER --> CODE_TIER
-    PIPELINES --> RUNTIME_TIER
-    RUNTIME_TIER --> DOCS_TIER
 ```
 
 ---
@@ -69,109 +48,53 @@ flowchart TD
 ```text
 uth-cv-coursework/
 ├── .agents/                            # Hệ thống hiến pháp & Second Brain cho AI Agent
-│   ├── README.md                      # Cổng nhận thức trung tâm & bảng điều phối phản xạ
-│   ├── rules/                         # Các quy tắc kỹ thuật bất biến (Coding, PyTorch, Commit, v.v.)
-│   ├── templates/                     # Biểu mẫu báo cáo, kiểm toán, roadmap và smoke checklist
-│   ├── AI_FIRST_LIFECYCLE.md          # 9 giai đoạn phát triển vĩ mô (Define -> Document)
-│   ├── AGENT_INTERACTION_LOOP.md      # Chu trình tương tác vi mô 7 bước (Pair-Programming)
-│   ├── AI_REFERENCE.md                # 5 bất biến CV/DL (Shapes, Color spaces, Boxes, Seeds, GPU)
-│   ├── TESTING_STRATEGY.md            # Chiến lược kiểm thử Smoke test (< 5s) vs Normal test
-│   └── TROUBLESHOOTING.md             # Quy trình 5 bước phân tích nguyên nhân gốc rễ (RCA)
 ├── configs/                           # Quản lý cấu hình tập trung (YAML)
 │   ├── config.yaml                    # Master config entrypoint
-│   ├── dataset/                       # Cấu hình dataset, kích thước ảnh, augmentations
-│   ├── model/                         # Cấu hình kiến trúc mô hình & siêu tham số
-│   └── experiment/                    # Cấu hình thực nghiệm & tracking
-├── data/                              # Dữ liệu phân tầng (Ignored by Git ngoại trừ samples)
-│   ├── raw/                           # Dữ liệu thô nguyên bản không chỉnh sửa
-│   ├── interim/                       # Dữ liệu trung gian sau tiền xử lý
-│   ├── processed/                     # Dữ liệu chuẩn hóa sẵn sàng cho DataLoader
-│   ├── samples/                       # Ảnh mẫu tối thiểu phục vụ kiểm thử nhanh
-│   └── README.md                      # Hướng dẫn tầng dữ liệu & data dictionary
+│   ├── dataset/deepfake_image.yaml    # Cấu hình 2D dataset, identity-disjoint & hard-sample oversampling
+│   ├── generation/stable_diffusion.yaml # Cấu hình Stable Diffusion & Curation thresholds
+│   └── detection/detector_baseline.yaml # Cấu hình dinoViT, bypass threshold & fine-tuning
+├── data/                              # Dữ liệu phân tầng (raw, interim, processed, samples)
 ├── docs/                              # Bộ nhớ dự án & Báo cáo kỹ thuật (Evolving Memory)
 │   ├── README.md                      # Mục lục tài liệu dự án
-│   ├── PURPOSE.md                     # Bản đặc tả đề tài đồ án phục hồi khuôn mặt & tiêu chí đánh giá
+│   ├── PURPOSE.md                     # Bản đặc tả đề tài (SD + dinoViT + Hard Sample) & KPIs
 │   ├── OVERVIEW.md                    # Lộ trình đồ án (Roadmap) & quản lý milestone
-│   ├── coursework/                    # Tài liệu đề bài, barem điểm & hướng dẫn đồ án
-│   ├── phases/                        # Đặc tả kỹ thuật từng giai đoạn (Phase Specs)
-│   ├── progress/                      # Bảng theo dõi tiến độ công việc Kanban
-│   ├── experiments/                   # Báo cáo thực nghiệm chuyên sâu (5W1H)
-│   ├── reports/                       # Báo cáo tổng kết đồ án (Markdown + Interactive HTML)
-│   └── shared/                        # Quy trình vận hành chuẩn (SOPs) & hướng dẫn
-├── experiments/                       # Nơi lưu trữ artifacts sinh ra khi chạy (Ignored by Git)
-│   ├── checkpoints/                   # Trọng số mô hình (*.pt, *.pth, best_model.pt)
-│   ├── logs/                          # File log thực thi huấn luyện & lịch sử JSONL
-│   ├── predictions/                   # Kết quả dự đoán trực quan, visualization plots
-│   └── runs/                          # Sự kiện theo dõi TensorBoard / WandB
-├── notebooks/                         # Thư mục Jupyter Notebook tương tác (NO heavy training)
-│   ├── exploratory/                   # Khảo sát phân bố dữ liệu (EDA) & trực quan hóa mẫu
-│   ├── coursework/                    # Minh họa giải thuật, demo kết quả định tính
-│   └── README.md                      # Quy chuẩn Cell 0/Cell 1 & tách biệt Notebook vs Báo cáo
+│   ├── coursework/                    # Tổng quan tài liệu & đặc tả taxonomy dữ liệu
+│   ├── phases/                        # Đặc tả kỹ thuật 3 pha (Synthesis, Mining, Fine-tuning)
+│   ├── progress/                      # Bảng theo dõi tiến độ PROJECT_ROADMAP.md
+│   ├── experiments/                   # Giao thức thực nghiệm đối chứng (EXPERIMENT_PROTOCOL.md)
+│   └── reports/                       # Báo cáo tổng kết đồ án & Slide thuyết trình (MD + HTML)
+├── experiments/                       # Checkpoints, logs, predictions
+├── notebooks/                         # Jupyter Notebooks chỉ phục vụ EDA & Visualization
 ├── requirements/                      # Quản lý dependencies theo từng lớp môi trường
-│   ├── base.txt                       # Core dependencies (Torch, OpenCV, NumPy, Matplotlib)
-│   ├── deeplearning.txt               # Advanced toolkits (Albumentations, Timm, Torchmetrics)
-│   ├── dev.txt                        # Development & testing (Pytest, Ruff, Black, Mypy)
-│   └── tracking.txt                   # Experiment tracking (TensorBoard, WandB)
-├── requirements.txt                   # Proxy trỏ tới base.txt & dev.txt
-├── scripts/                           # Shell scripts tự động hóa pipeline
-│   ├── setup_env.sh                   # Khởi tạo virtualenv & cài đặt trọn gói
-│   ├── download_weights.sh            # Tải trọng số pre-trained cho backbone
-│   └── run_pipeline.sh                # Điều phối pipeline (train/eval/infer)
+├── scripts/                           # Shell scripts điều phối pipeline (run_pipeline.sh)
 ├── src/                               # Package mã nguồn chính thức (Clean Architecture)
-│   ├── __init__.py
-│   ├── common/                        # Tiện ích dùng chung (logger, seed, metrics, visualizer)
-│   ├── data/                          # Transforms, Dataset & DataModule
-│   ├── models/                        # Kiến trúc mô hình (builder, classical, deep)
-│   └── pipelines/                     # Pipeline thực thi (train, evaluate, infer)
-├── tests/                             # Bộ kiểm thử tự động với Pytest
-│   ├── conftest.py                    # Fixtures dữ liệu và synthetic tensors
-│   ├── test_data.py                   # Kiểm thử DataModule & Dataset
-│   ├── test_models.py                 # Kiểm thử forward pass & tensor shapes
-│   ├── test_transforms.py             # Kiểm thử logic chuẩn hóa ảnh
-│   └── test_pipelines.py              # Kiểm thử smoke test & utilities
-├── .editorconfig                      # Chuẩn hóa format văn bản & thụt đầu dòng
-├── .gitattributes                     # Cấu hình Git LFS cho checkpoints và media
-├── .gitignore                         # Loại trừ file tạm, cache, trọng số & dữ liệu thô
-├── AGENTS.md                          # Ràng buộc hiến pháp gốc cho AI Agent (Root Workspace Charter)
-├── GEMINI.md                          # Symlink trỏ tới AGENTS.md phục vụ Google Antigravity/Gemini
-├── Makefile                           # Trình điều khiển tự động hóa dòng lệnh
-├── pyproject.toml                     # Cấu hình package, Ruff, Black, isort, Pytest
-├── pytest.ini                         # Cấu hình phân tầng test runner
-└── SETUP.md                           # Cẩm nang cài đặt môi trường nhanh
+│   ├── common/                        # logger, seed, metrics (ROC-AUC, bypass_rate, hard_sample_recall), checkpoint
+│   ├── data/                          # ImageMetadata, ImageSample, DeepfakeImageDataset, DeepfakeImageDataModule
+│   ├── models/                        # StableDiffusionEngine, DinoViTBackbone, DeepfakeImageDetector
+│   └── pipelines/                     # generate_deepfake_images, curate_image_dataset, mine_hard_samples, train_image_detector, evaluate_image_benchmark
+└── tests/                             # Bộ kiểm thử tự động với Pytest (Smoke & Normal tests)
 ```
 
 ---
 
-## 3. 🧠 Hệ thống Quản trị AI-First (`/.agents`)
-
-Dự án tích hợp bộ quy chuẩn kỹ thuật độc lập tại thư mục `.agents/`:
-- **Cold-Start Protocol**: AI Agent khi bắt đầu làm việc chỉ cần đọc `.agents/` để tiếp nhận toàn bộ tư duy kỹ thuật, ranh giới module và cam kết bất biến.
-- **5 Bất biến CV/DL bắt buộc**:
-  1. *Tensor Shapes*: Ghi rõ shape `(B, C, H, W)` hoặc `(H, W, C)` trong docstrings.
-  2. *Color Spaces*: Chuyển đổi rõ ràng giữa OpenCV (`BGR`) và Matplotlib/PyTorch (`RGB`).
-  3. *Bounding Boxes*: Sử dụng tường minh một trong các chuẩn `xyxy`, `xywh`, hoặc `cxcywh`.
-  4. *Reproducibility*: Sử dụng hàm seed tập trung `src.common.seed.seed_everything()`.
-  5. *GPU Hygiene*: Không hardcode device, quản lý bộ nhớ VRAM với AMP `autocast()`.
-
----
-
-## 4. 🚀 Hướng dẫn Cài đặt & Vận hành (Quickstart)
+## 3. 🚀 Hướng dẫn Vận hành Nhanh (Quickstart)
 
 ```bash
-# 1. Khởi tạo môi trường ảo và cài đặt thư viện
-make install
-make install-dev
-
-# 2. Chạy kiểm thử smoke test tức thì (< 5s)
+# 1. Chạy kiểm thử smoke test tức thì (< 5s) và toàn bộ test suite
 make test-smoke
+make test
 
-# 3. Chạy pipeline huấn luyện mẫu
-make run
+# 2. Thực thi lần lượt 3 Pha của đề tài qua Pipeline Runner:
+bash scripts/run_pipeline.sh generate   # Phase 1a: Sinh ảnh Synthetic DF bằng Stable Diffusion
+bash scripts/run_pipeline.sh curate     # Phase 1b: Lọc chất lượng qua Curation Gate
+bash scripts/run_pipeline.sh mine       # Phase 2: Đánh giá qua Baseline dinoViT -> tách Bypass Hard Samples
+bash scripts/run_pipeline.sh train      # Phase 3a: Fine-tune dinoViT trên Baseline + Syn + Hard Samples
+bash scripts/run_pipeline.sh eval       # Phase 3b: Đánh giá Benchmark chứng minh tác dụng
 ```
 
 ---
 
-## 5. 🛠️ Bảng Lệnh Tự Động Hóa Makefile
+## 4. 🛠️ Bảng Lệnh Tự Động Hóa Makefile
 
 | Lệnh | Mục đích |
 | :--- | :--- |
@@ -180,8 +103,7 @@ make run
 | `make install-dev` | Cài đặt trọn bộ công cụ lập trình, kiểm thử và theo dõi |
 | `make format` | Tự động căn chỉnh và format code với Ruff và Black |
 | `make lint` | Kiểm tra chất lượng code và bắt lỗi vi phạm quy chuẩn |
-| `make type-check` | Chạy kiểm tra kiểu tĩnh với Mypy |
 | `make test` | Chạy toàn bộ bộ kiểm thử với Pytest |
 | `make test-smoke` | Chạy bộ kiểm thử nhanh Smoke Test (< 5 giây) |
-| `make run` | Khởi chạy pipeline huấn luyện mẫu |
+| `make run` | Khởi chạy pipeline huấn luyện tinh chỉnh `dinoViT` |
 | `make clean` | Dọn sạch cache, file tạm Python và build artifacts |

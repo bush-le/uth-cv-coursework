@@ -46,6 +46,4 @@ class SimpleCVCNN(nn.Module):
         return self.classifier(feats)
 
 
-from src.models.deep.segmentation import FacialOcclusionSegmenter
-
-__all__ = ["SimpleCVCNN", "FacialOcclusionSegmenter"]
+__all__ = ["SimpleCVCNN"]
