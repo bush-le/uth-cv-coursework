@@ -1,101 +1,73 @@
-# Báo Cáo Kỹ Thuật Tổng Thể: Định Nghĩa Bài Toán & Thiết Kế Kiến Trúc Hệ Thống (Define & System Design Master Report)
+# SYSTEM_DEFINE_AND_DESIGN_REPORT.md — Báo Cáo Tổng Hợp Đề Tài 11 (Nhóm 4)
 
-- **Motivation/Background**: Báo cáo tổng thể tích hợp kết quả định nghĩa bài toán, thiết kế kiến trúc hệ thống và giao thức thực nghiệm khép kín theo yêu cầu chỉnh sửa của Giảng viên hướng dẫn cho đề tài: "Stable Diffusion-Based Synthetic Facial Dataset Generation with DINO ViT Hard-Sample Mining for Deepfake Detection" (Đề tài 11, Hugging Face Computer Vision Course Unit 10).
-- **Purpose**: Cung cấp tài liệu kỹ thuật hoàn chỉnh cho chu trình 3 pha: (1) Phase 1 — Sinh ảnh Deepfake bằng Stable Diffusion & lọc Curation Gate; (2) Phase 2 — Đánh giá qua Baseline `dinoViT` để tách mẫu bị bắt (`Reject`) và mẫu vượt qua mô hình (`Bypass` $\rightarrow$ **Hard Samples**); (3) Phase 3 — Tinh chỉnh (`Fine-tune`) `dinoViT` trên `Data Baseline + Synthetic Data + Hard Samples` để chứng minh tác dụng thực tiễn của dữ liệu tổng hợp.
-- **Overview Pipeline**: Real Images + Stable Diffusion (`Phase 1`) -> Curated Synthetic DF -> Baseline `dinoViT` Benchmark (`Reject` vs. `Bypass` $\rightarrow$ `Hard Samples` ở `Phase 2`) -> Fine-Tune `dinoViT` trên `Baseline + Syn + Hard Samples` (`Phase 3`) -> Chứng minh tác dụng qua độ tăng ROC-AUC & Hard-Sample Recall.
-- **Detailed Plan**: §1 Tổng Quan Chu Trình 3 Pha Theo Định Hướng Giảng Viên; §2 Phần 1: Định Nghĩa Bài Toán & Cơ Chế Khai Phá Mẫu Khó; §3 Phần 2: Kiến Trúc Hệ Thống Clean Architecture & `dinoViT`; §4 Phần 3: Giao Thức Thực Nghiệm Đối Chứng Chứng Minh Tác Dụng; §5 Lệnh Vận Hành Toàn Trình.
-- **References**: `docs/PURPOSE.md`, `docs/OVERVIEW.md`, `docs/reports/PART_01_PROBLEM_DEFINITION.md`, `docs/reports/PART_02_SYSTEM_ARCHITECTURE.md`, `configs/detection/detector_baseline.yaml`.
-- **Created**: 2026-11-07T00:50:00+07:00
-- **Last Updated**: 2026-11-08T17:52:00+07:00
-
----
-
-## 1. TỔNG QUAN CHU TRÌNH 3 PHA THEO ĐỊNH HƯỚNG GIẢNG VIÊN (EXECUTIVE SUMMARY)
-
-Đề tài được thiết kế lại theo **vòng lặp đối kháng khép kín (Closed-Loop Hard-Sample Mining)** nhằm giải quyết trực tiếp yêu cầu của Giảng viên hướng dẫn: **Chứng minh rõ ràng tác dụng của dữ liệu tổng hợp Stable Diffusion đối với bộ phát hiện Deepfake mạnh (`dinoViT`).**
-
-```text
-+----------------------------------------------------------------------------------------------------+
-|                      CHU TRÌNH 3 PHA CHỨNG MINH TÁC DỤNG DỮ LIỆU TỔNG HỢP                          |
-+----------------------------------------------------------------------------------------------------+
-|  [PHASE 1: SINH DỮ LIỆU & KIỂM DUYỆT (img + Stable Diffusion -> Synthetic DF img)]                 |
-|  * Đầu vào: Ảnh khuôn mặt thật (Real Faces)                                                        |
-|  * Biến đổi: Stable Diffusion (Text2Img, Facial Inpainting, Img2Img)                               |
-|  * Kiểm duyệt: ImageCurationGate (Sharpness >= 50.0, CLIP >= 0.28, Face Retention >= 0.85)         |
-+----------------------------------------------------------------------------------------------------+
-                                           | (Tập ảnh giả đạt chuẩn: DF img)
-                                           v
-+----------------------------------------------------------------------------------------------------+
-|  [PHASE 2: BENCHMARK BASELINE dinoViT & KHAI PHÁ MẪU KHÓ (Reject vs. Bypass -> Hard Samples)]      |
-|  * Cho tập DF img đi qua mô hình chuẩn: Baseline dinoViT (Vision Transformer tự giám sát)          |
-|  * Nếu P(fake) >= 0.50 ---> REJECT (Baseline bắt được) ---> xếp vào nhóm Synthetic Data thường     |
-|  * Nếu P(fake) <  0.50 ---> BYPASS (Baseline bị đánh lừa!) ---> thu thập làm HARD SAMPLES          |
-+----------------------------------------------------------------------------------------------------+
-                                           | (Hợp nhất 3 nguồn dữ liệu)
-                                           v
-+----------------------------------------------------------------------------------------------------+
-|  [PHASE 3: FINE-TUNE KHÉP KÍN & CHỨNG MINH TÁC DỤNG (Baseline + Syn + Hard -> Bắt được DF)]        |
-|  * Tập huấn luyện tinh chỉnh: Data Baseline + Synthetic Data + Hard Samples (Oversample 2x)        |
-|  * Huấn luyện: Mở khóa các khối Transformer trên của dinoViT với Weighted BCE Loss (lambda = 2.0)  |
-|  * Kết quả: Bắt giữ thành công các mẫu từng Bypass, giảm Bypass Rate, tăng vọt ROC-AUC & Recall!   |
-+----------------------------------------------------------------------------------------------------+
-```
+- **Motivation/Background**: Tổng hợp toàn bộ nội dung đề tài của Nhóm 4 trong một văn bản duy nhất, viết bằng ngôn ngữ đơn giản, mạch lạc và đúng theo yêu cầu mới của giảng viên.
+- **Purpose**: Dùng làm báo cáo chính thức nộp cho giảng viên và làm tài liệu ôn tập trước khi thuyết trình.
+- **Overview Pipeline**: Đặt vấn đề -> Bước 1: Sinh ảnh giả bằng Stable Diffusion -> Bước 2: Dùng `dinoViT` gốc tìm Mẫu khó (`Bypass`) -> Bước 3: Gộp dữ liệu & Huấn luyện lại `dinoViT` (`D0 / D1 / D2`) để chứng minh tác dụng.
+- **Detailed Plan**: §1 Tóm tắt đề tài; §2 Chi tiết 3 bước thực hiện; §3 Quản lý dữ liệu không trùng người; §4 Cách chấm điểm chứng minh tác dụng.
+- **References**: [ ../PURPOSE.md ](../PURPOSE.md), [ PART_01_PROBLEM_DEFINITION.md ](PART_01_PROBLEM_DEFINITION.md), [ PART_02_SYSTEM_ARCHITECTURE.md ](PART_02_SYSTEM_ARCHITECTURE.md).
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-08T18:40:00+07:00
 
 ---
 
-## 2. PHẦN 1: ĐỊNH NGHĨA BÀI TOÁN & CƠ CHẾ KHAI PHÁ MẪU KHÓ
+## 1. Tóm Tắt Đề Tài & Bộ Ba Luận Cứ (Problem ➔ Business ➔ Technical)
 
-### 2.1 Tại Sao Ảnh Giả Stable Diffusion Vượt Qua (`Bypass`) Được Mô Hình Baseline?
-- Khác với GAN để lại vết sọc ô cờ chu kỳ (*checkerboard artifacts*) do phép tích chập chuyển vị, **Stable Diffusion (LDM)** khử nhiễu lặp lại trong không gian tiềm ẩn liên tục của VAE, giữ mật độ phổ năng lượng tuân theo quy luật tự nhiên $\text{PSD}(f) \propto 1/f^\alpha$.
-- Ngay cả khi sử dụng **DINO ViT (`dinoViT`)** làm Baseline Detector, những mẫu thao túng tinh vi (như `sd_inpaint` chỉ sửa vùng mắt/miệng hoặc `sd_img2img` cường độ vừa phải) vẫn có xác suất dự đoán $P_{\text{baseline}}(\text{fake} \mid x) < 0.50$, tức là **bypass (vượt qua)** hàng rào phòng thủ.
+- **Tên đề tài**: Tạo bộ dữ liệu khuôn mặt giả bằng Stable Diffusion phục vụ phát hiện Deepfake (*Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection*).
+- **Mục tiêu cốt lõi**: Không chỉ tạo ra ảnh giả mà phải **chứng minh được bộ dữ liệu tạo ra có tác dụng thực tế** thông qua việc tìm ra những bức ảnh đánh lừa được mô hình gốc `dinoViT` (**Mẫu khó / `Hard Sample`**), sau đó dạy lại cho mô hình để nó bắt được những mẫu khó đó.
 
-### 2.2 Định Nghĩa Toán Học Của Mẫu Khó (`Hard Sample`)
-Gọi $f_{\theta_0}: \mathbb{R}^{3 \times H \times W} \to [0, 1]$ là hàm dự đoán xác suất giả mạo của mô hình Baseline `dinoViT` ($\theta_0$) và $\tau = 0.50$ là ngưỡng quyết định. Với tập ảnh giả đã qua kiểm duyệt chất lượng $\mathcal{S}_{\text{DF}} = \{x_i \mid y_i = 1\}$:
-$$\mathcal{S}_{\text{reject}} = \{x_i \in \mathcal{S}_{\text{DF}} \mid f_{\theta_0}(x_i) \ge \tau\}, \qquad \mathcal{S}_{\text{hard}} = \{x_i \in \mathcal{S}_{\text{DF}} \mid f_{\theta_0}(x_i) < \tau\}$$
-Tập $\mathcal{S}_{\text{hard}}$ chính là các **Hard Samples** đánh trúng "điểm mù" của `dinoViT`.
+### 1.1. Phân Loại Deepfake (What Is Deepfake?)
+1. **Deepfake Cũ (Ghép mặt / Face-Swap)**: Cắt dán vùng mặt người này lên người khác, để lại **vết cắt nối mờ hoặc lệch màu da** quanh viền mặt. Các mô hình phát hiện cũ chỉ cần tìm đường viền này là bắt được.
+2. **Deepfake Mới (Stable Diffusion)**: Khử nhiễu toàn diện từ không gian tiềm ẩn (`Latent Space`), tái tạo mượt mà cấu trúc da, ánh sáng và chi tiết mặt. **Không có vết cắt dán**, tạo ra "vùng mù" khiến các mô hình phát hiện cũ bị đánh lừa.
 
----
+### 1.2. Stable Diffusion Là Gì & Tạo Dữ Liệu Dạng Nào?
+Stable Diffusion là mô hình khuếch tán tiềm ẩn, hỗ trợ tạo **3 dạng dữ liệu khuôn mặt**:
+- **Dạng 1 (`sd_text2img`)**: Sinh mặt người mới 100% từ mô tả chữ (Prompt), mở rộng độ phong phú danh tính.
+- **Dạng 2 (`sd_inpainting`)**: Chỉ sửa cục bộ mắt/miệng trên mặt thật, giữ nguyên đầu và tóc. Dạng này tinh vi nhất, đánh trúng điểm mù của mô hình.
+- **Dạng 3 (`sd_img2img`)**: Biến đổi diện mạo trên khung 5 điểm mốc của ảnh gốc, tạo cặp đối chứng Gốc – Biến đổi.
 
-## 3. PHẦN 2: KIẾN TRÚC HỆ THỐNG CLEAN ARCHITECTURE & `dinoViT`
-
-### 3.1 Cấu Trúc 4 Tầng Mã Nguồn (`src/`)
-1. **`src/data/`**:
-   - `ImageMetadata` lưu trữ đầy đủ `is_hard_sample: bool`, `baseline_score: Optional[float]`, và `data_source: str` (`"baseline"`, `"synthetic"`, `"hard_sample"`).
-   - `DeepfakeImageDataModule` thực thi **Phân hoạch Bất biến Danh tính (`Identity-Disjoint`)** theo `source_real_id` và nhân bản mẫu khó (`hard_sample_oversample_factor = 2`) trong tập Train.
-2. **`src/models/diffusion/` & `src/pipelines/curate_image_dataset.py`**:
-   - `StableDiffusionEngine` sinh ảnh qua 3 chế độ (`sd_text2img`, `sd_inpaint`, `sd_img2img`).
-   - `ImageCurationGate` lọc tự động qua độ sắc nét Laplacian ($\ge 50.0$), CLIP alignment ($\ge 0.28$) và phát hiện khuôn mặt.
-3. **`src/models/detector/image_detector.py` & `src/pipelines/mine_hard_samples.py`**:
-   - `DinoViTBackbone` chia ảnh thành lưới patch $16\times 16$, nội suy vị trí động 2D, xử lý qua các tầng Multi-Head Self-Attention và trích xuất vector `[CLS]` chuẩn hóa $\ell_2$.
-   - `mine_hard_samples()` chạy `dinoViT` trên tập `Synthetic DF`, xuất báo cáo `HardSampleMiningReport` và ghi tệp `hard_samples_manifest.jsonl`.
-4. **`src/pipelines/train_image_detector.py` & `src/pipelines/evaluate_image_benchmark.py`**:
-   - `combine_training_manifests()` gộp `Data Baseline + Synthetic Data + Hard Samples`.
-   - `train_deepfake_image_detector()` mở khóa các block cuối của `dinoViT` và huấn luyện với hàm mất mát BCE có trọng số mẫu khó $w_{\text{hard}} = 2.0$.
-   - `compare_baseline_vs_finetuned()` tính toán trực tiếp độ tăng `roc_auc_gain`, `hard_sample_recall_gain` và độ giảm `bypass_rate_reduction`.
+### 1.3. Bộ 3 Tầng Luận Cứ
+- **Problem (Vấn đề)**: Sự dịch chuyển từ ảnh cắt dán sang ảnh khuếch tán khiến các mô hình phát hiện cũ bị "mù".
+- **Business (Nghiệp vụ)**: Đe dọa bảo mật cổng xác thực khuôn mặt **eKYC ngân hàng**, mở tài khoản từ xa và ví điện tử. Doanh nghiệp cần giải pháp chủ động sinh dữ liệu để huấn luyện phòng thủ từ sớm.
+- **Technical (Kỹ thuật)**: Chu trình 3 bước khép kín của Nhóm 4: Sinh ảnh SD ➔ Qua dinoViT tìm Mẫu khó (Hard Sample) ➔ Huấn luyện lại trên tập gộp để chứng minh tác dụng thực tế.
 
 ---
 
-## 4. PHẦN 3: MA TRẬN THỰC NGHIỆM ĐỐI CHỨNG CHỨNG MINH TÁC DỤNG
+## 2. Chi Tiết Quy Trình 3 Bước Khép Kín
 
-| Chế độ Thực nghiệm | Mô hình Đánh giá | Tập Dữ liệu Huấn luyện | Accuracy (%) | ROC-AUC (%) | Bypass Rate ($\downarrow$) | Hard-Sample Recall ($\uparrow$) |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| **E1: Baseline Benchmark** | `dinoViT` (Baseline) | `Data Baseline` | 62.50 | 64.20 | 38.50% | 0.00% (Bị Bypass) |
-| **E2: + Synthetic Data** | `dinoViT` (Fine-tuned) | `Data Baseline + Syn Data` | 88.40 | 91.40 | 14.20% | 68.50% |
-| **E3: + Hard Samples (Proposed)** | **`dinoViT` (Fine-tuned + Hard)** | **`Data Baseline + Syn Data + Hard Samples`** | **94.20** | **96.80** | **4.10%** | **91.20%** |
+### Bước 1: Sinh dữ liệu khuôn mặt giả bằng Stable Diffusion (`Phase 1`)
+1. Từ ảnh khuôn mặt thật, hệ thống tìm 5 điểm mốc (2 mắt, mũi, 2 khóe miệng) để căn chỉnh khuôn mặt và tạo vùng mặt nạ che mắt/miệng.
+2. Dùng **Stable Diffusion** sinh ra ảnh giả theo 3 cách:
+   - **`Text-to-Image` (`sd_text2img`)**: Vẽ khuôn mặt mới hoàn toàn từ câu chữ mô tả.
+   - **`Facial Inpainting` (`sd_inpaint`)**: Chỉ sửa vùng mắt hoặc miệng trên nền khuôn mặt thật.
+   - **`Image-to-Image` (`sd_img2img`)**: Giữ nguyên khung mặt thật nhưng đổi làn da, ánh sáng hoặc biểu cảm.
+3. Chạy qua **bộ lọc 3 bước** để loại bỏ ảnh bị mờ, ảnh méo mặt và ảnh sai mô tả.
+
+### Bước 2: Kiểm tra qua Baseline `dinoViT` để tách Mẫu khó (`Phase 2`)
+1. Đưa các ảnh giả đạt chuẩn ở Bước 1 vào mô hình phát hiện gốc **Baseline `dinoViT`**.
+2. Dựa trên điểm nghi ngờ ảnh giả $P(\text{fake}) \in [0, 1]$ với ngưỡng $0.5$:
+   - **Bắt được (`Reject`, $P(\text{fake}) \ge 0.5$)**: Mô hình gốc nhận diện đúng là ảnh giả $\rightarrow$ lưu vào nhóm ảnh giả thông thường (`data_source = "synthetic"`).
+   - **Bỏ lọt (`Bypass`, $P(\text{fake}) < 0.5$)**: Ảnh giả đánh lừa được `dinoViT` gốc khiến nó tưởng là ảnh thật $\rightarrow$ đánh dấu ngay là **Mẫu khó (`is_hard_sample = True`, `data_source = "hard_sample"`)**.
+
+### Bước 3: Gộp dữ liệu, Huấn luyện lại (`Fine-Tune`) & Chứng minh tác dụng (`Phase 3`)
+1. Gộp cả 3 nguồn dữ liệu lại: **Dữ liệu gốc (`Data Baseline`) + Ảnh sinh mới (`Syn Data`) + Mẫu khó (`Hard Sample`)**.
+2. Huấn luyện lại mô hình `dinoViT` với 3 cải tiến:
+   - Mở khóa các tầng Transformer cuối cùng của `dinoViT` để học đặc trưng chi tiết mới.
+   - Nhân bản tăng số lần xuất hiện của **Mẫu khó** trong tập huấn luyện.
+   - Đánh trọng số phạt cao hơn trong hàm tính lỗi nếu mô hình đoán sai **Mẫu khó**.
 
 ---
 
-## 5. LỆNH VẬN HÀNH TOÀN BỘ PIPELINE
+## 3. Quản Lý Dữ Liệu Công Bằng (Không Trùng Người)
 
-```bash
-# Bước 1 (Phase 1): Sinh ảnh giả bằng Stable Diffusion & lọc qua Curation Gate
-bash scripts/run_pipeline.sh generate
-bash scripts/run_pipeline.sh curate
+- Mỗi bức ảnh đều lưu kèm mã người thật gốc (`source_real_id`).
+- Tất cả ảnh thật, ảnh `Reject` và ảnh `Hard Sample` sinh ra từ cùng một người luôn được xếp chung vào một tập (hoặc cùng ở tập Học, hoặc cùng ở tập Thi) để đảm bảo tập Kiểm thử hoàn toàn độc lập.
 
-# Bước 2 (Phase 2): Đánh giá qua Baseline dinoViT -> Khai phá các mẫu Bypass thành Hard Samples
-bash scripts/run_pipeline.sh mine
+---
 
-# Bước 3 (Phase 3): Fine-tune dinoViT trên (Data Baseline + Syn Data + Hard Samples) & Đánh giá
-bash scripts/run_pipeline.sh train
-bash scripts/run_pipeline.sh eval
-```
+## 4. Cách So Sánh `D0 / D1 / D2` Để Chứng Minh Tác Dụng
+
+Nhóm so sánh công bằng 3 chế độ trên cùng kiến trúc `dinoViT` và cùng tập Kiểm thử độc lập:
+- **`D0`**: Chỉ học trên **Dữ liệu gốc (`Data Baseline`)**.
+- **`D1`**: Học trên **Dữ liệu gốc + Ảnh sinh mới thông thường (`Syn Data`)**.
+- **`D2`**: Học trên **Dữ liệu gốc + Ảnh sinh mới + Mẫu khó (`Hard Sample`)**.
+- **Kết luận**: Khi mô hình ở chế độ `D2` bắt giữ lại được các mẫu từng vượt rào (tăng mạnh `Hard-Sample Recall`, giảm `Bypass Rate`) và nâng cao `ROC-AUC`, tác dụng của bộ dữ liệu được chứng minh trọn vẹn.

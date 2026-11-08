@@ -1,78 +1,39 @@
-# Phase 3: Closed-Loop Fine-Tuning, Forensic Quality Audit & Proof-of-Utility Benchmark Specification
+# PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md — Bước 3: Huấn Luyện Lại (`Fine-Tune`) & Kiểm Chứng Tác Dụng
 
-- **Motivation/Background**: Establishes the Phase 3 fine-tuning specification, adversarial forensic quality audit, and comparative evaluation matrix for the closed-loop coursework project: `Phase 1 SD Synthesis -> Phase 2 dinoViT Bypass/Hard-Sample Mining -> Phase 3 Fine-Tuning & Proof of Utility`.
-- **Purpose**: Provide a rigorous mathematical and experimental audit verifying that fine-tuning `dinoViT` on `Data Baseline + Synthetic Data + Hard Samples` catches previously bypassed deepfakes without identity leakage.
-- **Overview Pipeline**: Define & Design Cross-Audit -> Diffusion Failure Modes & Curation Gate Justification -> Hard-Sample Weighted Fine-Tuning -> Baseline vs. Fine-Tuned Comparative Matrix -> Auditor Verdict.
-- **Detailed Plan**: §1 Executive Audit Summary; §2 Anti-Identity Leakage & Curation Gate Audit; §3 Mathematical Formulation of Hard-Sample Fine-Tuning; §4 Comparative Proof-of-Utility Benchmark Matrix; §5 Operational Verification Commands.
-- **References**: `docs/PURPOSE.md`, `docs/phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md`, `docs/phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md`, `src/pipelines/train_image_detector.py`, `src/pipelines/evaluate_image_benchmark.py`.
-- **Created**: 2026-11-07T00:45:00+07:00
-- **Last Updated**: 2026-11-08T17:48:00+07:00
-
----
-
-## 1. 📋 Tổng quan Thẩm định & Khép kín Vòng lặp Học thuật (Executive Summary)
-
-Theo yêu cầu định hướng của giảng viên, giá trị cốt lõi của đề tài không dừng ở việc "sinh ra một bộ ảnh giả bằng Stable Diffusion", mà phải **chứng minh được tác dụng thực sự (`chứng minh được tác dụng`)** của bộ dữ liệu đó thông qua chu trình 3 bước:
-1. **Sinh dữ liệu (`Phase 1`)**: `Real Image + Stable Diffusion` $\rightarrow$ `Curated Synthetic DF Image`.
-2. **Đánh giá qua Baseline `dinoViT` & Khai phá Mẫu khó (`Phase 2`)**: Đưa ảnh `Synthetic DF` vào mô hình `dinoViT` (benchmark). Nếu mô hình bắt được (`Reject`) $\rightarrow$ mẫu tổng hợp thường; nếu mô hình bị vượt qua (`Bypass`, $P(\text{fake}) < 0.50$) $\rightarrow$ thu thập thành **Hard Sample**.
-3. **Tinh chỉnh (`Fine-Tune`) & Chứng minh tác dụng (`Phase 3`)**: Huấn luyện tinh chỉnh `dinoViT` trên **`Data Baseline + Synthetic Data + Hard Samples`**. Nếu sau khi fine-tune, mô hình bắt được các mẫu `Hard Sample` từng lọt lưới và nâng cao ROC-AUC $\rightarrow$ **chứng minh thành công tác dụng của dữ liệu tổng hợp**.
+- **Motivation/Background**: Thực hiện bước cuối cùng trong yêu cầu của giảng viên (`data baseline + syn data + hard sample -> finetuned up -> nếu bắt được -> có tác dụng`).
+- **Purpose**: Giải thích đơn giản cách gộp 3 nguồn dữ liệu, 3 kỹ thuật giúp `dinoViT` học tốt các mẫu khó và cách kiểm tra không để rò rỉ dữ liệu.
+- **Overview Pipeline**: Gộp `Data Baseline + Syn Data + Hard Sample` -> Khóa danh tính người gốc -> Tinh chỉnh `dinoViT` (Mở khóa các tầng cuối + Nhân bản mẫu khó + Phạt nặng khi đoán sai mẫu khó) -> Kiểm tra bắt lại mẫu khó trên tập Test.
+- **Detailed Plan**: §1 Gộp 3 nguồn dữ liệu; §2 Ba cách giúp `dinoViT` học thuộc đặc điểm của Mẫu khó; §3 Kiểm tra an toàn không trùng người giữa tập Học và tập Thi.
+- **References**: [ ../PURPOSE.md ](../PURPOSE.md), [ PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md ](PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md), [ ../experiments/EXPERIMENT_PROTOCOL.md ](../experiments/EXPERIMENT_PROTOCOL.md).
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-08T18:39:00+07:00
 
 ---
 
-## 2. 🔍 Kiểm toán Chống Rò rỉ Danh tính & Cổng Chất lượng (Forensic & Curation Audit)
+## 1. Gộp 3 Nguồn Dữ Liệu Để Huấn Luyện Lại
 
-1. **Identity-Disjoint Partitioning (`DeepfakeImageDataModule`)**:
-   - Mọi ảnh `Synthetic DF` và `Hard Sample` sinh ra từ cùng một `source_real_id` bắt buộc nằm chung một tập (`Train`, `Val`, hoặc `Test`).
-   - Đảm bảo khi đánh giá mô hình `dinoViT` sau khi fine-tune trên tập `Test`, mô hình phát hiện dựa trên dấu vết thao túng của Diffusion chứ không phải học thuộc khuôn mặt.
-2. **3 Curation Gates (`ImageCurationGate`)**:
-   - **Laplacian Sharpness ($\ge 50.0$)**: Ngăn chặn các mẫu ảnh mờ do VAE làm sai lệch bài toán thành "phát hiện ảnh mờ".
-   - **CLIP Score ($\ge 0.28$)** & **Face Confidence ($\ge 0.85$)**: Đảm bảo mọi `Hard Sample` vượt qua `dinoViT` đều là các khuôn mặt có cấu trúc giải phẫu hoàn chỉnh, độ nguy hiểm cao trong thực tế.
+Ở Bước 3 (`src/pipelines/train_image_detector.py`), hàm `combine_training_manifests()` gộp chung 3 nguồn dữ liệu lại thành một bộ dữ liệu thống nhất:
 
----
-
-## 3. 📐 Cơ sở Toán học của Quá trình Fine-Tuning `dinoViT` với Hard Samples
-
-Khi fine-tune `DeepfakeImageDetector(backbone="dino_vit")` trong `src/pipelines/train_image_detector.py`:
-- **Partial Block Unfreezing (`unfreeze_last_n_blocks=2`)**: Giữ nguyên các tầng trích xuất đặc trưng cơ sở của `DinoViTBackbone` để bảo toàn tri thức tiền huấn luyện, đồng thời mở khóa 2 khối Transformer Encoder cuối cùng và `LayerNorm` + `Classifier Head`.
-- **Hard-Sample Oversampling & Weighted BCE Loss**:
-  $$\mathcal{L}(\theta) = \frac{1}{B} \sum_{i=1}^{B} w_i \cdot \left[ -y_i \log \sigma(z_i) - (1 - y_i) \log(1 - \sigma(z_i)) \right]$$
-  với trọng số mẫu:
-  $$w_i = \begin{cases} \lambda_{\text{hard}} = 2.0, & \text{nếu } \text{is\_hard\_sample}_i = \text{True} \\ 1.0, & \text{ngược lại} \end{cases}$$
-  Cơ chế này ép gradient dịch chuyển biên quyết định (decision boundary) của `dinoViT` bao phủ vùng không gian đặc trưng của các mẫu `Bypass`.
+1. **`Data Baseline` (`baseline`)**: Tập ảnh thật và ảnh giả đối chứng ban đầu (giúp mô hình không quên kiến thức gốc).
+2. **`Synthetic Data` (`synthetic`)**: Các ảnh giả Stable Diffusion đã bị `dinoViT` bắt được ở Bước 2 (giúp giữ sự đa dạng của ảnh tổng hợp).
+3. **`Hard Samples` (`hard_sample`)**: Các ảnh giả tinh vi từng đánh lừa được `dinoViT` ở Bước 2 (giúp vá đúng lỗ hổng của mô hình).
 
 ---
 
-## 4. 📊 Ma trận Thực nghiệm Đối chứng Chứng minh Tác dụng (Proof-of-Utility Matrix)
+## 2. Ba Kỹ Thuật Giúp `dinoViT` Bắt Được Mẫu Khó Khi Học Lại (`Fine-Tune`)
 
-| Kịch bản Thực nghiệm | Mô hình & Cấu hình | Tập Dữ liệu Huấn luyện | Overall ROC-AUC (%) | Bypass Rate trên SD Fakes ($\downarrow$) | Hard-Sample Recall ($\uparrow$) | Kết luận Học thuật |
-| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| **E1: Baseline Benchmark** | `dinoViT` (Frozen Baseline) | `Data Baseline` | $64.20\%$ | $38.50\%$ (Bị Bypass cao) | $0.00\%$ (Toàn bộ mẫu khó lọt lưới) | Chỉ ra lỗ hổng của Baseline trước ảnh SD |
-| **E2: Standard Syn Fine-Tune** | `dinoViT` (Fine-Tuned) | `Data Baseline + Syn Data` | $91.40\%$ | $14.20\%$ | $68.50\%$ | Bổ sung `Syn Data` giúp cải thiện đáng kể |
-| **E3: Closed-Loop Hard Mining** | **`dinoViT` (Fine-Tuned + Hard)** | **`Data Baseline + Syn Data + Hard Samples`** | **$96.80\%$** | **$4.10\%$** | **$91.20\%$** | **Bắt giữ thành công Hard Samples -> Chứng minh tác dụng!** |
+Để mô hình sau khi huấn luyện lại thực sự bắt được các mẫu khó mà không bị học vẹt, nhóm áp dụng 3 kỹ thuật đơn giản nhưng hiệu quả:
+
+1. **Mở khóa các tầng cuối của `dinoViT` (`Partial Unfreeze`)**:
+   - Giữ nguyên các tầng đầu của `dinoViT` (để bảo toàn khả năng nhìn hình dạng khuôn mặt cơ bản), chỉ mở khóa các khối Transformer cuối cùng và bộ phân lớp để tinh chỉnh theo dữ liệu mới.
+2. **Cho Mẫu khó xuất hiện nhiều hơn trong lúc học (`Hard-Sample Oversampling`)**:
+   - Trong tập huấn luyện (`Train`), các bức ảnh có cờ `is_hard_sample = True` được nhân bản để mô hình được nhìn thấy và ôn luyện thường xuyên hơn.
+3. **Tăng điểm phạt nếu đoán sai Mẫu khó (`Weighted BCE Loss`)**:
+   - Trong hàm tính lỗi (Loss), nếu mô hình vẫn đoán nhầm một **Mẫu khó** thì mức phạt sẽ được nhân cao hơn (ví dụ gấp đôi so với mẫu thường), buộc mô hình phải tập trung sửa sai ở những bức ảnh này.
 
 ---
 
-## 5. 🛠️ Lệnh Vận hành Kiểm chứng Toàn trình
+## 3. Kiểm Soát Chất Lượng & Chống Gian Lận Dữ Liệu
 
-```bash
-# 1. Phase 1: Sinh dữ liệu ảnh giả bằng Stable Diffusion & Lọc Curation Gate
-PYTHONPATH=. python src/pipelines/generate_deepfake_images.py \
-    --input-manifest data/raw/manifest.jsonl \
-    --output-manifest data/processed/fake_manifest.jsonl
-PYTHONPATH=. python src/pipelines/curate_image_dataset.py
-
-# 2. Phase 2: Đánh giá qua Baseline dinoViT -> Tách mẫu Reject vs. Bypass (Hard Samples)
-PYTHONPATH=. python src/pipelines/mine_hard_samples.py \
-    --input-manifest data/processed/curated_manifest.jsonl \
-    --hard-manifest data/processed/hard_samples_manifest.jsonl \
-    --backbone dino_vit \
-    --threshold 0.5
-
-# 3. Phase 3: Fine-tune dinoViT trên (Data Baseline + Syn Data + Hard Samples)
-PYTHONPATH=. python src/pipelines/train_image_detector.py \
-    --baseline-manifest data/raw/manifest.jsonl \
-    --synthetic-manifest data/processed/curated_manifest.jsonl \
-    --hard-manifest data/processed/hard_samples_manifest.jsonl \
-    --backbone dino_vit \
-    --hard-weight 2.0
-```
+- **Không trùng người giữa tập Học và tập Thi**: Tất cả ảnh thật, ảnh giả thường và mẫu khó sinh ra từ cùng một người thật (`source_real_id`) bắt buộc phải nằm chung một tập. Tập Kiểm thử (`Test`) hoàn toàn là những người mới.
+- **Chứng minh rõ ràng bằng con số**: Hàm `compare_baseline_vs_finetuned()` chấm điểm cả mô hình gốc lẫn mô hình đã huấn luyện lại trên cùng tập Test để chỉ ra mức tăng của `ROC-AUC`, mức tăng tỷ lệ bắt mẫu khó (`hard_sample_recall_gain`) và mức giảm tỷ lệ lọt lưới (`bypass_rate_reduction`).

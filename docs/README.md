@@ -1,58 +1,45 @@
-# Project Documentation Index (`/docs`)
+# README.md — Danh Mục Tài Liệu Của Dự Án (Nhóm 4)
 
-- **Motivation/Background**: Maintain a single discoverable portal for all evolving research memory, phase specifications, progress tracking, technical reports, and presentation materials for the refactored UTH Computer Vision Coursework on Stable Diffusion Synthetic Deepfake Generation, `dinoViT` Baseline Benchmarking, and Hard-Sample Mining.
-- **Purpose**: Map out the documentation structure and establish the relationship between `/docs` and the immutable governance in `/.agents`.
-- **Overview Pipeline**: Project lifecycle documentation flows from Purpose & Overview (`PURPOSE.md`, `OVERVIEW.md`) -> 3 Phase Specs (`phases/`) -> Controlled Experiment Protocol (`experiments/`) -> Technical Reports & Slide Deck (`reports/`).
-- **Detailed Plan**: §1 Distinction Between Agents and Docs; §2 Directory Map; §3 Documentation Standards; §4 Report Requirements (Dual MD + HTML).
-- **References**: `.agents/rules/MD_CONVENTION.md`, `.agents/rules/FOLDER_STRUCTURE.md`, `.agents/AI_REFERENCE.md`, `docs/PURPOSE.md`.
-- **Created**: 2026-11-02T07:22:00+07:00
-- **Last Updated**: 2026-11-08T17:45:00+07:00
-
----
-
-## 1. Distinction Between `/.agents` and `/docs`
-
-- **`/.agents` (The Immutable Constitution)**: Universal behavior rules, quality gates, coding conventions, and document templates. Never accumulates evolving project outputs.
-- **`/docs` (The Evolving Memory)**: Active project specifications, roadmap, 3-phase technical specs (Phase 1 SD Generation, Phase 2 `dinoViT` Hard-Sample Mining, Phase 3 Fine-Tuning & Proof of Utility), experiment protocols, and presentation slide decks.
+- **Motivation/Background**: Giúp người đọc tìm nhanh tất cả tài liệu và slide thuyết trình của đề tài sau khi chỉnh lại theo yêu cầu của giảng viên.
+- **Purpose**: Liệt kê rõ từng file tài liệu trong thư mục `docs/` và chức năng của từng file.
+- **Overview Pipeline**: Đề bài ([PURPOSE.md](PURPOSE.md)) -> Tổng quan hệ thống ([OVERVIEW.md](OVERVIEW.md)) -> Chi tiết 3 bước thực hiện (`docs/phases/`) -> Báo cáo & Slide thuyết trình (`docs/reports/`).
+- **Detailed Plan**: §1 Tài liệu chính; §2 Chi tiết 3 bước; §3 Lý thuyết & thực nghiệm; §4 Báo cáo & bộ 11 Slide.
+- **References**: [PURPOSE.md](PURPOSE.md), [OVERVIEW.md](OVERVIEW.md), [SYSTEM_DEFINE_AND_DESIGN_REPORT.md](reports/SYSTEM_DEFINE_AND_DESIGN_REPORT.md).
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-08T18:36:00+07:00
 
 ---
 
-## 2. Directory Map
+## 1. Tài Liệu Chính (Đọc Đầu Tiên)
 
-```text
-docs/
-├── README.md                 # Master documentation index (this file)
-├── PURPOSE.md                # Project mission statement, closed-loop dinoViT + Hard Sample problem definition & KPIs
-├── OVERVIEW.md               # Living roadmap, milestones & deliverables tracker
-├── coursework/               # Literature review (GAN vs Diffusion + DINO ViT) & data schema specification
-│   ├── LITERATURE_REVIEW.md
-│   └── TAXONOMY_AND_DATA_SPEC.md
-├── phases/                   # Technical phase specifications
-│   ├── PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md
-│   ├── PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md
-│   └── PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md
-├── progress/                 # Macro roadmap & live milestone trackers
-│   └── PROJECT_ROADMAP.md
-├── experiments/              # Controlled ablation & baseline-vs-finetuned experiment protocol
-│   └── EXPERIMENT_PROTOCOL.md
-├── reports/                  # Comprehensive technical reports & 5-minute presentation slide deck
-│   ├── PART_01_PROBLEM_DEFINITION.md
-│   ├── PART_02_SYSTEM_ARCHITECTURE.md
-│   ├── SYSTEM_DEFINE_AND_DESIGN_REPORT.md
-│   ├── PRESENTATION_5MIN_DEFINE_AND_DESIGN.md
-│   ├── SLIDE_PRESENTATION_STRUCTURE_5MIN.md
-│   ├── PRESENTATION_DEFENSE_QA_CHEAT_SHEET.md
-│   └── presentation_5min_define_and_design.html
-├── shared/                   # Shared SOPs & developer handoffs
-│   └── .gitkeep
-└── assets/                   # Architecture diagrams, benchmark figures & visual plots
-    └── .gitkeep
-```
+- **[PURPOSE.md](PURPOSE.md)**: Giải thích đề bài, mục tiêu của **Nhóm 4** và luồng 3 bước theo đúng yêu cầu của giảng viên.
+- **[OVERVIEW.md](OVERVIEW.md)**: Tóm tắt cách hệ thống hoạt động từ lúc sinh ảnh giả bằng Stable Diffusion đến lúc huấn luyện lại mô hình `dinoViT`.
+- **[progress/PROJECT_ROADMAP.md](progress/PROJECT_ROADMAP.md)**: Lộ trình thực hiện từng chặng từ `M0` đến `M7`.
 
 ---
 
-## 3. Documentation Standards
+## 2. Chi Tiết 3 Bước Thực Hiện (`docs/phases/`)
 
-1. **7-Field Header**: Every `.md` document in `docs/` must begin with the standard 7-field header block.
-2. **Naming Convention**: File names in `docs/` must be ALL CAPS (`UPPER_SNAKE_CASE.md` or `UPPERCASE.md`), except interactive HTML decks (`presentation_5min_define_and_design.html`).
-3. **Zero Absolute Paths**: All links across documentation must use relative paths.
+- **[phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md](phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md)**: **Bước 1** — Cách dùng Stable Diffusion tạo ảnh khuôn mặt giả (3 chế độ) và lọc bỏ ảnh bị lỗi.
+- **[phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md](phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md)**: **Bước 2** — Cách dùng mô hình gốc `dinoViT` để kiểm tra ảnh giả: ảnh nào lọt lưới (`Bypass`) thì gom lại làm **Mẫu khó (`Hard Sample`)**.
+- **[phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md](phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md)**: **Bước 3** — Cách gộp dữ liệu (`Dữ liệu gốc + Ảnh sinh mới + Mẫu khó`), chia tập không trùng người và huấn luyện lại `dinoViT`.
+
+---
+
+## 3. Lý Thuyết & Cách Chấm Điểm (`docs/coursework/` & `docs/experiments/`)
+
+- **[coursework/LITERATURE_REVIEW.md](coursework/LITERATURE_REVIEW.md)**: Giải thích ngắn gọn vì sao ảnh tạo bởi Stable Diffusion dễ đánh lừa các mô hình cũ và vì sao chọn `dinoViT`.
+- **[coursework/TAXONOMY_AND_DATA_SPEC.md](coursework/TAXONOMY_AND_DATA_SPEC.md)**: Cách phân loại 3 nhóm dữ liệu (`baseline`, `synthetic`, `hard_sample`) và các thông tin lưu kèm mỗi bức ảnh.
+- **[experiments/EXPERIMENT_PROTOCOL.md](experiments/EXPERIMENT_PROTOCOL.md)**: Cách so sánh 3 chế độ huấn luyện `D0` (chỉ dữ liệu gốc), `D1` (thêm ảnh sinh mới thường), `D2` (thêm cả mẫu khó) để chứng minh tác dụng.
+
+---
+
+## 4. Báo Cáo & Bộ Slide Thuyết Trình 5 Phút (`docs/reports/`)
+
+- **[reports/presentation_5min_define_and_design.html](reports/presentation_5min_define_and_design.html)**: Bộ 11 Slide HTML thuyết trình trực quan (tự động vừa khung màn hình `1920x1080`).
+- **[reports/PRESENTATION_5MIN_DEFINE_AND_DESIGN.md](reports/PRESENTATION_5MIN_DEFINE_AND_DESIGN.md)**: Lời thoại gợi ý dễ đọc cho từng slide từ `Slide 01` đến `Slide 11`.
+- **[reports/SLIDE_PRESENTATION_STRUCTURE_5MIN.md](reports/SLIDE_PRESENTATION_STRUCTURE_5MIN.md)**: Tóm tắt bố cục và nội dung chính của từng slide.
+- **[reports/PART_01_PROBLEM_DEFINITION.md](reports/PART_01_PROBLEM_DEFINITION.md)**: Báo cáo Phần 1 — Đặt vấn đề và phạm vi thực hiện.
+- **[reports/PART_02_SYSTEM_ARCHITECTURE.md](reports/PART_02_SYSTEM_ARCHITECTURE.md)**: Báo cáo Phần 2 — Thiết kế hệ thống 3 bước.
+- **[reports/SYSTEM_DEFINE_AND_DESIGN_REPORT.md](reports/SYSTEM_DEFINE_AND_DESIGN_REPORT.md)**: Báo cáo tổng hợp hoàn chỉnh.
+- **[reports/PRESENTATION_DEFENSE_QA_CHEAT_SHEET.md](reports/PRESENTATION_DEFENSE_QA_CHEAT_SHEET.md)**: Bộ câu hỏi và câu trả lời ngắn gọn khi bảo vệ trước giảng viên.

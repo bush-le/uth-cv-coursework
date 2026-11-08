@@ -1,56 +1,42 @@
-# Phase 1: Stable Diffusion Facial Deepfake Synthesis & Multi-Modal Curation Specification
+# PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md — Bước 1: Sinh Ảnh Giả Bằng Stable Diffusion & Lọc Ảnh Lỗi
 
-- **Motivation/Background**: Specifies the Phase 1 generative data factory that transforms clean real facial portraits into photorealistic synthetic Deepfake images (`Synthetic DF img`) across 3 manipulation modes, followed by automated quality curation.
-- **Purpose**: Serve as the engineering blueprint for `src/models/diffusion/stable_diffusion_engine.py`, `src/pipelines/generate_deepfake_images.py`, and `src/pipelines/curate_image_dataset.py`.
-- **Overview Pipeline**: Real face ingestion (`manifest.jsonl`) -> Stable Diffusion generation (`sd_text2img`, `sd_inpaint`, `sd_img2img`) -> Multi-modal quality curation (Laplacian sharpness, CLIP alignment, Face confidence) -> Curated synthetic manifest (`curated_manifest.jsonl`).
-- **Detailed Plan**: §1 Phase 1 Pipeline Overview; §2 Three Stable Diffusion Manipulation Modes; §3 Automated Multi-Modal Quality Curation Gates; §4 Output Manifest Contract for Phase 2.
-- **References**: `docs/PURPOSE.md`, `docs/coursework/TAXONOMY_AND_DATA_SPEC.md`, `configs/generation/stable_diffusion.yaml`.
-- **Created**: 2026-11-04T08:18:00+07:00
-- **Last Updated**: 2026-11-08T17:48:00+07:00
-
----
-
-## 1. Phase 1 Pipeline Overview
-
-```mermaid
-flowchart LR
-    A["1. Real Face Portrait<br/>(CelebA / FFHQ)"] --> B["2. StableDiffusionEngine<br/>(Text2Img / Inpaint / Img2Img)"]
-    B --> C["3. Raw Synthetic DF Images<br/>(fake_manifest.jsonl)"]
-    C --> D["4. ImageCurationGate<br/>(Sharpness + CLIP + Face)"]
-    D --> E["5. Curated Synthetic DF<br/>(curated_manifest.jsonl -> Phase 2)"]
-```
+- **Motivation/Background**: Thực hiện vế đầu tiên trong yêu cầu của giảng viên (`img + Stable Diffusion / Phase 1 sinh dữ liệu -> synthetic img (DF img)`), tạo ra nguồn ảnh khuôn mặt giả tự nhiên để thử thách mô hình phát hiện.
+- **Purpose**: Giải thích đơn giản cách chuẩn bị ảnh mặt thật, 3 cách tạo ảnh giả bằng Stable Diffusion và 3 bước lọc bỏ ảnh lỗi.
+- **Overview Pipeline**: Ảnh mặt thật -> Tìm 5 điểm mốc & tạo vùng che mắt/miệng -> Sinh ảnh bằng 3 chế độ Stable Diffusion -> Lọc bỏ ảnh mờ/lỗi qua 3 bước -> Xuất tập ảnh giả đạt chuẩn.
+- **Detailed Plan**: §1 Chuẩn bị khuôn mặt đầu vào; §2 Ba cách tạo ảnh giả bằng Stable Diffusion; §3 Ba bước lọc bỏ ảnh lỗi tự động.
+- **References**: [ ../PURPOSE.md ](../PURPOSE.md), [ PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md ](PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md).
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-08T18:39:00+07:00
 
 ---
 
-## 2. Three Stable Diffusion Manipulation Modes (`StableDiffusionEngine`)
+## 1. Chuẩn Bị Ảnh Khuôn Mặt Đầu Vào
 
-Implemented in `src/models/diffusion/stable_diffusion_engine.py`:
-
-1. **Mode A — Text-to-Image (`generate_text2img` / `sd_text2img`)**:
-   - Synthesizes an entirely new facial identity from Gaussian latent noise $z_T \sim \mathcal{N}(0, \mathbf{I})$ conditioned on a portrait prompt.
-2. **Mode B — Facial Inpainting (`generate_inpaint` / `sd_inpaint`)**:
-   - Modifies local facial regions (eyes, mouth, expression) within binary mask $M \in \{0, 1\}^{1 \times H \times W}$ while strictly preserving unmasked identity context:
-     $$I_{\text{inpaint}} = (1 - M) \odot I_{\text{real}} + M \odot I_{\text{generated}}$$
-3. **Mode C — Image-to-Image Morphing (`generate_img2img` / `sd_img2img`)**:
-   - Injects partial latent noise controlled by denoising strength $S \in [0.4, 0.75]$ to alter skin texture and subtle biometric features while retaining global head pose.
+Trước khi đưa vào Stable Diffusion, mỗi bức ảnh người thật được xử lý qua 3 thao tác cơ bản:
+1. **Tìm khung mặt (Bounding Box)**: Xác định đúng vị trí khuôn mặt trong ảnh.
+2. **Tìm 5 điểm mốc chính trên mặt**: Xác định mắt trái, mắt phải, đầu mũi, khóe miệng trái và khóe miệng phải để xoay khuôn mặt cho ngay ngắn.
+3. **Tạo mặt nạ vùng mắt / miệng (Binary Mask)**: Tô đánh dấu vùng mắt hoặc miệng để dùng riêng cho chế độ sửa một phần khuôn mặt (`Inpainting`).
 
 ---
 
-## 3. Automated Multi-Modal Quality Curation Gates (`ImageCurationGate`)
+## 2. Ba Cách Tạo Ảnh Giả Bằng Stable Diffusion
 
-Why Curation is Essential Before Phase 2: If Stable Diffusion produces blurry or anatomically broken faces, the Baseline `dinoViT` detector might reject them merely due to obvious distortion rather than genuine deepfake detection. Our 3 programmatic gates in `src/pipelines/curate_image_dataset.py` guarantee high visual realism:
+Hệ thống kết hợp 3 cách tạo ảnh khác nhau để bộ dữ liệu vừa có ảnh giả toàn mặt, vừa có ảnh chỉ sửa một chi tiết nhỏ:
 
-1. **Laplacian Variance Sharpness (`compute_laplacian_sharpness`)**:
-   $$\text{Var}(\nabla^2 I_{\text{gray}}) \times 1000.0 \ge 50.0$$
-   Prunes over-smoothed or blurry VAE reconstructions.
-2. **CLIP Semantic Alignment (`compute_clip_similarity_proxy`)**:
-   $$\cos(\mathbf{e}_{\text{img}}, \mathbf{e}_{\text{prompt}}) \ge 0.28$$
-   Ensures the synthesized manipulation adheres to the target facial prompt.
-3. **Facial Landmark Retention (`face_detected = True`, confidence $\ge 0.85$)**:
-   Discards any generation where facial geometry collapsed.
+| Cách tạo ảnh | Mã nhãn trong code | Đầu vào | Cách hoạt động dễ hiểu |
+| :--- | :--- | :--- | :--- |
+| **1. Tạo mặt mới từ chữ (`Text-to-Image`)** | `sd_text2img` | Câu mô tả (Prompt) | Từ câu chữ mô tả (độ tuổi, ánh sáng, biểu cảm), Stable Diffusion tự vẽ ra một khuôn mặt người mới hoàn toàn. |
+| **2. Sửa vùng mắt / miệng (`Facial Inpainting`)** | `sd_inpaint` | Ảnh thật + Mặt nạ che + Prompt | Giữ nguyên khuôn mặt thật, chỉ xóa vùng mắt hoặc miệng rồi nhờ Stable Diffusion vẽ lại biểu cảm mới vào đúng chỗ đó. |
+| **3. Biến đổi từ ảnh thật (`Image-to-Image`)** | `sd_img2img` | Ảnh thật + 5 điểm mốc + Prompt | Giữ nguyên tư thế đầu và vị trí mắt-mũi-miệng của ảnh thật, nhưng vẽ lại kết cấu da và ánh sáng mới. |
 
 ---
 
-## 4. Output Manifest Contract for Phase 2
+## 3. Ba Bước Lọc Bỏ Ảnh Lỗi Tự Động (`ImageCurationGate`)
 
-Curated synthetic images are exported to `data/processed/curated_manifest.jsonl` with `label=1` and `data_source="synthetic"`, ready to be tested against the Baseline `dinoViT` model in Phase 2 (`src/pipelines/mine_hard_samples.py`).
+Khi sinh ảnh hàng loạt bằng AI, đôi khi sẽ có ảnh bị nhòe hoặc méo mặt. Vì vậy, mọi bức ảnh sinh ra phải đi qua 3 bước kiểm tra tự động:
+
+1. **Bước lọc 1 — Kiểm tra độ nét**: Tính độ sắc nét của ảnh; nếu ảnh bị mờ nhòe thì loại bỏ ngay.
+2. **Bước lọc 2 — Kiểm tra cấu trúc mặt**: Kiểm tra xem trên ảnh mới tạo có tìm lại được đủ 5 điểm mốc mắt-mũi-miệng hợp lý hay không; nếu mặt bị biến dạng thì loại bỏ.
+3. **Bước lọc 3 — Kiểm tra độ khớp câu lệnh**: Kiểm tra xem bức ảnh vẽ ra có đúng với câu mô tả ban đầu hay không.
+
+Chỉ những bức ảnh **vượt qua cả 3 bước lọc** mới được lưu vào tập ảnh giả đạt chuẩn (`curated_manifest.jsonl`) để chuyển sang Bước 2.

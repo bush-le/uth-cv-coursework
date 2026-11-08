@@ -1,50 +1,32 @@
-# Project Roadmap: Closed-Loop Stable Diffusion + dinoViT Hard-Sample Mining (`docs/progress/PROJECT_ROADMAP.md`)
+# PROJECT_ROADMAP.md — Lộ Trình Thực Hiện Dự Án (M0 -> M7)
 
-- **Motivation/Background**: Establishes the macro-milestone tracking framework guiding the development of the instructor-refined coursework project: "Stable Diffusion-Based Synthetic Facial Dataset Generation with DINO ViT Hard-Sample Mining for Deepfake Detection" (Topic 11).
-- **Purpose**: Provide visible traceability across all engineering phases from data synthesis and baseline bypass mining to `dinoViT` fine-tuning and coursework defense.
-- **Overview Pipeline**: Phase 1 Data Contracts -> Phase 2 SD Generation & Curation -> Phase 3 `dinoViT` Baseline & Hard-Sample Mining -> Phase 4 Closed-Loop Fine-Tuning (`Baseline + Syn + Hard`) -> Phase 5 Comparative Benchmark & Report.
-- **Detailed Plan**: §1 Closed-Loop Timeline Overview; §2 Phase-by-Phase Deliverables & DoD Checklists; §3 Risk Mitigation & Quality Assurance.
-- **References**: `docs/PURPOSE.md`, `docs/OVERVIEW.md`, `GEMINI.md`.
-- **Created**: 2026-11-07T00:05:00+07:00
-- **Last Updated**: 2026-11-08T17:45:00+07:00
-
----
-
-## 1. Closed-Loop Timeline Overview
-
-```mermaid
-flowchart TD
-    P1["Phase 1: 2D Data Contracts & Identity-Disjoint Schema"] --> P2["Phase 2: Stable Diffusion Synthesis & Multi-Modal Curation"]
-    P2 --> P3["Phase 3: Baseline dinoViT Evaluation & Bypass Hard-Sample Mining"]
-    P3 --> P4["Phase 4: Closed-Loop Fine-Tuning (Baseline + Syn + Hard Samples)"]
-    P4 --> P5["Phase 5: Comparative Proof-of-Utility Benchmark & Defense Deck"]
-```
+- **Motivation/Background**: Chia nhỏ toàn bộ công việc của Nhóm 4 thành các mốc rõ ràng từ lúc chốt lại đề tài đến lúc hoàn thành báo cáo và slide thuyết trình.
+- **Purpose**: Theo dõi tiến độ từng bước thực hiện của đề tài.
+- **Overview Pipeline**: M0 (Chốt đề bài mới) -> M1–M2 (Sinh & lọc ảnh Stable Diffusion) -> M3–M5 (Chạy `dinoViT` tìm mẫu khó & đóng gói dữ liệu) -> M6–M7 (Huấn luyện lại `D0/D1/D2` & viết báo cáo).
+- **Detailed Plan**: §1 Bảng các mốc công việc `M0` đến `M7`; §2 Cách kiểm tra hoàn thành từng mốc.
+- **References**: [ ../PURPOSE.md ](../PURPOSE.md), [ ../OVERVIEW.md ](../OVERVIEW.md).
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-08T18:37:00+07:00
 
 ---
 
-## 2. Phase-by-Phase Deliverables & DoD Checklists
+## 1. Bảng Lộ Trình 8 Mốc Công Việc (`M0` $\rightarrow$ `M7`)
 
-### [x] Phase 1: 2D Image Contracts & Hard-Sample Schema (`src/data/`)
-- [x] Define `ImageMetadata` (with `is_hard_sample`, `baseline_score`, `data_source`) and `ImageSample` in `src/data/image_schema.py`.
-- [x] Implement `DeepfakeImageDataset` and `DeepfakeImageDataModule` with Identity-Disjoint partitioning and Hard-Sample oversampling.
-- [x] Unit tests validating 2D tensor shapes `(B, 3, H, W)`, identity grouping, and oversampling.
+| Mốc | Tên công việc | Nội dung thực hiện đơn giản | Kết quả đầu ra | Trạng thái |
+| :--- | :--- | :--- | :--- | :--- |
+| **`M0`** | Chốt đề bài & thiết kế | Cập nhật lại toàn bộ hướng đi theo góp ý của giảng viên (SD $\rightarrow$ `dinoViT` $\rightarrow$ `Hard Sample` $\rightarrow$ Fine-Tune). | Tài liệu thiết kế & bộ 11 Slide thuyết trình | `[x]` Hoàn tất |
+| **`M1`** | Chuẩn bị ảnh gốc & khuôn mặt | Thu thập ảnh mặt thật, phát hiện 5 điểm mốc (2 mắt, mũi, 2 khóe miệng) và tạo vùng che mắt/miệng để sửa ảnh. | Tập ảnh mặt thật đã căn chỉnh ngay ngắn | `[x]` Hoàn tất |
+| **`M2`** | Sinh ảnh giả bằng Stable Diffusion | Chạy 3 chế độ sinh ảnh giả (`sd_text2img`, `sd_inpaint`, `sd_img2img`) để tạo ra nhiều kiểu giả mạo khác nhau. | Tập ảnh giả thô ban đầu | `[x]` Hoàn tất |
+| **`M3`** | Lọc bỏ ảnh lỗi tự động | Dùng bộ lọc 3 bước loại bỏ ảnh bị mờ nhòe, ảnh méo mặt và ảnh không khớp nội dung mô tả. | Tập ảnh giả đạt chuẩn (`curated_manifest.jsonl`) | `[x]` Hoàn tất |
+| **`M4`** | Đưa qua `dinoViT` tìm Mẫu khó | Chạy mô hình gốc `dinoViT` trên các ảnh giả: ảnh nào bị bắt giữ là `Reject`, ảnh nào lọt lưới là `Bypass` (`Hard Sample`). | File danh sách Mẫu khó (`hard_samples_manifest.jsonl`) | `[x]` Hoàn tất |
+| **`M5`** | Gộp dữ liệu & khóa danh tính | Gộp `Dữ liệu gốc + Ảnh sinh mới + Mẫu khó` và chia tập Train/Val/Test sao cho cùng một người không bị lẫn giữa Train và Test. | Bộ dữ liệu gộp chuẩn hóa | `[x]` Hoàn tất |
+| **`M6`** | Huấn luyện lại `D0 / D1 / D2` | Huấn luyện lại `dinoViT` trên 3 chế độ `D0`, `D1`, `D2` và chấm xem mô hình có bắt lại được các Mẫu khó hay không. | Bảng điểm so sánh & mô hình tốt nhất (`best_model.pt`) | `[x]` Hoàn tất |
+| **`M7`** | Hoàn thiện báo cáo & Slide | Chỉnh sửa toàn bộ tài liệu và bộ 11 Slide bằng ngôn ngữ dễ hiểu nhất, sẵn sàng bảo vệ. | Báo cáo hoàn chỉnh & bộ Slide 5 phút | `[x]` Hoàn tất |
 
-### [x] Phase 2: Stable Diffusion Generation & Curation Factory (`src/models/diffusion/` & `src/pipelines/`)
-- [x] Implement `StableDiffusionEngine` supporting Text2Img, Inpainting, and Img2Img (`sd_text2img`, `sd_inpaint`, `sd_img2img`).
-- [x] Implement `ImageCurationGate` filtering synthetic images by Laplacian sharpness ($\ge 50.0$), CLIP alignment ($\ge 0.28$), and face detection confidence.
-- [x] Implement CLI batch pipelines `generate_deepfake_images.py` and `curate_image_dataset.py`.
+---
 
-### [x] Phase 3: Baseline `dinoViT` Benchmark & Bypass Hard-Sample Mining (`src/models/detector/` & `src/pipelines/mine_hard_samples.py`)
-- [x] Implement `DinoViTBackbone` and `DeepfakeImageDetector(backbone="dino_vit")` with `freeze_backbone()` and `unfreeze_backbone()`.
-- [x] Implement `mine_hard_samples.py` to pass curated synthetic DF images through frozen Baseline `dinoViT`:
-  - Classify $P(\text{fake}) \ge 0.50$ as **Rejected** (caught by baseline).
-  - Classify $P(\text{fake}) < 0.50$ as **Bypassed** $\rightarrow$ flag `is_hard_sample=True` and export `hard_samples_manifest.jsonl`.
+## 2. Điều Kiện Kiểm Tra Hoàn Thành
 
-### [x] Phase 4: Closed-Loop Fine-Tuning & Comparative Benchmark (`src/pipelines/train_image_detector.py` & `evaluate_image_benchmark.py`)
-- [x] Implement `combine_training_manifests()` merging `Data Baseline + Synthetic Data + Hard Samples`.
-- [x] Implement weighted hard-sample fine-tuning in `train_image_detector.py` (`hard_sample_loss_weight=2.0`, `unfreeze_last_n_blocks=2`).
-- [x] Implement `compare_baseline_vs_finetuned()` quantifying `roc_auc_gain`, `hard_sample_recall_gain`, and `bypass_rate_reduction`.
-
-### [x] Phase 5: Coursework Documentation & Defense Presentation (`docs/reports/`)
-- [x] Update all technical specifications in `docs/coursework/`, `docs/phases/`, and `docs/experiments/`.
-- [x] Update Master Define & Design Report (`SYSTEM_DEFINE_AND_DESIGN_REPORT.md`) and 11-slide presentation deck (`presentation_5min_define_and_design.html`).
+1. Toàn bộ lệnh kiểm thử nhanh `make test-smoke` và kiểm thử đầy đủ `make test` chạy qua 100% không có lỗi.
+2. Đường ống chạy tự động đủ cả 5 bước: `generate` (sinh ảnh) $\rightarrow$ `curate` (lọc ảnh lỗi) $\rightarrow$ `mine` (tìm mẫu khó qua `dinoViT`) $\rightarrow$ `train` (huấn luyện lại) $\rightarrow$ `eval` (chấm điểm so sánh).
+3. Bộ 11 Slide HTML hiển thị rõ ràng, không tràn chữ, dùng từ ngữ đơn giản, dễ trình bày trong 5 phút.

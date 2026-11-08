@@ -1,76 +1,58 @@
-# PRESENTATION_DEFENSE_QA_CHEAT_SHEET.md — Bộ Phản Biện & Kịch Bản Ứng Khẩu Đỉnh Cao (Academic Defense & Q&A Auditor)
+# PRESENTATION_DEFENSE_QA_CHEAT_SHEET.md — Hỏi Đáp Ngắn Gọn Khi Bảo Vệ Đề Tài (Nhóm 4)
 
-- **Motivation/Background**: Xây dựng tài liệu phản biện học thuật chiến lược và kịch bản ứng khẩu 30 giây cho bài bảo vệ đồ án: "Stable Diffusion-Based Synthetic Facial Dataset Generation with DINO ViT Hard-Sample Mining for Deepfake Detection" (Đề tài 11, cập nhật theo luồng `dinoViT` + Hard Sample của Giảng viên).
-- **Purpose**: Đóng vai trò là cẩm nang bỏ túi giúp sinh viên Nhóm 4 bảo vệ xuất sắc trước các câu hỏi của Giảng viên hướng dẫn và Hội đồng chấm thi.
-- **Overview Pipeline**: Phân tích câu hỏi trọng tâm của Giảng viên -> Giải thích cơ chế `Phase 1 (SD Synthesis) -> Phase 2 (dinoViT Bypass/Hard Sample) -> Phase 3 (Fine-Tune & Proof of Utility)` -> Kịch bản trả lời 30 giây.
-- **Detailed Plan**: §1 Tâm thế Phản biện; §2 Bộ 6 Câu Hỏi Trọng Tâm & Kịch Bản Ứng Khẩu 30 Giây; §3 Bảng Tóm Tắt Thuật Ngữ & Module Code.
-- **References**: `docs/PURPOSE.md`, `docs/reports/SYSTEM_DEFINE_AND_DESIGN_REPORT.md`, `src/models/detector/image_detector.py`, `src/pipelines/mine_hard_samples.py`, `src/pipelines/train_image_detector.py`.
-- **Created**: 2026-11-07T01:05:00+07:00
-- **Last Updated**: 2026-11-08T17:52:00+07:00
-
----
-
-## 1. 🎯 TÂM THẾ PHẢN BIỆN & ĐIỂM NHẤN MỚI CỦA ĐỀ TÀI
-
-Điểm ăn điểm tuyệt đối của đồ án sau khi chỉnh sửa theo góp ý của Giảng viên là **không chỉ sinh dữ liệu giả một chiều**, mà thiết lập **vòng lặp kiểm chứng khép kín**:
-1. **Phase 1**: `Ảnh thật + Stable Diffusion` $\rightarrow$ `Ảnh giả đạt chuẩn (Synthetic DF img)`.
-2. **Phase 2**: Cho `Synthetic DF img` đi qua **Baseline `dinoViT`** $\rightarrow$ tách những mẫu đánh lừa được mô hình (`Bypass`, $P(\text{fake}) < 0.50$) thành **Hard Samples**.
-3. **Phase 3**: Fine-tune `dinoViT` trên **`Data Baseline + Synthetic Data + Hard Samples`** $\rightarrow$ mô hình bắt được các mẫu từng bị bypass $\implies$ **chứng minh trực tiếp tác dụng của dữ liệu tổng hợp!**
+- **Motivation/Background**: Chuẩn bị sẵn các câu trả lời cực kỳ ngắn gọn, dễ nhớ và đi thẳng vào trọng tâm khi giảng viên đặt câu hỏi trong buổi báo cáo.
+- **Purpose**: Giúp các thành viên **Nhóm 4** tự tin trả lời mọi câu hỏi về Stable Diffusion, `dinoViT`, `Reject/Bypass`, `Hard Sample` và cách chứng minh tác dụng.
+- **Overview Pipeline**: Câu hỏi về ý tưởng 3 bước -> Câu hỏi về cách tìm Mẫu khó qua `dinoViT` -> Câu hỏi về cách huấn luyện lại và chống trùng người.
+- **Detailed Plan**: 6 câu hỏi thường gặp nhất và câu trả lời ngắn gọn dễ nói.
+- **References**: [ PRESENTATION_5MIN_DEFINE_AND_DESIGN.md ](PRESENTATION_5MIN_DEFINE_AND_DESIGN.md), [ SYSTEM_DEFINE_AND_DESIGN_REPORT.md ](SYSTEM_DEFINE_AND_DESIGN_REPORT.md).
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-08T18:40:00+07:00
 
 ---
 
-## 2. ⚡ BỘ 6 CÂU HỎI TRỌNG TÂM & KỊCH BẢN ỨNG KHẨU 30 GIÂY
+## 1. Bộ 6 Câu Hỏi & Câu Trả Lời Ngắn Gọn Nhất
 
-### Câu Hỏi 1: "Làm sao các em chứng minh được bộ dữ liệu sinh ra từ Stable Diffusion ở Phase 1 thực sự có tác dụng?"
-- **Kịch bản trả lời 30 giây**:
-  > *"Dạ thưa Thầy/Cô, để chứng minh tác dụng thực tiễn theo đúng định hướng của Thầy/Cô, nhóm thiết kế quy trình 3 bước khép kín:*
-  > *Thứ nhất, ảnh giả sinh từ Stable Diffusion ở Phase 1 được đưa qua mô hình **Baseline `dinoViT`** ở Phase 2 (`mine_hard_samples.py`). Những ảnh giả nào có $P(\text{fake}) < 0.50$ tức là đã **bypass (qua mặt)** được Baseline sẽ được gom thành tập **Hard Samples**.*
-  > *Thứ hai, ở Phase 3, nhóm gộp **Data Baseline + Synthetic Data + Hard Samples** để fine-tune lại `dinoViT`. Kết quả đối chứng trên tập Test độc lập cho thấy mô hình sau khi fine-tune bắt giữ thành công các mẫu từng bị bypass, kéo giảm mạnh tỷ lệ Bypass Rate và tăng vọt ROC-AUC. Đó là bằng chứng định lượng trực tiếp chứng minh tác dụng của dữ liệu tổng hợp ạ."*
-
----
-
-### Câu Hỏi 2: "Tại sao nhóm chọn `dinoViT` (DINO Vision Transformer) làm mô hình Baseline Benchmark?"
-- **Kịch bản trả lời 30 giây**:
-  > *"Dạ thưa Thầy/Cô, các CNN truyền thống như ResNet-18 rất dễ bị overfitting vào nhiễu cục bộ. Trong khi đó, `dinoViT` (Vision Transformer huấn luyện tự giám sát theo phương pháp DINO) sử dụng cơ chế Self-Attention trên các patch $16\times 16$ để học biểu diễn cấu trúc ngữ nghĩa toàn cục của khuôn mặt.*
-  > *Khi lấy một mô hình mạnh như `dinoViT` làm Baseline mà ảnh giả Stable Diffusion vẫn **bypass** được, thì các mẫu **Hard Samples** thu được thực sự là những mẫu cực kỳ chất lượng và có giá trị học thuật cao."*
+### Câu 1: Em hãy tóm tắt đề tài của nhóm trong 3 câu ngắn gọn nhất?
+> **Trả lời**:
+> Dạ thưa thầy, đề tài của **Nhóm 4** làm theo đúng 3 bước khép kín ạ:
+> 1. **Bước 1**: Dùng ảnh mặt thật và **Stable Diffusion** để tạo ra ảnh khuôn mặt giả (`Synthetic DF img`) rồi lọc bỏ ảnh lỗi.
+> 2. **Bước 2**: Đưa các ảnh giả đó qua mô hình chuẩn **Baseline `dinoViT`**; ảnh nào đánh lừa được `dinoViT` (**Bypass**) thì nhóm thu lại làm **Mẫu khó (`Hard Sample`)**.
+> 3. **Bước 3**: Gộp chung **Dữ liệu gốc + Ảnh sinh mới + Mẫu khó** để huấn luyện lại (`Fine-Tune`) `dinoViT`; khi mô hình mới bắt lại được các mẫu khó đó thì chứng minh được dữ liệu nhóm tạo ra thực sự có tác dụng ạ.
 
 ---
 
-### Câu Hỏi 3: "Thế nào là một mẫu `Reject` và một mẫu `Bypass -> Hard Sample`? Ngưỡng tách được cài đặt ở đâu?"
-- **Kịch bản trả lời 30 giây**:
-  > *"Dạ, trong module `src/pipelines/mine_hard_samples.py`, nhóm cho toàn bộ ảnh giả đã qua kiểm duyệt chất lượng ($y = 1$) đi qua mô hình Baseline `dinoViT` đã đóng băng trọng số (`freeze_backbone()`):*
-  > *- Nếu xác suất dự đoán $P(\text{fake}) \ge 0.50$: mô hình đã phát hiện được (tức là **Reject** ảnh giả), mẫu được lưu với `data_source='synthetic'`.*
-  > *- Nếu $P(\text{fake}) < 0.50$: mô hình bị đánh lừa thành ảnh thật (tức là **Bypass**), hệ thống tự động gắn cờ `is_hard_sample=True` và xuất ra `hard_samples_manifest.jsonl` để ưu tiên huấn luyện ở Phase 3 ạ."*
+### Câu 2: Thế nào là mẫu `Reject` và thế nào là mẫu `Bypass` (`Hard Sample`)?
+> **Trả lời**:
+> Dạ, tất cả ảnh đưa vào kiểm tra ở Bước 2 đều là **ảnh giả** do Stable Diffusion tạo ra:
+> - Nếu mô hình gốc `dinoViT` chấm điểm nghi ngờ giả $\ge 0.5$, tức là nó **phát hiện được đây là ảnh giả** $\rightarrow$ gọi là **Reject** (bị bắt giữ), nhóm xếp vào ảnh tổng hợp thông thường.
+> - Nếu `dinoViT` chấm điểm $< 0.5$, tức là nó **bị lừa và tưởng nhầm là ảnh thật** $\rightarrow$ gọi là **Bypass** (vượt rào). Những bức ảnh vượt rào này chính là điểm yếu của mô hình gốc nên được lấy làm **Mẫu khó (`Hard Sample`)** ạ.
 
 ---
 
-### Câu Hỏi 4: "Khi gộp `Data Baseline + Syn Data + Hard Samples` để Fine-tune `dinoViT`, nhóm huấn luyện như thế nào để mô hình tập trung bắt được Hard Samples?"
-- **Kịch bản trả lời 30 giây**:
-  > *"Dạ thưa Thầy/Cô, nhóm áp dụng đồng thời 3 kỹ thuật trong `src/pipelines/train_image_detector.py`:*
-  > *1. **Partial Block Unfreezing**: Chỉ mở khóa các khối Transformer Encoder phía trên (`unfreeze_last_n_blocks=2`) và Classifier Head của `dinoViT` để tránh quên kiến thức gốc.*
-  > *2. **Hard-Sample Oversampling**: Nhân đôi tần suất xuất hiện của `Hard Samples` trong DataLoader tập Train (`hard_sample_oversample_factor=2`).*
-  > *3. **Weighted BCE Loss**: Nhân hệ số phạt $\lambda_{\text{hard}} = 2.0$ trực tiếp vào hàm loss cho các mẫu có cờ `is_hard_sample=True`, ép biên quyết định dịch chuyển bao phủ vùng điểm mù."*
+### Câu 3: Loại ảnh giả nào của Stable Diffusion dễ đánh lừa `dinoViT` gốc nhất?
+> **Trả lời**:
+> Dạ, đó là những bức ảnh tạo bằng chế độ **Sửa vùng cục bộ (`Facial Inpainting`)** hoặc **Biến đổi nhẹ từ ảnh gốc (`Img2Img`)**. Vì phần lớn khuôn mặt, mái tóc và nền xung quanh vẫn là của ảnh thật, chỉ có vùng mắt hoặc khuôn miệng được vẽ lại mượt mà nên mô hình `dinoViT` gốc nhìn tổng thể rất dễ bị đánh lừa ạ.
 
 ---
 
-### Câu Hỏi 5: "Làm sao đảm bảo khi đưa Hard Samples vào Fine-tune thì không bị Data Leakage giữa tập Train và tập Test?"
-- **Kịch bản trả lời 30 giây**:
-  > *"Dạ, trong `DeepfakeImageDataModule`, nhóm cài đặt cơ chế **Identity-Disjoint Partitioning** dựa trên trường `source_real_id`. Toàn bộ ảnh thật gốc, ảnh `Synthetic` thông thường và ảnh `Hard Sample` sinh ra từ cùng một người thật bắt buộc phải nằm chung trong một tập (Train, Val hoặc Test). Tập Test chỉ chứa các danh tính người thật và các mẫu Hard Sample của những người mà mô hình chưa từng nhìn thấy ở tập Train ạ."*
+### Câu 4: Khi huấn luyện lại (`Fine-Tune`) ở Bước 3, nhóm làm gì để `dinoViT` bắt được các Mẫu khó?
+> **Trả lời**:
+> Dạ, bên cạnh việc gộp đủ 3 nguồn (`Dữ liệu gốc + Ảnh sinh mới + Mẫu khó`), nhóm áp dụng 3 cách đơn giản:
+> 1. **Mở khóa các tầng cuối của `dinoViT`** để mô hình học thêm chi tiết vi mô mới mà không quên kiến thức cũ.
+> 2. **Nhân bản Mẫu khó (`Oversampling`)** để mô hình được gặp và học kỹ hơn các trường hợp từng bị lừa.
+> 3. **Tăng điểm phạt (`Weighted Loss`)** cao gấp đôi nếu mô hình vẫn đoán sai các Mẫu khó ạ.
 
 ---
 
-### Câu Hỏi 6: "Làm sao biết mẫu Bypass là do ảnh giả chân thực chứ không phải do Stable Diffusion sinh ra ảnh lỗi/mờ làm rối mô hình?"
-- **Kịch bản trả lời 30 giây**:
-  > *"Dạ thưa Thầy/Cô, trước khi đưa vào `dinoViT` ở Phase 2, mọi ảnh sinh từ Stable Diffusion ở Phase 1 đều phải vượt qua cổng kiểm duyệt `ImageCurationGate` (`curate_image_dataset.py`) gồm 3 tiêu chí: Độ sắc nét Laplacian $\ge 50.0$, độ khớp ngữ nghĩa CLIP $\ge 0.28$ và phát hiện khuôn mặt hợp lệ. Nhờ đó, chỉ những bức ảnh giả sắc nét, đúng cấu trúc giải phẫu khuôn mặt mới được dùng để kiểm tra Bypass và trích xuất Hard Samples ạ."*
+### Câu 5: Làm sao biết mô hình thực sự giỏi lên chứ không phải do nhớ mặt người ở tập học?
+> **Trả lời**:
+> Dạ, nhóm gắn mã số người thật gốc (`source_real_id`) cho mọi bức ảnh. Tất cả ảnh thật, ảnh giả thường và mẫu khó được tạo ra từ cùng một người đều bị khóa chung vào một tập. Tập Kiểm thử (`Held-Out Test`) hoàn toàn là những khuôn mặt người mới mà mô hình chưa từng nhìn thấy lúc học ạ.
 
 ---
 
-## 3. 📊 BẢNG TÓM TẮT ÁNH XẠ YÊU CẦU GIẢNG VIÊN VÀO CODEBASE
-
-| Yêu cầu của Giảng viên | Module hiện thực trong `src/` | Hàm / Class cốt lõi |
-| :--- | :--- | :--- |
-| `img + stable diffusion -> synthetic img (DF img)` | `src/pipelines/generate_deepfake_images.py`<br/>`src/pipelines/curate_image_dataset.py` | `StableDiffusionEngine`, `run_image_generation()`, `ImageCurationGate` |
-| `baseline model dinoViT (benchmark)` | `src/models/detector/image_detector.py` | `DinoViTBackbone`, `DeepfakeImageDetector(backbone="dino_vit")` |
-| `reject/bypass DF? neu bypass -> hard sample` | `src/pipelines/mine_hard_samples.py` | `mine_hard_samples()`, `HardSampleMiningReport` |
-| `data baseline + syn data + hard sample -> finetune` | `src/pipelines/train_image_detector.py` | `combine_training_manifests()`, `train_deepfake_image_detector()` |
-| `neu bat duoc -> co tac dung` | `src/pipelines/evaluate_image_benchmark.py`<br/>`src/common/metrics.py` | `compare_baseline_vs_finetuned()`, `compute_bypass_rate()`, `compute_hard_sample_recall()` |
+### Câu 6: Nhóm dựa vào con số nào để chứng minh dữ liệu có tác dụng?
+> **Trả lời**:
+> Dạ, nhóm so sánh 3 chế độ huấn luyện `D0` (chỉ dữ liệu gốc), `D1` (thêm ảnh sinh mới thường) và `D2` (thêm cả Mẫu khó). Khi chuyển từ `D0` lên `D2`:
+> - Tỷ lệ bắt được mẫu khó (**Hard-Sample Recall**) tăng vọt,
+> - Tỷ lệ bị lừa (**Bypass Rate**) giảm mạnh,
+> - Và điểm **ROC-AUC** trên tập kiểm thử đạt mức cao nhất. Đó là bằng chứng trực tiếp chứng minh bộ dữ liệu có tác dụng ạ.

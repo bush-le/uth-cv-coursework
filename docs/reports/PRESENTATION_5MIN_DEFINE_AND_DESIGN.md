@@ -28,20 +28,23 @@
 - **Lời thoại gợi ý**:
   > "Xin chào thầy và các bạn. **Nhóm thực hiện: Nhóm 4** xin trình bày Đề tài 11: *Tạo sinh bộ dữ liệu khuôn mặt tổng hợp dựa trên Stable Diffusion phục vụ phát hiện Deepfake*. Tiếp thu ý kiến định hướng của thầy, nhóm thiết kế hệ thống theo chu trình khép kín 3 pha: Pha 1 sinh dữ liệu giả mạo bằng Stable Diffusion; Pha 2 đưa qua mô hình chuẩn `dinoViT` để phân tách mẫu bị bắt (`Reject`) và mẫu vượt rào (`Bypass` — tức `Hard Sample`); Pha 3 kết hợp `Data Baseline + Synthetic Data + Hard Sample` để tinh chỉnh lại `dinoViT`, từ đó chứng minh trực tiếp tác dụng của bộ dữ liệu."
 
-### Slide 02 — 01 / Problem Definition: Sự Dịch Chuyển Miền Tạo Sinh & Khoảng Trống Biên Quyết Định
-- **Điểm nhấn thị giác**: So sánh Deepfake cắt ghép truyền thống (lộ viền ghép nối) với ảnh tạo sinh từ không gian tiềm ẩn của Stable Diffusion, kèm đồ thị dịch chuyển biên quyết định.
+### Slide 02 — 01 / Problem Definition: Phân Loại Deepfake & Bộ Ba Luận Cứ Problem – Business – Technical
+- **Điểm nhấn thị giác**: Phân loại Deepfake trực quan giữa ghép mặt cũ và Stable Diffusion mới, biểu đồ vùng mù biên quyết định, cùng 3 thẻ tóm tắt chuẩn Problem ➔ Business ➔ Technical ở chân slide.
 - **Lời thoại gợi ý**:
-  > "Tại `Slide 02`, bài toán xuất phát từ sự dịch chuyển miền tạo sinh. Nếu Deepfake truyền thống để lại vết cắt ghép cục bộ quanh vùng mặt, thì Stable Diffusion khử nhiễu toàn cục từ không gian tiềm ẩn, tạo ra kết cấu da và ánh sáng liền mạch. Điều này tạo ra một vùng mù khiến biên quyết định cũ bỏ lọt các mẫu giả mạo tinh vi."
+  > "Tại `Slide 02`, nhóm đặt bài toán qua 3 tầng luận cứ rõ ràng:
+  > Thứ nhất là **Problem**: Phân loại Deepfake hiện nay đã chuyển từ thế hệ cắt dán lộ viền sang thế hệ Stable Diffusion vẽ mượt toàn bộ, tạo ra 'vùng mù' khiến các mô hình phát hiện cũ bị đánh lừa.
+  > Thứ hai là **Business**: Nguy cơ này đe dọa trực tiếp các cổng xác thực khuôn mặt eKYC ngân hàng, ví điện tử và an ninh danh tính cá nhân. Doanh nghiệp cần giải pháp phòng thủ chủ động để đón đầu hiểm họa.
+  > Thứ ba là **Technical**: Nhóm 4 giải quyết bằng chu trình 3 bước khép kín: Dùng Stable Diffusion tạo ảnh giả ➔ Đưa qua mô hình chuẩn dinoViT để tìm Mẫu khó (Hard Sample) ➔ Huấn luyện lại trên tập gộp để chứng minh dữ liệu có tác dụng thực tế."
 
 ### Slide 03 — 02 / Closed-Loop Scope & Boundaries (Nhóm thực hiện: Nhóm 4)
 - **Điểm nhấn thị giác**: Ma trận đối xứng 2 cột: Cột trái nêu 4 cam kết thực thi của **Nhóm thực hiện: Nhóm 4**; Cột phải khóa chặt 4 giới hạn loại trừ (`Out-of-Scope`).
 - **Lời thoại gợi ý**:
   > "Sang `Slide 03`, **Nhóm thực hiện: Nhóm 4** xác lập rõ phạm vi thực hiện gồm: tạo sinh ảnh tĩnh 2D đa chế độ, khai phá mẫu vượt rào qua Baseline `dinoViT`, khóa bất biến danh tính gốc và thực nghiệm đối chứng `D0 / D1 / D2`. Đồng thời, nhóm chủ động loại trừ sinh âm thanh, không huấn luyện lại mạng nền từ đầu và tuân thủ nghiêm ngặt đạo đức dữ liệu."
 
-### Slide 04 — 03 / 2D Generation Mechanisms: Ba Chế Độ Tạo Sinh Khuôn Mặt (Nhóm thực hiện: Nhóm 4)
-- **Điểm nhấn thị giác**: Ba cột song song minh họa `Text-to-Image (T2I)`, `Facial Inpainting` (mặt nạ vùng mắt/mũi/miệng) và `Image-to-Image (Img2Img)` (giữ bố cục 5 điểm mốc).
+### Slide 04 — 03 / 2D Generation Mechanisms: Stable Diffusion & 3 Dạng Dữ Liệu Khuôn Mặt (Nhóm thực hiện: Nhóm 4)
+- **Điểm nhấn thị giác**: Ba cột song song minh họa 3 dạng dữ liệu mà Stable Diffusion hỗ trợ: `Text-to-Image (T2I)` (sinh mặt mới từ chữ), `Facial Inpainting` (sửa cục bộ mắt/miệng) và `Image-to-Image (Img2Img)` (biến đổi diện mạo giữ khung 5 điểm mốc).
 - **Lời thoại gợi ý**:
-  > "Ở `Slide 04`, Pha 1 của **Nhóm thực hiện: Nhóm 4** kết hợp 3 cơ chế tạo sinh bổ trợ: `Text-to-Image` sinh danh tính nhân tạo mới từ đặc tả văn bản; `Facial Inpainting` chỉ chỉnh sửa cục bộ vùng mắt hoặc miệng trên nền khuôn mặt thật; và `Image-to-Image` biến đổi diện mạo trên khung 5 điểm mốc gốc."
+  > "Ở `Slide 04`, Stable Diffusion hoạt động bằng cách khử nhiễu từ không gian tiềm ẩn (Latent Space). **Nhóm thực hiện: Nhóm 4** khai thác mô hình này để tạo ra 3 dạng dữ liệu khuôn mặt: Dạng 1 là `Text-to-Image` sinh danh tính mới hoàn toàn từ mô tả văn bản để mở rộng tập mẫu; Dạng 2 là `Facial Inpainting` chỉ sửa cục bộ mắt hoặc miệng trên mặt thật để tạo ra mẫu giả tinh vi nhất; và Dạng 3 là `Image-to-Image` biến đổi diện mạo nhưng giữ nguyên khung 5 điểm mốc hình học để tạo các cặp ảnh đối chứng."
 
 ### Slide 05 — 04 / 2D System Architecture: Đường Ống 6 Giai Đoạn Dự Kiến
 - **Điểm nhấn thị giác**: Sơ đồ luồng ngang 6 giai đoạn từ `Stage 01: Data Acquisition` đến `Stage 06: Dataset Export` bàn giao xuống bộ phát hiện hạ nguồn.

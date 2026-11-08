@@ -1,107 +1,44 @@
-# Phần 2: Thiết Kế Kiến Trúc Hệ Thống Toàn Diện (System Architecture & Technical Design)
+# PART_02_SYSTEM_ARCHITECTURE.md — Báo Cáo Phần 2: Thiết Kế Hệ Thống 3 Bước (Nhóm 4)
 
-- **Motivation/Background**: Cung cấp bản thiết kế kỹ thuật kiến trúc hoàn chỉnh cho đồ án Thị giác máy tính: "Stable Diffusion-Based Synthetic Facial Dataset Generation with DINO ViT Hard-Sample Mining for Deepfake Detection" (Topic 11, Hugging Face CV Course Unit 10).
-- **Purpose**: Định nghĩa chi tiết kiến trúc phân tầng 4 lớp (Clean Architecture), hợp đồng shape tensor, cơ chế `DinoViTBackbone`, luồng khai phá mẫu khó (`mine_hard_samples.py`) và tinh chỉnh có trọng số (`train_image_detector.py`).
-- **Overview Pipeline**: Tier 1 Data & Identity-Disjoint Schema -> Tier 2 Stable Diffusion Generation & Curation -> Tier 3 Baseline `dinoViT` & Hard-Sample Mining -> Tier 4 Fine-Tuned `dinoViT` & Proof-of-Utility Benchmark.
-- **Detailed Plan**: §1 Kiến trúc phân tầng Clean Architecture (4 Tầng); §2 Tensor Shape Contracts & Bất biến hệ thống; §3 Sơ đồ luồng dữ liệu khép kín (Mermaid Dataflow); §4 Thiết kế cấu hình YAML; §5 Danh mục API Signatures.
-- **References**: `docs/PURPOSE.md`, `docs/OVERVIEW.md`, `GEMINI.md`, `configs/dataset/deepfake_image.yaml`, `configs/generation/stable_diffusion.yaml`, `configs/detection/detector_baseline.yaml`.
-- **Created**: 2026-11-07T00:45:00+07:00
-- **Last Updated**: 2026-11-08T17:52:00+07:00
-
----
-
-## 1. Kiến Trúc Phân Tầng Clean Architecture (4-Tier Closed-Loop Architecture)
-
-```text
-+---------------------------------------------------------------------------------------+
-|                        4-TIER CLOSED-LOOP CLEAN ARCHITECTURE                          |
-+---------------------------------------------------------------------------------------+
-|  Tier 1: Data Ingestion, Hard-Sample Schema & Identity-Disjoint Tier (src/data/)      |
-|  - ImageMetadata (is_hard_sample, baseline_score, data_source) & ImageSample          |
-|  - DeepfakeImageDataset & DeepfakeImageDataModule (Identity-Disjoint + Oversampling)  |
-+---------------------------------------------------------------------------------------+
-                                           |
-                                           v
-+---------------------------------------------------------------------------------------+
-|  Tier 2: Phase 1 Stable Diffusion Factory & Curation Tier (src/models/diffusion/)     |
-|  - StableDiffusionEngine (sd_text2img, sd_inpaint, sd_img2img)                        |
-|  - ImageCurationGate (Laplacian Sharpness >= 50.0, CLIP >= 0.28, Face Retention)      |
-+---------------------------------------------------------------------------------------+
-                                           |
-                                           v
-+---------------------------------------------------------------------------------------+
-|  Tier 3: Phase 2 Baseline dinoViT Benchmark & Hard-Sample Miner (src/pipelines/)      |
-|  - DinoViTBackbone (Patch Embed 16x16 + Positional Interpolation + Self-Attention)    |
-|  - mine_hard_samples.py: P(fake) >= 0.50 (Reject) vs P(fake) < 0.50 (Bypass -> Hard)  |
-+---------------------------------------------------------------------------------------+
-                                           |
-                                           v
-+---------------------------------------------------------------------------------------+
-|  Tier 4: Phase 3 Closed-Loop Fine-Tuning & Proof-of-Utility Benchmark                 |
-|  - combine_training_manifests (Data Baseline + Synthetic Data + Hard Samples)         |
-|  - Weighted Hard-Sample BCE Loss (weight=2.0) + Unfreeze Top ViT Blocks               |
-|  - compare_baseline_vs_finetuned (ROC-AUC Gain, Hard-Sample Recall, Bypass Drop)      |
-+---------------------------------------------------------------------------------------+
-```
+- **Motivation/Background**: Giải thích chi tiết nhưng đơn giản nhất về cách thiết kế từng bước trong hệ thống của Nhóm 4.
+- **Purpose**: Làm nội dung Phần 2 của báo cáo môn học (tương ứng từ `Slide 04` đến `Slide 11`).
+- **Overview Pipeline**: Bước 1 (3 cách tạo ảnh SD & 3 bước lọc ảnh lỗi) -> Bước 2 (`dinoViT` tách `Reject` và `Bypass` thành `Hard Sample`) -> Bước 3 (Gộp dữ liệu, khóa không trùng người & so sánh `D0 / D1 / D2`).
+- **Detailed Plan**: §1 Thiết kế Bước 1 (Sinh và lọc ảnh SD); §2 Thiết kế Bước 2 (`dinoViT` và Mẫu khó); §3 Thiết kế Bước 3 (Huấn luyện lại và chứng minh `D0/D1/D2`).
+- **References**: [ PART_01_PROBLEM_DEFINITION.md ](PART_01_PROBLEM_DEFINITION.md), [ SYSTEM_DEFINE_AND_DESIGN_REPORT.md ](SYSTEM_DEFINE_AND_DESIGN_REPORT.md).
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-08T18:40:00+07:00
 
 ---
 
-## 2. Tensor Shape Contracts & Bất Biến Kỹ Thuật
+## 1. Thiết Kế Bước 1: Tạo Ảnh Giả Bằng Stable Diffusion & Lọc Ảnh Lỗi
 
-| Thành phần | Tensor Shape | Không gian màu / Ý nghĩa | Dải giá trị | Dtype |
-| :--- | :--- | :--- | :--- | :--- |
-| **Ảnh đơn (`ImageSample.image`)** | `(3, H, W)` | RGB | `[0.0, 1.0]` | `torch.float32` |
-| **Batch DataLoader (`images`)** | `(B, 3, H, W)` | RGB | `[0.0, 1.0]` / ImageNet norm | `torch.float32` |
-| **Nhãn phân loại (`labels`)** | `(B,)` | `0`: Real, `1`: Fake | `{0, 1}` | `torch.int64` |
-| **Cờ mẫu khó (`is_hard_sample`)** | `(B,)` | `True` nếu vượt qua Baseline | `{False, True}` | `torch.bool` |
-| **Đặc trưng `DinoViTBackbone`** | `(B, 192)` | L2-normalized `[CLS]` token | `[-1.0, 1.0]` | `torch.float32` |
-| **Logits dự đoán** | `(B, 1)` | Log-odds | `(-inf, +inf)` | `torch.float32` |
+1. **Ba cách tạo ảnh khuôn mặt giả (`Slide 04`)**:
+   - **Cách 1 — `Text-to-Image` (`sd_text2img`)**: Từ câu chữ mô tả, vẽ ra một khuôn mặt nhân tạo hoàn toàn mới.
+   - **Cách 2 — `Facial Inpainting` (`sd_inpaint`)**: Che vùng mắt hoặc miệng trên ảnh thật rồi vẽ lại vùng đó (nền và khung mặt thật giữ nguyên nên rất khó nhận ra).
+   - **Cách 3 — `Image-to-Image` (`sd_img2img`)**: Dựa trên 5 điểm mốc mắt-mũi-miệng của ảnh thật, biến đổi làn da, độ tuổi hoặc ánh sáng.
 
----
-
-## 3. Sơ Đồ Luồng Dữ Liệu Khép Kín Toàn Diện (Mermaid Dataflow)
-
-```mermaid
-flowchart TD
-    subgraph S1["Phase 1: Stable Diffusion Data Generation & Curation"]
-        R1["Real Faces (data/raw/manifest.jsonl)"] --> SDE["StableDiffusionEngine<br/>(Text2Img, Inpaint, Img2Img)"]
-        SDE --> QG["ImageCurationGate<br/>(Sharpness >= 50, CLIP >= 0.28, Face)"]
-        QG --> CUR["Curated Synthetic DF<br/>(curated_manifest.jsonl)"]
-    end
-
-    subgraph S2["Phase 2: Baseline dinoViT Evaluation & Bypass Mining"]
-        CUR --> BASE_DINO["Baseline dinoViT Detector<br/>(Frozen DinoViTBackbone)"]
-        BASE_DINO --> DEC{"P(fake) < 0.50?"}
-        DEC -- "No (P >= 0.50: Rejected)" --> SYN_REG["Regular Synthetic Data<br/>(is_hard_sample=False)"]
-        DEC -- "Yes (P < 0.50: Bypassed!)" --> HARD_M["Hard Samples Manifest<br/>(hard_samples_manifest.jsonl, is_hard_sample=True)"]
-    end
-
-    subgraph S3["Phase 3: Closed-Loop Fine-Tuning & Proof of Utility"]
-        R1 & SYN_REG & HARD_M --> COMB["combine_training_manifests()<br/>(Data Baseline + Syn Data + Hard Samples)"]
-        COMB --> DM["DeepfakeImageDataModule<br/>(Identity-Disjoint + 2x Hard Oversampling)"]
-        DM --> FT_DINO["Fine-Tuned dinoViT<br/>(Unfreeze Top Blocks + 2.0x Hard Loss Weight)"]
-        FT_DINO --> COMP["compare_baseline_vs_finetuned()<br/>(ROC-AUC Gain, Hard Recall Gain, Bypass Reduction)"]
-    end
-```
+2. **Đường ống 6 giai đoạn & Lọc ảnh lỗi 3 bước (`Slide 05` & `Slide 06`)**:
+   - Quy trình đi thẳng qua 6 khâu: Thu thập ảnh gốc $\rightarrow$ Căn chỉnh mặt & tạo mặt nạ che $\rightarrow$ Sinh ảnh bằng Stable Diffusion $\rightarrow$ Lọc bỏ ảnh lỗi $\rightarrow$ Gán nhãn lưu thông tin $\rightarrow$ Xuất dữ liệu.
+   - Bộ lọc tự động loại bỏ ngay những ảnh bị mờ nhòe, ảnh méo mặt (sai lệch 5 điểm mốc) hoặc ảnh không khớp câu mô tả.
 
 ---
 
-## 4. Danh Mục Module Mã Nguồn & Giao Diện API Cốt Lõi
+## 2. Thiết Kế Bước 2: Đưa Qua Baseline `dinoViT` & Tách Mẫu Khó (`Slide 07` & `Slide 08`)
 
-1. **`src/data/image_schema.py`**:
-   - `ImageMetadata(image_id, label, manipulation_type, prompt, source_real_id, file_path, bbox, is_hard_sample, baseline_score, data_source)`
-   - `ImageSample(image: torch.Tensor, metadata: ImageMetadata)`
-2. **`src/data/image_datamodule.py`**:
-   - `DeepfakeImageDataModule(..., hard_sample_oversample_factor=2, identity_disjoint=True)`
-3. **`src/models/detector/image_detector.py`**:
-   - `DinoViTBackbone(patch_size=16, embed_dim=192, depth=4, num_heads=4)`
-   - `DeepfakeImageDetector(backbone="dino_vit", num_classes=1, dropout=0.3, freeze_extractor=False)`
-   - `.freeze_backbone()`, `.unfreeze_backbone(unfreeze_last_n_blocks=2)`, `.predict_proba(x)`
-4. **`src/pipelines/mine_hard_samples.py`**:
-   - `mine_hard_samples(model, synthetic_metadata, cache, bypass_threshold=0.5, ...) -> HardSampleMiningReport`
-5. **`src/pipelines/train_image_detector.py`**:
-   - `combine_training_manifests(baseline_manifest, synthetic_manifest, hard_sample_manifest) -> List[ImageMetadata]`
-   - `train_deepfake_image_detector(model, datamodule, num_epochs, learning_rate, hard_sample_loss_weight=2.0, ...)`
-6. **`src/pipelines/evaluate_image_benchmark.py`**:
-   - `evaluate_image_detector(model, dataloader, device, threshold=0.5) -> Dict[str, float]`
-   - `compare_baseline_vs_finetuned(baseline_model, finetuned_model, dataloader, device) -> Dict[str, Any]`
+1. **Cách Baseline `dinoViT` kiểm tra ảnh giả**:
+   - Chia ảnh mặt thành lưới các ô vuông nhỏ, dùng cơ chế `Self-Attention` để nhìn tổng thể toàn mặt và chấm điểm nghi ngờ giả mạo $P(\text{fake}) \in [0, 1]$.
+2. **Hai nhánh kết quả rõ ràng**:
+   - **Nhánh 1 — Bị bắt giữ (`Reject`, $P(\text{fake}) \ge 0.5$)**: Mô hình gốc nhận ra được đây là ảnh giả $\rightarrow$ xếp vào nhóm ảnh giả thông thường (`data_source = "synthetic"`).
+   - **Nhánh 2 — Vượt rào (`Bypass`, $P(\text{fake}) < 0.5$)**: Ảnh giả tinh vi đánh lừa được `dinoViT` gốc khiến nó đoán nhầm là ảnh thật $\rightarrow$ tự động gom riêng vào nhóm **Mẫu khó (`is_hard_sample = True`, `data_source = "hard_sample"`)**.
+
+---
+
+## 3. Thiết Kế Bước 3: Huấn Luyện Lại & Chứng Minh Tác Dụng (`Slide 09`, `Slide 10`, `Slide 11`)
+
+1. **Gộp 3 nguồn dữ liệu và ưu tiên học Mẫu khó (`Slide 09`)**:
+   - Gộp chung: **Dữ liệu gốc (`Data Baseline`) + Ảnh sinh mới (`Syn Data`) + Mẫu khó (`Hard Sample`)**.
+   - Khi huấn luyện lại `dinoViT`, nhóm kết hợp 3 cách: (1) Mở khóa các khối cuối của `dinoViT`, (2) Nhân bản cho **Mẫu khó** xuất hiện nhiều hơn trong tập học, và (3) Phạt nặng hơn trong hàm tính lỗi nếu mô hình đoán sai **Mẫu khó**.
+2. **Chia tập Học / Thi không trùng người (`Slide 10`)**:
+   - Mọi ảnh thật, ảnh `Reject` và ảnh `Bypass` phát sinh từ cùng một người thật (`source_real_id`) được khóa cứng trong cùng một ngăn để không bao giờ lộ mặt người ở tập Học sang tập Thi.
+3. **So sánh 3 chế độ `D0 / D1 / D2` để chứng minh tác dụng (`Slide 11`)**:
+   - So sánh mô hình học trên `D0` (chỉ dữ liệu gốc), `D1` (+ ảnh mới thường) và `D2` (+ cả mẫu khó). Khi `D2` bắt giữ lại được các mẫu từng vượt rào và đạt `ROC-AUC` cao nhất, tác dụng của dữ liệu được chứng minh hoàn toàn.
