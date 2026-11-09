@@ -2,9 +2,10 @@
 
 import json
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 
-def create_notebook(cells):
+def create_notebook(cells: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {
         "cells": cells,
         "metadata": {
@@ -16,7 +17,7 @@ def create_notebook(cells):
     }
 
 
-def md(text):
+def md(text: str) -> Dict[str, Any]:
     return {
         "cell_type": "markdown",
         "metadata": {},
@@ -24,7 +25,7 @@ def md(text):
     }
 
 
-def code(text):
+def code(text: str) -> Dict[str, Any]:
     return {
         "cell_type": "code",
         "metadata": {},
@@ -34,8 +35,8 @@ def code(text):
     }
 
 
-def main():
-    out_dir = Path("notebooks/coursework")
+def main(output_dir: Optional[Union[str, Path]] = None) -> None:
+    out_dir = Path(output_dir) if output_dir is not None else Path("notebooks/coursework")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # --- Notebook 01: EDA Faces & Demographics ---
@@ -45,7 +46,7 @@ def main():
             "## Notebook 01: Exploratory Data Analysis (EDA) on Real Faces (FFHQ & CelebA-HQ)\n"
             "- **Nhóm thực hiện**: Nhóm 4\n"
             "- **Đề tài**: *Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection*\n"
-            "- **Mục tiêu**: Khảo sát phân bố 4.000 ảnh khuôn mặt thật từ hai nguồn chuẩn hóa FFHQ và CelebA-HQ, bao gồm độ tuổi, giới tính và phụ kiện che mặt (Glasses/Occlusion)."
+            "- **Mục tiêu**: Khảo sát phân bố ảnh khuôn mặt thật từ hai nguồn chuẩn hóa FFHQ và CelebA-HQ, bao gồm độ tuổi, giới tính và phụ kiện che mặt (Glasses/Occlusion)."
         ),
         code(
             "import json\n"
@@ -54,12 +55,14 @@ def main():
             "import numpy as np\n"
             "from PIL import Image\n"
             "\n"
-            "# Import modular classes from src\n"
+            "# Import modular classes and config from src\n"
+            "from src.common.config import load_config\n"
             "from src.data.image_schema import ImageMetadata"
         ),
-        md("### 1. Nạp và kiểm tra dữ liệu thô chuẩn hóa (`data/raw/manifest.jsonl`)"),
+        md("### 1. Nạp và kiểm tra dữ liệu thô chuẩn hóa (`paths.raw_manifest`)"),
         code(
-            "manifest_path = Path('data/raw/manifest.jsonl')\n"
+            "cfg = load_config(Path('configs/dataset_factory.yaml'))\n"
+            "manifest_path = Path(cfg['paths']['raw_manifest'])\n"
             "records = []\n"
             "with open(manifest_path, 'r', encoding='utf-8') as f:\n"
             "    for line in f:\n"
@@ -67,7 +70,8 @@ def main():
             "            records.append(ImageMetadata.from_dict(json.loads(line)))\n"
             "\n"
             "print(f'Tổng số ảnh khuôn mặt thật đã nạp: {len(records)}')\n"
-            "print('Ví dụ bản ghi đầu tiên:', json.dumps(records[0].to_dict(), indent=2))"
+            "if records:\n"
+            "    print('Ví dụ bản ghi đầu tiên:', json.dumps(records[0].to_dict(), indent=2))"
         ),
         md("### 2. Thống kê phân bố nhân khẩu học (Tuổi, Giới tính, Kính)"),
         code(
@@ -142,7 +146,7 @@ def main():
             "## Notebook 02: Stable Diffusion Generation & Automated Curation Gate\n"
             "- **Nhóm thực hiện**: Nhóm 4\n"
             "- **Đề tài**: *Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection*\n"
-            "- **Mục tiêu**: Trực quan hóa 3 chế độ sinh ảnh giả bằng Stable Diffusion (`text2image`, `inpainting`, `img2img`) và kiểm chứng bộ lọc chất lượng tự động `ImageCurationGate`."
+            "- **Mục tiêu**: Trực quan hóa các chế độ sinh ảnh giả bằng Stable Diffusion (`sd_text2img`, `sd_inpaint`, `sd_img2img`) và kiểm chứng bộ lọc chất lượng tự động `ImageCurationGate`."
         ),
         code(
             "import json\n"
@@ -152,20 +156,20 @@ def main():
             "from PIL import Image\n"
             "import torch\n"
             "\n"
+            "from src.common.config import load_config\n"
             "from src.common.metrics import compute_laplacian_sharpness\n"
             "from src.pipelines.curate_image_dataset import ImageCurationGate"
         ),
-        md("### 1. Nạp danh mục ảnh giả đã sinh (`data/synthetic/curated_manifest.jsonl`)"),
+        md("### 1. Nạp danh mục ảnh giả đã sinh (`paths.curated_manifest`)"),
         code(
-            "curated_manifest = Path('data/synthetic/curated_manifest.jsonl')\n"
-            "if not curated_manifest.exists():\n"
-            "    curated_manifest = Path('data/processed/curated_manifest.jsonl')\n"
-            "\n"
+            "cfg = load_config(Path('configs/dataset_factory.yaml'))\n"
+            "curated_manifest = Path(cfg['paths']['curated_manifest'])\n"
             "curated_items = []\n"
-            "with open(curated_manifest, 'r', encoding='utf-8') as f:\n"
-            "    for line in f:\n"
-            "        if line.strip():\n"
-            "            curated_items.append(json.loads(line))\n"
+            "if curated_manifest.exists():\n"
+            "    with open(curated_manifest, 'r', encoding='utf-8') as f:\n"
+            "        for line in f:\n"
+            "            if line.strip():\n"
+            "                curated_items.append(json.loads(line))\n"
             "\n"
             "print(f'Số lượng ảnh giả đạt chuẩn Curation Gate: {len(curated_items)}')"
         ),
@@ -186,11 +190,9 @@ def main():
             "    print(f'Giá trị nhỏ nhất / lớn nhất: {np.min(sharpness_scores):.2f} / {np.max(sharpness_scores):.2f}')\n"
             "    plt.figure(figsize=(7, 4))\n"
             "    plt.hist(sharpness_scores, bins=8, color='#9b59b6', edgecolor='black')\n"
-            "    plt.axvline(x=10.0, color='r', linestyle='--', label='Ngưỡng lọc Curation Gate (min=10.0)')\n"
             "    plt.title('Phân Bố Độ Sắc Nét Laplacian Trên Tập Ảnh Giả')\n"
             "    plt.xlabel('Sharpness Score')\n"
             "    plt.ylabel('Số lượng ảnh')\n"
-            "    plt.legend()\n"
             "    plt.tight_layout()\n"
             "    plt.show()"
         ),
@@ -219,58 +221,50 @@ def main():
     nb3_cells = [
         md(
             "# UTH Computer Vision Coursework — Topic 11\n"
-            "## Notebook 03: Meta DINOv2 Hard-Sample Mining & Closed-Loop Benchmark\n"
+            "## Notebook 03: Real-Manifold Hard-Sample Mining & Benchmark Analytics\n"
             "- **Nhóm thực hiện**: Nhóm 4\n"
             "- **Đề tài**: *Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection*\n"
-            "- **Mục tiêu**: Phân tích các Mẫu Khó (`Hard Samples`) vượt qua được mạng DINOv2 baseline và kiểm chứng hiệu quả fine-tuning đối chứng $D_0 \\to D_1 \\to D_2$."
+            "- **Mục tiêu**: Phân tích các Mẫu Khó (`Hard Samples`) nằm sát đa tạp ảnh thật và kiểm tra các bộ benchmark đối chứng."
         ),
         code(
             "import json\n"
             "from pathlib import Path\n"
             "import matplotlib.pyplot as plt\n"
-            "from PIL import Image"
+            "from PIL import Image\n"
+            "\n"
+            "from src.common.config import load_config"
         ),
-        md("### 1. Phân tích lỗ hổng mô hình gốc qua Mẫu Khó (`data/hard_samples/`)"),
+        md("### 1. Báo cáo thống kê toàn diện bộ dữ liệu (`paths.stats_file`)"),
         code(
-            "audit_file = Path('data/hard_samples/audit_reports/hard_sample_demographics.json')\n"
-            "if audit_file.exists():\n"
-            "    with open(audit_file, 'r', encoding='utf-8') as f:\n"
-            "        audit = json.load(f)\n"
-            "    print('Báo cáo phân tích Mẫu Khó (Hard Samples Audit):')\n"
-            "    print(json.dumps(audit, indent=2))\n"
+            "cfg = load_config(Path('configs/dataset_factory.yaml'))\n"
+            "stats_path = Path(cfg['paths']['stats_file'])\n"
+            "\n"
+            "if stats_path.exists():\n"
+            "    with open(stats_path, 'r', encoding='utf-8') as f:\n"
+            "        stats = json.load(f)\n"
+            "    print('Báo cáo thống kê tổng thể Dataset:')\n"
+            "    print(json.dumps(stats, indent=2))\n"
             "else:\n"
-            "    print('File audit chưa được tạo. Chạy: python3 -m src.pipelines.mine_hard_samples')"
+            "    print('File thống kê chưa được tạo. Chạy: python3 -m scripts.organize_topic_dataset')"
         ),
-        md("### 2. So sánh kết quả thực nghiệm 3 giai đoạn đối chứng ($D_0 \\to D_1 \\to D_2$)"),
+        md("### 2. Phân bố Mẫu Khó theo từng chế độ sinh"),
         code(
-            "benchmark_log = Path('experiments/logs/benchmark_comparison.json')\n"
-            "if benchmark_log.exists():\n"
-            "    with open(benchmark_log, 'r', encoding='utf-8') as f:\n"
-            "        bench = json.load(f)\n"
-            "    \n"
-            "    stages = ['D0 (Baseline)', 'D1 (Synthetic)', 'D2 (Hard Boosted)']\n"
-            "    losses = [bench['D0_baseline']['loss'], bench['D1_synthetic']['loss'], bench['D2_hard_samples']['loss']]\n"
-            "    aucs = [bench['D0_baseline']['roc_auc'], bench['D1_synthetic']['roc_auc'], bench['D2_hard_samples']['roc_auc']]\n"
-            "    \n"
-            "    fig, axes = plt.subplots(1, 2, figsize=(10, 4))\n"
-            "    axes[0].bar(stages, losses, color=['#95a5a6', '#f39c12', '#27ae60'])\n"
-            "    axes[0].set_title('Test Loss Qua Các Giai Đoạn (Càng thấp càng tốt)')\n"
-            "    axes[0].set_ylabel('Binary Cross Entropy Loss')\n"
-            "    \n"
-            "    axes[1].bar(stages, aucs, color=['#95a5a6', '#f39c12', '#2980b9'])\n"
-            "    axes[1].set_title('ROC-AUC Score')\n"
-            "    axes[1].set_ylim([0.0, 1.1])\n"
-            "    axes[1].set_ylabel('ROC-AUC')\n"
-            "    \n"
-            "    plt.tight_layout()\n"
-            "    plt.show()\n"
-            "    \n"
-            "    print('Mức cải thiện delta:')\n"
-            "    print(json.dumps(bench.get('deltas', {}), indent=2))"
+            "if stats_path.exists():\n"
+            "    hard_rates = stats.get('hard_rate_by_mode', {})\n"
+            "    if hard_rates:\n"
+            "        modes = list(hard_rates.keys())\n"
+            "        rates = [hard_rates[m] * 100.0 for m in modes]\n"
+            "        plt.figure(figsize=(6, 3.5))\n"
+            "        plt.bar(modes, rates, color=['#3498db', '#e67e22', '#2ecc71'])\n"
+            "        plt.title('Tỷ Lệ Mẫu Khó Theo Chế Độ Sinh (Real-Manifold)')\n"
+            "        plt.ylabel('Tỷ lệ (%)')\n"
+            "        plt.ylim([0, 100])\n"
+            "        plt.tight_layout()\n"
+            "        plt.show()"
         ),
         md("### 3. Lưới ảnh đối chứng trực quan toàn diện (Visual Gallery)"),
         code(
-            "gallery_path = Path('experiments/predictions/real_vs_synthetic_gallery.png')\n"
+            "gallery_path = Path(cfg['paths']['gallery_image'])\n"
             "if gallery_path.exists():\n"
             "    im = Image.open(gallery_path)\n"
             "    plt.figure(figsize=(14, 10))\n"
@@ -292,7 +286,7 @@ def main():
     with open(out_dir / "03_hard_samples_and_benchmark_comparison.ipynb", "w", encoding="utf-8") as f:
         json.dump(create_notebook(nb3_cells), f, indent=2)
 
-    print("All 3 notebooks cleanly generated with proper formatting!")
+    print(f"All 3 notebooks cleanly generated at {out_dir}!")
 
 
 if __name__ == "__main__":

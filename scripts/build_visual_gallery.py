@@ -3,61 +3,93 @@
 import argparse
 import json
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Optional
 
+from src.common.config import cfg_get, load_config, resolve
 from src.common.logger import get_logger
 from src.common.visualizer import plot_real_vs_synthetic_comparison
 
 logger = get_logger(__name__)
 
 
-def extract_paths_from_manifest(manifest_path: Path, max_count: int = 4) -> List[str]:
-    """Read existing image file paths from a JSONL manifest."""
-    paths: List[str] = []
-    if not manifest_path.exists():
-        return paths
+def extract_paths_from_manifest(
+    manifest_path: Path,
+    max_count: int = 4,
+    prioritize_modes: bool = False,
+) -> List[str]:
+    """Read existing image file paths from a JSONL manifest, optionally balancing manipulation modes."""
+    if not manifest_path.is_file():
+        return []
 
+    items = []
     with open(manifest_path, "r", encoding="utf-8") as f:
         for line in f:
             if not line.strip():
                 continue
-            item = json.loads(line)
-            fp = item.get("file_path")
-            if fp and Path(fp).exists():
-                paths.append(fp)
-                if len(paths) >= max_count:
-                    break
-    return paths
+            try:
+                item = json.loads(line)
+                fp = item.get("file_path")
+                if fp and Path(fp).exists():
+                    items.append(item)
+            except Exception:
+                pass
+
+    if not items:
+        return []
+
+    if prioritize_modes:
+        # Group by mode and pick top-scoring or first from each mode
+        by_mode: Dict[str, List[Dict[str, Any]]] = {}
+        for it in items:
+            m = it.get("manipulation_type", "unknown")
+            by_mode.setdefault(m, []).append(it)
+
+        # Sort each mode group by hardness score if available
+        for m_list in by_mode.values():
+            m_list.sort(
+                key=lambda x: (
+                    (x.get("scores") or {}).get("real_manifold")
+                    or x.get("baseline_score")
+                    or 0.0
+                ),
+                reverse=True,
+            )
+
+        selected: List[str] = []
+        modes = list(by_mode.keys())
+        idx = 0
+        while len(selected) < max_count and any(by_mode.values()):
+            curr_mode = modes[idx % len(modes)]
+            if by_mode[curr_mode]:
+                selected.append(by_mode[curr_mode].pop(0)["file_path"])
+            idx += 1
+        return selected
+
+    return [it["file_path"] for it in items[:max_count]]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build comparison gallery for Topic 11.")
-    parser.add_argument("--real-manifest", type=str, default="data/raw/manifest.jsonl")
-    parser.add_argument("--synthetic-manifest", type=str, default="data/synthetic/curated_manifest.jsonl")
-    parser.add_argument("--hard-manifest", type=str, default="data/hard_samples/hard_samples_manifest.jsonl")
-    parser.add_argument(
-        "--output-image",
-        type=str,
-        default="experiments/predictions/real_vs_synthetic_gallery.png",
-    )
+    parser.add_argument("--config", type=str, default="configs/dataset_factory.yaml", help="Path to config YAML")
+    parser.add_argument("--real-manifest", type=str, default=None)
+    parser.add_argument("--synthetic-manifest", type=str, default=None)
+    parser.add_argument("--hard-manifest", type=str, default=None)
+    parser.add_argument("--output-image", type=str, default=None)
     parser.add_argument("--num-samples", type=int, default=4)
     args = parser.parse_args()
 
-    real_manifest = Path(args.real_manifest)
-    if not real_manifest.exists() and Path("data/01_raw_faces/raw_faces_manifest.jsonl").exists():
-        real_manifest = Path("data/01_raw_faces/raw_faces_manifest.jsonl")
+    cfg: Dict[str, Any] = {}
+    if Path(args.config).is_file():
+        cfg = load_config(Path(args.config))
 
-    syn_manifest = Path(args.synthetic_manifest)
-    if not syn_manifest.exists() and Path("data/02_synthetic_sd/manifests/curated_synthetic.jsonl").exists():
-        syn_manifest = Path("data/02_synthetic_sd/manifests/curated_synthetic.jsonl")
-
-    hard_manifest = Path(args.hard_manifest)
-    if not hard_manifest.exists() and Path("data/03_hard_samples/hard_samples_manifest.jsonl").exists():
-        hard_manifest = Path("data/03_hard_samples/hard_samples_manifest.jsonl")
+    real_manifest = Path(resolve(args.real_manifest, cfg, "paths.raw_manifest"))
+    syn_manifest = Path(resolve(args.synthetic_manifest, cfg, "paths.curated_manifest"))
+    hard_manifest = Path(resolve(args.hard_manifest, cfg, "paths.hard_manifest"))
+    output_image = Path(resolve(args.output_image, cfg, "paths.gallery_image"))
 
     real_paths = extract_paths_from_manifest(real_manifest, args.num_samples)
-    synthetic_paths = extract_paths_from_manifest(syn_manifest, args.num_samples)
-    hard_paths = extract_paths_from_manifest(hard_manifest, args.num_samples)
+    synthetic_paths = extract_paths_from_manifest(syn_manifest, args.num_samples, prioritize_modes=True)
+    hard_paths = extract_paths_from_manifest(hard_manifest, args.num_samples, prioritize_modes=True)
 
     logger.info(
         "Extracted paths for gallery: %d real, %d synthetic, %d hard samples",
@@ -66,14 +98,15 @@ def main() -> None:
         len(hard_paths),
     )
 
+    output_image.parent.mkdir(parents=True, exist_ok=True)
     plot_real_vs_synthetic_comparison(
         real_paths=real_paths,
         synthetic_paths=synthetic_paths,
         hard_paths=hard_paths,
-        output_path=args.output_image,
+        output_path=output_image,
         num_samples=args.num_samples,
     )
-    logger.info("Comparison gallery successfully saved to %s", args.output_image)
+    logger.info("Comparison gallery successfully saved to %s", output_image)
 
 
 if __name__ == "__main__":

@@ -44,3 +44,19 @@ def test_plot_real_vs_synthetic_comparison(tmp_path: Path):
         num_samples=1,
     )
     assert gallery_out.exists()
+
+
+def test_notebook_generator_has_no_processed_paths_or_literals(tmp_path: Path):
+    """Verify generated coursework notebooks load configurations dynamically without legacy paths."""
+    import json
+    from scripts.create_coursework_notebooks import main as create_nb_main
+
+    create_nb_main(output_dir=tmp_path)
+    nb_files = list(tmp_path.glob("*.ipynb"))
+    assert len(nb_files) == 3
+
+    for nb_file in nb_files:
+        content = nb_file.read_text(encoding="utf-8")
+        assert "data/processed" not in content, f"{nb_file.name} still contains legacy 'data/processed'!"
+        assert "load_config(" in content, f"{nb_file.name} must load settings dynamically via load_config()!"
+
