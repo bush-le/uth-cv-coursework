@@ -17,6 +17,20 @@ def test_stable_diffusion_engine_text2img():
     assert 0.0 <= img.min() and img.max() <= 1.0
 
 
+def test_real_engine_configuration():
+    """Test real engine configuration attributes and pipeline mode factories."""
+    engine = StableDiffusionEngine(
+        model_name="runwayml/stable-diffusion-v1-5",
+        use_mock_fallback=False,
+    )
+    assert engine.model_name == "runwayml/stable-diffusion-v1-5"
+    assert engine.use_mock_fallback is False
+    assert "deformed" in engine.default_negative_prompt
+    assert hasattr(engine, "get_text2img_pipeline")
+    assert hasattr(engine, "get_inpaint_pipeline")
+    assert hasattr(engine, "get_img2img_pipeline")
+
+
 def test_stable_diffusion_engine_inpaint():
     """Test inpaint mode modifies only within masked region."""
     engine = StableDiffusionEngine(model_name="mock_sd")
