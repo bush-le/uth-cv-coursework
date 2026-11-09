@@ -24,17 +24,23 @@ def _build_demographic_prompt(demographics: Optional[Dict[str, Any]], base_promp
         return base_prompt
     tags = []
     age = demographics.get("age_group")
-    if age in ["0-2", "3-6", "7-9", "10-14"]:
-        tags.append("young child portrait, soft natural skin")
-    elif age in ["50-69", "70-120"]:
-        tags.append("elderly person face, visible skin wrinkles, natural aging")
+    if age in ["0-2", "3-6", "7-9", "10-14", "young"]:
+        tags.append("young person portrait, soft natural skin")
+    elif age in ["50-69", "70-120", "mature"]:
+        tags.append("elderly person face, visible natural skin wrinkles, dignified aging")
     elif demographics.get("gray_hair") is True:
-        tags.append("elderly face, natural gray hair")
+        tags.append("authentic face, natural gray hair")
+
+    gender = demographics.get("gender")
+    if gender == "male":
+        tags.append("man face")
+    elif gender == "female":
+        tags.append("woman face")
 
     glasses = demographics.get("glasses")
     if glasses == "Dark":
         tags.append("wearing dark sunglasses with subtle glare")
-    elif glasses == "Normal" or demographics.get("eyeglasses") is True:
+    elif glasses in ("Normal", "Glasses") or demographics.get("eyeglasses") is True:
         tags.append("wearing eyeglasses with realistic frame reflections")
 
     if tags:
@@ -190,15 +196,15 @@ def run_image_generation(
         if mode_idx == 0:
             manip_type = "sd_img2img"
             sub_folder = "img2img"
-            base_p = "subtle facial manipulation, realistic skin texture"
+            base_p = "high resolution authentic portrait, natural skin texture, realistic lighting, detailed human face"
         elif mode_idx == 1:
             manip_type = "sd_inpaint"
             sub_folder = "inpainting"
-            base_p = "altered facial expression and eyes"
+            base_p = "seamless natural facial features, authentic detailed eyes, natural smile, photorealistic skin texture"
         else:
             manip_type = "sd_text2img"
             sub_folder = "text2image"
-            base_p = "photorealistic portrait of a synthetic person"
+            base_p = "RAW photo, authentic portrait of a person, sharp focus, natural skin texture, 8k uhd, dslr, soft studio lighting"
 
         prompt_used = _build_demographic_prompt(demographics, base_p)
         sub_dir = out_dir_path / sub_folder
@@ -278,7 +284,10 @@ def run_image_generation(
             )
         elif mode_idx == 1:
             raw_bbox = item.get("bbox")
-            mask = generate_dynamic_face_mask(source_img, bbox=raw_bbox, blur_radius=16)
+            region_choice = ["periocular", "lips", "full"][task["item_idx"] % 3]
+            mask = generate_dynamic_face_mask(
+                source_img, bbox=raw_bbox, blur_radius=18, target_region=region_choice
+            )
 
             fake_tensor = engine.generate_inpaint(
                 source_image=source_img,
