@@ -19,6 +19,9 @@ DEFAULT_NEGATIVE_PROMPT = (
 )
 
 
+NATIVE_SD_SIZE = 512
+
+
 class StableDiffusionEngine(nn.Module):
     """Modular generation engine utilizing Stable Diffusion for deepfake image synthesis."""
 
@@ -151,15 +154,19 @@ class StableDiffusionEngine(nn.Module):
         try:
             pipe = self.get_text2img_pipeline()
             gen = torch.Generator(device=self.target_device).manual_seed(seed)
+            diff_h = max(NATIVE_SD_SIZE, height)
+            diff_w = max(NATIVE_SD_SIZE, width)
             out_img = pipe(
                 prompt=prompt,
                 negative_prompt=neg,
-                height=height,
-                width=width,
+                height=diff_h,
+                width=diff_w,
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
                 generator=gen,
             ).images[0]
+            if (out_img.width, out_img.height) != (width, height):
+                out_img = out_img.resize((width, height), Image.Resampling.LANCZOS)
             return self._pil_to_tensor(out_img).to(self.target_device)
         except Exception as e:
             if self.use_mock_fallback:
@@ -187,21 +194,30 @@ class StableDiffusionEngine(nn.Module):
 
         neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
         try:
+            from PIL import ImageFilter
+
             pipe = self.get_inpaint_pipeline()
-            pil_source = self._tensor_to_pil(source_image).resize((w, h))
-            pil_mask = self._mask_to_pil(mask).resize((w, h))
+            diff_h = max(NATIVE_SD_SIZE, h)
+            diff_w = max(NATIVE_SD_SIZE, w)
+            pil_source = self._tensor_to_pil(source_image).resize((diff_w, diff_h), Image.Resampling.LANCZOS)
+            pil_mask = self._mask_to_pil(mask).resize((diff_w, diff_h), Image.Resampling.BILINEAR)
+            # Soften mask boundary to prevent high-frequency aliasing and barcode artifacts in 4-channel UNet
+            pil_mask = pil_mask.filter(ImageFilter.GaussianBlur(radius=8))
+
             gen = torch.Generator(device=self.target_device).manual_seed(seed)
             out_img = pipe(
                 prompt=prompt,
                 negative_prompt=neg,
                 image=pil_source,
                 mask_image=pil_mask,
-                height=h,
-                width=w,
+                height=diff_h,
+                width=diff_w,
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
                 generator=gen,
             ).images[0]
+            if (out_img.width, out_img.height) != (w, h):
+                out_img = out_img.resize((w, h), Image.Resampling.LANCZOS)
             return self._pil_to_tensor(out_img).to(self.target_device)
         except Exception as e:
             if self.use_mock_fallback:
@@ -216,7 +232,7 @@ class StableDiffusionEngine(nn.Module):
         self,
         source_image: torch.Tensor,
         prompt: str = "photorealistic face alteration",
-        strength: float = 0.6,
+        strength: float = 0.40,
         seed: int = 42,
         num_inference_steps: int = 25,
         guidance_scale: float = 7.5,
@@ -232,7 +248,9 @@ class StableDiffusionEngine(nn.Module):
         neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
         try:
             pipe = self.get_img2img_pipeline()
-            pil_source = self._tensor_to_pil(source_image).resize((w, h))
+            diff_h = max(NATIVE_SD_SIZE, h)
+            diff_w = max(NATIVE_SD_SIZE, w)
+            pil_source = self._tensor_to_pil(source_image).resize((diff_w, diff_h), Image.Resampling.LANCZOS)
             gen = torch.Generator(device=self.target_device).manual_seed(seed)
             out_img = pipe(
                 prompt=prompt,
@@ -243,6 +261,8 @@ class StableDiffusionEngine(nn.Module):
                 guidance_scale=guidance_scale,
                 generator=gen,
             ).images[0]
+            if (out_img.width, out_img.height) != (w, h):
+                out_img = out_img.resize((w, h), Image.Resampling.LANCZOS)
             return self._pil_to_tensor(out_img).to(self.target_device)
         except Exception as e:
             if self.use_mock_fallback:

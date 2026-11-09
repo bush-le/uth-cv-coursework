@@ -26,18 +26,18 @@ generation:
     - "sd_inpaint"
     - "sd_text2img"
   num_per_real: 1
-  max_real_samples: null
-  steps: 20
+  max_real_samples: 30
+  steps: 15
   guidance_scale: 7.5
-  img2img_strength: 0.50
+  img2img_strength: 0.40
   image_size:
     - 256
     - 256
   negative_prompt: "deformed, blurry, bad anatomy, bad eyes, disfigured, poorly drawn face"
   inpaint_mask_box:
+    - 0.30
     - 0.25
-    - 0.25
-    - 0.75
+    - 0.70
     - 0.75
 
 curation:
@@ -47,7 +47,7 @@ curation:
     model_id: "openai/clip-vit-base-patch32"
     min_score: 0.20
   face_check:
-    backend: "none"
+    backend: "opencv_haar"
   dedup: true
 
 hardness:

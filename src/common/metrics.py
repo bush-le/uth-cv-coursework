@@ -216,11 +216,11 @@ def calibrate_threshold(reference_scores: Sequence[float], quantile: float) -> f
     return float(np.quantile(arr, quantile))
 
 
-def detect_faces(image_rgb: np.ndarray, backend: str = "opencv_haar") -> int:
+def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "opencv_haar") -> int:
     """Detect faces in an RGB uint8 image using classical or lightweight detector.
 
     Args:
-        image_rgb: NumPy array of shape (H, W, 3) in uint8 RGB format.
+        image_rgb: NumPy array of shape (H, W, 3) in uint8 RGB format or torch.Tensor.
         backend: Face detector backend ('opencv_haar' or 'none').
 
     Returns:
@@ -232,11 +232,22 @@ def detect_faces(image_rgb: np.ndarray, backend: str = "opencv_haar") -> int:
     if backend == "opencv_haar":
         import cv2
 
+        if isinstance(image_rgb, torch.Tensor):
+            t = image_rgb.detach().cpu()
+            if t.ndim == 3 and t.shape[0] in (1, 3):
+                t = t.permute(1, 2, 0)
+            if t.dtype in (torch.float32, torch.float64):
+                t = (t.clamp(0.0, 1.0) * 255.0).to(torch.uint8)
+            image_rgb = t.numpy()
+
         cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         face_cascade = cv2.CascadeClassifier(cascade_path)
         if face_cascade.empty():
             logger.warning("Haarcascade file could not be loaded; defaulting to 1 face.")
             return 1
+
+        if not isinstance(image_rgb, np.ndarray) or image_rgb.dtype != np.uint8:
+            image_rgb = np.clip(image_rgb * 255.0 if np.issubdtype(image_rgb.dtype, np.floating) else image_rgb, 0, 255).astype(np.uint8)
 
         gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
         faces = face_cascade.detectMultiScale(

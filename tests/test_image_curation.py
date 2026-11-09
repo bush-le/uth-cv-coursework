@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import numpy as np
 import pytest
 import torch
 from PIL import Image
@@ -132,3 +133,28 @@ def test_curation_report_output_file(tmp_path):
     assert len(lines) == 1
     assert lines[0]["image_id"] == "v1"
     assert lines[0]["is_valid"] is True
+
+
+def test_curation_rejects_faceless_artifacts_with_opencv_haar(tmp_path):
+    """Verify curation gate rejects non-face artifacts (e.g. scanlines, barcode) when opencv_haar is enabled."""
+    in_m = tmp_path / "in.jsonl"
+    out_m = tmp_path / "out.jsonl"
+    rep_m = tmp_path / "report.jsonl"
+
+    # Create an image with horizontal stripes (like blinds artifact, no face)
+    stripes = np.zeros((128, 128, 3), dtype=np.uint8)
+    stripes[::8, :, :] = 255
+    blinds_path = tmp_path / "blinds.png"
+    Image.fromarray(stripes).save(blinds_path)
+
+    with open(in_m, "w") as f:
+        f.write(json.dumps({"image_id": "blinds_01", "label": 1, "file_path": str(blinds_path)}) + "\n")
+
+    gate = ImageCurationGate(min_sharpness=0.0, clip_enabled=False, face_backend="opencv_haar")
+    summary = curate_image_manifest(in_m, out_m, gate, curation_report=rep_m)
+
+    assert summary["kept"] == 0
+    assert summary["rejected"] == 1
+    report = json.loads(rep_m.read_text().strip())
+    assert report["is_valid"] is False
+    assert any("face" in r.lower() for r in report["rejection_reasons"])
