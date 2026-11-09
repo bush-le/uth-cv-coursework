@@ -147,15 +147,13 @@ def run_image_generation(
     if max_samples_val is not None and max_samples_val > 0:
         real_items = real_items[:max_samples_val]
 
+    # Pre-plan generation tasks and group by mode to load each pipeline ONCE
+    tasks = []
     for item_idx, item in enumerate(real_items):
         real_id = item["image_id"]
         demographics = item.get("demographics")
-        source_img = None
-
         for k in range(num_per_real_val):
             fake_id = f"fake_{real_id}_{k}"
-
-            # Determine mode
             if mode_val == "all":
                 mode_idx = (item_idx + k) % 3
             elif mode_val == "img2img":
@@ -167,144 +165,167 @@ def run_image_generation(
             else:
                 mode_idx = (item_idx + k) % 3
 
-            if mode_idx == 0:
-                manip_type = "sd_img2img"
-                sub_folder = "img2img"
-                base_p = "subtle facial manipulation, realistic skin texture"
-            elif mode_idx == 1:
-                manip_type = "sd_inpaint"
-                sub_folder = "inpainting"
-                base_p = "altered facial expression and eyes"
-            else:
-                manip_type = "sd_text2img"
-                sub_folder = "text2image"
-                base_p = "photorealistic portrait of a synthetic person"
+            tasks.append({
+                "item_idx": item_idx,
+                "item": item,
+                "real_id": real_id,
+                "k": k,
+                "fake_id": fake_id,
+                "mode_idx": mode_idx,
+                "demographics": demographics,
+            })
 
-            prompt_used = _build_demographic_prompt(demographics, base_p)
-            sub_dir = out_dir_path / sub_folder
-            sub_dir.mkdir(parents=True, exist_ok=True)
-            out_file = sub_dir / f"{fake_id}.png"
+    # Group by mode_idx (img2img, inpaint, text2img)
+    tasks.sort(key=lambda t: t["mode_idx"])
 
-            # Derive per-sample deterministic seed
-            curr_seed = sample_seed(seed_val, fake_id, k)
+    for task in tasks:
+        item = task["item"]
+        real_id = task["real_id"]
+        demographics = task["demographics"]
+        k = task["k"]
+        fake_id = task["fake_id"]
+        mode_idx = task["mode_idx"]
+        source_img = None
 
-            curr_gen = generation_params(
-                cfg,
-                manip_type,
-                overrides={
-                    "model_id": model_name_val,
-                    "steps": steps_val,
-                    "guidance_scale": guidance_scale_val,
-                    "img2img_strength": img2img_strength_val,
-                },
-            )
-            curr_gen["seed"] = curr_seed
+        if mode_idx == 0:
+            manip_type = "sd_img2img"
+            sub_folder = "img2img"
+            base_p = "subtle facial manipulation, realistic skin texture"
+        elif mode_idx == 1:
+            manip_type = "sd_inpaint"
+            sub_folder = "inpainting"
+            base_p = "altered facial expression and eyes"
+        else:
+            manip_type = "sd_text2img"
+            sub_folder = "text2image"
+            base_p = "photorealistic portrait of a synthetic person"
 
-            # Check provenance-aware resume
-            if resume and out_file.exists() and out_file.stat().st_size > 0:
-                old_rec = existing_records.get(fake_id)
-                old_gen = old_rec.get("generation") if old_rec else None
+        prompt_used = _build_demographic_prompt(demographics, base_p)
+        sub_dir = out_dir_path / sub_folder
+        sub_dir.mkdir(parents=True, exist_ok=True)
+        out_file = sub_dir / f"{fake_id}.png"
 
-                # Must match key parameters to safely reuse
-                if old_gen and (
-                    old_gen.get("steps") == curr_gen["steps"]
-                    and old_gen.get("model_id") == curr_gen["model_id"]
-                    and old_gen.get("mode") == curr_gen["mode"]
-                    and old_gen.get("seed") == curr_gen["seed"]
-                ):
-                    logger.info("Resuming %s: identical generation parameters, skipping generation.", out_file.name)
-                    meta = ImageMetadata(
-                        image_id=fake_id,
-                        label=1,
-                        manipulation_type=manip_type,
-                        prompt=prompt_used,
-                        source_real_id=real_id,
-                        file_path=str(out_file),
-                        is_hard_sample=False,
-                        data_source="synthetic",
-                        demographics=demographics,
-                        generation=curr_gen,
-                        scores=old_rec.get("scores"),
-                    )
-                    fake_records.append(meta.to_dict())
-                    generated_count += 1
+        # Derive per-sample deterministic seed
+        curr_seed = sample_seed(seed_val, fake_id, k)
+
+        curr_gen = generation_params(
+            cfg,
+            manip_type,
+            overrides={
+                "model_id": model_name_val,
+                "steps": steps_val,
+                "guidance_scale": guidance_scale_val,
+                "img2img_strength": img2img_strength_val,
+            },
+        )
+        curr_gen["seed"] = curr_seed
+
+        # Check provenance-aware resume
+        if resume and out_file.exists() and out_file.stat().st_size > 0:
+            old_rec = existing_records.get(fake_id)
+            old_gen = old_rec.get("generation") if old_rec else None
+
+            # Must match key parameters to safely reuse
+            if old_gen and (
+                old_gen.get("steps") == curr_gen["steps"]
+                and old_gen.get("model_id") == curr_gen["model_id"]
+                and old_gen.get("mode") == curr_gen["mode"]
+                and old_gen.get("seed") == curr_gen["seed"]
+            ):
+                logger.info("Resuming %s: identical generation parameters, skipping generation.", out_file.name)
+                meta = ImageMetadata(
+                    image_id=fake_id,
+                    label=1,
+                    manipulation_type=manip_type,
+                    prompt=prompt_used,
+                    source_real_id=real_id,
+                    file_path=str(out_file),
+                    is_hard_sample=False,
+                    data_source="synthetic",
+                    demographics=demographics,
+                    generation=curr_gen,
+                    scores=old_rec.get("scores"),
+                )
+                fake_records.append(meta.to_dict())
+                generated_count += 1
+                continue
+
+        # Need source image for img2img / inpaint
+        if mode_idx in (0, 1):
+            if source_img is None:
+                if mock_cache and real_id in mock_cache:
+                    source_img = mock_cache[real_id]
+                elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
+                    with Image.open(item["file_path"]) as img:
+                        img_rgb = img.convert("RGB").resize((256, 256), Image.Resampling.BILINEAR)
+                        np_img = np.array(img_rgb, dtype=np.float32) / 255.0
+                        source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
+                else:
+                    logger.warning("Skipping %s: source image missing for mode %s", real_id, manip_type)
                     continue
+            h, w = source_img.shape[1], source_img.shape[2]
+        else:
+            h, w = 256, 256
 
-            # Need source image for img2img / inpaint
-            if mode_idx in (0, 1):
-                if source_img is None:
-                    if mock_cache and real_id in mock_cache:
-                        source_img = mock_cache[real_id]
-                    elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
-                        with Image.open(item["file_path"]) as img:
-                            img_rgb = img.convert("RGB").resize((256, 256), Image.Resampling.BILINEAR)
-                            np_img = np.array(img_rgb, dtype=np.float32) / 255.0
-                            source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
-                    else:
-                        logger.warning("Skipping %s: source image missing for mode %s", real_id, manip_type)
-                        continue
-                h, w = source_img.shape[1], source_img.shape[2]
-            else:
-                h, w = 256, 256
-
-            if mode_idx == 0:
-                fake_tensor = engine.generate_img2img(
-                    source_image=source_img,
-                    prompt=prompt_used,
-                    strength=img2img_strength_val,
-                    num_inference_steps=steps_val,
-                    seed=curr_seed,
-                    guidance_scale=guidance_scale_val,
-                )
-            elif mode_idx == 1:
-                mask_box = curr_gen.get("inpaint_mask_box", [0.25, 0.25, 0.75, 0.75])
-                ymin_pct, xmin_pct, ymax_pct, xmax_pct = mask_box
-                ymin, ymax = int(ymin_pct * h), int(ymax_pct * h)
-                xmin, xmax = int(xmin_pct * w), int(xmax_pct * w)
-
-                mask = torch.zeros(1, h, w)
-                mask[:, ymin:ymax, xmin:xmax] = 1.0
-                mask = torch.nn.functional.avg_pool2d(
-                    mask.unsqueeze(0), kernel_size=9, stride=1, padding=4
-                ).squeeze(0)
-
-                fake_tensor = engine.generate_inpaint(
-                    source_image=source_img,
-                    mask=mask,
-                    prompt=prompt_used,
-                    num_inference_steps=steps_val,
-                    seed=curr_seed,
-                    guidance_scale=guidance_scale_val,
-                )
-            else:
-                fake_tensor = engine.generate_text2img(
-                    prompt=prompt_used,
-                    height=h,
-                    width=w,
-                    num_inference_steps=steps_val,
-                    seed=curr_seed,
-                    guidance_scale=guidance_scale_val,
-                )
-
-            # Save PNG into dedicated mode folder
-            np_img = (fake_tensor.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
-            Image.fromarray(np_img).save(out_file)
-
-            meta = ImageMetadata(
-                image_id=fake_id,
-                label=1,
-                manipulation_type=manip_type,
+        if mode_idx == 0:
+            fake_tensor = engine.generate_img2img(
+                source_image=source_img,
                 prompt=prompt_used,
-                source_real_id=real_id,
-                file_path=str(out_file),
-                is_hard_sample=False,
-                data_source="synthetic",
-                demographics=demographics,
-                generation=curr_gen,
+                strength=img2img_strength_val,
+                num_inference_steps=steps_val,
+                seed=curr_seed,
+                guidance_scale=guidance_scale_val,
             )
-            fake_records.append(meta.to_dict())
-            generated_count += 1
+        elif mode_idx == 1:
+            mask_box = curr_gen.get("inpaint_mask_box", [0.25, 0.25, 0.75, 0.75])
+            ymin_pct, xmin_pct, ymax_pct, xmax_pct = mask_box
+            ymin, ymax = int(ymin_pct * h), int(ymax_pct * h)
+            xmin, xmax = int(xmin_pct * w), int(xmax_pct * w)
 
+            mask = torch.zeros(1, h, w)
+            mask[:, ymin:ymax, xmin:xmax] = 1.0
+            mask = torch.nn.functional.avg_pool2d(
+                mask.unsqueeze(0), kernel_size=9, stride=1, padding=4
+            ).squeeze(0)
+
+            fake_tensor = engine.generate_inpaint(
+                source_image=source_img,
+                mask=mask,
+                prompt=prompt_used,
+                num_inference_steps=steps_val,
+                seed=curr_seed,
+                guidance_scale=guidance_scale_val,
+            )
+        else:
+            fake_tensor = engine.generate_text2img(
+                prompt=prompt_used,
+                height=h,
+                width=w,
+                num_inference_steps=steps_val,
+                seed=curr_seed,
+                guidance_scale=guidance_scale_val,
+            )
+
+        # Save PNG into dedicated mode folder
+        np_img = (fake_tensor.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
+        Image.fromarray(np_img).save(out_file)
+
+        meta = ImageMetadata(
+            image_id=fake_id,
+            label=1,
+            manipulation_type=manip_type,
+            prompt=prompt_used,
+            source_real_id=real_id,
+            file_path=str(out_file),
+            is_hard_sample=False,
+            data_source="synthetic",
+            demographics=demographics,
+            generation=curr_gen,
+        )
+        fake_records.append(meta.to_dict())
+        generated_count += 1
+
+    fake_records.sort(key=lambda r: r["image_id"])
     with open(out_manifest_path, "w", encoding="utf-8") as f:
         for r in fake_records:
             f.write(json.dumps(r) + "\n")

@@ -1,5 +1,6 @@
 """Production Stable Diffusion engine supporting Text2Img, Inpainting, and Img2Img generation."""
 
+import gc
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 import zlib
@@ -44,7 +45,8 @@ class StableDiffusionEngine(nn.Module):
         self.use_mock_fallback = use_mock_fallback
         self.default_negative_prompt = default_negative_prompt
 
-        self._pipelines: Dict[str, Any] = {}
+        self._active_mode: Optional[str] = None
+        self._active_pipeline: Optional[Any] = None
         logger.info(
             "Initialized StableDiffusionEngine (model=%s, device=%s, dtype=%s, fallback=%s)",
             self.model_name,
@@ -91,50 +93,64 @@ class StableDiffusionEngine(nn.Module):
         np_arr = np.array(rgb_img, dtype=np.float32) / 255.0
         return torch.from_numpy(np_arr).permute(2, 0, 1).contiguous()
 
-    def get_text2img_pipeline(self) -> Any:
-        """Get or initialize StableDiffusionPipeline."""
-        if "text2img" not in self._pipelines:
+    def _switch_mode(self, mode: str) -> Any:
+        """Switch active pipeline, strictly freeing old pipeline to avoid VRAM/RAM OOM."""
+        if self._active_mode == mode and self._active_pipeline is not None:
+            return self._active_pipeline
+
+        if self._active_pipeline is not None:
+            logger.info("Unloading pipeline %s to free memory...", self._active_mode)
+            del self._active_pipeline
+            self._active_pipeline = None
+            self._active_mode = None
+            gc.collect()
+            if self.target_device.type == "cuda":
+                torch.cuda.empty_cache()
+
+        logger.info("Loading %s pipeline from %s on %s...", mode, self.model_name, self.target_device)
+        if mode == "text2img":
             from diffusers import StableDiffusionPipeline
 
-            logger.info("Loading text2img pipeline from %s...", self.model_name)
             pipe = StableDiffusionPipeline.from_pretrained(
                 self.model_name,
                 torch_dtype=self.torch_dtype,
                 safety_checker=None,
             ).to(self.target_device)
-            optimize_pipeline_memory(pipe)
-            self._pipelines["text2img"] = pipe
-        return self._pipelines["text2img"]
-
-    def get_inpaint_pipeline(self) -> Any:
-        """Get or initialize StableDiffusionInpaintPipeline."""
-        if "inpaint" not in self._pipelines:
+        elif mode == "inpaint":
             from diffusers import StableDiffusionInpaintPipeline
 
-            logger.info("Loading inpainting pipeline from %s...", self.model_name)
             pipe = StableDiffusionInpaintPipeline.from_pretrained(
                 self.model_name,
                 torch_dtype=self.torch_dtype,
                 safety_checker=None,
             ).to(self.target_device)
-            optimize_pipeline_memory(pipe)
-            self._pipelines["inpaint"] = pipe
-        return self._pipelines["inpaint"]
-
-    def get_img2img_pipeline(self) -> Any:
-        """Get or initialize StableDiffusionImg2ImgPipeline."""
-        if "img2img" not in self._pipelines:
+        elif mode == "img2img":
             from diffusers import StableDiffusionImg2ImgPipeline
 
-            logger.info("Loading img2img pipeline from %s...", self.model_name)
             pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
                 self.model_name,
                 torch_dtype=self.torch_dtype,
                 safety_checker=None,
             ).to(self.target_device)
-            optimize_pipeline_memory(pipe)
-            self._pipelines["img2img"] = pipe
-        return self._pipelines["img2img"]
+        else:
+            raise ValueError(f"Unknown generation mode: {mode}")
+
+        optimize_pipeline_memory(pipe)
+        self._active_pipeline = pipe
+        self._active_mode = mode
+        return self._active_pipeline
+
+    def get_text2img_pipeline(self) -> Any:
+        """Get or initialize StableDiffusionPipeline."""
+        return self._switch_mode("text2img")
+
+    def get_inpaint_pipeline(self) -> Any:
+        """Get or initialize StableDiffusionInpaintPipeline."""
+        return self._switch_mode("inpaint")
+
+    def get_img2img_pipeline(self) -> Any:
+        """Get or initialize StableDiffusionImg2ImgPipeline."""
+        return self._switch_mode("img2img")
 
     def generate_text2img(
         self,
@@ -151,6 +167,8 @@ class StableDiffusionEngine(nn.Module):
             return self._mock_text2img(prompt, height, width, seed=seed)
 
         neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
+        if self.target_device.type == "cuda":
+            torch.cuda.empty_cache()
         try:
             pipe = self.get_text2img_pipeline()
             gen = torch.Generator(device=self.target_device).manual_seed(seed)
@@ -193,6 +211,8 @@ class StableDiffusionEngine(nn.Module):
             return torch.clamp(inpainted, 0.0, 1.0)
 
         neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
+        if self.target_device.type == "cuda":
+            torch.cuda.empty_cache()
         try:
             from PIL import ImageFilter
 
@@ -246,6 +266,8 @@ class StableDiffusionEngine(nn.Module):
             return torch.clamp(blend, 0.0, 1.0)
 
         neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
+        if self.target_device.type == "cuda":
+            torch.cuda.empty_cache()
         try:
             pipe = self.get_img2img_pipeline()
             diff_h = max(NATIVE_SD_SIZE, h)
