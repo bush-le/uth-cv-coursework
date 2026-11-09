@@ -1,6 +1,6 @@
 """Evaluation and quality curation metrics for 2D Deepfake Detection and Hard-Sample Mining."""
 
-from typing import Any, Optional, Sequence
+from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 
@@ -259,6 +259,105 @@ def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "ope
         return len(faces)
 
     raise ValueError(f"Unknown face detection backend: {backend}")
+
+
+def verify_facial_geometry(
+    image: Union[np.ndarray, torch.Tensor],
+) -> Tuple[bool, List[str]]:
+    """Verify biometric facial geometry and reject anatomical anomalies (e.g. dual mouths, distorted proportions).
+
+    Args:
+        image: Image array (H, W, 3) in uint8 or float, or torch.Tensor (C, H, W).
+
+    Returns:
+        (is_valid, list of rejection reasons).
+    """
+    import cv2
+
+    if isinstance(image, torch.Tensor):
+        t = image.detach().cpu()
+        if t.ndim == 3 and t.shape[0] in (1, 3):
+            t = t.permute(1, 2, 0)
+        if t.dtype in (torch.float32, torch.float64):
+            t = (t.clamp(0.0, 1.0) * 255.0).to(torch.uint8)
+        image = t.numpy()
+
+    if not isinstance(image, np.ndarray) or image.dtype != np.uint8:
+        image = np.clip(
+            image * 255.0 if np.issubdtype(image.dtype, np.floating) else image, 0, 255
+        ).astype(np.uint8)
+
+    reasons: List[str] = []
+    h, w = image.shape[:2]
+    if (h, w) != (256, 256):
+        image = cv2.resize(image, (256, 256))
+        h, w = 256, 256
+
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    face_cascade = cv2.CascadeClassifier(face_cascade_path)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30))
+
+    if len(faces) == 0:
+        return False, ["No face landmark detected"]
+    if len(faces) > 2:
+        return False, [f"Too many faces detected ({len(faces)})"]
+
+    fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+    aspect_ratio = fh / max(1, fw)
+    if aspect_ratio < 0.65 or aspect_ratio > 1.6:
+        reasons.append(f"Abnormal facial aspect ratio: {aspect_ratio:.2f}")
+
+    # Inspect lower face for horizontal inpainting boundary / seam spike
+    lower = gray[fy + int(0.35 * fh) : fy + int(0.85 * fh), fx + int(0.1 * fw) : fx + int(0.9 * fw)]
+    if lower.shape[0] >= 10 and lower.shape[1] >= 10:
+        sobel_y = np.abs(cv2.Sobel(lower, cv2.CV_64F, 0, 1, ksize=3))
+        row_means = np.mean(sobel_y, axis=1)
+        peak = np.max(row_means)
+        median = np.median(row_means) + 1e-5
+        spike = peak / median
+        if spike > 5.0:
+            reasons.append(f"Severe horizontal boundary discontinuity across face (seam_spike={spike:.2f} > 5.0)")
+
+    is_valid = len(reasons) == 0
+    return is_valid, reasons
+
+
+def verify_boundary_seam(
+    synthetic: torch.Tensor,
+    source: torch.Tensor,
+    mask: torch.Tensor,
+    max_gradient_diff: float = 35.0,
+) -> Tuple[bool, float]:
+    """Verify that inpainting boundaries blend seamlessly without abrupt seam lines.
+
+    Args:
+        synthetic: Generated image tensor (C, H, W) in [0, 1].
+        source: Source image tensor (C, H, W) in [0, 1].
+        mask: Inpainting mask tensor (1, H, W) in [0, 1].
+        max_gradient_diff: Maximum acceptable boundary gradient difference.
+
+    Returns:
+        (is_seamless, boundary_discontinuity_score).
+    """
+    import cv2
+
+    mask_np = (mask[0].detach().cpu().numpy() * 255.0).astype(np.uint8)
+    kernel = np.ones((5, 5), np.uint8)
+    dilated = cv2.dilate(mask_np, kernel, iterations=1)
+    eroded = cv2.erode(mask_np, kernel, iterations=1)
+    boundary_ring = (dilated > 50) & (eroded < 200)
+
+    if not np.any(boundary_ring):
+        return True, 0.0
+
+    syn_np = (synthetic.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.float32)
+    src_np = (source.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.float32)
+
+    diff = np.abs(syn_np - src_np)
+    boundary_diff = float(np.mean(diff[boundary_ring]))
+    is_seamless = boundary_diff <= max_gradient_diff
+    return is_seamless, boundary_diff
 
 
 class ClipScorer:

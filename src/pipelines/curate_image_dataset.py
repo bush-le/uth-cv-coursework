@@ -16,6 +16,7 @@ from src.common.metrics import (
     calibrate_threshold,
     compute_laplacian_sharpness,
     detect_faces,
+    verify_facial_geometry,
 )
 from src.data.provenance import file_sha256
 
@@ -104,6 +105,10 @@ class ImageCurationGate:
         reasons = []
         if not face_detected_val:
             reasons.append("No valid face landmark detected")
+        elif self.face_backend != "none":
+            geom_valid, geom_reasons = verify_facial_geometry(image)
+            if not geom_valid:
+                reasons.extend(geom_reasons)
         if sharpness < self.min_sharpness:
             reasons.append(f"Sharpness {sharpness:.2f} below threshold {self.min_sharpness:.2f}")
         if self.clip_enabled and clip_score is not None and clip_score < self.min_clip_score:

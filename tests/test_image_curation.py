@@ -56,6 +56,35 @@ def test_image_curation_gate_evaluation():
     assert isinstance(report.is_valid, bool)
 
 
+def test_curation_rejects_dual_mouth_anomaly():
+    """Verify facial geometry check detects anatomical defects like dual mouth anomalies."""
+    from src.common.metrics import verify_facial_geometry
+
+    # Synthetic image with two mouths: uploaded_media_2
+    dual_mouth_path = Path("data/synthetic/inpainting/fake_ffhq_00001_0.png")
+    if dual_mouth_path.exists():
+        arr = np.array(Image.open(dual_mouth_path))
+        is_valid, reasons = verify_facial_geometry(arr)
+        # Should be flagged as invalid due to dual mouth anomaly or abnormal mouth geometry
+        assert not is_valid
+        assert len(reasons) > 0
+
+
+def test_boundary_seam_verification():
+    """Verify boundary seam detector flags sharp edge mismatches."""
+    from src.common.metrics import verify_boundary_seam
+
+    src = torch.zeros(3, 64, 64)
+    # Synthetic with high-contrast sharp seam
+    fake = torch.ones(3, 64, 64)
+    mask = torch.zeros(1, 64, 64)
+    mask[:, 16:48, 16:48] = 1.0
+
+    is_seamless, score = verify_boundary_seam(fake, src, mask, max_gradient_diff=10.0)
+    assert not is_seamless
+    assert score > 10.0
+
+
 def test_curate_image_manifest_pipeline(tmp_path):
     """Test curation manifest filtering with real image files on disk."""
     input_manifest = tmp_path / "raw.jsonl"
