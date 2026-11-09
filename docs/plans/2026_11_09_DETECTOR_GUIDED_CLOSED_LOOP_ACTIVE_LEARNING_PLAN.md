@@ -146,26 +146,23 @@ tests/
     - `challenge_test_metrics = evaluate_image_detector(round_detector, challenge_test_loader)`
   - Log both metrics distinctly in `closed_loop_metrics.json`.
 
-- [ ] **Step 1: Write unit/integration test for Dual-Benchmark splitting in `test_closed_loop_active_learning.py`**
-  - Verify that no sample in `challenge_test_records` is present in `train_records`.
-  - Verify that `closed_loop_metrics.json` outputs both `master_test_metrics` and `challenge_test_metrics`.
+- [x] **Step 1: Write unit/integration test for Dual-Benchmark splitting in `test_closed_loop_active_learning.py`**
+  - Verified no sample overlap between train and challenge test records.
+  - Verified dry run records `master_test_metrics` and `challenge_test_metrics`.
 
-- [ ] **Step 2: Run test to verify failure/gap**
-  - Run: `pytest tests/test_closed_loop_active_learning.py -k test_dual_benchmark`
-  - Expected: FAIL or missing attribute.
+- [x] **Step 2: Run test to verify failure/gap**
+  - Verified before implementation.
 
-- [ ] **Step 3: Implement `split_hard_samples` and Dual-Benchmark logging in `run_closed_loop_active_learning.py`**
-  - Use deterministic CRC32 hash splitting.
-  - Accumulate challenge test manifest at `data/active_learning/cumulative_challenge_test.jsonl`.
-  - Execute evaluation on both test loaders when challenge samples exist.
+- [x] **Step 3: Implement `split_hard_samples` and Dual-Benchmark logging in `run_closed_loop_active_learning.py`**
+  - Deterministic random/hash splitting.
+  - Challenge test vault maintained at `data/active_learning/cumulative_challenge_test.jsonl`.
+  - Evaluations executed on both master and challenge loaders.
 
-- [ ] **Step 4: Run test suite to verify all pass**
-  - Run: `pytest tests/test_closed_loop_active_learning.py -v`
-  - Expected: PASS.
+- [x] **Step 4: Run test suite to verify all pass**
+  - All 122 repository unit and integration tests passing (`taskset -c 0-3 pytest`).
 
-- [ ] **Step 5: Commit changes**
-  - `git add src/pipelines/run_closed_loop_active_learning.py tests/test_closed_loop_active_learning.py`
-  - `git commit -m "feat(pipeline): integrate dual-benchmark architecture with cumulative challenge test"`
+- [x] **Step 5: Commit changes**
+  - Committed as `7c416c9` (`feat(pipeline): implement task 5 dual-benchmark splitting with cumulative challenge test`).
 
 ---
 
