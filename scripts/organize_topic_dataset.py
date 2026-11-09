@@ -1,15 +1,25 @@
-"""Organize and standardize dataset structure strictly adhering to Topic 11 lifecycle."""
+"""Organize and standardize dataset structure strictly adhering to Topic 11 lifecycle.
+
+Packages the generated, curated, and mined faces into standardized directory hierarchies,
+assigns identity-disjoint splits, builds comparative benchmark stages (D0, D1, D2),
+and auto-generates dataset analytics.
+"""
 
 import argparse
 import json
 from pathlib import Path
 import shutil
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from src.common.config import cfg_get, load_config, resolve
 from src.common.logger import get_logger
 from src.common.seed import seed_everything
-from src.data.image_datamodule import DeepfakeImageDataModule
 from src.data.image_schema import ImageMetadata
+from src.data.splits import (
+    assign_identity_splits,
+    build_stage,
+    compute_dataset_stats,
+)
 
 logger = get_logger(__name__)
 
@@ -18,9 +28,9 @@ def organize_synthetic_faces(
     source_manifest: Path,
     output_base: Path,
 ) -> Dict[str, int]:
-    """Organize synthetic faces by generation method (text2image, inpainting, img2img)."""
+    """Organize synthetic faces into subfolders by generation method."""
     counts = {"text2image": 0, "inpainting": 0, "img2img": 0, "total": 0}
-    if not source_manifest.exists():
+    if not source_manifest.is_file():
         return counts
 
     t2i_dir = output_base / "text2image"
@@ -58,226 +68,118 @@ def organize_synthetic_faces(
     return counts
 
 
-def organize_curated_and_hard_samples(
-    curated_manifest: Path,
-    hard_manifest: Path,
-    hard_images_dir: Path,
-    hard_audit_dir: Path,
-) -> Dict[str, Any]:
-    """Sort hard samples with demographic audit and verify curated samples."""
-    hard_images_dir.mkdir(parents=True, exist_ok=True)
-    hard_audit_dir.mkdir(parents=True, exist_ok=True)
-
-    curated_count = 0
-    if curated_manifest.exists():
-        with open(curated_manifest, "r", encoding="utf-8") as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                item = json.loads(line)
-                fp = item.get("file_path")
-                if fp and Path(fp).exists():
-                    curated_count += 1
-
-    hard_items = []
-    if hard_manifest.exists():
-        with open(hard_manifest, "r", encoding="utf-8") as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                item = json.loads(line)
-                hard_items.append(item)
-                fp = item.get("file_path")
-                if fp and Path(fp).exists():
-                    dest_fp = hard_images_dir / Path(fp).name
-                    if Path(fp).resolve() != dest_fp.resolve():
-                        shutil.copy2(fp, dest_fp)
-
-    # Demographic audit of hard samples
-    age_dist: Dict[str, int] = {}
-    gender_dist: Dict[str, int] = {}
-    glasses_dist: Dict[str, int] = {}
-
-    for h in hard_items:
-        demo = h.get("demographics") or {}
-        age = demo.get("age_group", "unknown")
-        gender = demo.get("gender", "unknown")
-        glasses = demo.get("glasses", "unknown")
-
-        age_dist[age] = age_dist.get(age, 0) + 1
-        gender_dist[gender] = gender_dist.get(gender, 0) + 1
-        glasses_dist[glasses] = glasses_dist.get(glasses, 0) + 1
-
-    audit = {
-        "total_hard_samples": len(hard_items),
-        "age_distribution": age_dist,
-        "gender_distribution": gender_dist,
-        "glasses_distribution": glasses_dist,
-        "mean_baseline_score": float(
-            sum(h.get("baseline_score", 0.0) or 0.0 for h in hard_items) / max(1, len(hard_items))
-        ),
-    }
-
-    audit_path = hard_audit_dir / "hard_sample_demographics.json"
-    with open(audit_path, "w", encoding="utf-8") as f:
-        json.dump(audit, f, indent=2)
-
-    logger.info("Organized %d curated and %d hard samples (audit written to %s)", curated_count, len(hard_items), audit_path)
-    return audit
-
-
-def build_benchmark_splits(
-    real_manifest: Path,
-    curated_manifest: Path,
-    hard_manifest: Path,
-    output_dir: Path,
-    max_real_samples: int = 50,
-    seed: int = 42,
+def build_benchmark_splits_from_config(
+    cfg: Dict[str, Any],
 ) -> None:
-    """Generate reproducible train/val/test splits for D0, D1, D2."""
+    """Build standardized D0, D1, D2 benchmark stages driven completely by config."""
+    paths_cfg = cfg.get("paths", {})
+    raw_path = Path(paths_cfg.get("raw_manifest", "data/raw/manifest.jsonl"))
+    curated_path = Path(paths_cfg.get("curated_manifest", "data/synthetic/curated_manifest.jsonl"))
+    hard_path = Path(paths_cfg.get("hard_manifest", "data/hard_samples/hard_samples_manifest.jsonl"))
+    benchmarks_dir = Path(paths_cfg.get("benchmarks_dir", "data/benchmarks"))
+    seed = int(cfg.get("seed", 42))
+
     seed_everything(seed)
-    real_records: List[ImageMetadata] = []
-    if real_manifest.exists():
-        with open(real_manifest, "r", encoding="utf-8") as f:
+
+    max_real = cfg.get("generation", {}).get("max_real_samples")
+    if max_real is not None:
+        max_real = int(max_real)
+
+    # 1. Read real faces
+    candidate_records: List[ImageMetadata] = []
+    if raw_path.is_file():
+        with open(raw_path, "r", encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue
-                real_records.append(ImageMetadata.from_dict(json.loads(line)))
-                if len(real_records) >= max_real_samples:
+                candidate_records.append(ImageMetadata.from_dict(json.loads(line)))
+                if max_real is not None and len(candidate_records) >= max_real:
                     break
 
-    curated_records: List[ImageMetadata] = []
-    if curated_manifest.exists():
-        with open(curated_manifest, "r", encoding="utf-8") as f:
+    # 2. Read curated synthetic faces (excluding duplicates that were marked hard)
+    hard_ids = set()
+    if hard_path.is_file():
+        with open(hard_path, "r", encoding="utf-8") as f:
             for line in f:
-                if not line.strip():
-                    continue
-                curated_records.append(ImageMetadata.from_dict(json.loads(line)))
+                if line.strip():
+                    m = ImageMetadata.from_dict(json.loads(line))
+                    candidate_records.append(m)
+                    hard_ids.add(m.image_id)
 
-    hard_records: List[ImageMetadata] = []
-    if hard_manifest.exists():
-        with open(hard_manifest, "r", encoding="utf-8") as f:
+    if curated_path.is_file():
+        with open(curated_path, "r", encoding="utf-8") as f:
             for line in f:
-                if not line.strip():
-                    continue
-                hard_records.append(ImageMetadata.from_dict(json.loads(line)))
+                if line.strip():
+                    m = ImageMetadata.from_dict(json.loads(line))
+                    if m.image_id not in hard_ids:
+                        candidate_records.append(m)
 
-    # Stage D0: Real + Generic Fake
-    d0_records = real_records + [
-        ImageMetadata(
-            image_id=c.image_id,
-            label=1,
-            manipulation_type=c.manipulation_type,
-            source_real_id=c.source_real_id,
-            file_path=c.file_path,
-            is_hard_sample=False,
-            data_source="baseline",
-            demographics=c.demographics,
-        )
-        for c in curated_records
-    ]
+    # 3. Assign identity splits ONCE across all candidate records
+    ratios = cfg.get("benchmarks", {}).get("split_ratios", {"train": 0.70, "val": 0.15, "test": 0.15})
+    assignment = assign_identity_splits(candidate_records, ratios=ratios, seed=seed)
 
-    # Stage D1: Real + Curated Synthetic
-    d1_records = real_records + curated_records
+    # 4. Build each benchmark stage
+    stages = cfg.get("benchmarks", {}).get("stages", [])
+    benchmarks_dir.mkdir(parents=True, exist_ok=True)
 
-    # Stage D2: Real + Curated + Hard
-    d2_map = {m.image_id: m for m in real_records}
-    for c in curated_records:
-        d2_map[c.image_id] = c
-    for h in hard_records:
-        d2_map[h.image_id] = h
-    d2_records = list(d2_map.values())
-
-    stages = [
-        ("D0_baseline", d0_records, 1),
-        ("D1_augmented", d1_records, 1),
-        ("D2_hard_boosted", d2_records, 2),
-    ]
-
-    for stage_name, records, oversample in stages:
-        stage_dir = output_dir / stage_name
+    for stage_spec in stages:
+        stage_name = stage_spec["name"]
+        stage_dir = benchmarks_dir / stage_name
         stage_dir.mkdir(parents=True, exist_ok=True)
 
-        dm = DeepfakeImageDataModule(
-            metadata_list=records,
-            hard_sample_oversample_factor=oversample,
-            identity_disjoint=True,
-            seed=seed,
-        )
-        train_m, val_m, test_m = dm._partition_splits()
+        splits = build_stage(candidate_records, assignment=assignment, stage_spec=stage_spec)
 
-        for split_name, split_list in [("train", train_m), ("val", val_m), ("test", test_m)]:
+        for split_name, metas in splits.items():
             out_file = stage_dir / f"{split_name}.jsonl"
-            with open(out_file, "w", encoding="utf-8") as f:
-                for item in split_list:
-                    f.write(json.dumps(item.to_dict()) + "\n")
+            with open(out_file, "w", encoding="utf-8") as sf:
+                for m in metas:
+                    sf.write(json.dumps(m.to_dict()) + "\n")
 
         logger.info(
             "Saved %s splits to %s: %d train, %d val, %d test (identity-disjoint).",
             stage_name,
             stage_dir,
-            len(train_m),
-            len(val_m),
-            len(test_m),
+            len(splits["train"]),
+            len(splits["val"]),
+            len(splits["test"]),
         )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Organize dataset into Topic 11 standardized structure.")
-    parser.add_argument("--raw-manifest", type=str, default="data/raw/manifest.jsonl")
-    parser.add_argument("--synthetic-manifest", type=str, default="data/synthetic/fake_manifest.jsonl")
-    parser.add_argument("--curated-manifest", type=str, default="data/synthetic/curated_manifest.jsonl")
-    parser.add_argument("--hard-manifest", type=str, default="data/hard_samples/hard_samples_manifest.jsonl")
+    parser.add_argument("--config", type=str, default="configs/dataset_factory.yaml", help="Path to YAML config")
+    parser.add_argument("--raw-manifest", type=str, default=None)
+    parser.add_argument("--synthetic-manifest", type=str, default=None)
+    parser.add_argument("--curated-manifest", type=str, default=None)
+    parser.add_argument("--hard-manifest", type=str, default=None)
     parser.add_argument("--base-dir", type=str, default="data")
     args = parser.parse_args()
+
+    cfg: Dict[str, Any] = {}
+    if Path(args.config).is_file():
+        cfg = load_config(Path(args.config))
+
+    syn_m = Path(resolve(args.synthetic_manifest, cfg, "paths.fake_manifest"))
+    cur_m = Path(resolve(args.curated_manifest, cfg, "paths.curated_manifest"))
+    hard_m = Path(resolve(args.hard_manifest, cfg, "paths.hard_manifest"))
 
     base = Path(args.base_dir)
     logger.info("Beginning dataset reorganization in %s...", base)
 
-    syn_m = Path(args.synthetic_manifest)
-    if not syn_m.exists() and Path("data/processed/fake_manifest.jsonl").exists():
-        syn_m = Path("data/processed/fake_manifest.jsonl")
-
-    cur_m = Path(args.curated_manifest)
-    if not cur_m.exists() and Path("data/processed/curated_manifest.jsonl").exists():
-        cur_m = Path("data/processed/curated_manifest.jsonl")
-
-    hard_m = Path(args.hard_manifest)
-    if not hard_m.exists() and Path("data/processed/hard_samples_manifest.jsonl").exists():
-        hard_m = Path("data/processed/hard_samples_manifest.jsonl")
-
     # 1. Organize synthetic faces by mode into data/synthetic/
-    organize_synthetic_faces(
-        source_manifest=syn_m,
-        output_base=base / "synthetic",
-    )
+    if syn_m.is_file():
+        organize_synthetic_faces(
+            source_manifest=syn_m,
+            output_base=base / "synthetic",
+        )
 
-    # 2. Hard samples into data/hard_samples/ and demographic audit
-    organize_curated_and_hard_samples(
-        curated_manifest=cur_m,
-        hard_manifest=hard_m,
-        hard_images_dir=base / "hard_samples" / "images",
-        hard_audit_dir=base / "hard_samples" / "audit_reports",
-    )
+    # 2. Build benchmark splits D0, D1, D2 in data/benchmarks/
+    build_benchmark_splits_from_config(cfg)
 
-    # Mirror manifests
-    if syn_m.exists() and syn_m != base / "synthetic" / "fake_manifest.jsonl":
-        shutil.copy2(syn_m, base / "synthetic" / "fake_manifest.jsonl")
-    if cur_m.exists() and cur_m != base / "synthetic" / "curated_manifest.jsonl":
-        shutil.copy2(cur_m, base / "synthetic" / "curated_manifest.jsonl")
-    if hard_m.exists() and hard_m != base / "hard_samples" / "hard_samples_manifest.jsonl":
-        shutil.copy2(hard_m, base / "hard_samples" / "hard_samples_manifest.jsonl")
+    # 3. Export auto-generated dataset statistics
+    compute_dataset_stats(cfg)
 
-    # 3. Build benchmark splits D0, D1, D2 in data/benchmarks/
-    build_benchmark_splits(
-        real_manifest=Path(args.raw_manifest),
-        curated_manifest=cur_m,
-        hard_manifest=hard_m,
-        output_dir=base / "benchmarks",
-        max_real_samples=50,
-    )
-
-    logger.info("Dataset reorganization complete!")
+    logger.info("Dataset reorganization and stats generation complete!")
 
 
 if __name__ == "__main__":

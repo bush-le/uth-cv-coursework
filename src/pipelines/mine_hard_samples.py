@@ -411,6 +411,42 @@ def mine_hard_samples(
     return report
 
 
+def mine_hard_samples_by_feature_similarity(
+    extractor: nn.Module,
+    synthetic_metadata: List[ImageMetadata],
+    real_metadata: Optional[List[ImageMetadata]] = None,
+    cache: Optional[Dict[str, torch.Tensor]] = None,
+    similarity_threshold: float = 0.85,
+    batch_size: int = 16,
+    device: Union[str, torch.device] = "cpu",
+    annotated_manifest_path: Optional[Path] = None,
+    hard_manifest_path: Optional[Path] = None,
+) -> HardSampleMiningReport:
+    """Legacy compatibility wrapper for feature similarity mining using real manifold scoring."""
+    real_meta = real_metadata or []
+    rep = mine_hard_samples_real_manifold(
+        extractor=extractor,
+        synthetic_metadata=synthetic_metadata,
+        real_metadata=real_meta,
+        cache=cache,
+        tau=similarity_threshold,
+        k_neighbors=1,
+        batch_size=batch_size,
+        device=device,
+        annotated_manifest_path=annotated_manifest_path,
+        hard_manifest_path=hard_manifest_path,
+    )
+    return HardSampleMiningReport(
+        total_synthetic=rep.total,
+        rejected_count=rep.total - rep.hard_count,
+        bypassed_hard_count=rep.hard_count,
+        bypass_rate=rep.hard_rate,
+        mean_fake_prob=rep.tau,
+        threshold=similarity_threshold,
+        hard_sample_ids=rep.hard_ids,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Mine hard samples using real-manifold proximity or baseline detector."
@@ -419,7 +455,7 @@ def main() -> None:
     parser.add_argument(
         "--method",
         type=str,
-        choices=["real_manifold", "detector"],
+        choices=["real_manifold", "detector", "feature_similarity"],
         default=None,
     )
     parser.add_argument("--input-manifest", type=str, default=None)
@@ -465,7 +501,7 @@ def main() -> None:
     with open(in_manifest_path, "r", encoding="utf-8") as f:
         synthetic_meta = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
 
-    if method == "real_manifold":
+    if method in ("real_manifold", "feature_similarity"):
         if not raw_manifest_path.exists():
             raise FileNotFoundError(f"Raw reference manifest not found: {raw_manifest_path}")
         with open(raw_manifest_path, "r", encoding="utf-8") as rf:
