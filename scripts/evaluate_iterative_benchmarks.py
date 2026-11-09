@@ -29,97 +29,19 @@ from src.models.evaluators.hardness import load_verified_checkpoint
 logger = get_logger(__name__)
 
 
-def build_benchmark_summary_table(metrics: Dict[str, Dict[str, float]]) -> str:
-    """Build standardized Markdown summary table comparing models on identical test set.
-
-    Args:
-        metrics: Dictionary mapping model names to performance metrics.
-
-    Returns:
-        Formatted GitHub-flavored Markdown table.
-    """
-    lines = [
-        "| Model | Training Dataset | Test Accuracy | Fake Recall (↑) | Bypass Rate (FNR ↓) | ROC-AUC (↑) | Real FPR (↓) |",
-        "|---|---|---|---|---|---|---|",
-    ]
-    meta_desc = {
-        "M0_baseline": "D0 (Base Real + Fake)",
-        "M_rand": "D1 (D0 + Random Fakes)",
-        "M1_hard": "D2 (D0 + H1 Bypass)",
-        "M2_adaptive": "D3 (D0 + H1 + H2 Feedback)",
-    }
-    for m_key, m_data in metrics.items():
-        desc = meta_desc.get(m_key, m_key)
-        acc = m_data.get("accuracy", 0.0) * 100.0
-        rec = m_data.get("fake_recall", 0.0) * 100.0
-        bypr = m_data.get("bypass_rate", 0.0) * 100.0
-        auc = m_data.get("auc", 0.0)
-        fpr = m_data.get("fpr", 0.0) * 100.0
-        lines.append(
-            f"| **{m_key}** | {desc} | {acc:.1f}% | **{rec:.1f}%** | {bypr:.1f}% | **{auc:.3f}** | {fpr:.1f}% |"
-        )
-    return "\n".join(lines)
-
-
-def evaluate_model_on_manifest(
-    model: DeepfakeImageDetector,
-    manifest_path: Path,
-    device: str = "cpu",
-    batch_size: int = 16,
+def compute_metrics_at_threshold(
+    y_prob: np.ndarray,
+    y_true: np.ndarray,
+    threshold: float,
 ) -> Dict[str, float]:
-    """Evaluate detector on a test manifest and compute core metrics."""
-    with open(manifest_path, "r", encoding="utf-8") as f:
-        metas = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
-
-    dataset = DeepfakeImageDataset(metas, target_size=(256, 256))
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_image_samples)
-
-    all_preds = []
-    all_probs = []
-    all_targets = []
-
-    model.eval()
-    model.to(device)
-
-    with torch.no_grad():
-        for batch in loader:
-            images = batch["images"].to(device)
-            labels = batch["labels"].to(device)
-            logits = model(images).squeeze(-1)
-            probs = torch.sigmoid(logits)
-            preds = (probs >= 0.5).long()
-
-            all_preds.extend(preds.cpu().tolist())
-            all_probs.extend(probs.cpu().tolist())
-            all_targets.extend(labels.cpu().tolist())
-
-    y_true = np.array(all_targets)
-    y_prob = np.array(all_probs)
-    real_mask = y_true == 0
-    fake_mask = y_true == 1
-
-    # Calibrate operating decision threshold using Youden's J statistic (TPR - FPR)
-    threshold = 0.5
-    if len(np.unique(y_true)) > 1 and len(y_prob) > 0:
-        cand_taus = np.unique(y_prob)
-        best_j = -1.0
-        best_tau = 0.5
-        for tau in cand_taus:
-            c_preds = (y_prob >= tau).astype(int)
-            c_rec = compute_recall(c_preds, y_true, positive_label=1)
-            c_real = c_preds[real_mask] if np.any(real_mask) else np.array([])
-            c_fpr = float(np.mean(c_real == 1)) if len(c_real) > 0 else 0.0
-            j_stat = c_rec - c_fpr
-            if j_stat > best_j:
-                best_j = j_stat
-                best_tau = float(tau)
-        threshold = best_tau
-
+    """Compute binary classification metrics for given probability predictions and threshold."""
     y_pred = (y_prob >= threshold).astype(int)
     fake_recall = compute_recall(y_pred, y_true, positive_label=1)
     acc = compute_accuracy(y_pred, y_true)
     auc = compute_roc_auc(y_true, y_prob)
 
+    fake_mask = y_true == 1
+    real_mask = y_true == 0
     fake_probs = y_prob[fake_mask] if np.any(fake_mask) else np.array([])
     bypass_rate = compute_bypass_rate(fake_probs, threshold=threshold)
 
@@ -132,7 +54,121 @@ def evaluate_model_on_manifest(
         "bypass_rate": bypass_rate,
         "auc": auc,
         "fpr": fpr,
+        "threshold": float(threshold),
     }
+
+
+def calibrate_and_evaluate_model(
+    val_probs: np.ndarray,
+    val_labels: np.ndarray,
+    test_probs: np.ndarray,
+    test_labels: np.ndarray,
+) -> Dict[str, Dict[str, float]]:
+    """Calibrate decision threshold strictly on validation set, then evaluate on test set.
+
+    Guarantees ZERO test peeking: test probabilities are never used to choose threshold.
+    """
+    # 1. Standard evaluation at fixed tau = 0.50
+    std_metrics = compute_metrics_at_threshold(test_probs, test_labels, threshold=0.50)
+
+    # 2. Calibrate optimal tau on validation set via Youden's J
+    best_tau = 0.50
+    if len(np.unique(val_labels)) > 1 and len(val_probs) > 0:
+        cand_taus = np.unique(val_probs)
+        best_j = -1.0
+        val_real = val_labels == 0
+        for tau in cand_taus:
+            c_preds = (val_probs >= tau).astype(int)
+            c_rec = compute_recall(c_preds, val_labels, positive_label=1)
+            c_fpr = float(np.mean(c_preds[val_real] == 1)) if np.any(val_real) else 0.0
+            j_stat = c_rec - c_fpr
+            if j_stat > best_j:
+                best_j = j_stat
+                best_tau = float(tau)
+
+    # 3. Apply the frozen validation threshold to the test set
+    val_cal_metrics = compute_metrics_at_threshold(test_probs, test_labels, threshold=best_tau)
+
+    return {
+        "standard": std_metrics,
+        "val_calibrated": val_cal_metrics,
+    }
+
+
+def build_benchmark_summary_table(metrics: Dict[str, Dict[str, float]]) -> str:
+    """Build standardized Markdown summary table comparing models on identical test set.
+
+    Args:
+        metrics: Dictionary mapping model names to performance metrics.
+
+    Returns:
+        Formatted GitHub-flavored Markdown table.
+    """
+    lines = [
+        "| Model | Training Dataset | Operating Threshold | Test Accuracy | Fake Recall (↑) | Bypass Rate (FNR ↓) | ROC-AUC (↑) | Real FPR (↓) |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    meta_desc = {
+        "M0_baseline": "D0 (Base Real + Fake)",
+        "M_rand": "D1 (D0 + Random Fakes)",
+        "M1_hard": "D2 (D0 + H1 Bypass)",
+        "M2_adaptive": "D3 (D0 + H1 + H2 Feedback)",
+    }
+    for m_key, m_data in metrics.items():
+        desc = meta_desc.get(m_key, m_key)
+        tau_val = m_data.get("threshold", 0.50)
+        acc = m_data.get("accuracy", 0.0) * 100.0
+        rec = m_data.get("fake_recall", 0.0) * 100.0
+        bypr = m_data.get("bypass_rate", 0.0) * 100.0
+        auc = m_data.get("auc", 0.0)
+        fpr = m_data.get("fpr", 0.0) * 100.0
+        lines.append(
+            f"| **{m_key}** | {desc} | tau={tau_val:.3f} | {acc:.1f}% | **{rec:.1f}%** | {bypr:.1f}% | **{auc:.3f}** | {fpr:.1f}% |"
+        )
+    return "\n".join(lines)
+
+
+def evaluate_model_on_manifest(
+    model: DeepfakeImageDetector,
+    manifest_path: Path,
+    device: str = "cpu",
+    batch_size: int = 16,
+    val_manifest_path: Optional[Path] = None,
+    threshold: Optional[float] = None,
+) -> Dict[str, float]:
+    """Evaluate detector on a test manifest and compute core metrics.
+
+    If val_manifest_path is supplied, calibrates threshold on validation set.
+    Otherwise uses threshold (default 0.50).
+    """
+    def _predict_manifest(p: Path) -> tuple[np.ndarray, np.ndarray]:
+        with open(p, "r", encoding="utf-8") as f:
+            m_list = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
+        ds = DeepfakeImageDataset(m_list, target_size=(256, 256))
+        ld = DataLoader(ds, batch_size=batch_size, shuffle=False, collate_fn=collate_image_samples)
+        p_list, t_list = [], []
+        with torch.no_grad():
+            for batch in ld:
+                imgs = batch["images"].to(device)
+                lbls = batch["labels"].to(device)
+                lgts = model(imgs).squeeze(-1)
+                probs = torch.sigmoid(lgts)
+                p_list.extend(probs.cpu().tolist())
+                t_list.extend(lbls.cpu().tolist())
+        return np.array(p_list), np.array(t_list)
+
+    model.eval()
+    model.to(device)
+
+    test_probs, test_labels = _predict_manifest(manifest_path)
+
+    if val_manifest_path and val_manifest_path.is_file():
+        val_probs, val_labels = _predict_manifest(val_manifest_path)
+        dual_results = calibrate_and_evaluate_model(val_probs, val_labels, test_probs, test_labels)
+        return dual_results["val_calibrated"]
+
+    tau = 0.50 if threshold is None else float(threshold)
+    return compute_metrics_at_threshold(test_probs, test_labels, threshold=tau)
 
 
 def main() -> None:

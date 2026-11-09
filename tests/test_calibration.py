@@ -25,3 +25,21 @@ def test_temperature_scaling_monotonicity():
     probs = scaler.calibrate_probabilities(logits)
     # Monotonically increasing
     assert probs[0] < probs[1] < probs[2] < probs[3]
+
+
+def test_calibrate_threshold_on_val_and_apply_to_test_without_peeking():
+    """Verify operating threshold is calibrated strictly on validation and applied blindly to test."""
+    from scripts.evaluate_iterative_benchmarks import calibrate_and_evaluate_model
+    import numpy as np
+
+    val_probs = np.array([0.48, 0.49, 0.52, 0.53])
+    val_labels = np.array([0, 0, 1, 1])
+    test_probs = np.array([0.47, 0.49, 0.51, 0.54])
+    test_labels = np.array([0, 0, 1, 1])
+
+    results = calibrate_and_evaluate_model(val_probs, val_labels, test_probs, test_labels)
+    assert "standard" in results
+    assert "val_calibrated" in results
+    assert 0.50 <= results["val_calibrated"]["threshold"] <= 0.52
+    assert results["standard"]["threshold"] == 0.50
+
