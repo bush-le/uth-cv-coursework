@@ -50,7 +50,8 @@ def organize_synthetic_faces(
                 dest = img2img_dir / p.name
                 counts["img2img"] += 1
 
-            shutil.copy2(p, dest)
+            if p.resolve() != dest.resolve():
+                shutil.copy2(p, dest)
             counts["total"] += 1
 
     logger.info("Organized synthetic faces: %s", counts)
@@ -60,12 +61,10 @@ def organize_synthetic_faces(
 def organize_curated_and_hard_samples(
     curated_manifest: Path,
     hard_manifest: Path,
-    curated_dir: Path,
     hard_images_dir: Path,
     hard_audit_dir: Path,
 ) -> Dict[str, Any]:
-    """Sort curated images and hard samples with demographic audit."""
-    curated_dir.mkdir(parents=True, exist_ok=True)
+    """Sort hard samples with demographic audit and verify curated samples."""
     hard_images_dir.mkdir(parents=True, exist_ok=True)
     hard_audit_dir.mkdir(parents=True, exist_ok=True)
 
@@ -78,7 +77,6 @@ def organize_curated_and_hard_samples(
                 item = json.loads(line)
                 fp = item.get("file_path")
                 if fp and Path(fp).exists():
-                    shutil.copy2(fp, curated_dir / Path(fp).name)
                     curated_count += 1
 
     hard_items = []
@@ -91,7 +89,9 @@ def organize_curated_and_hard_samples(
                 hard_items.append(item)
                 fp = item.get("file_path")
                 if fp and Path(fp).exists():
-                    shutil.copy2(fp, hard_images_dir / Path(fp).name)
+                    dest_fp = hard_images_dir / Path(fp).name
+                    if Path(fp).resolve() != dest_fp.resolve():
+                        shutil.copy2(fp, dest_fp)
 
     # Demographic audit of hard samples
     age_dist: Dict[str, int] = {}
@@ -225,46 +225,55 @@ def build_benchmark_splits(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Organize dataset into Topic 11 standardized structure.")
     parser.add_argument("--raw-manifest", type=str, default="data/raw/manifest.jsonl")
-    parser.add_argument("--synthetic-manifest", type=str, default="data/processed/fake_manifest.jsonl")
-    parser.add_argument("--curated-manifest", type=str, default="data/processed/curated_manifest.jsonl")
-    parser.add_argument("--hard-manifest", type=str, default="data/processed/hard_samples_manifest.jsonl")
+    parser.add_argument("--synthetic-manifest", type=str, default="data/synthetic/fake_manifest.jsonl")
+    parser.add_argument("--curated-manifest", type=str, default="data/synthetic/curated_manifest.jsonl")
+    parser.add_argument("--hard-manifest", type=str, default="data/hard_samples/hard_samples_manifest.jsonl")
     parser.add_argument("--base-dir", type=str, default="data")
     args = parser.parse_args()
 
     base = Path(args.base_dir)
     logger.info("Beginning dataset reorganization in %s...", base)
 
-    # 1. Organize synthetic faces by mode
+    syn_m = Path(args.synthetic_manifest)
+    if not syn_m.exists() and Path("data/processed/fake_manifest.jsonl").exists():
+        syn_m = Path("data/processed/fake_manifest.jsonl")
+
+    cur_m = Path(args.curated_manifest)
+    if not cur_m.exists() and Path("data/processed/curated_manifest.jsonl").exists():
+        cur_m = Path("data/processed/curated_manifest.jsonl")
+
+    hard_m = Path(args.hard_manifest)
+    if not hard_m.exists() and Path("data/processed/hard_samples_manifest.jsonl").exists():
+        hard_m = Path("data/processed/hard_samples_manifest.jsonl")
+
+    # 1. Organize synthetic faces by mode into data/synthetic/
     organize_synthetic_faces(
-        source_manifest=Path(args.synthetic_manifest),
-        output_base=base / "02_synthetic_sd",
+        source_manifest=syn_m,
+        output_base=base / "synthetic",
     )
 
-    # 2. Curated & Hard samples
+    # 2. Hard samples into data/hard_samples/ and demographic audit
     organize_curated_and_hard_samples(
-        curated_manifest=Path(args.curated_manifest),
-        hard_manifest=Path(args.hard_manifest),
-        curated_dir=base / "02_synthetic_sd" / "curated",
-        hard_images_dir=base / "03_hard_samples" / "images",
-        hard_audit_dir=base / "03_hard_samples" / "audit_reports",
+        curated_manifest=cur_m,
+        hard_manifest=hard_m,
+        hard_images_dir=base / "hard_samples" / "images",
+        hard_audit_dir=base / "hard_samples" / "audit_reports",
     )
 
-    # Copy manifests
-    manifest_dest = base / "02_synthetic_sd" / "manifests"
-    manifest_dest.mkdir(parents=True, exist_ok=True)
-    if Path(args.synthetic_manifest).exists():
-        shutil.copy2(args.synthetic_manifest, manifest_dest / "all_generated.jsonl")
-    if Path(args.curated_manifest).exists():
-        shutil.copy2(args.curated_manifest, manifest_dest / "curated_synthetic.jsonl")
-    if Path(args.hard_manifest).exists():
-        shutil.copy2(args.hard_manifest, base / "03_hard_samples" / "hard_samples_manifest.jsonl")
+    # Mirror manifests
+    if syn_m.exists() and syn_m != base / "synthetic" / "fake_manifest.jsonl":
+        shutil.copy2(syn_m, base / "synthetic" / "fake_manifest.jsonl")
+    if cur_m.exists() and cur_m != base / "synthetic" / "curated_manifest.jsonl":
+        shutil.copy2(cur_m, base / "synthetic" / "curated_manifest.jsonl")
+    if hard_m.exists() and hard_m != base / "hard_samples" / "hard_samples_manifest.jsonl":
+        shutil.copy2(hard_m, base / "hard_samples" / "hard_samples_manifest.jsonl")
 
-    # 3. Build benchmark splits D0, D1, D2
+    # 3. Build benchmark splits D0, D1, D2 in data/benchmarks/
     build_benchmark_splits(
         real_manifest=Path(args.raw_manifest),
-        curated_manifest=Path(args.curated_manifest),
-        hard_manifest=Path(args.hard_manifest),
-        output_dir=base / "04_benchmarks",
+        curated_manifest=cur_m,
+        hard_manifest=hard_m,
+        output_dir=base / "benchmarks",
         max_real_samples=50,
     )
 

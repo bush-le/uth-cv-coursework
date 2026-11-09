@@ -106,7 +106,6 @@ def run_image_generation(
 
         for k in range(num_per_real):
             fake_id = f"fake_{real_id}_{k}"
-            out_file = output_dir / f"{fake_id}.png"
 
             mode_idx = (item_idx + k) % 3
             if mode_idx == 0:
@@ -120,6 +119,7 @@ def run_image_generation(
                     seed=seed + k,
                 )
                 manip_type = "sd_img2img"
+                sub_folder = "img2img"
             elif mode_idx == 1:
                 h, w = source_img.shape[1], source_img.shape[2]
                 mask = torch.zeros(1, h, w)
@@ -134,6 +134,7 @@ def run_image_generation(
                     seed=seed + k,
                 )
                 manip_type = "sd_inpaint"
+                sub_folder = "inpainting"
             else:
                 h, w = source_img.shape[1], source_img.shape[2]
                 base_p = "photorealistic portrait of a synthetic person"
@@ -146,10 +147,19 @@ def run_image_generation(
                     seed=seed + k,
                 )
                 manip_type = "sd_text2img"
+                sub_folder = "text2image"
 
-            # Save PNG
+            # Save PNG into dedicated mode folder
+            sub_dir = output_dir / sub_folder
+            sub_dir.mkdir(parents=True, exist_ok=True)
+            out_file = sub_dir / f"{fake_id}.png"
             np_img = (fake_tensor.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
             Image.fromarray(np_img).save(out_file)
+
+            # Also save flat copy in output_dir root for flat lookup
+            flat_file = output_dir / f"{fake_id}.png"
+            if flat_file != out_file:
+                Image.fromarray(np_img).save(flat_file)
 
             meta = ImageMetadata(
                 image_id=fake_id,
@@ -169,6 +179,14 @@ def run_image_generation(
         for r in fake_records:
             f.write(json.dumps(r) + "\n")
 
+    # Mirror to data/processed for backwards compatibility
+    if "synthetic" in str(output_manifest):
+        legacy_manifest = Path("data/processed/fake_manifest.jsonl")
+        legacy_manifest.parent.mkdir(parents=True, exist_ok=True)
+        with open(legacy_manifest, "w", encoding="utf-8") as f:
+            for r in fake_records:
+                f.write(json.dumps(r) + "\n")
+
     logger.info(
         "Generation complete: %d synthetic faces saved to %s.", generated_count, output_manifest
     )
@@ -180,8 +198,8 @@ def main() -> None:
         description="Generate synthetic deepfake faces via Stable Diffusion."
     )
     parser.add_argument("--input-manifest", type=str, default="data/raw/manifest.jsonl")
-    parser.add_argument("--output-manifest", type=str, default="data/processed/fake_manifest.jsonl")
-    parser.add_argument("--output-dir", type=str, default="data/processed/synthetic_faces")
+    parser.add_argument("--output-manifest", type=str, default="data/synthetic/fake_manifest.jsonl")
+    parser.add_argument("--output-dir", type=str, default="data/synthetic")
     parser.add_argument(
         "--model",
         type=str,

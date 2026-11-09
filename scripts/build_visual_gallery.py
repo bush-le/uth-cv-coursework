@@ -33,8 +33,8 @@ def extract_paths_from_manifest(manifest_path: Path, max_count: int = 4) -> List
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build comparison gallery for Topic 11.")
     parser.add_argument("--real-manifest", type=str, default="data/raw/manifest.jsonl")
-    parser.add_argument("--synthetic-manifest", type=str, default="data/processed/curated_manifest.jsonl")
-    parser.add_argument("--hard-manifest", type=str, default="data/processed/hard_samples_manifest.jsonl")
+    parser.add_argument("--synthetic-manifest", type=str, default="data/synthetic/curated_manifest.jsonl")
+    parser.add_argument("--hard-manifest", type=str, default="data/hard_samples/hard_samples_manifest.jsonl")
     parser.add_argument(
         "--output-image",
         type=str,

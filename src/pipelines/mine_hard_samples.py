@@ -147,6 +147,35 @@ def mine_hard_samples(
             for m in hard_meta:
                 f.write(json.dumps(m.to_dict()) + "\n")
 
+        # Copy hard sample images and save audit
+        hard_img_dir = hard_manifest_path.parent / "images"
+        audit_dir = hard_manifest_path.parent / "audit_reports"
+        hard_img_dir.mkdir(parents=True, exist_ok=True)
+        audit_dir.mkdir(parents=True, exist_ok=True)
+
+        import shutil
+        for m in hard_meta:
+            if m.file_path and Path(m.file_path).exists():
+                shutil.copy2(m.file_path, hard_img_dir / Path(m.file_path).name)
+
+        age_dist: Dict[str, int] = {}
+        gender_dist: Dict[str, int] = {}
+        for m in hard_meta:
+            demo = m.demographics or {}
+            a = demo.get("age_group", "unknown")
+            g = demo.get("gender", "unknown")
+            age_dist[a] = age_dist.get(a, 0) + 1
+            gender_dist[g] = gender_dist.get(g, 0) + 1
+
+        audit_data = {
+            "total_hard_samples": len(hard_meta),
+            "age_distribution": age_dist,
+            "gender_distribution": gender_dist,
+            "mean_fake_probability": mean_prob,
+        }
+        with open(audit_dir / "hard_sample_demographics.json", "w", encoding="utf-8") as af:
+            json.dump(audit_data, af, indent=2)
+
     report = HardSampleMiningReport(
         total_synthetic=total_syn,
         rejected_count=rejected_count,
@@ -171,26 +200,26 @@ def main() -> None:
         description="Run baseline dinoViT on synthetic DF images to mine bypassed hard samples."
     )
     parser.add_argument(
-        "--input-manifest", type=str, default="data/processed/curated_manifest.jsonl"
+        "--input-manifest", type=str, default="data/synthetic/curated_manifest.jsonl"
     )
     parser.add_argument(
         "--annotated-manifest",
         type=str,
-        default="data/processed/annotated_synthetic_manifest.jsonl",
+        default="data/synthetic/annotated_synthetic_manifest.jsonl",
     )
     parser.add_argument(
-        "--hard-manifest", type=str, default="data/processed/hard_samples_manifest.jsonl"
+        "--hard-manifest", type=str, default="data/hard_samples/hard_samples_manifest.jsonl"
     )
     parser.add_argument("--backbone", type=str, default="dinov2_small", help="Backbone architecture (dinov2_small or dino_vit)")
-    parser.add_argument("--threshold", type=float, default=0.5)
+    parser.add_argument("--threshold", type=float, default=0.511)
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     seed_everything(args.seed)
     in_path = Path(args.input_manifest)
-    if not in_path.exists() and Path("data/02_synthetic_sd/manifests/curated_synthetic.jsonl").exists():
-        in_path = Path("data/02_synthetic_sd/manifests/curated_synthetic.jsonl")
+    if not in_path.exists() and Path("data/processed/curated_manifest.jsonl").exists():
+        in_path = Path("data/processed/curated_manifest.jsonl")
 
     if in_path.exists():
         with open(in_path, "r", encoding="utf-8") as f:

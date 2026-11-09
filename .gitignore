@@ -70,21 +70,17 @@ outputs/
 multirun/
 *.tfevents.*
 
-# Data layering - Ignore heavy files but preserve structure
+# Data layering - Ignore heavy data but preserve structure
 data/raw/*
 !data/raw/.gitkeep
-data/interim/*
-!data/interim/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
-data/01_raw_faces/*
-!data/01_raw_faces/.gitkeep
-data/02_synthetic_sd/*
-!data/02_synthetic_sd/.gitkeep
-data/03_hard_samples/*
-!data/03_hard_samples/.gitkeep
-data/04_benchmarks/*
-!data/04_benchmarks/.gitkeep
+data/synthetic/*
+!data/synthetic/.gitkeep
+data/hard_samples/*
+!data/hard_samples/.gitkeep
+data/benchmarks/*
+!data/benchmarks/.gitkeep
 
 # Allow sample data and documentation assets
 !data/samples/**

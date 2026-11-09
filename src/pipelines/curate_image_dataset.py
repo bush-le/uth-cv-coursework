@@ -144,20 +144,31 @@ def curate_image_manifest(
 
 def main() -> None:
     import argparse
+    import shutil
 
     parser = argparse.ArgumentParser(description="Curate synthetic images using automated quality gate.")
-    parser.add_argument("--input-manifest", type=str, default="data/processed/fake_manifest.jsonl")
-    parser.add_argument("--output-manifest", type=str, default="data/processed/curated_manifest.jsonl")
+    parser.add_argument("--input-manifest", type=str, default="data/synthetic/fake_manifest.jsonl")
+    parser.add_argument("--output-manifest", type=str, default="data/synthetic/curated_manifest.jsonl")
     parser.add_argument("--min-sharpness", type=float, default=10.0)
     parser.add_argument("--min-clip", type=float, default=0.15)
     args = parser.parse_args()
 
+    in_path = Path(args.input_manifest)
+    if not in_path.exists() and Path("data/processed/fake_manifest.jsonl").exists():
+        in_path = Path("data/processed/fake_manifest.jsonl")
+
     gate = ImageCurationGate(min_sharpness=args.min_sharpness, min_clip_score=args.min_clip)
     curate_image_manifest(
-        input_manifest=Path(args.input_manifest),
+        input_manifest=in_path,
         output_manifest=Path(args.output_manifest),
         gate=gate,
     )
+
+    # Mirror to data/processed for backwards compatibility
+    if "synthetic" in args.output_manifest:
+        legacy_curated = Path("data/processed/curated_manifest.jsonl")
+        legacy_curated.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(args.output_manifest, legacy_curated)
 
 
 if __name__ == "__main__":
