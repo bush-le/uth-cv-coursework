@@ -82,3 +82,24 @@ def test_hard_sample_requires_face_crop_manifold_proximity():
     # Automatic fallback
     auto_cropped = crop_face_tensor(dummy, bbox=None, target_size=(224, 224))
     assert auto_cropped.shape == (3, 224, 224)
+
+
+def test_diversity_filter_prunes_near_duplicate_embeddings():
+    """Verify DINOv2 embedding diversity filter prunes redundant near-identical faces."""
+    from src.pipelines.mine_hard_samples import filter_by_embedding_diversity
+
+    # 4 embeddings: 0 and 1 are almost identical (cos > 0.99), 2 and 3 are distinct
+    e0 = torch.tensor([1.0, 0.0, 0.0])
+    e1 = torch.tensor([0.999, 0.01, 0.0])
+    e2 = torch.tensor([0.0, 1.0, 0.0])
+    e3 = torch.tensor([0.0, 0.0, 1.0])
+    embeddings = torch.stack([e0, e1, e2, e3])
+    scores = [0.10, 0.12, 0.20, 0.30]  # Lower is harder
+
+    selected_indices = filter_by_embedding_diversity(embeddings, scores, max_cosine_sim=0.95)
+    # e1 must be pruned because e0 was already chosen and has lower score
+    assert 0 in selected_indices
+    assert 1 not in selected_indices
+    assert 2 in selected_indices
+    assert 3 in selected_indices
+

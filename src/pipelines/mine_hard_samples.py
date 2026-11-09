@@ -12,8 +12,10 @@ import json
 from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional, Tuple, Union
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from src.common.config import cfg_get, load_config
@@ -99,6 +101,55 @@ def crop_face_tensor(
     face_crop_batched = face_crop.unsqueeze(0)
     resized = F.interpolate(face_crop_batched, size=target_size, mode="bilinear", align_corners=False)
     return resized.squeeze(0)
+
+
+def filter_by_embedding_diversity(
+    embeddings: torch.Tensor,
+    scores: Union[torch.Tensor, List[float]],
+    max_cosine_sim: float = 0.95,
+) -> List[int]:
+    """Prune near-duplicate hard samples using greedy diversity selection on embeddings.
+
+    Sorts candidates in ascending order of score (hardest first, where lower fake prob is harder),
+    and iteratively accepts an item only if its cosine similarity to all previously accepted
+    embeddings is <= max_cosine_sim.
+
+    Args:
+        embeddings: Normalized or unnormalized embeddings of shape (N, D).
+        scores: Hardness scores for each item, shape (N,). Lower is harder.
+        max_cosine_sim: Maximum allowed pairwise cosine similarity.
+
+    Returns:
+        List of selected integer indices from [0, N-1].
+    """
+    if len(embeddings) == 0:
+        return []
+
+    norm_embs = F.normalize(embeddings.float(), dim=-1)
+    if isinstance(scores, torch.Tensor):
+        scores_arr = scores.detach().cpu().numpy()
+    else:
+        scores_arr = np.array(scores, dtype=np.float32)
+
+    # Sort indices by score (ascending: hardest first)
+    order = np.argsort(scores_arr)
+    selected: List[int] = []
+
+    for idx in order:
+        if len(selected) == 0:
+            selected.append(int(idx))
+            continue
+
+        cand_emb = norm_embs[idx : idx + 1]
+        sel_embs = norm_embs[selected]
+        sims = torch.mm(cand_emb, sel_embs.t()).view(-1)
+        max_sim = float(sims.max().item())
+
+        if max_sim <= max_cosine_sim:
+            selected.append(int(idx))
+
+    return sorted(selected)
+
 
 
 def _save_mining_results(
