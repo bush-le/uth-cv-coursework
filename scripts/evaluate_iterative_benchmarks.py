@@ -151,6 +151,7 @@ def main() -> None:
         ("M0_baseline", ["experiments/checkpoints/baseline_d0_best.pt", "experiments/checkpoints/baseline_detector_best.pt"]),
         ("M_rand", ["experiments/checkpoints/augmented_d1_best.pt", "experiments/checkpoints/detector_D1_random_best.pt"]),
         ("M1_hard", ["experiments/checkpoints/hard_boosted_d2_best.pt", "experiments/checkpoints/detector_D2_hard_best.pt"]),
+        ("M2_adaptive", ["experiments/checkpoints/adaptive_d3_best.pt", "experiments/checkpoints/adaptive_d3.pt"]),
     ]
 
     metrics_dict: Dict[str, Dict[str, float]] = {}
@@ -173,17 +174,6 @@ def main() -> None:
         res = evaluate_model_on_manifest(model, test_path, device=args.device)
         metrics_dict[name] = res
         logger.info("%s Metrics: %s", name, res)
-
-    # If M1_hard was evaluated, simulate M2_adaptive with advanced calibration/hard-sample gain for 4-way display
-    if "M1_hard" in metrics_dict and "M2_adaptive" not in metrics_dict:
-        m1 = metrics_dict["M1_hard"]
-        metrics_dict["M2_adaptive"] = {
-            "accuracy": min(1.0, m1["accuracy"] + 0.05),
-            "fake_recall": min(1.0, m1["fake_recall"] + 0.05),
-            "bypass_rate": max(0.0, m1["bypass_rate"] - 0.05),
-            "auc": min(1.0, m1["auc"] + 0.02),
-            "fpr": max(0.0, m1["fpr"] - 0.05),
-        }
 
     report_md = build_benchmark_summary_table(metrics_dict)
     print("\n" + "=" * 80)

@@ -156,11 +156,11 @@ def run_image_generation(
             fake_id = f"fake_{real_id}_{k}"
             if mode_val == "all":
                 mode_idx = (item_idx + k) % 3
-            elif mode_val == "img2img":
+            elif mode_val in ("img2img", "sd_img2img"):
                 mode_idx = 0
-            elif mode_val == "inpaint":
+            elif mode_val in ("inpaint", "sd_inpaint"):
                 mode_idx = 1
-            elif mode_val == "text2img":
+            elif mode_val in ("text2img", "sd_text2img"):
                 mode_idx = 2
             else:
                 mode_idx = (item_idx + k) % 3

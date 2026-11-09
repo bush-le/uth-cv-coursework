@@ -1,0 +1,75 @@
+{
+  "counts_by_source": {
+    "raw_real": 4000,
+    "synthetic_total": 30,
+    "curated_synthetic": 25,
+    "hard_samples": 11
+  },
+  "counts_by_mode": {
+    "sd_img2img": 9,
+    "sd_inpaint": 7,
+    "sd_text2img": 9
+  },
+  "demographics": {
+    "age_distribution": {
+      "0-2": 75,
+      "30-39": 449,
+      "3-6": 134,
+      "20-29": 588,
+      "40-49": 264,
+      "50-69": 224,
+      "10-14": 74,
+      "15-19": 113,
+      "7-9": 72,
+      "70-120": 32,
+      "unknown": 2000
+    },
+    "gender_distribution": {
+      "male": 966,
+      "female": 1059,
+      "unknown": 2000
+    }
+  },
+  "curation_pass_rate": 0.8333333333333334,
+  "hard_rate_by_mode": {
+    "sd_text2img": 0.1111111111111111,
+    "sd_inpaint": 0.7142857142857143,
+    "sd_img2img": 0.5555555555555556
+  },
+  "tau": null,
+  "hardness_config": {
+    "method": "detector",
+    "backbone_id": "facebook/dinov2-small",
+    "k_neighbors": 3,
+    "reference_quantile": 0.5,
+    "detector_checkpoint": "experiments/checkpoints/baseline_detector_best.pt",
+    "detector_tau": 0.5,
+    "batch_size": 16,
+    "max_real_reference": 200
+  },
+  "generation_config": {
+    "model_id": "runwayml/stable-diffusion-v1-5",
+    "inpaint_model_id": "runwayml/stable-diffusion-v1-5",
+    "modes": [
+      "sd_img2img",
+      "sd_inpaint",
+      "sd_text2img"
+    ],
+    "num_per_real": 1,
+    "max_real_samples": 30,
+    "steps": 25,
+    "guidance_scale": 7.5,
+    "img2img_strength": 0.4,
+    "image_size": [
+      256,
+      256
+    ],
+    "negative_prompt": "deformed, blurry, bad anatomy, bad eyes, disfigured, poorly drawn face",
+    "inpaint_mask_box": [
+      0.3,
+      0.25,
+      0.7,
+      0.75
+    ]
+  }
+}

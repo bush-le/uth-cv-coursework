@@ -182,6 +182,7 @@ def train_single_stage(
         "D0": "baseline_d0",
         "D1": "augmented_d1",
         "D2": "hard_boosted_d2",
+        "D3": "adaptive_d3",
     }
     ckpt_prefix = stage_prefix_map.get(stage_name, stage_name.lower())
 
