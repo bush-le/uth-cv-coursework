@@ -45,11 +45,11 @@ case "${STAGE}" in
         ;;
     "train")
         echo "[Phase 3a] Fine-tuning dinoViT on Baseline + Synthetic + Hard Samples..."
-        ${PYTHON} -m src.pipelines.train --config "${CONFIG}"
+        ${PYTHON} -m src.pipelines.train --config "${CONFIG}" "${@:3}"
         ;;
     "eval"|"evaluate")
         echo "[Phase 3b] Evaluating dinoViT benchmark..."
-        ${PYTHON} -m src.pipelines.evaluate --config "${CONFIG}"
+        ${PYTHON} -m src.pipelines.evaluate --config "${CONFIG}" "${@:3}"
         ;;
     "infer"|"inference")
         echo "Launching dinoViT inference pipeline..."
