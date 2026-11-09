@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import numpy as np
+from PIL import Image
 import torch
 
 from src.common.logger import get_logger
@@ -105,9 +107,28 @@ def curate_image_manifest(
                 if not line.strip():
                     continue
                 item = json.loads(line)
-                # Manifest schema validation and pass-through
-                curated_lines.append(json.dumps(item) + "\n")
-                kept_count += 1
+                file_path = item.get("file_path")
+                if file_path and Path(file_path).exists():
+                    try:
+                        with Image.open(file_path) as img:
+                            np_img = np.array(img.convert("RGB"), dtype=np.float32) / 255.0
+                            tensor_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
+                        report = gate.evaluate_image(
+                            tensor_img,
+                            prompt=item.get("prompt", ""),
+                            image_id=item.get("image_id", ""),
+                        )
+                        if report.is_valid:
+                            curated_lines.append(json.dumps(item) + "\n")
+                            kept_count += 1
+                        else:
+                            rejected_count += 1
+                    except Exception as err:
+                        logger.warning("Error reading %s for curation (%s), skipping.", file_path, err)
+                        rejected_count += 1
+                else:
+                    curated_lines.append(json.dumps(item) + "\n")
+                    kept_count += 1
 
     with open(output_manifest, "w", encoding="utf-8") as f:
         f.writelines(curated_lines)
@@ -117,5 +138,27 @@ def curate_image_manifest(
         "kept": kept_count,
         "rejected": rejected_count,
     }
-    logger.info(f"Image curation complete: {summary}")
+    logger.info("Image curation complete: %s", summary)
     return summary
+
+
+def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Curate synthetic images using automated quality gate.")
+    parser.add_argument("--input-manifest", type=str, default="data/processed/fake_manifest.jsonl")
+    parser.add_argument("--output-manifest", type=str, default="data/processed/curated_manifest.jsonl")
+    parser.add_argument("--min-sharpness", type=float, default=10.0)
+    parser.add_argument("--min-clip", type=float, default=0.15)
+    args = parser.parse_args()
+
+    gate = ImageCurationGate(min_sharpness=args.min_sharpness, min_clip_score=args.min_clip)
+    curate_image_manifest(
+        input_manifest=Path(args.input_manifest),
+        output_manifest=Path(args.output_manifest),
+        gate=gate,
+    )
+
+
+if __name__ == "__main__":
+    main()

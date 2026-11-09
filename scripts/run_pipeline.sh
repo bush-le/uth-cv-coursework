@@ -33,15 +33,15 @@ echo "=================================================="
 case "${STAGE}" in
     "generate")
         echo "[Phase 1a] Generating synthetic DF images via Stable Diffusion..."
-        ${PYTHON} -m src.pipelines.generate_deepfake_images
+        ${PYTHON} -m src.pipelines.generate_deepfake_images "${@:2}"
         ;;
     "curate")
         echo "[Phase 1b] Filtering synthetic DF images via Curation Gate..."
-        ${PYTHON} -m src.pipelines.curate_image_dataset
+        ${PYTHON} -m src.pipelines.curate_image_dataset "${@:2}"
         ;;
     "mine")
         echo "[Phase 2] Running baseline dinoViT to mine bypassed Hard Samples..."
-        ${PYTHON} -m src.pipelines.mine_hard_samples
+        ${PYTHON} -m src.pipelines.mine_hard_samples "${@:2}"
         ;;
     "train")
         echo "[Phase 3a] Fine-tuning dinoViT on Baseline + Synthetic + Hard Samples..."
