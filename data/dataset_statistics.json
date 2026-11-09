@@ -1,46 +1,42 @@
 {
   "counts_by_source": {
     "raw_real": 4000,
-    "synthetic_total": 150,
-    "curated_synthetic": 120,
-    "hard_samples": 39
+    "synthetic_total": 0,
+    "curated_synthetic": 0,
+    "hard_samples": 0
   },
-  "counts_by_mode": {
-    "sd_img2img": 47,
-    "sd_inpaint": 39,
-    "sd_text2img": 34
-  },
+  "counts_by_mode": {},
   "demographics": {
     "age_distribution": {
-      "0-2": 78,
-      "30-39": 471,
-      "3-6": 139,
-      "20-29": 616,
-      "40-49": 277,
-      "50-69": 233,
-      "10-14": 79,
-      "15-19": 118,
-      "7-9": 74,
-      "70-120": 35,
+      "0-2": 73,
+      "30-39": 442,
+      "3-6": 129,
+      "20-29": 581,
+      "40-49": 260,
+      "50-69": 224,
+      "10-14": 74,
+      "15-19": 113,
+      "7-9": 72,
+      "70-120": 32,
       "young": 1576,
       "mature": 424
     },
     "gender_distribution": {
-      "male": 1468,
-      "female": 2652
+      "male": 1404,
+      "female": 2596
     },
     "glasses_distribution": {
-      "None": 3594,
-      "Normal": 368,
-      "Dark": 98,
+      "None": 3498,
+      "Normal": 349,
+      "Dark": 93,
       "Glasses": 60
     }
   },
-  "curation_pass_rate": 0.8,
+  "curation_pass_rate": 0.0,
   "hard_rate_by_mode": {
-    "sd_text2img": 0.4117647058823529,
-    "sd_inpaint": 0.38461538461538464,
-    "sd_img2img": 0.2127659574468085
+    "sd_text2img": 0.0,
+    "sd_inpaint": 0.0,
+    "sd_img2img": 0.0
   },
   "tau": null,
   "hardness_config": {
@@ -55,7 +51,7 @@
   },
   "generation_config": {
     "model_id": "runwayml/stable-diffusion-v1-5",
-    "inpaint_model_id": "runwayml/stable-diffusion-v1-5",
+    "inpaint_model_id": "stable-diffusion-v1-5/stable-diffusion-inpainting",
     "modes": [
       "sd_img2img",
       "sd_inpaint",

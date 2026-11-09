@@ -1,12 +1,12 @@
-# DETECTOR_GUIDED_CLOSED_LOOP_ACTIVE_LEARNING_PLAN.md — Detector-Guided Closed-Loop Active Learning for Deepfake Dataset Generation
+# DETECTOR_GUIDED_CLOSED_LOOP_ACTIVE_LEARNING_PLAN.md — Detector-Guided Closed-Loop Active Learning Architecture & Execution Plan
 
-- **Motivation/Background**: Conventional deepfake dataset generation relies on brute-force, one-way generation across arbitrary checkpoints without awareness of detector vulnerabilities. This creates redundant data with low downstream training utility. A closed-loop active learning system leverages detector feedback (False Negatives & Uncertain samples) to adaptively drive generation budgets, regional inpainting masks, and prompt attributes.
-- **Purpose**: Formalize, implement, and verify the 2-Tier Detector-Guided Active Learning Pipeline ($M_t \to \text{Calibrated Inference} \to \text{Mine } H_t \to \text{Adaptive Budget/Prompt Allocation} \to D_{t+1} \to M_{t+1}$) with strict demographic fairness safeguards, zero test leakage, and calibrated uncertainty.
-- **Overview Pipeline**: Baseline Detector $M_0$ $\to$ Candidate Synthesis Pool (T2I, I2I, Inpaint) $\to$ Calibrated Inference (Temperature Scaling) $\to$ Dual-Criterion Hard Mining (FN + Uncertain) $\to$ Error Attribution & Budget Allocation $\to$ Dynamic Combinatorial Prompt Generation $\to$ Dataset Expansion & Retraining $\to$ Frozen Test Evaluation.
-- **Detailed Plan**: §1 Dynamic Combinatorial Grammar Engine; §2 Hierarchical 2-Tier Budget Controller; §3 Calibrated Hard-Sample Mining; §4 Closed-Loop Active Learning Orchestrator; §5 End-to-End Verification & Benchmark Curves.
-- **References**: `configs/dataset_factory.yaml`, `src/data/image_schema.py`, `src/pipelines/generate_deepfake_images.py`, `src/pipelines/train.py`, `GEMINI.md`.
+- **Motivation/Background**: Conventional deepfake generation pipelines suffer from "blind generation": producing thousands of synthetic images without detector vulnerability feedback, resulting in high redundancy, low hard-sample yield, and rapid detector plateauing. A detector-guided active learning loop uses calibrated model misclassifications (False Negatives & High-Uncertainty Boundary samples) to adaptively steer combinatorial prompt grammar, generation modalities (T2I, I2I, Inpaint), and facial mask regions, systematically breaking detector blindspots over successive rounds ($M_0 \to M_1 \to M_2 \dots$).
+- **Purpose**: Serve as the comprehensive, authoritative implementation plan and benchmark blueprint for Topic 11 (Facial Deepfake Detection under Active Adversarial Feedback) with Dual-Benchmark evaluation, stateful round resumption, and 9-channel inpainting UNet integration.
+- **Overview Pipeline**: Baseline Detector $M_0$ $\to$ Modality Budget Allocation (Tier 1) & Regional Mask Targeting (Tier 2) $\to$ Combinatorial Prompt Generation (7 slots, CLIP $\le 60$ words) $\to$ Synthesis Pool Generation (T2I / I2I / 9-ch Inpaint) $\to$ Quality Curation Gate $\to$ Calibrated Inference (Validation Temperature Scaling) $\to$ Hard-Sample Mining ($H_r$) $\to$ Hard Split ($85\%$ Train, $15\%$ Challenge Test) $\to$ Error Attribution Feedback $\to$ Dataset Expansion ($D_r = D_{r-1} \cup H_r^{\text{train}}$) $\to$ Retraining $M_r$ $\to$ Dual-Benchmark Evaluation (Master Frozen Test + Cumulative Challenge Test) $\to$ Trajectory Logging.
+- **Detailed Plan**: §1 Executive Architecture & Core Innovations; §2 Global Constraints & Guardrails; §3 Completed Milestones (Tasks 1–4); §4 Task 5: Dual-Benchmark Splitting & Evaluation Integration; §5 Task 6: Multi-Round Production Scaling & Proof-of-Utility Benchmark; §6 Task 7: Active Learning Progression Visualizer; §7 Task 8: Coursework Deliverables & Documentation Synchronization.
+- **References**: [GEMINI.md](GEMINI.md), [SESSION_HANDOVER.md](SESSION_HANDOVER.md), [docs/progress/SESSION_HANDOVER_2026_11_09.md](docs/progress/SESSION_HANDOVER_2026_11_09.md), [configs/dataset_factory.yaml](configs/dataset_factory.yaml), [src/pipelines/run_closed_loop_active_learning.py](src/pipelines/run_closed_loop_active_learning.py).
 - **Created**: 2026-11-09T19:26:00+07:00
-- **Last Updated**: 2026-11-09T19:26:00+07:00
+- **Last Updated**: 2026-11-09T20:05:00+07:00
 
 ---
 
@@ -14,29 +14,47 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` (or `superpowers:subagent-driven-development`) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a complete closed-loop active learning pipeline where detector misclassification feedback directly guides prompt generation, modality budgets, and regional masks across iterative generation rounds, provably boosting detector robustness.
+**Goal:** Build and verify an end-to-end detector-guided closed-loop active learning system where detector feedback adaptively steers prompt synthesis, modality quotas, and regional facial masks, demonstrating measurable reduction in detector bypass rate under a rigorous Dual-Benchmark evaluation protocol.
 
-**Architecture:** A 2-Tier Adaptive Architecture: Tier 1 dynamically allocates generation quotas among T2I, I2I, and Inpainting based on mode-level False Negative rates with a 20% exploration floor. Tier 2 performs granular error attribution, directing Inpainting masks toward vulnerable facial regions (periocular, lips, nose) and modulating T2I prompt tokens using a combinatorial grammar matrix with error-weighted softmax sampling.
+**Architecture:** A 2-Tier Adaptive Active Learning Loop with a Dual-Benchmark evaluation vault:
+- **Tier 1 (Modality Quotas):** Dynamically distributes synthesis quotas across Text-to-Image (T2I), Image-to-Image (I2I), and Inpainting based on mode-level False Negative rates with a strict $15\%$ exploration floor and Hare-Niemeyer largest-remainder allocation.
+- **Tier 2 (Attribute & Regional Steering):** Modulates Inpainting masks toward vulnerable facial regions (`periocular`, `lips`, `nose`, `full`) and samples 7-slot combinatorial photographic prompts via softmax error weighting with a CLIP token limit ($\le 60$ words) and a Demographic Shield.
+- **Dual-Benchmark Evaluation:**
+  1. *Master Frozen Test Set (Anchor Vault):* Identity-disjoint test set held completely frozen across all rounds ($M_0 \to M_1 \to M_2$) to detect catastrophic forgetting and provide unpolluted apples-to-apples ROC-AUC tracking.
+  2. *Cumulative Challenge Test Set (Dynamic Vault):* Slices $15\%$ of each round's hard samples ($H_1^{\text{test}} \cup H_2^{\text{test}} \dots$) into an expanding adversarial challenge suite to measure hard-sample recall and bypass rate elimination without train-test leakage.
 
-**Tech Stack:** Python 3.10+, PyTorch 2.1+, Torchvision, Hugging Face Diffusers (Stable Diffusion v1.5), DINOv2 ViT, OpenCV, NumPy, Pytest.
+**Tech Stack:** Python 3.10+, PyTorch 2.1+, Torchvision, Hugging Face Diffusers (Stable Diffusion v1.5 base & 9-channel UNet `stable-diffusion-v1-5/stable-diffusion-inpainting`), DINOv2 ViT (Linear Probe / LayerNorm), OpenCV, NumPy, Pytest.
 
-**Spec:** `docs/OVERVIEW.md`, `configs/dataset_factory.yaml`, `GEMINI.md`.
+**Spec:** [docs/OVERVIEW.md](docs/OVERVIEW.md), [SESSION_HANDOVER.md](SESSION_HANDOVER.md), [GEMINI.md](GEMINI.md).
 
-## Global Constraints
+---
 
-- **Strict No-Mock Invariant**: No synthetic noise, uninitialized weights, or mock data for production evaluation or hard sample mining (`GEMINI.md §2`).
-- **Identity-Disjoint Test Protection**: The 43-sample test set in `data/benchmarks/D0_baseline/test.jsonl` remains 100% frozen, held-out, and never touched during candidate generation, mining, or prompt tuning.
-- **Zero VRAM Waste**: Prompt engine and budget controllers must execute on CPU in pure Python/NumPy (< 1ms, 0 MB VRAM) to leave all 3.73 GB VRAM for Stable Diffusion FP16 and DINOv2 fine-tuning.
-- **Reproducibility**: All dynamic slot sampling and seed generation must derive deterministically via CRC32 hashing from base seeds.
-- **Strict Typing**: Full PEP 484 type annotations on all function signatures, zero `print()` in `src/`.
+## Global Constraints & Invariants
 
-## Review Focus
+1. **Strict No-Mock Invariant (`GEMINI.md §2`)**: Never use mock data, synthetic noise, or uninitialized random-weight heads for evaluation or mining. All mining and inference must execute on real checkpoints (`best_model.pt`).
+2. **Dual-Benchmark Identity & Split Disjointness**:
+   - Master Frozen Test Set remains 100% untouched during candidate generation, prompt weighting, and detector retraining.
+   - For every mined hard sample set $H_r$, samples are split with a deterministic hash: $85\%$ to $H_r^{\text{train}}$ and $15\%$ to $H_r^{\text{test}}$. No sample in $H_r^{\text{test}}$ can ever enter the training pool $D_r$.
+3. **GPU Hygiene & VRAM Ceiling (3.73 GB VRAM)**:
+   - RTX 3050 Laptop GPU constraint: Base diffusion and inpainting pipelines use `torch.float16`, attention slicing, and explicit cleanup (`del engine; gc.collect(); torch.cuda.empty_cache()`) between pipeline steps.
+   - Prompt grammar engine and budget controllers execute strictly on CPU in pure NumPy/Python (< 1ms, 0 MB VRAM).
+4. **Reproducibility**: All dynamic slot sampling, seed generation, and dataset splits derive deterministically via CRC32 hashing from user-configured seeds (`src.common.seed.seed_everything`).
+5. **Clean Code & Strict Typing**: 100% vectorized NumPy/PyTorch math (zero pixel loops), zero `print()` in `src/` (use `src.common.logger.get_logger`), full PEP 484 type annotations.
 
-1. **Demographic Shortcut Learning**: Detector fails exclusively on one demographic slice causing the generator to produce only that group, collapsing diversity. *Mitigation: Demographic Shield enforcing uniform demographic distribution across candidate generation.*
-2. **Uncalibrated Confidence Misleading Mining**: An overconfident detector outputs extreme probabilities ($P=0.01$ or $P=0.99$) on out-of-distribution fakes, corrupting hard sample selection. *Mitigation: Temperature scaling calibration fitted on independent validation set before mining.*
-3. **Exploration Starvation**: One modality achieves high early yield, starving other modalities and narrowing vulnerability coverage. *Mitigation: Hard minimum 15% exploration quota per generation modality.*
-4. **Stale Checkpoint Leakage**: Checkpoints from previous runs or earlier stages contaminating model evaluation. *Mitigation: Explicit prefix namespacing and pre-training cache invalidation.*
-5. **Memory Leakage across Iterative Rounds**: PyTorch CUDA memory accumulation during repeated train-inference cycles. *Mitigation: Explicit `torch.cuda.empty_cache()` and context scoping between rounds.*
+---
+
+## Review Focus & Failure Mode Mitigations
+
+1. **Catastrophic Forgetting during Hard-Sample Fine-Tuning**: Over-indexing on hard adversarial samples ($H_r$) causes the detector to forget general deepfake artifacts or inflate false positive rates on real faces.
+   - *Mitigation:* Master Frozen Test Set benchmark run after every round; replay buffer retains base dataset $D_0$ with hard-sample oversampling factor $\le 2.0$.
+2. **Demographic Distribution Collapse**: Generator focuses exclusively on a single demographic slice that fooled the detector, collapsing diversity.
+   - *Mitigation:* Demographic Shield enforces uniform demographic balancing across candidate generation slots.
+3. **Uncalibrated Confidence Misleading Mining**: An uncalibrated detector outputting extreme probabilities ($P=0.01$ or $P=0.99$) corrupts hard sample boundaries.
+   - *Mitigation:* Validation temperature scaling optimization ($T > 0$) fitted via PyTorch before mining.
+4. **CLIP Token Window Truncation**: Overly verbose combinatorial prompts getting clipped by the 77-token CLIP text encoder.
+   - *Mitigation:* Hard 60-word length ceiling in `PromptGrammarEngine.generate_prompt()`.
+5. **Stateful Round Desynchronization**: Process interruption causing lost progress or double-training of earlier rounds.
+   - *Mitigation:* Automated stateful resume scanning `data/active_learning/round_*` and `experiments/checkpoints/active_learning_m*_best.pt` to seamlessly resume from round $r+1$.
 
 ---
 
@@ -46,356 +64,193 @@
 src/
 ├── models/
 │   ├── diffusion/
-│   │   ├── prompt_engine.py             # NEW: Dynamic Combinatorial Grammar Engine with Softmax Sampling
-│   │   └── stable_diffusion_engine.py   # EXISTING: SD generation backend
+│   │   ├── prompt_engine.py             # DONE: Dynamic 7-Slot Combinatorial Grammar Engine with Softmax Sampling
+│   │   └── stable_diffusion_engine.py   # DONE: SD v1.5 base & 9-channel UNet Inpainting engine
 │   └── evaluators/
-│       ├── calibrated_mining.py         # NEW: Temperature scaling & dual-criterion hard-sample mining
-│       └── hardness.py                  # EXISTING: Real-manifold proximity & LOO tau
+│       ├── calibrated_mining.py         # DONE: Temperature scaling & dual-criterion hard-sample mining
+│       └── hardness.py                  # DONE: Real-manifold proximity & LOO tau
 ├── pipelines/
-│   ├── budget_controller.py             # NEW: 2-Tier Modality Budget & Regional Mask Allocator
-│   ├── run_closed_loop_active_learning.py # NEW: Master Active Learning Orchestrator (Rounds M0 -> M1 -> M2)
-│   ├── generate_deepfake_images.py      # MODIFY: Integrate prompt_engine & dynamic budget
-│   └── train.py                         # EXISTING: Multi-stage benchmark training
+│   ├── budget_controller.py             # DONE: Hierarchical 2-Tier Budget & Regional Mask Controller
+│   ├── run_closed_loop_active_learning.py # IN-PROGRESS: Master Active Learning Orchestrator with Dual-Benchmark
+│   ├── generate_deepfake_images.py      # DONE: SD generation backend with dynamic quotas
+│   ├── curate_image_dataset.py          # DONE: Laplacian blur & SHA-256 deduplication gate
+│   └── train.py                         # DONE: Multi-stage benchmark training
+scripts/
+└── plot_active_learning_progression.py   # NEW (Task 7): Active learning visualization suite
 tests/
-├── test_prompt_engine.py                # NEW: Unit tests for grammar matrix & sampling distribution
-├── test_budget_controller.py            # NEW: Unit tests for modality quotas & demographic shield
-├── test_calibrated_mining.py            # NEW: Unit tests for temperature scaling & FN/uncertain selection
-└── test_closed_loop_active_learning.py  # NEW: Integration test for full loop cycle
+├── test_prompt_engine.py                # DONE: 4/4 passed
+├── test_budget_controller.py            # DONE: 4/4 passed
+├── test_calibrated_mining.py            # DONE: 3/3 passed
+└── test_closed_loop_active_learning.py  # IN-PROGRESS: Integration & Dual-Benchmark tests
 ```
 
 ---
+
+## Completed Tasks (Milestones 1–4)
 
 ### Task 1: Dynamic Combinatorial Grammar Engine (`prompt_engine.py`)
-
-**Files:**
-- Create: `src/models/diffusion/prompt_engine.py`
-- Test: `tests/test_prompt_engine.py`
-
-**Interfaces:**
-- Produces:
-  - `class PromptGrammarEngine`:
-    - `__init__(seed: int = 42, exploration_ratio: float = 0.20)`
-    - `update_error_weights(error_stats: Dict[str, float], temperature: float = 1.0) -> None`
-    - `generate_prompt(demographics: Optional[Dict[str, Any]] = None, mode: str = "text2img", seed_offset: int = 0) -> str`
-    - `get_slot_probabilities() -> Dict[str, Dict[str, float]]`
-
-- [ ] **Step 1: Write the failing unit tests**
-
-```python
-# tests/test_prompt_engine.py
-import pytest
-from src.models.diffusion.prompt_engine import PromptGrammarEngine
-
-def test_prompt_grammar_deterministic_generation():
-    engine = PromptGrammarEngine(seed=42)
-    p1 = engine.generate_prompt(mode="text2img", seed_offset=100)
-    p2 = engine.generate_prompt(mode="text2img", seed_offset=100)
-    assert p1 == p2
-    assert "RAW photo" in p1 or "portrait" in p1
-
-def test_prompt_grammar_error_weight_adaptation():
-    engine = PromptGrammarEngine(seed=42)
-    # Simulate high error on direct flash and elderly
-    error_stats = {
-        "lighting:direct harsh camera flash": 0.85,
-        "lighting:soft studio lighting": 0.10,
-        "demographics:elderly": 0.90,
-    }
-    engine.update_error_weights(error_stats)
-    probs = engine.get_slot_probabilities()
-    assert probs["lighting"]["direct harsh camera flash"] > probs["lighting"]["soft studio lighting"]
-    
-    # Generate batch and verify increased prevalence of hard token
-    prompts = [engine.generate_prompt(mode="text2img", seed_offset=i) for i in range(50)]
-    flash_count = sum(1 for p in prompts if "camera flash" in p)
-    assert flash_count >= 10
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `pytest tests/test_prompt_engine.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'src.models.diffusion.prompt_engine'`
-
-- [ ] **Step 3: Implement `PromptGrammarEngine` in `src/models/diffusion/prompt_engine.py`**
-
-Define 4 orthogonal slot dictionaries:
-- `subject`: age groups, skin texture descriptors, micro-facial features.
-- `optics`: lenses (`35mm`, `85mm f/1.8`, `50mm`), focus types, bokeh depth.
-- `lighting`: studio soft, direct flash, side window, natural golden hour, outdoor overcast.
-- `occlusion`: rimless glasses, wireframe eyeglasses, sunglasses, hair strands.
-Implement softmax sampling with a configurable exploration floor ($\ge 20\%$) to avoid distribution collapse.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `pytest tests/test_prompt_engine.py -v`
-Expected: PASS (all tests pass)
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/models/diffusion/prompt_engine.py tests/test_prompt_engine.py
-git commit -m "feat(diffusion): implement dynamic combinatorial prompt grammar engine with error weighting"
-```
-
----
+- [x] **Step 1: Write unit tests** (`tests/test_prompt_engine.py`)
+- [x] **Step 2: Implement `PromptGrammarEngine`** in `src/models/diffusion/prompt_engine.py`:
+  - 7 orthogonal slots: `subject_age`, `subject_gender`, `optics`, `lighting`, `expression`, `occlusion`, `imperfections`.
+  - Softmax error weighting: $P(\text{tag}_k) \propto \exp(\text{ErrorRate}_k / \tau)$ with a 15–20% exploration floor.
+  - Hard 60-word length cap to strictly prevent CLIP 77-token truncation.
+- [x] **Step 3: Verification**: `pytest tests/test_prompt_engine.py` (4 passed).
+- [x] **Step 4: Commit**: `71e0398` (`feat(diffusion): implement dynamic combinatorial prompt grammar engine with error weighting`).
 
 ### Task 2: Hierarchical 2-Tier Budget & Mask Controller (`budget_controller.py`)
-
-**Files:**
-- Create: `src/pipelines/budget_controller.py`
-- Test: `tests/test_budget_controller.py`
-
-**Interfaces:**
-- Produces:
-  - `class AdaptiveBudgetController`:
-    - `__init__(total_candidate_budget: int = 150, min_mode_ratio: float = 0.15, exploration_floor: float = 0.20)`
-    - `compute_mode_quotas(mode_errors: Dict[str, float]) -> Dict[str, int]`
-    - `compute_inpainting_mask_targets(region_errors: Dict[str, float]) -> List[str]`
-    - `enforce_demographic_shield(candidate_records: List[Dict[str, Any]], target_distribution: Optional[Dict[str, float]] = None) -> List[Dict[str, Any]]`
-
-- [ ] **Step 1: Write the failing unit tests**
-
-```python
-# tests/test_budget_controller.py
-from src.pipelines/budget_controller import AdaptiveBudgetController
-
-def test_budget_allocation_respects_exploration_floor():
-    controller = AdaptiveBudgetController(total_candidate_budget=100, min_mode_ratio=0.15)
-    # T2I has 0% error, Inpaint has 100% error
-    mode_errors = {"sd_text2img": 0.0, "sd_img2img": 0.2, "sd_inpaint": 0.9}
-    quotas = controller.compute_mode_quotas(mode_errors)
-    
-    assert sum(quotas.values()) == 100
-    assert quotas["sd_text2img"] >= 15  # Protected by min_mode_ratio
-    assert quotas["sd_inpaint"] > quotas["sd_img2img"]
-
-def test_inpainting_regional_targeting():
-    controller = AdaptiveBudgetController()
-    region_errors = {"periocular": 0.80, "lips": 0.10, "full": 0.10}
-    targets = controller.compute_inpainting_mask_targets(region_errors, count=10)
-    assert targets.count("periocular") >= 5
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `pytest tests/test_budget_controller.py -v`
-Expected: FAIL with `ModuleNotFoundError`
-
-- [ ] **Step 3: Implement `AdaptiveBudgetController` in `src/pipelines/budget_controller.py`**
-
-Implement:
-- Tier 1: Softmax-based modality budget allocation with constrained lower bounds ($\ge \text{min\_mode\_ratio}$).
-- Tier 2 (Inpainting): Weighted regional target selection (`periocular`, `lips`, `nose`, `full`).
-- Tier 2 (Demographic Shield): Stratified quota balancer preventing demographic overconcentration.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `pytest tests/test_budget_controller.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/pipelines/budget_controller.py tests/test_budget_controller.py
-git commit -m "feat(pipeline): implement hierarchical 2-tier adaptive budget and mask controller"
-```
-
----
+- [x] **Step 1: Write unit tests** (`tests/test_budget_controller.py`)
+- [x] **Step 2: Implement `AdaptiveBudgetController`** in `src/pipelines/budget_controller.py`:
+  - Tier 1: Softmax modality quotas ($T2I, I2I, Inpaint$) with $\ge 15\%$ exploration floor and Hare-Niemeyer exact sum distribution.
+  - Tier 2: Regional inpainting mask target allocator (`periocular`, `lips`, `nose`, `full`).
+  - Tier 2: Demographic Shield enforcing balanced demographic round-robin distribution to prevent shortcut learning.
+- [x] **Step 3: Verification**: `pytest tests/test_budget_controller.py` (4 passed).
+- [x] **Step 4: Commit**: `89a96f7` (`feat(pipeline): implement hierarchical 2-tier adaptive budget and mask controller`).
 
 ### Task 3: Calibrated Hard-Sample Mining (`calibrated_mining.py`)
+- [x] **Step 1: Write unit tests** (`tests/test_calibrated_mining.py`)
+- [x] **Step 2: Implement `CalibratedHardMiner`** in `src/models/evaluators/calibrated_mining.py`:
+  - Temperature scaling optimization: $\min_T \text{NLL}(\text{logits}/T, \text{labels})$.
+  - Dual-criterion selection: False Negatives ($\hat{p} < 0.50$) + High Uncertainty ($|\hat{p} - 0.50| \le 0.10$).
+  - Perceptual diversity deduplication (cosine distance threshold $\ge 0.05$).
+- [x] **Step 3: Verification**: `pytest tests/test_calibrated_mining.py` (3 passed).
+- [x] **Step 4: Commit**: `522ea7e` (`feat(evaluators): implement temperature-calibrated dual-criterion hard sample miner`).
 
-**Files:**
-- Create: `src/models/evaluators/calibrated_mining.py`
-- Test: `tests/test_calibrated_mining.py`
-
-**Interfaces:**
-- Produces:
-  - `class CalibratedHardMiner`:
-    - `__init__(temperature: float = 1.0, decision_threshold: float = 0.5, uncertainty_window: float = 0.10)`
-    - `calibrate_temperature(val_logits: torch.Tensor, val_labels: torch.Tensor) -> float`
-    - `mine_hard_samples(candidate_records: List[ImageMetadata], probabilities: List[float], embeddings: Optional[np.ndarray] = None) -> Tuple[List[ImageMetadata], Dict[str, Any]]`
-
-- [ ] **Step 1: Write the failing unit tests**
-
-```python
-# tests/test_calibrated_mining.py
-import torch
-import numpy as np
-from src.data.image_schema import ImageMetadata
-from src.models.evaluators.calibrated_mining import CalibratedHardMiner
-
-def test_temperature_calibration():
-    miner = CalibratedHardMiner()
-    # Uncalibrated logits with large scale
-    logits = torch.tensor([-5.0, -3.0, 3.0, 5.0])
-    labels = torch.tensor([0.0, 0.0, 1.0, 1.0])
-    temp = miner.calibrate_temperature(logits, labels)
-    assert temp > 0.1 and temp < 10.0
-
-def test_dual_criterion_mining():
-    miner = CalibratedHardMiner(decision_threshold=0.5, uncertainty_window=0.1)
-    candidates = [
-        ImageMetadata(image_id="f1", label=1, file_path="f1.png"),  # FN: P=0.2 (bypassed)
-        ImageMetadata(image_id="f2", label=1, file_path="f2.png"),  # Uncertain: P=0.45
-        ImageMetadata(image_id="f3", label=1, file_path="f3.png"),  # Easy fake: P=0.95
-    ]
-    probs = [0.20, 0.45, 0.95]
-    hard_samples, stats = miner.mine_hard_samples(candidates, probs)
-    
-    assert len(hard_samples) == 2
-    assert {h.image_id for h in hard_samples} == {"f1", "f2"}
-    assert all(h.is_hard_sample for h in hard_samples)
-    assert stats["false_negative_count"] == 1
-    assert stats["uncertain_count"] == 1
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `pytest tests/test_calibrated_mining.py -v`
-Expected: FAIL with `ModuleNotFoundError`
-
-- [ ] **Step 3: Implement `CalibratedHardMiner` in `src/models/evaluators/calibrated_mining.py`**
-
-- Fit temperature $T$ using NLL optimization on validation logits via PyTorch Adam/L-BFGS.
-- Calibrated probability: $\hat{p} = \sigma(\text{logit} / T)$.
-- Mining rule:
-  - False Negative: $\hat{p} < \tau$ (model predicts Real on a Fake image).
-  - Uncertain Sample: $|\hat{p} - \tau| \le \delta$ (e.g. $\delta = 0.10$, model is ambiguous).
-- Perceptual diversity filter: If embeddings provided, remove near-duplicate candidates (cosine distance $< 0.05$).
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `pytest tests/test_calibrated_mining.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/models/evaluators/calibrated_mining.py tests/test_calibrated_mining.py
-git commit -m "feat(evaluators): implement temperature-calibrated dual-criterion hard sample miner"
-```
+### Task 4: Master Closed-Loop Orchestrator Foundation & Stateful Auto-Resume
+- [x] **Step 1: Write integration tests** (`tests/test_closed_loop_active_learning.py`)
+- [x] **Step 2: Implement orchestration loop** in `src/pipelines/run_closed_loop_active_learning.py`:
+  - Chains Modality Quotas $\to$ Generation $\to$ Curation Gate $\to$ Calibrated Inference $\to$ Hard Mining $\to$ Error Attribution $\to$ Retraining $\to$ Evaluation.
+  - Stateful round resume: Auto-detects completed rounds and picks up from $r+1$.
+  - Curation gate wrapper with SHA-256 deduplication and blur filtering.
+- [x] **Step 3: Live Verification Run on CUDA GPU**:
+  - Generated 15 candidates, curated 7, fitted $T=0.7705$, mined 7 hard samples ($H_1$), updated grammar weights across 7 slots, expanded dataset to $D_1$ (112 samples, 119 oversampled), retrained DINOv2 detector $M_1$ (Val AUC: $0.6121 \to 0.6848$), evaluated achieving **0.7543 Test ROC-AUC (100% precision)**.
+- [x] **Step 4: Commit**: `dc395bf`, `d2c6052`, `79e03fc`.
 
 ---
 
-### Task 4: Closed-Loop Active Learning Orchestrator (`run_closed_loop_active_learning.py`)
+## Remaining Implementation Tasks
+
+### Task 5: Dual-Benchmark Splitting & Evaluation Integration
+
+**Motivation:** An active learning detector should not just be evaluated on a static test set or a contaminated pool. We must cleanly split mined hard samples: $85\%$ goes into the training buffer $D_r$, while $15\%$ enters the expanding Cumulative Challenge Test Set ($T^{\text{challenge}}$). Both the Master Frozen Test Set ($T^{\text{master}}$) and $T^{\text{challenge}}$ are evaluated at each round.
 
 **Files:**
-- Create: `src/pipelines/run_closed_loop_active_learning.py`
-- Test: `tests/test_closed_loop_active_learning.py`
+- Modify: `src/pipelines/run_closed_loop_active_learning.py`
+- Modify: `tests/test_closed_loop_active_learning.py`
 
 **Interfaces:**
-- Produces:
-  - `def execute_closed_loop_round(`
-    `    round_idx: int,`
-    `    detector_checkpoint: Path,`
-    `    budget_controller: AdaptiveBudgetController,`
-    `    prompt_engine: PromptGrammarEngine,`
-    `    calibrated_miner: CalibratedHardMiner,`
-    `    config_path: str,`
-    `    output_dir: Path,`
-    `) -> Dict[str, Any]`
-  - `def run_active_learning_loop(`
-    `    num_rounds: int = 2,`
-    `    candidates_per_round: int = 150,`
-    `    config_path: str = "configs/dataset_factory.yaml",`
-    `) -> Dict[str, Any]`
+- In `run_closed_loop_active_learning.py`:
+  - Add hard-sample split: `split_hard_samples(mined_hard: List[ImageMetadata], test_ratio: float = 0.15, seed: int = 42) -> Tuple[List[ImageMetadata], List[ImageMetadata]]`
+  - Maintain `challenge_test_records: List[ImageMetadata]` across rounds, saved to `data/active_learning/cumulative_challenge_test.jsonl`.
+  - Evaluate detector on both:
+    - `master_test_metrics = evaluate_image_detector(round_detector, master_test_loader)`
+    - `challenge_test_metrics = evaluate_image_detector(round_detector, challenge_test_loader)`
+  - Log both metrics distinctly in `closed_loop_metrics.json`.
 
-- [ ] **Step 1: Write the failing unit tests**
+- [ ] **Step 1: Write unit/integration test for Dual-Benchmark splitting in `test_closed_loop_active_learning.py`**
+  - Verify that no sample in `challenge_test_records` is present in `train_records`.
+  - Verify that `closed_loop_metrics.json` outputs both `master_test_metrics` and `challenge_test_metrics`.
 
-```python
-# tests/test_closed_loop_active_learning.py
-from pathlib import Path
-from src.pipelines.run_closed_loop_active_learning import run_active_learning_loop
+- [ ] **Step 2: Run test to verify failure/gap**
+  - Run: `pytest tests/test_closed_loop_active_learning.py -k test_dual_benchmark`
+  - Expected: FAIL or missing attribute.
 
-def test_closed_loop_single_round_dry_run(tmp_path):
-    metrics = run_active_learning_loop(
-        num_rounds=1,
-        candidates_per_round=10,
-        dry_run=True,
-        output_base_dir=tmp_path / "active_learning",
-    )
-    assert "round_0" in metrics
-    assert "test_metrics" in metrics["round_0"]
-    assert "feedback_attribution" in metrics["round_0"]
-```
+- [ ] **Step 3: Implement `split_hard_samples` and Dual-Benchmark logging in `run_closed_loop_active_learning.py`**
+  - Use deterministic CRC32 hash splitting.
+  - Accumulate challenge test manifest at `data/active_learning/cumulative_challenge_test.jsonl`.
+  - Execute evaluation on both test loaders when challenge samples exist.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 4: Run test suite to verify all pass**
+  - Run: `pytest tests/test_closed_loop_active_learning.py -v`
+  - Expected: PASS.
 
-Run: `pytest tests/test_closed_loop_active_learning.py -v`
-Expected: FAIL with `ModuleNotFoundError`
-
-- [ ] **Step 3: Implement `run_closed_loop_active_learning.py`**
-
-Connect all components:
-1. Load or train baseline detector $M_0$.
-2. For round $r = 1 \dots R$:
-   - Compute modality budget ($T2I, I2I, Inpaint$) via `budget_controller`.
-   - Sample adaptive prompts via `prompt_engine`.
-   - Generate candidate pool using `generate_deepfake_images.py`.
-   - Run curation gate (Laplacian sharpness + SHA-256 deduplication).
-   - Inference curated candidates using detector $M_{r-1}$.
-   - Calibrate uncertainty and extract hard samples $H_r$ using `calibrated_miner`.
-   - Extract error attribution (which prompt tags and mask regions fooled $M_{r-1}$).
-   - Feed error attribution back into `prompt_engine.update_error_weights()` and `budget_controller`.
-   - Expand dataset: $D_r = D_{r-1} \cup H_r$.
-   - Retrain detector $M_r$ on $D_r$ using `train_deepfake_image_detector`.
-   - Evaluate $M_r$ on the frozen test set `data/benchmarks/D0_baseline/test.jsonl`.
-   - Save round checkpoint: `experiments/checkpoints/active_learning_m{r}_best.pt`.
-3. Export comprehensive trajectory: `experiments/logs/closed_loop_metrics.json`.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `pytest tests/test_closed_loop_active_learning.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/pipelines/run_closed_loop_active_learning.py tests/test_closed_loop_active_learning.py
-git commit -m "feat(pipeline): implement master closed-loop active learning orchestrator"
-```
+- [ ] **Step 5: Commit changes**
+  - `git add src/pipelines/run_closed_loop_active_learning.py tests/test_closed_loop_active_learning.py`
+  - `git commit -m "feat(pipeline): integrate dual-benchmark architecture with cumulative challenge test"`
 
 ---
 
-### Task 5: End-to-End Verification Run & Proof of Utility Report
+### Task 6: Multi-Round Production Scaling & Proof-of-Utility Execution
+
+**Motivation:** Execute the active learning pipeline over multiple rounds ($R \ge 2$) with production sample volume on the RTX 3050 GPU, demonstrating empirical convergence:
+1. $M_0 \to M_1 \to M_2$ ROC-AUC trajectory on Master Frozen Test.
+2. Progressive elimination of Bypass Rate ($FNR$) on the Cumulative Challenge Test.
+3. Dynamic shift of generation quotas toward the hardest modalities and mask regions.
+
+**Execution:**
+- [ ] **Step 1: Verify environment and checkpoints**
+  - Check GPU availability and existing checkpoint states:
+    ```bash
+    python3 -c "import torch; print('CUDA available:', torch.cuda.is_available(), 'Device:', torch.cuda.get_device_name(0))"
+    ```
+- [ ] **Step 2: Run Multi-Round Active Learning Pipeline**
+  - Execute 2 rounds with 60 candidates per round:
+    ```bash
+    python3 -m src.pipelines.run_closed_loop_active_learning \
+        --rounds 2 \
+        --candidates-per-round 60 \
+        --epochs 5 \
+        --device cuda
+    ```
+- [ ] **Step 3: Verify outputs and state logs**
+  - Verify `data/active_learning/round_1/` and `data/active_learning/round_2/` manifests.
+  - Verify `experiments/logs/closed_loop_metrics.json` contains full trajectory records for both rounds.
+- [ ] **Step 4: Commit generated metrics and logs**
+  - `git add experiments/logs/closed_loop_metrics.json`
+  - `git commit -m "chore(experiments): record multi-round active learning benchmark metrics"`
+
+---
+
+### Task 7: Active Learning Progression Visualizer (`plot_active_learning_progression.py`)
+
+**Motivation:** Visual evidence is essential for Coursework Topic 11. Create a publication-ready multi-panel visualization script that reads `experiments/logs/closed_loop_metrics.json` and plots:
+1. **Modality & Mask Budget Evolution**: Stacked bar chart showing quota shifts ($T2I \to I2I \to Inpaint$, periocular vs mouth vs nose).
+2. **ROC-AUC & Precision Trajectory**: Dual-curve on Master Frozen Test vs Cumulative Challenge Test.
+3. **Bypass Rate Elimination**: Sharp decline of false negative bypass rate across rounds ($M_0 \to M_1 \to M_2$).
+4. **Hard-Sample Yield & Temperature Convergence**: Temperature parameter $T$ and mining yield % per round.
 
 **Files:**
-- Output: `experiments/logs/closed_loop_metrics.json`
+- Create: `scripts/plot_active_learning_progression.py`
 - Output: `experiments/predictions/active_learning_progression.png`
-- Documentation: `docs/reports/DETECTOR_GUIDED_ACTIVE_LEARNING_REPORT.md`
 
-- [ ] **Step 1: Execute full test suite**
+- [ ] **Step 1: Implement `scripts/plot_active_learning_progression.py`**
+  - Clean Matplotlib 4-panel figure with scientific styling (`seaborn-v0_8-whitegrid` or clean grid).
+  - Handles dry-run or live metrics JSON gracefully.
+  - Vectorized calculations, zero hardcoded paths, CLI `--metrics-path` and `--output-path`.
+- [ ] **Step 2: Execute visualizer on live metrics**
+  - Run: `python3 scripts/plot_active_learning_progression.py --metrics experiments/logs/closed_loop_metrics.json --output experiments/predictions/active_learning_progression.png`
+  - Expected: PNG generated without errors.
+- [ ] **Step 3: Commit visualizer and generated plot**
+  - `git add scripts/plot_active_learning_progression.py experiments/predictions/active_learning_progression.png`
+  - `git commit -m "feat(vis): implement publication-grade active learning progression visualizer"`
 
-Run: `pytest -q`
-Expected: All tests pass (>= 115 tests).
+---
 
-- [ ] **Step 2: Run 2-round Active Learning Demonstration on CUDA GPU**
+### Task 8: Coursework Deliverables & Documentation Synchronization
 
-Run:
-```bash
-python3 -m src.pipelines.run_closed_loop_active_learning \
-    --config configs/dataset_factory.yaml \
-    --rounds 2 \
-    --candidates-per-round 60 \
-    --epochs 5 \
-    --device cuda
-```
-Expected:
-- Round 0 ($M_0$): Baseline on raw data.
-- Round 1 ($M_1$): Retrained on $D_0 \cup H_1$ $\to$ Hard-Sample Recall increases, test AUC improves.
-- Round 2 ($M_2$): Retrained on $D_1 \cup H_2$ $\to$ Lowest bypass rate, highest adversarial robustness.
-- Verified test set: exactly 43 frozen samples.
+**Motivation:** Ensure all coursework progress, architectural findings, and instructions are fully aligned with the authoritative handover documents.
 
-- [ ] **Step 3: Generate visual progression report and plots**
+**Files:**
+- Modify: `docs/progress/SESSION_HANDOVER_2026_11_09.md`
+- Modify: `docs/OVERVIEW.md`
+- Create: `docs/reports/DETECTOR_GUIDED_ACTIVE_LEARNING_REPORT.md`
 
-Export `experiments/predictions/active_learning_progression.png` illustrating:
-- Modality budget shift across rounds ($T2I \to Inpainting$ focus).
-- AUC and Hard-Sample Recall growth curves.
-- Sample gallery of hardest False Negatives caught by $M_2$.
+- [ ] **Step 1: Generate comprehensive report `docs/reports/DETECTOR_GUIDED_ACTIVE_LEARNING_REPORT.md`**
+  - Follow standard 7-field header (`GEMINI.md`).
+  - Summarize theoretical formulation ($M_t \to H_t \to D_{t+1} \to M_{t+1}$), grammar matrix, Dual-Benchmark results, and ablation comparison.
+- [ ] **Step 2: Update `docs/progress/SESSION_HANDOVER_2026_11_09.md` & `SESSION_HANDOVER.md`**
+  - Synchronize completed milestones, current branch commit hashes, and reproduction commands.
+- [ ] **Step 3: Run full verification suite (`make test-smoke` / `pytest`)**
+  - Verify 100% test pass rate across all 119+ unit and integration tests.
+- [ ] **Step 4: Final Git Push**
+  - Commit and push to branch `baseline/initial-baseline`.
 
-- [ ] **Step 4: Commit and finalize**
+---
 
-```bash
-git add experiments/logs/ docs/reports/DETECTOR_GUIDED_ACTIVE_LEARNING_REPORT.md
-git commit -m "docs(report): complete closed-loop active learning proof of utility verification"
-```
+## Definition of Done (DoD)
+
+- [ ] All 8 tasks implemented, tested, and marked complete (`[x]`).
+- [ ] Unit & integration test suite achieves 100% pass rate (`pytest` >= 120 tests).
+- [ ] Closed-loop active learning successfully runs on GPU without VRAM exhaustion.
+- [ ] Dual-Benchmark tables generated and documented without train-test leakage.
+- [ ] Publication plot `experiments/predictions/active_learning_progression.png` generated.
+- [ ] All markdown files follow 7-field header and UPPERCASE naming invariants.
