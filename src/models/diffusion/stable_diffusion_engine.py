@@ -16,9 +16,12 @@ from src.common.logger import get_logger
 logger = get_logger(__name__)
 
 DEFAULT_NEGATIVE_PROMPT = (
-    "deformed, distorted face, bad anatomy, blurry, 3d render, cartoon, "
-    "mirror, frame, border, vignette, circular frame, multiple faces, "
-    "distant, full body, torso, out of frame, cropped, bad eyes"
+    "extreme macro, extreme close-up, cropped face, cropped forehead, amputated chin, "
+    "partial face, nose close up, strabismus, crossed eyes, lazy eyes, divergent gaze, "
+    "drooping eyelid, ptosis, asymmetric eyes, melted iris, waxy, plastic doll, "
+    "unitooth, conjoined teeth, deformed teeth, multiple faces, phantom face, bad anatomy, "
+    "deformed, distorted face, blurry, 3d render, cartoon, mirror, frame, border, "
+    "vignette, circular frame, distorted glasses, severed frames, out of frame"
 )
 
 
@@ -281,8 +284,8 @@ class StableDiffusionEngine(nn.Module):
         height: int = 512,
         width: int = 512,
         seed: int = 42,
-        num_inference_steps: int = 25,
-        guidance_scale: float = 7.5,
+        num_inference_steps: int = 30,
+        guidance_scale: float = 6.2,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
         """Synthesize image from scratch conditioned on text prompt."""
@@ -321,8 +324,8 @@ class StableDiffusionEngine(nn.Module):
         mask: torch.Tensor,
         prompt: str = "realistic facial feature",
         seed: int = 42,
-        num_inference_steps: int = 25,
-        guidance_scale: float = 7.5,
+        num_inference_steps: int = 30,
+        guidance_scale: float = 6.2,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
         """Modify specific facial region defined by mask while strictly preserving background."""
@@ -379,10 +382,10 @@ class StableDiffusionEngine(nn.Module):
         self,
         source_image: torch.Tensor,
         prompt: str = "photorealistic face alteration",
-        strength: float = 0.40,
+        strength: float = 0.30,
         seed: int = 42,
         num_inference_steps: int = 25,
-        guidance_scale: float = 7.5,
+        guidance_scale: float = 6.0,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
         """Alter existing facial image conditioned on prompt and strength."""

@@ -67,9 +67,12 @@ def assemble_demo_batch(
     target_per_mode: int = 10,
     device: str = "cuda",
     seed: int = 42,
+    fresh: bool = True,
 ) -> Dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     images_dir = output_dir / "images"
+    if fresh and images_dir.exists():
+        shutil.rmtree(images_dir)
     images_dir.mkdir(parents=True, exist_ok=True)
 
     gate = ImageCurationGate(
@@ -83,9 +86,9 @@ def assemble_demo_batch(
     modes = ["sd_img2img", "sd_inpaint", "sd_text2img"]
     collected: Dict[str, List[Dict[str, Any]]] = {m: [] for m in modes}
 
-    # 1. Harvest already curated valid images from previous audit if available
+    # 1. Harvest already curated valid images from previous audit if available (only if not fresh)
     audit_file = Path("data/synthetic/sample_audit_30/detailed_audit.json")
-    if audit_file.exists():
+    if not fresh and audit_file.exists():
         with open(audit_file, "r", encoding="utf-8") as f:
             audit_data = json.load(f)
         for e in audit_data.get("audit_entries", []):
@@ -131,7 +134,7 @@ def assemble_demo_batch(
 
         for m, num_needed in missing.items():
             attempt = 0
-            while len(collected[m]) < target_per_mode and attempt < 15:
+            while len(collected[m]) < target_per_mode and attempt < 40:
                 curr_seed = seed + 5000 + (attempt * 37)
                 demo_idx = len(collected[m])
                 fake_id = f"demo_{m}_{demo_idx:02d}_att{attempt}"
@@ -148,16 +151,23 @@ def assemble_demo_batch(
                     with Image.open(src_p) as src_im:
                         src_rgb = src_im.convert("RGB").resize((512, 512), Image.Resampling.LANCZOS)
                         src_t = torch.from_numpy(np.array(src_rgb, dtype=np.float32) / 255.0).permute(2, 0, 1).to(device)
-                    out_t = engine.generate_img2img(src_t, prompt=prompt_used, strength=0.35, seed=curr_seed)
+                    # Adaptive strength: lower for children and glasses wearers to preserve identity and optics
+                    eff_strength = 0.28
+                    if demographics:
+                        if demographics.get("age_group") in ("0-2", "3-6") or demographics.get("glasses") not in (None, "None"):
+                            eff_strength = 0.22
+                    out_t = engine.generate_img2img(src_t, prompt=prompt_used, strength=eff_strength, guidance_scale=6.0, seed=curr_seed)
                 elif m == "sd_inpaint":
                     src_p = Path(real_rec.get("file_path", ""))
                     with Image.open(src_p) as src_im:
                         src_rgb = src_im.convert("RGB").resize((512, 512), Image.Resampling.LANCZOS)
                         src_t = torch.from_numpy(np.array(src_rgb, dtype=np.float32) / 255.0).permute(2, 0, 1).to(device)
-                    mask = generate_dynamic_face_mask(src_t, target_region=["periocular", "lips", "full"][demo_idx % 3])
-                    out_t = engine.generate_inpaint(src_t, mask, prompt=prompt_used, seed=curr_seed)
+                    # For inpainting, select target region and ensure demographics align
+                    target_reg = ["periocular", "lips", "full"][demo_idx % 3]
+                    mask = generate_dynamic_face_mask(src_t, target_region=target_reg)
+                    out_t = engine.generate_inpaint(src_t, mask, prompt=prompt_used, guidance_scale=6.2, num_inference_steps=30, seed=curr_seed)
                 else:  # sd_text2img
-                    out_t = engine.generate_text2img(prompt=prompt_used, height=512, width=512, seed=curr_seed)
+                    out_t = engine.generate_text2img(prompt=prompt_used, height=512, width=512, guidance_scale=6.2, num_inference_steps=30, seed=curr_seed)
 
                 # Save candidate
                 np_arr = (out_t.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
@@ -176,14 +186,15 @@ def assemble_demo_batch(
                         faces = face_casc.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2, minSize=(40, 40))
                     eyes = eye_casc.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20))
 
-                    face_ratio = (faces[0][2] * faces[0][3]) / (512.0 * 512.0) if len(faces) > 0 else 0.0
+                    faces_sorted = sorted(faces, key=lambda b: b[2] * b[3], reverse=True) if len(faces) > 0 else []
+                    face_ratio = (faces_sorted[0][2] * faces_sorted[0][3]) / (512.0 * 512.0) if faces_sorted else 0.0
                     entry = {
                         "image_id": fake_id,
                         "mode": m,
                         "file_path": str(out_path),
                         "size": [512, 512],
                         "sharpness": round(rep.sharpness_score, 2),
-                        "faces_detected": int(len(faces)),
+                        "faces_detected": int(len(faces_sorted)),
                         "face_area_ratio": round(face_ratio, 4),
                         "eyes_detected": int(len(eyes)),
                         "curation_valid": True,

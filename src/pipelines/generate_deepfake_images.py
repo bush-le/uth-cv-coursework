@@ -342,10 +342,14 @@ def run_image_generation(
             h, w = target_h, target_w
 
         if mode_idx == 0:
+            effective_strength = img2img_strength_val
+            if demographics:
+                if demographics.get("age_group") in ("0-2", "3-6") or demographics.get("glasses") not in (None, "None"):
+                    effective_strength = min(effective_strength, 0.25)
             fake_tensor = engine.generate_img2img(
                 source_image=source_img,
                 prompt=prompt_used,
-                strength=img2img_strength_val,
+                strength=effective_strength,
                 num_inference_steps=steps_val,
                 seed=curr_seed,
                 guidance_scale=guidance_scale_val,

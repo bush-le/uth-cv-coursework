@@ -36,13 +36,13 @@ SLOT_TAXONOMY: Dict[str, List[str]] = {
         "shot on 85mm f/1.4 prime lens, creamy background bokeh, ultra sharp eye focus",
         "shot on 50mm portrait prime, balanced facial proportions, crisp eye details",
         "shot on 35mm film camera, subtle analog film grain, authentic depth",
-        "medium format Hasselblad portrait, hyper-detailed skin pores, flawless micro-contrast",
-        "shot on 85mm headshot prime, tight facial framing, sharp iris reflections",
+        "medium format Hasselblad portrait, natural skin pores, realistic micro-contrast",
+        "shot on 85mm portrait prime lens, balanced facial proportions, sharp iris reflections",
         "classic vintage 85mm portrait lens, warm organic film aesthetic, sharp facial details",
     ],
     "lighting": [
         "soft studio key light, diffuse beauty dish fill, subtle catchlights in eyes",
-        "direct harsh camera flash, realistic skin specular highlights, party paparazzi aesthetic",
+        "direct harsh camera flash, balanced studio fill, authentic exposure",
         "warm golden hour sunlight, low sun angle, radiant natural backlight",
         "diffuse north-facing window light, soft gradient shadows, gentle ambient illumination",
         "dramatic cinematic side lighting, chiascurro shadows, high-contrast cheekbones",
@@ -71,7 +71,7 @@ SLOT_TAXONOMY: Dict[str, List[str]] = {
         "subtle constellation of natural freckles across the nose bridge and cheeks",
         "delicate laugh lines around mouth corners, authentic organic expressions",
         "subtle natural asymmetrical eyebrows, realistic unedited human face",
-        "light natural morning stubble along jawline, distinct hair follicles",
+        "natural skin pores, fine epidermal texture, subtle organic micro-features",
     ],
 }
 
@@ -185,25 +185,27 @@ class PromptGrammarEngine:
         sample_s = sample_seed(self.seed, f"prompt_{mode}", seed_offset)
         rng = np.random.RandomState(sample_s)
 
-        # 1. Base photographic quality anchor (close-up framing prevents miniature environmental portraits)
+        # 1. Base photographic quality anchor (head-and-shoulders framing prevents both extreme crops and distant mirror scenes)
         if mode == "text2img":
-            base_prefix = "tight close-up headshot of human face, centered portrait framing, authentic face, direct eye contact"
+            base_prefix = "head and shoulders portrait, centered, head and hair fully in frame, direct eye contact"
         else:
-            base_prefix = "close-up centered portrait, authentic face, direct eye contact"
+            base_prefix = "head and shoulders portrait, centered face, authentic direct eye contact"
 
-        # 2. Subject demographics (respect demographic dict if provided, else sample dynamically)
+        # 2. Subject demographics (strictly respect demographic dict if provided)
         age_tag = ""
         gender_tag = ""
         occlusion_tag = ""
 
         if demographics:
             age = demographics.get("age_group")
-            if age in ["0-2", "3-6", "7-9", "10-14", "young"]:
+            if age in ["0-2", "3-6"]:
+                age_tag = "toddler portrait, soft delicate natural skin, gentle baby features"
+            elif age in ["7-9", "10-14", "young"]:
                 age_tag = "young person portrait, soft natural skin, youthful facial features"
             elif age in ["50-69", "70-120", "mature"]:
                 age_tag = "elderly individual face, natural skin wrinkles, dignified aging, silver hair"
             else:
-                age_tag = self._sample_slot_tag("subject_age", rng)
+                age_tag = "adult portrait, authentic facial contours, natural skin"
 
             gender = demographics.get("gender")
             if gender == "male":
@@ -218,12 +220,14 @@ class PromptGrammarEngine:
                 occlusion_tag = "wearing dark designer sunglasses with subtle lens glare"
             elif glasses in ("Normal", "Glasses") or demographics.get("eyeglasses") is True:
                 occlusion_tag = "wearing eyeglasses with realistic frame reflections"
-            else:
+            elif mode != "inpaint":
                 occlusion_tag = self._sample_slot_tag("occlusion", rng)
+            else:
+                occlusion_tag = ""
         else:
             age_tag = self._sample_slot_tag("subject_age", rng)
             gender_tag = self._sample_slot_tag("subject_gender", rng)
-            occlusion_tag = self._sample_slot_tag("occlusion", rng)
+            occlusion_tag = self._sample_slot_tag("occlusion", rng) if mode != "inpaint" else ""
 
         # 3. Photographic slots: Optics, Lighting, Expression, Micro-imperfections
         optics_tag = self._sample_slot_tag("optics", rng)
@@ -238,8 +242,8 @@ class PromptGrammarEngine:
                 "seamless natural facial features, authentic micro skin texture",
                 gender_tag,
                 age_tag,
-                expression_tag,
                 occlusion_tag,
+                expression_tag,
                 lighting_tag,
             ]
         elif mode == "img2img":
@@ -248,6 +252,7 @@ class PromptGrammarEngine:
                 "high resolution authentic portrait, natural skin texture, realistic illumination",
                 gender_tag,
                 age_tag,
+                occlusion_tag,
                 optics_tag,
                 lighting_tag,
                 imperfection_tag,
@@ -258,10 +263,10 @@ class PromptGrammarEngine:
                 base_prefix,
                 gender_tag,
                 age_tag,
+                occlusion_tag,
                 lighting_tag,
                 optics_tag,
                 expression_tag,
-                occlusion_tag,
                 imperfection_tag,
             ]
 
@@ -271,7 +276,7 @@ class PromptGrammarEngine:
         cur_words = 0
         for part in cleaned_parts:
             part_words = len(part.split())
-            if cur_words + part_words <= 58:
+            if cur_words + part_words <= 64:
                 selected_parts.append(part)
                 cur_words += part_words
             else:

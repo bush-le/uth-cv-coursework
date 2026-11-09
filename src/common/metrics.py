@@ -372,12 +372,29 @@ def verify_facial_geometry(
     if aspect_ratio < 0.65 or aspect_ratio > 1.6:
         reasons.append(f"Abnormal facial aspect ratio: {aspect_ratio:.2f}")
 
-    # Area ratio check (face must occupy 20% to 90% of frame, rejecting miniature mirror faces and extreme crops)
+    # Area ratio check (face must occupy 20% to 65% of frame, rejecting miniature mirror faces and extreme crops)
     face_area_ratio = (fw * fh) / float(w * h)
     if face_area_ratio < 0.20:
         reasons.append(f"Face occupies too small area of frame ({face_area_ratio:.2%} < 20%): likely vignette/distant frame")
-    elif face_area_ratio > 0.90:
-        reasons.append(f"Face occupies too large area of frame ({face_area_ratio:.2%} > 90%): extreme crop")
+    elif face_area_ratio > 0.65:
+        reasons.append(f"Face occupies too large area of frame ({face_area_ratio:.2%} > 65%): extreme crop / runaway zoom")
+
+    # Check if face box itself touches canvas boundaries (amputated forehead or chin by runaway zoom)
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    skin_mask = (hsv[:, :, 0] >= 0) & (hsv[:, :, 0] <= 28) & (hsv[:, :, 1] >= 35) & (hsv[:, :, 2] >= 50)
+    top_skin_pct = float(np.mean(skin_mask[:16, :]))
+    bot_skin_pct = float(np.mean(skin_mask[-16:, :]))
+    if fy <= int(0.04 * h) and top_skin_pct > 0.35:
+        reasons.append(f"Forehead / scalp amputated by top canvas border (box_top={fy}, skin={top_skin_pct:.1%})")
+    if (fy + fh) >= int(0.96 * h) and bot_skin_pct > 0.35:
+        reasons.append(f"Chin / jaw amputated by bottom canvas border (box_bottom={fy+fh}, skin={bot_skin_pct:.1%})")
+
+    # Highlight blowout check localized strictly to face ROI (ignoring external studio backdrops)
+    face_rgb = image[fy : fy + fh, fx : fx + fw]
+    if face_rgb.size > 0:
+        face_white_clip = float(np.mean(face_rgb >= 252))
+        if face_white_clip > 0.04:
+            reasons.append(f"Severe highlight blowout on face ({face_white_clip:.1%} > 4.0%)")
 
     # Centering check
     center_x = (fx + fw / 2.0) / float(w)
