@@ -1,42 +1,48 @@
-# PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md — Bước 1: Sinh Ảnh Giả Bằng Stable Diffusion & Lọc Ảnh Lỗi
+# PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md — Giai Đoạn 1: Sinh Ảnh Giả Bằng Stable Diffusion & Lọc Ảnh Lỗi
 
-- **Motivation/Background**: Thực hiện vế đầu tiên trong yêu cầu của giảng viên (`img + Stable Diffusion / Phase 1 sinh dữ liệu -> synthetic img (DF img)`), tạo ra nguồn ảnh khuôn mặt giả tự nhiên để thử thách mô hình phát hiện.
-- **Purpose**: Giải thích đơn giản cách chuẩn bị ảnh mặt thật, 3 cách tạo ảnh giả bằng Stable Diffusion và 3 bước lọc bỏ ảnh lỗi.
-- **Overview Pipeline**: Ảnh mặt thật -> Tìm 5 điểm mốc & tạo vùng che mắt/miệng -> Sinh ảnh bằng 3 chế độ Stable Diffusion -> Lọc bỏ ảnh mờ/lỗi qua 3 bước -> Xuất tập ảnh giả đạt chuẩn.
-- **Detailed Plan**: §1 Chuẩn bị khuôn mặt đầu vào; §2 Ba cách tạo ảnh giả bằng Stable Diffusion; §3 Ba bước lọc bỏ ảnh lỗi tự động.
-- **References**: [ ../PURPOSE.md ](../PURPOSE.md), [ PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md ](PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md).
+- **Motivation/Background**: Triển khai giai đoạn khởi đầu của luồng Dataset-First: từ nguồn ảnh khuôn mặt thật tham chiếu, sử dụng Stable Diffusion để tạo ra tập dữ liệu ảnh giả đa phương thức, kiểm soát chất lượng qua bộ lọc tự động và lưu trữ nguồn gốc sinh chi tiết.
+- **Purpose**: Quy định đặc tả kỹ thuật cho 3 chế độ sinh ảnh Stable Diffusion (`Text-to-Image`, `Inpainting`, `Image-to-Image`), quy trình sinh seed tất định chống trùng lặp và bộ lọc chất lượng tự động `ImageCurationGate`.
+- **Overview Pipeline**: `data/raw/` -> `src/pipelines/generate_deepfake_images.py` -> `src/pipelines/curate_image_dataset.py` -> `data/synthetic/curated_manifest.jsonl`.
+- **Detailed Plan**: §1 Chuẩn bị ảnh đầu vào; §2 Ba cơ chế sinh ảnh đa phương thức; §3 Cơ chế seed tất định & Provenance; §4 Bộ lọc chất lượng tự động `ImageCurationGate`.
+- **References**: [../PURPOSE.md](../PURPOSE.md), [../OVERVIEW.md](../OVERVIEW.md), `configs/dataset_factory.yaml`.
 - **Created**: 2026-11-02T07:30:00+07:00
-- **Last Updated**: 2026-11-08T18:39:00+07:00
+- **Last Updated**: 2026-11-09T15:15:00+07:00
 
 ---
 
 ## 1. Chuẩn Bị Ảnh Khuôn Mặt Đầu Vào
 
-Trước khi đưa vào Stable Diffusion, mỗi bức ảnh người thật được xử lý qua 3 thao tác cơ bản:
-1. **Tìm khung mặt (Bounding Box)**: Xác định đúng vị trí khuôn mặt trong ảnh.
-2. **Tìm 5 điểm mốc chính trên mặt**: Xác định mắt trái, mắt phải, đầu mũi, khóe miệng trái và khóe miệng phải để xoay khuôn mặt cho ngay ngắn.
-3. **Tạo mặt nạ vùng mắt / miệng (Binary Mask)**: Tô đánh dấu vùng mắt hoặc miệng để dùng riêng cho chế độ sửa một phần khuôn mặt (`Inpainting`).
+Ảnh mặt thật tham chiếu từ FFHQ và CelebA-HQ được chuẩn hóa kích thước theo `generation.image_size` (cấu hình trong `configs/dataset_factory.yaml`) và chuyển đổi không gian màu RGB:
+1. **Trích xuất thông tin nhân khẩu học**: Đọc độ tuổi, giới tính và phụ kiện che mặt (kính, mũ) từ metadata gốc để xây dựng câu lệnh mô tả (prompt conditioning).
+2. **Khởi tạo vùng mặt nạ inpainting**: Tạo mặt nạ nhị phân tỷ lệ theo kích thước ảnh dựa trên `generation.inpaint_mask_box` và làm mịn biên bằng toán tử 2D pooling nhằm triệt tiêu đường viền nhân tạo.
 
 ---
 
-## 2. Ba Cách Tạo Ảnh Giả Bằng Stable Diffusion
+## 2. Ba Cơ Chế Sinh Ảnh Đa Phương Thức
 
-Hệ thống kết hợp 3 cách tạo ảnh khác nhau để bộ dữ liệu vừa có ảnh giả toàn mặt, vừa có ảnh chỉ sửa một chi tiết nhỏ:
+Hệ thống kết hợp cân bằng 3 chế độ sinh ảnh để tập dữ liệu có độ đa dạng hình thái cao nhất:
 
-| Cách tạo ảnh | Mã nhãn trong code | Đầu vào | Cách hoạt động dễ hiểu |
+| Chế độ sinh | Mã nhãn (`manipulation_type`) | Dữ liệu đầu vào | Đặc tính kỹ thuật |
 | :--- | :--- | :--- | :--- |
-| **1. Tạo mặt mới từ chữ (`Text-to-Image`)** | `sd_text2img` | Câu mô tả (Prompt) | Từ câu chữ mô tả (độ tuổi, ánh sáng, biểu cảm), Stable Diffusion tự vẽ ra một khuôn mặt người mới hoàn toàn. |
-| **2. Sửa vùng mắt / miệng (`Facial Inpainting`)** | `sd_inpaint` | Ảnh thật + Mặt nạ che + Prompt | Giữ nguyên khuôn mặt thật, chỉ xóa vùng mắt hoặc miệng rồi nhờ Stable Diffusion vẽ lại biểu cảm mới vào đúng chỗ đó. |
-| **3. Biến đổi từ ảnh thật (`Image-to-Image`)** | `sd_img2img` | Ảnh thật + 5 điểm mốc + Prompt | Giữ nguyên tư thế đầu và vị trí mắt-mũi-miệng của ảnh thật, nhưng vẽ lại kết cấu da và ánh sáng mới. |
+| **Text-to-Image** | `sd_text2img` | Prompt nhân khẩu học | Khởi tạo hoàn toàn từ vector nhiễu ngẫu nhiên trong không gian tiềm ẩn, tạo diện mạo độc lập. |
+| **Facial Inpainting** | `sd_inpaint` | Ảnh thật + Mặt nạ + Prompt | Bảo tồn toàn bộ nền và viền đầu, tái tạo chi tiết vùng khuôn mặt mục tiêu. Dạng giả mạo biên giới tinh vi nhất. |
+| **Image-to-Image** | `sd_img2img` | Ảnh thật + Prompt + Strength | Giữ khung khuôn mặt thật nhưng biến đổi kết cấu da, biểu cảm và đặc điểm nhân khẩu học. |
 
 ---
 
-## 3. Ba Bước Lọc Bỏ Ảnh Lỗi Tự Động (`ImageCurationGate`)
+## 3. Cơ Chế Seed Tất Định & Provenance Tracking
 
-Khi sinh ảnh hàng loạt bằng AI, đôi khi sẽ có ảnh bị nhòe hoặc méo mặt. Vì vậy, mọi bức ảnh sinh ra phải đi qua 3 bước kiểm tra tự động:
+Để đảm bảo khả năng tái lập 100% và ngăn ngừa trùng lặp file:
+- Mọi mẫu sinh đều nhận seed riêng biệt tính từ hàm băm CRC32: `sample_seed(base_seed, image_id, variant)`. Tuyệt đối không dùng `hash()` của Python do bị salt ngẫu nhiên giữa các tiến trình.
+- Toàn bộ siêu tham số sinh ảnh (`model_id`, `steps`, `guidance_scale`, `img2img_strength`, `seed`) được lưu trực tiếp vào trường `generation` của bản ghi `ImageMetadata`.
+- Cơ chế `resume` chỉ bỏ qua khi tệp ảnh tồn tại trên đĩa VÀ tham số `generation` trong manifest trùng khớp hoàn toàn.
 
-1. **Bước lọc 1 — Kiểm tra độ nét**: Tính độ sắc nét của ảnh; nếu ảnh bị mờ nhòe thì loại bỏ ngay.
-2. **Bước lọc 2 — Kiểm tra cấu trúc mặt**: Kiểm tra xem trên ảnh mới tạo có tìm lại được đủ 5 điểm mốc mắt-mũi-miệng hợp lý hay không; nếu mặt bị biến dạng thì loại bỏ.
-3. **Bước lọc 3 — Kiểm tra độ khớp câu lệnh**: Kiểm tra xem bức ảnh vẽ ra có đúng với câu mô tả ban đầu hay không.
+---
 
-Chỉ những bức ảnh **vượt qua cả 3 bước lọc** mới được lưu vào tập ảnh giả đạt chuẩn (`curated_manifest.jsonl`) để chuyển sang Bước 2.
+## 4. Bộ Lọc Chất Lượng Tự Động (`ImageCurationGate`)
+
+Mọi ảnh giả sinh ra đều bắt buộc vượt qua cổng kiểm soát chất lượng tự động:
+1. **Lọc độ sắc nét (Laplacian Sharpness)**: Tính phương sai toán tử Laplacian trên ảnh xám. Ngưỡng tối thiểu được tự động hiệu chỉnh động qua quantile thực nghiệm của tập ảnh thật (`curation.reference_quantile_sharpness`).
+2. **Kiểm tra diện mạo khuôn mặt (`face_check`)**: Xác thực sự hiện diện của cấu trúc khuôn mặt hợp lệ qua bộ dò `curation.face_check.backend`.
+3. **Chống trùng lặp nội dung (`dedup`)**: Tính toán hàm băm cryptographic SHA-256 (`file_sha256`) trên từng tệp ảnh; từ chối ngay lập tức các tệp có nội dung trùng lặp.
+4. **Biên bản kiểm định**: Toàn bộ kết quả đánh giá từng ảnh (điểm số, lý do từ chối nếu có) được ghi nhận chi tiết vào `paths.curation_report`.
