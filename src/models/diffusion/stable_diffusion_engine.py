@@ -1,130 +1,232 @@
-"""Stable Diffusion engine supporting Text2Img, Inpainting, and Img2Img generation."""
+"""Native SD pipelines. Mock mode is explicit and is never a runtime fallback."""
 
-from typing import Optional, Union
+import gc
+import hashlib
+from typing import Any
+
 import numpy as np
 import torch
-import torch.nn as nn
+from PIL import Image
+from torch import nn
 
 from src.common.logger import get_logger
 
 logger = get_logger(__name__)
+DEFAULT_SD = "stable-diffusion-v1-5/stable-diffusion-v1-5"
+
+
+def validate_rgb(image: torch.Tensor) -> None:
+    """Require finite RGB floating (3,H,W) in [0,1], on any device."""
+    if image.ndim != 3 or image.shape[0] != 3 or not image.is_floating_point():
+        raise ValueError("Expected RGB floating tensor (3,H,W).")
+    if not torch.isfinite(image).all() or image.min() < 0 or image.max() > 1:
+        raise ValueError("RGB values must be finite and in [0,1].")
+
+
+def tensor_to_pil(image: torch.Tensor) -> Image.Image:
+    """Convert RGB float (3,H,W) [0,1] on any device to PIL RGB (W,H)."""
+    validate_rgb(image)
+    array = image.detach().cpu().permute(1, 2, 0).numpy()
+    return Image.fromarray(np.rint(array * 255).astype(np.uint8))
 
 
 class StableDiffusionEngine(nn.Module):
-    """Modular generation engine utilizing Stable Diffusion for deepfake image synthesis."""
+    """One resident pipeline; outputs CPU float32 RGB (3,H,W) in [0,1]."""
 
     def __init__(
         self,
-        model_name: str = "mock_sd",
-        device: Optional[Union[str, torch.device]] = None,
+        model_name: str = DEFAULT_SD,
+        device: str | torch.device | None = None,
+        *,
+        inpaint_model_name: str | None = None,
+        revision: str | None = None,
+        inpaint_revision: str | None = None,
+        num_inference_steps: int = 30,
+        guidance_scale: float = 7.5,
+        negative_prompt: str = "deformed, blurry face",
+        cpu_offload: bool = False,
+        local_files_only: bool = False,
     ) -> None:
         super().__init__()
         self.model_name = model_name
+        self.inpaint_model_name = inpaint_model_name or model_name
         self.target_device = torch.device(
-            device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+            device or ("cuda" if torch.cuda.is_available() else "cpu")
         )
-        logger.info(f"Initialized StableDiffusionEngine (model={self.model_name}, device={self.target_device})")
+        if num_inference_steps < 1 or guidance_scale < 0:
+            raise ValueError("Invalid steps or guidance_scale.")
+        if self.target_device.type == "cuda" and not torch.cuda.is_available():
+            raise RuntimeError(
+                "CUDA unavailable. Enable a Kaggle GPU or choose cpu explicitly."
+            )
+        self.revision, self.inpaint_revision = revision, inpaint_revision
+        self.num_inference_steps, self.guidance_scale = (
+            num_inference_steps,
+            guidance_scale,
+        )
+        self.negative_prompt = negative_prompt
+        self.cpu_offload, self.local_files_only = cpu_offload, local_files_only
+        self._pipe: Any = None
+        self._mode: str | None = None
 
-    def _mock_text2img(self, prompt: str, height: int, width: int, seed: int = 42) -> torch.Tensor:
-        """Deterministic mock text-to-image synthesis producing valid portrait patterns."""
-        gen = torch.Generator().manual_seed(seed + hash(prompt) % 10000)
-        # Create structured base portrait pattern
-        y = torch.linspace(-1.0, 1.0, height).view(height, 1).repeat(1, width)
-        x = torch.linspace(-1.0, 1.0, width).view(1, width).repeat(height, 1)
-        r = torch.sqrt(x**2 + y**2) # Radial facial oval
+    @property
+    def is_mock(self) -> bool:
+        """Only the explicit mock_sd identifier selects test fixtures."""
+        return self.model_name == "mock_sd"
 
-        face_mask = (r < 0.8).float()
-        noise = torch.rand(3, height, width, generator=gen) * 0.2
-        pattern = torch.zeros(3, height, width)
-        pattern[0] = 0.75 * face_mask + 0.1 # Skin tone channel
-        pattern[1] = 0.55 * face_mask + 0.1
-        pattern[2] = 0.45 * face_mask + 0.1
+    def close(self) -> None:
+        """Release the pipeline between contiguous mode batches."""
+        self._pipe, self._mode = None, None
+        gc.collect()
+        if self.target_device.type == "cuda":
+            torch.cuda.empty_cache()
 
-        img = torch.clamp(pattern + noise, 0.0, 1.0)
-        return img.to(self.target_device)
+    def _load_pipeline(self, mode: str) -> Any:
+        """Load native Diffusers classes; propagate download/inference errors."""
+        if self._mode == mode and self._pipe is not None:
+            return self._pipe
+        self.close()
+        from diffusers import (
+            StableDiffusionImg2ImgPipeline,
+            StableDiffusionInpaintPipeline,
+            StableDiffusionPipeline,
+        )
+
+        classes = {
+            "text2img": StableDiffusionPipeline,
+            "img2img": StableDiffusionImg2ImgPipeline,
+            "inpaint": StableDiffusionInpaintPipeline,
+        }
+        model = self.inpaint_model_name if mode == "inpaint" else self.model_name
+        revision = self.inpaint_revision if mode == "inpaint" else self.revision
+        dtype = torch.float16 if self.target_device.type == "cuda" else torch.float32
+        logger.info("Loading %s from %s (revision=%s)", mode, model, revision)
+        pipe = classes[mode].from_pretrained(
+            model,
+            revision=revision,
+            torch_dtype=dtype,
+            local_files_only=self.local_files_only,
+        )
+        for component in (pipe.unet, pipe.vae, pipe.text_encoder):
+            component.eval()
+        pipe.enable_attention_slicing()
+        if self.cpu_offload and self.target_device.type == "cuda":
+            pipe.enable_model_cpu_offload(gpu_id=self.target_device.index or 0)
+        else:
+            pipe.to(self.target_device)
+        self._pipe, self._mode = pipe, mode
+        return pipe
+
+    def _mock_text2img(
+        self, prompt: str, height: int, width: int, seed: int
+    ) -> torch.Tensor:
+        """Explicit test fixture: CPU float32 (3,H,W), not a face dataset."""
+        digest = int(hashlib.sha256(prompt.encode()).hexdigest()[:8], 16)
+        gen = torch.Generator().manual_seed((seed + digest) % (2**63 - 1))
+        return torch.rand((3, height, width), generator=gen)
+
+    @torch.inference_mode()
+    def _infer(self, mode: str, prompt: str, seed: int, **kwargs: Any) -> torch.Tensor:
+        """Denoise and return finite CPU float32 RGB (3,H,W) in [0,1]."""
+        pipe = self._load_pipeline(mode)
+        result = pipe(
+            prompt=prompt,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=torch.Generator(device="cpu").manual_seed(seed),
+            **kwargs,
+        )
+        flags = getattr(result, "nsfw_content_detected", None)
+        if flags is not None and any(flags):
+            raise RuntimeError(
+                "Safety checker rejected sample; no black image is saved."
+            )
+        array = np.asarray(result.images[0].convert("RGB"), dtype=np.float32) / 255.0
+        output = torch.from_numpy(array.copy()).permute(2, 0, 1).contiguous()
+        validate_rgb(output)
+        return output
 
     def generate_text2img(
         self,
         prompt: str = "a photorealistic face",
-        height: int = 256,
-        width: int = 256,
+        height: int = 512,
+        width: int = 512,
         seed: int = 42,
     ) -> torch.Tensor:
-        """Synthesize image from scratch conditioned on text prompt.
-        
-        Args:
-            prompt: Text prompt description.
-            height: Image height H.
-            width: Image width W.
-            seed: Random seed.
-            
-        Returns:
-            torch.Tensor of shape (3, H, W) normalized to [0.0, 1.0].
-        """
-        if self.model_name.startswith("mock"):
-            return self._mock_text2img(prompt, height, width, seed=seed)
+        """Generate CPU RGB float32 (3,H,W) from text, without source identity."""
+        if height < 8 or width < 8 or height % 8 or width % 8:
+            raise ValueError("Height and width must be positive multiples of eight.")
+        if self.is_mock:
+            return self._mock_text2img(prompt, height, width, seed)
+        return self._infer("text2img", prompt, seed, height=height, width=width)
 
-        try:
-            from diffusers import StableDiffusionPipeline
-            # Real GPU Diffusers inference
-            pipe = StableDiffusionPipeline.from_pretrained(
-                self.model_name, torch_dtype=torch.float16
-            ).to(self.target_device)
-            gen = torch.Generator(device=self.target_device).manual_seed(seed)
-            res = pipe(prompt=prompt, height=height, width=width, generator=gen).images[0]
-            np_img = np.array(res, dtype=np.float32) / 255.0
-            return torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
-        except Exception as e:
-            logger.warning(f"Diffusers execution failed ({e}), falling back to mock mode.")
-            return self._mock_text2img(prompt, height, width, seed=seed)
+    def generate_img2img(
+        self,
+        source_image: torch.Tensor,
+        prompt: str = "a realistic portrait",
+        strength: float = 0.6,
+        seed: int = 42,
+    ) -> torch.Tensor:
+        """Denoise RGB (3,H,W) [0,1]; real mode never blends unrelated pixels."""
+        validate_rgb(source_image)
+        if not 0 < strength <= 1 or int(self.num_inference_steps * strength) < 1:
+            raise ValueError(
+                "strength must be in (0,1] with at least one denoising step."
+            )
+        if self.is_mock:
+            noise = self._mock_text2img(prompt, *source_image.shape[1:], seed)
+            return (
+                (1 - strength) * source_image.detach().cpu() + strength * noise
+            ).float()
+        return self._infer(
+            "img2img",
+            prompt,
+            seed,
+            image=tensor_to_pil(source_image),
+            strength=strength,
+        )
 
     def generate_inpaint(
         self,
         source_image: torch.Tensor,
         mask: torch.Tensor,
-        prompt: str = "realistic facial feature",
+        prompt: str = "natural smiling mouth",
         seed: int = 42,
     ) -> torch.Tensor:
-        """Modify specific facial region defined by mask while strictly preserving background.
-        
-        Args:
-            source_image: Tensor of shape (3, H, W) in [0.0, 1.0].
-            mask: Binary tensor of shape (1, H, W) where 1 indicates region to inpaint.
-            prompt: Text prompt conditioning for the masked region.
-            seed: Random seed.
-            
-        Returns:
-            Inpainted tensor of shape (3, H, W) in [0.0, 1.0].
+        """Source RGB (3,H,W), mask (1,H,W) [0,1], 1=edit; return CPU RGB.
+
+        Native inpainting conditions denoising on both source and mask. A final
+        composite preserves source pixels outside the edit mask exactly.
         """
-        c, h, w = source_image.shape
-        gen_img = self.generate_text2img(prompt=prompt, height=h, width=w, seed=seed)
-
-        # Inpainting composite contract: M * I_gen + (1 - M) * I_source
-        mask_3c = mask.expand(3, h, w).to(source_image.device)
-        inpainted = mask_3c * gen_img.to(source_image.device) + (1.0 - mask_3c) * source_image
-        return torch.clamp(inpainted, 0.0, 1.0)
-
-    def generate_img2img(
-        self,
-        source_image: torch.Tensor,
-        prompt: str = "photorealistic face alteration",
-        strength: float = 0.6,
-        seed: int = 42,
-    ) -> torch.Tensor:
-        """Alter existing facial image conditioned on prompt and strength.
-        
-        Args:
-            source_image: Tensor of shape (3, H, W) in [0.0, 1.0].
-            prompt: Text prompt describing alteration.
-            strength: Degree of alteration in range [0.0, 1.0].
-            seed: Random seed.
-            
-        Returns:
-            Altered tensor of shape (3, H, W) in [0.0, 1.0].
-        """
-        c, h, w = source_image.shape
-        gen_img = self.generate_text2img(prompt=prompt, height=h, width=w, seed=seed)
-
-        # Img2Img blend contract: (1 - strength) * source + strength * gen
-        blend = (1.0 - strength) * source_image + strength * gen_img.to(source_image.device)
-        return torch.clamp(blend, 0.0, 1.0)
+        validate_rgb(source_image)
+        if mask.shape != (1, *source_image.shape[1:]):
+            raise ValueError("Mask must be (1,H,W) matching source.")
+        if (
+            not torch.isfinite(mask).all()
+            or mask.min() < 0
+            or mask.max() > 1
+            or not mask.any()
+        ):
+            raise ValueError("Mask must be nonempty, finite and in [0,1].")
+        if self.is_mock:
+            generated = self._mock_text2img(prompt, *source_image.shape[1:], seed)
+        else:
+            mask_image = Image.fromarray(
+                np.rint(mask.detach().cpu().squeeze(0).numpy() * 255).astype(np.uint8)
+            )
+            generated = self._infer(
+                "inpaint",
+                prompt,
+                seed,
+                image=tensor_to_pil(source_image),
+                mask_image=mask_image,
+                height=source_image.shape[1],
+                width=source_image.shape[2],
+            )
+        if generated.shape != source_image.shape:
+            raise ValueError(
+                "Inpainting returned wrong size; use dimensions divisible by 8."
+            )
+        alpha = mask.detach().cpu().float()
+        return alpha * generated + (1 - alpha) * source_image.detach().cpu().float()

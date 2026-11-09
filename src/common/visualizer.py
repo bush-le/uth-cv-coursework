@@ -24,6 +24,42 @@ def ensure_rgb(image: np.ndarray, source_format: str = "bgr") -> np.ndarray:
     return image.copy()
 
 
+def save_sd_input_preview(
+    manifest: Path,
+    output: Path,
+    size: tuple[int, int],
+    mask_box: tuple[float, float, float, float],
+) -> None:
+    """Save source/mask contact sheet before inference; RGB arrays (H,W,3).
+
+    The displayed mask is a pilot ROI on an aligned crop, not landmarks.
+    """
+    from src.data.sd_demo_data import (
+        load_edit_mask,
+        load_rgb,
+        read_manifest,
+        resolve_image_path,
+    )
+
+    images, titles = [], []
+    for item in read_manifest(manifest):
+        source = load_rgb(resolve_image_path(item["file_path"], manifest), size)
+        mask_path = (
+            resolve_image_path(item["mask_path"], manifest)
+            if item.get("mask_path")
+            else None
+        )
+        mask = load_edit_mask(size, mask_path, mask_box)
+        images.extend(
+            [
+                source.permute(1, 2, 0).numpy(),
+                np.repeat(mask.permute(1, 2, 0).numpy(), 3, axis=2),
+            ]
+        )
+        titles.extend([item["image_id"], "White = edit ROI; review before inference"])
+    save_image_grid(images, output, cols=2, titles=titles)
+
+
 def save_image_grid(
     images: list[np.ndarray],
     output_path: str | Path,

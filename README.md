@@ -7,7 +7,7 @@
 - **Detailed Plan**: §1 Ý Tưởng Cốt Lõi (Luồng 3 Bước); §2 Cấu Trúc Thư Mục; §3 Ba Bước Chạy Thực Nghiệm Nhanh; §4 Kiểm Tra Mã Nguồn; §5 Tài Liệu Tham Khảo.
 - **References**: [docs/PURPOSE.md](docs/PURPOSE.md), [docs/OVERVIEW.md](docs/OVERVIEW.md), [docs/reports/presentation_5min_define_and_design.html](docs/reports/presentation_5min_define_and_design.html).
 - **Created**: 2026-11-02T07:30:00+07:00
-- **Last Updated**: 2026-11-08T18:45:00+07:00
+- **Last Updated**: 2026-11-09T13:19:40+07:00
 
 ---
 
@@ -98,3 +98,7 @@ bash scripts/run_pipeline.sh mine configs/config.yaml       # Bước 2: Đưa q
 bash scripts/run_pipeline.sh train configs/config.yaml      # Bước 3a: Fine-tune lại dinoViT trên tập gộp
 bash scripts/run_pipeline.sh eval configs/config.yaml       # Bước 3b: Chấm điểm chứng minh tác dụng
 ```
+
+## Kaggle image pilot
+
+[Notebook](notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb) ? [Guide](docs/reports/KAGGLE_SD_IMAGE_DEMO.md) ? [HTML report](docs/reports/KAGGLE_SD_IMAGE_DEMO.html). Real T2I / img2img / inpainting; detector evaluation remains separate.

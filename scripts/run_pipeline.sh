@@ -11,6 +11,9 @@ set -euo pipefail
 
 STAGE="${1:-train}"
 CONFIG="${2:-configs/config.yaml}"
+if [[ "${STAGE}" == "generate" && "$#" -lt 2 ]]; then
+    CONFIG="configs/generation/kaggle_image_demo.yaml"
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
@@ -33,7 +36,7 @@ echo "=================================================="
 case "${STAGE}" in
     "generate")
         echo "[Phase 1a] Generating synthetic DF images via Stable Diffusion..."
-        ${PYTHON} -m src.pipelines.generate_deepfake_images
+        ${PYTHON} -m src.pipelines.generate_deepfake_images --config "${CONFIG}"
         ;;
     "curate")
         echo "[Phase 1b] Filtering synthetic DF images via Curation Gate..."

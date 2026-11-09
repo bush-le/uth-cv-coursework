@@ -1,8 +1,9 @@
 """Unit tests for StableDiffusionEngine and synthetic generation pipeline."""
 
 import json
-import pytest
+
 import torch
+
 from src.models.diffusion.stable_diffusion_engine import StableDiffusionEngine
 from src.pipelines.generate_deepfake_images import run_image_generation
 
@@ -10,7 +11,9 @@ from src.pipelines.generate_deepfake_images import run_image_generation
 def test_stable_diffusion_engine_text2img():
     """Test text2img mode returns valid (3, H, W) float tensor in [0.0, 1.0]."""
     engine = StableDiffusionEngine(model_name="mock_sd")
-    img = engine.generate_text2img(prompt="a photorealistic face", height=128, width=128)
+    img = engine.generate_text2img(
+        prompt="a photorealistic face", height=128, width=128
+    )
 
     assert img.shape == (3, 128, 128)
     assert img.dtype == torch.float32
@@ -61,7 +64,10 @@ def test_run_image_generation_pipeline(tmp_path):
         model_name="mock_sd",
         mock_cache={"real_001": torch.rand(3, 64, 64)},
         num_per_real=2,
+        modes=("img2img",),
+        height=64,
+        width=64,
     )
     assert count == 2
     assert output_manifest.exists()
-    assert (output_dir / "fake_real_001_0.png").exists()
+    assert len(list(output_dir.glob("fake_real_001_img2img_*.png"))) == 2
