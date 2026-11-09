@@ -185,8 +185,8 @@ class PromptGrammarEngine:
         sample_s = sample_seed(self.seed, f"prompt_{mode}", seed_offset)
         rng = np.random.RandomState(sample_s)
 
-        # 1. Base photographic quality anchor
-        base_prefix = "RAW photo, 8k uhd, dslr, high quality, authentic portrait"
+        # 1. Base photographic quality anchor (close-up framing prevents miniature environmental portraits)
+        base_prefix = "close-up centered face portrait, RAW photo, dslr, authentic human face, direct eye contact"
 
         # 2. Subject demographics (respect demographic dict if provided, else sample dynamically)
         age_tag = ""

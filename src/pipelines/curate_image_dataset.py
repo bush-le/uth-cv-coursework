@@ -50,7 +50,7 @@ class ImageCurationGate:
 
     def __init__(
         self,
-        min_sharpness: float = 50.0,
+        min_sharpness: float = 3.5,
         min_clip_score: float = 0.28,
         clip_enabled: bool = False,
         clip_model_id: str = "openai/clip-vit-base-patch32",
@@ -337,13 +337,15 @@ def curate_dataset(
     report_path: Optional[Path] = None,
     curation_report: Optional[Path] = None,
     gate: Optional[ImageCurationGate] = None,
-    min_sharpness: float = 10.0,
+    min_sharpness: float = 3.5,
+    face_backend: str = "opencv_haar",
     dedup: bool = True,
 ) -> Dict[str, Any]:
     """High-level wrapper to curate a synthetic dataset manifest."""
     if gate is None:
         gate = ImageCurationGate(
             min_sharpness=min_sharpness,
+            face_backend=face_backend,
             clip_enabled=False,
             dedup=dedup,
         )

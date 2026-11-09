@@ -19,6 +19,7 @@ DEFAULT_NEGATIVE_PROMPT = (
     "(deformed, distorted, disfigured:1.3), bad anatomy, poorly drawn face, blurry, "
     "plastic, artificial, mannequin, fake, cartoon, 3d render, "
     "mirror, frame, border, vignette, circular frame, porthole, multiple faces, "
+    "distant face, small face, miniature face, wide shot, full body, torso, "
     "out of frame, cropped face, bad eyes, distorted pupils"
 )
 
@@ -29,7 +30,7 @@ NATIVE_SD_SIZE = 512
 def generate_dynamic_face_mask(
     image: torch.Tensor,
     bbox: Optional[Tuple[float, float, float, float]] = None,
-    blur_radius: int = 16,
+    blur_radius: int = 20,
     target_region: str = "full",
 ) -> torch.Tensor:
     """Generate a smooth anatomical oval mask encompassing face, cheeks, and full jawline,
@@ -362,7 +363,11 @@ class StableDiffusionEngine(nn.Module):
             ).images[0]
             if (out_img.width, out_img.height) != (w, h):
                 out_img = out_img.resize((w, h), Image.Resampling.LANCZOS)
-            return self._pil_to_tensor(out_img).to(self.target_device)
+            inpainted_tensor = self._pil_to_tensor(out_img).to(self.target_device)
+            mask_expanded = mask.expand_as(source_image).to(self.target_device)
+            # Alpha-blend inpainting result with pristine source image to guarantee seamless boundary and zero seam artifacts
+            blended = mask_expanded * inpainted_tensor + (1.0 - mask_expanded) * source_image.to(self.target_device)
+            return torch.clamp(blended, 0.0, 1.0)
         except Exception as e:
             if self.use_mock_fallback:
                 logger.warning("Diffusers inpaint failed (%s), using mock fallback.", e)

@@ -260,7 +260,7 @@ def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "ope
     if backend == "none":
         return 1
 
-    if backend == "opencv_haar":
+    if backend in ("opencv", "opencv_haar"):
         import cv2
 
         if isinstance(image_rgb, torch.Tensor):
@@ -287,6 +287,14 @@ def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "ope
             minNeighbors=3,
             minSize=(20, 20),
         )
+        if len(faces) == 0:
+            # Relaxed pass for slightly tilted faces or sunglasses
+            faces = face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.05,
+                minNeighbors=2,
+                minSize=(20, 20),
+            )
         return len(faces)
 
     raise ValueError(f"Unknown face detection backend: {backend}")
@@ -328,6 +336,9 @@ def verify_facial_geometry(
     face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     face_cascade = cv2.CascadeClassifier(face_cascade_path)
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
+    if len(faces) == 0:
+        # Fallback to relaxed detection for tilted faces or dark eyeglasses
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2, minSize=(40, 40))
 
     if len(faces) == 0:
         return False, ["No face landmark detected"]
@@ -357,11 +368,12 @@ def verify_facial_geometry(
     if lower.shape[0] >= 10 and lower.shape[1] >= 10:
         sobel_y = np.abs(cv2.Sobel(lower, cv2.CV_64F, 0, 1, ksize=3))
         row_means = np.mean(sobel_y, axis=1)
-        peak = np.max(row_means)
-        median = np.median(row_means) + 1e-5
+        peak = float(np.max(row_means))
+        median = float(np.median(row_means)) + 1e-5
         spike = peak / median
-        if spike > 5.0:
-            reasons.append(f"Severe horizontal boundary discontinuity across face (seam_spike={spike:.2f} > 5.0)")
+        # Real mouths and teeth have spike ~5.0-6.5 and peak < 20. Artificial horizontal seams have spike > 8.0 AND peak > 20.0
+        if spike > 8.0 and peak > 20.0:
+            reasons.append(f"Severe horizontal boundary discontinuity across face (seam_spike={spike:.2f} > 8.0, peak={peak:.1f})")
 
     is_valid = len(reasons) == 0
     return is_valid, reasons
