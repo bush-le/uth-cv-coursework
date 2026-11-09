@@ -1,0 +1,82 @@
+# ==============================================================================
+# Centralized Dataset Factory & Adversarial Hard-Sample Mining Configuration
+# Single Source of Truth for Topic 11 (Zero-Hardcode Contract)
+# ==============================================================================
+
+seed: 42
+
+paths:
+  raw_manifest: "data/raw/manifest.jsonl"
+  synthetic_dir: "data/synthetic"
+  fake_manifest: "data/synthetic/fake_manifest.jsonl"
+  curated_manifest: "data/synthetic/curated_manifest.jsonl"
+  curation_report: "data/synthetic/curation_report.jsonl"
+  hard_dir: "data/hard_samples"
+  hard_manifest: "data/hard_samples/hard_samples_manifest.jsonl"
+  annotated_manifest: "data/synthetic/annotated_synthetic_manifest.jsonl"
+  benchmarks_dir: "data/benchmarks"
+  stats_file: "data/dataset_statistics.json"
+  gallery_image: "experiments/predictions/real_vs_synthetic_gallery.png"
+
+generation:
+  model_id: "runwayml/stable-diffusion-v1-5"
+  inpaint_model_id: "runwayml/stable-diffusion-v1-5"
+  modes:
+    - "sd_img2img"
+    - "sd_inpaint"
+    - "sd_text2img"
+  num_per_real: 1
+  max_real_samples: null
+  steps: 20
+  guidance_scale: 7.5
+  img2img_strength: 0.50
+  image_size:
+    - 256
+    - 256
+  negative_prompt: "deformed, blurry, bad anatomy, bad eyes, disfigured, poorly drawn face"
+  inpaint_mask_box:
+    - 0.25
+    - 0.25
+    - 0.75
+    - 0.75
+
+curation:
+  reference_quantile_sharpness: 0.05
+  clip:
+    enabled: false
+    model_id: "openai/clip-vit-base-patch32"
+    min_score: 0.20
+  face_check:
+    backend: "none"
+  dedup: true
+
+hardness:
+  method: "real_manifold"
+  backbone_id: "facebook/dinov2-small"
+  k_neighbors: 3
+  reference_quantile: 0.85
+  detector_checkpoint: null
+  detector_tau: 0.50
+  batch_size: 16
+
+benchmarks:
+  split_ratios:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+  stages:
+    - name: "D0_baseline"
+      train_sources:
+        - "baseline"
+      oversample_hard: 1
+    - name: "D1_augmented"
+      train_sources:
+        - "baseline"
+        - "synthetic"
+      oversample_hard: 1
+    - name: "D2_hard_boosted"
+      train_sources:
+        - "baseline"
+        - "synthetic"
+        - "hard_sample"
+      oversample_hard: 2
