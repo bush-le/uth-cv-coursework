@@ -102,3 +102,8 @@ bash scripts/run_pipeline.sh eval configs/config.yaml       # Bước 3b: Chấm
 ## Kaggle image pilot
 
 [Notebook](notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb) ? [Guide](docs/reports/KAGGLE_SD_IMAGE_DEMO.md) ? [HTML report](docs/reports/KAGGLE_SD_IMAGE_DEMO.html). Real T2I / img2img / inpainting; detector evaluation remains separate.
+
+## Kaggle image benchmark: queue and resume
+
+- [Notebook](notebooks/SD_ALL_BENCHMARK_KAGGLE.ipynb) / [Guide](docs/reports/KAGGLE_SD_ALL_BENCHMARK.md)
+- 32 generation configurations; full GPU catalog validation pending.

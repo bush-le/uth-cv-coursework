@@ -8,3 +8,5 @@ gdown==5.2.0
 beautifulsoup4>=4.12,<5
 PyYAML>=6.0.1,<7
 Pillow>=10,<13
+sentencepiece>=0.2,<0.3
+protobuf>=3.20,<6

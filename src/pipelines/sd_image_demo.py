@@ -61,6 +61,10 @@ def build_demo_gallery(manifest: Path, destination: Path) -> dict[str, Any]:
         )
         if record.get("mask_path"):
             pictures += figure(Path(record["mask_path"]), "Mask: white = edit")
+        if record.get("target_snapshot"):
+            pictures += figure(
+                Path(record["target_snapshot"]), "Target: pose and scene"
+            )
         pictures += figure(image, record["manipulation_type"])
         sections.append(
             f'<section><h2>{html.escape(record["image_id"])}</h2><p>{html.escape(record["prompt"])}</p><div class="pictures">{pictures}</div></section>'
@@ -105,6 +109,12 @@ def run_demo(config_path: Path) -> dict[str, Any]:
                 engine_options[key] = model_info(
                     model, revision=engine_options.get(key)
                 ).sha
+        if engine_options.get("unet_override"):
+            override = dict(engine_options["unet_override"])
+            override["revision"] = model_info(
+                override["repo"], revision=override.get("revision")
+            ).sha
+            engine_options["unet_override"] = override
     run_dir = Path(config["run_dir"])
     run_dir.mkdir(parents=True, exist_ok=True)
     resolved = config | {"engine": engine_options}

@@ -46,6 +46,10 @@ class StableDiffusionEngine(nn.Module):
         negative_prompt: str = "deformed, blurry face",
         cpu_offload: bool = False,
         local_files_only: bool = False,
+        pipeline_family: str = "sd1",
+        scheduler: str | None = None,
+        timestep_spacing: str | None = None,
+        unet_override: dict[str, str] | None = None,
     ) -> None:
         super().__init__()
         self.model_name = model_name
@@ -66,6 +70,20 @@ class StableDiffusionEngine(nn.Module):
         )
         self.negative_prompt = negative_prompt
         self.cpu_offload, self.local_files_only = cpu_offload, local_files_only
+        if pipeline_family not in {"sd1", "auto"}:
+            raise ValueError("pipeline_family must be sd1 or auto.")
+        if scheduler not in {
+            None,
+            "euler",
+            "euler_ancestral",
+            "dpmpp",
+            "dpmpp_2m_karras",
+        }:
+            raise ValueError("Unsupported scheduler preset.")
+        self.pipeline_family = pipeline_family
+        self.scheduler_name = scheduler
+        self.timestep_spacing = timestep_spacing
+        self.unet_override = unet_override
         self._pipe: Any = None
         self._mode: str | None = None
 
@@ -97,19 +115,81 @@ class StableDiffusionEngine(nn.Module):
             "img2img": StableDiffusionImg2ImgPipeline,
             "inpaint": StableDiffusionInpaintPipeline,
         }
+        if self.pipeline_family == "auto":
+            from diffusers import (
+                AutoPipelineForImage2Image,
+                AutoPipelineForInpainting,
+                AutoPipelineForText2Image,
+            )
+
+            classes = {
+                "text2img": AutoPipelineForText2Image,
+                "img2img": AutoPipelineForImage2Image,
+                "inpaint": AutoPipelineForInpainting,
+            }
         model = self.inpaint_model_name if mode == "inpaint" else self.model_name
         revision = self.inpaint_revision if mode == "inpaint" else self.revision
         dtype = torch.float16 if self.target_device.type == "cuda" else torch.float32
         logger.info("Loading %s from %s (revision=%s)", mode, model, revision)
+        loading_options: dict[str, Any] = {}
+        if self.unet_override:
+            from diffusers import UNet2DConditionModel
+            from huggingface_hub import hf_hub_download
+            from safetensors.torch import load_file
+
+            unet = UNet2DConditionModel.from_config(
+                model, subfolder="unet", revision=revision
+            )
+            checkpoint = hf_hub_download(
+                self.unet_override["repo"],
+                self.unet_override["filename"],
+                revision=self.unet_override.get("revision"),
+            )
+            unet.load_state_dict(load_file(checkpoint, device="cpu"), strict=True)
+            loading_options["unet"] = unet.to(dtype=dtype)
         pipe = classes[mode].from_pretrained(
             model,
             revision=revision,
             torch_dtype=dtype,
             local_files_only=self.local_files_only,
+            **loading_options,
         )
-        for component in (pipe.unet, pipe.vae, pipe.text_encoder):
-            component.eval()
-        pipe.enable_attention_slicing()
+        if self.scheduler_name:
+            from diffusers import (
+                DPMSolverMultistepScheduler,
+                EulerAncestralDiscreteScheduler,
+                EulerDiscreteScheduler,
+            )
+
+            scheduler_classes = {
+                "euler": EulerDiscreteScheduler,
+                "euler_ancestral": EulerAncestralDiscreteScheduler,
+                "dpmpp_2m_karras": DPMSolverMultistepScheduler,
+                "dpmpp": DPMSolverMultistepScheduler,
+            }
+            scheduler_options: dict[str, Any] = {}
+            if self.timestep_spacing:
+                scheduler_options["timestep_spacing"] = self.timestep_spacing
+            if self.scheduler_name == "dpmpp_2m_karras":
+                scheduler_options.update(
+                    algorithm_type="dpmsolver++", use_karras_sigmas=True
+                )
+            pipe.scheduler = scheduler_classes[self.scheduler_name].from_config(
+                pipe.scheduler.config, **scheduler_options
+            )
+        for name in (
+            "unet",
+            "transformer",
+            "vae",
+            "text_encoder",
+            "text_encoder_2",
+            "text_encoder_3",
+        ):
+            component = getattr(pipe, name, None)
+            if component is not None:
+                component.eval()
+        if callable(getattr(pipe, "enable_attention_slicing", None)):
+            pipe.enable_attention_slicing()
         if self.cpu_offload and self.target_device.type == "cuda":
             pipe.enable_model_cpu_offload(gpu_id=self.target_device.index or 0)
         else:

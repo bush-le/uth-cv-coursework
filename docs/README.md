@@ -48,3 +48,9 @@
 
 - [Guide](reports/KAGGLE_SD_IMAGE_DEMO.md) / [HTML](reports/KAGGLE_SD_IMAGE_DEMO.html)
 - [Notebook](../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb)
+
+## Kaggle full-catalog image benchmark
+
+- [Guide](reports/KAGGLE_SD_ALL_BENCHMARK.md) / [HTML](reports/KAGGLE_SD_ALL_BENCHMARK.html)
+- [Notebook: queue and resume](../notebooks/SD_ALL_BENCHMARK_KAGGLE.ipynb)
+- 32 generation configurations; full GPU catalog validation pending.

@@ -1,0 +1,70 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SD image benchmark | Kaggle</title><style>body{font:16px/1.75 system-ui,Segoe UI,sans-serif;background:#f4f6f3;color:#17312c;margin:0}main{max-width:1050px;margin:auto;padding:45px 24px 90px}h1{font-size:clamp(30px,5vw,52px);line-height:1.1;letter-spacing:-1.5px}h2{margin-top:44px;font-size:25px;border-top:1px solid #cddbd4;padding-top:24px}h3{font-size:19px}a{color:#087e72}pre{background:#e8eeea;padding:20px;border-radius:12px;overflow:auto;font-size:14px}code{background:#e8eeea;padding:2px 5px;border-radius:4px}li{margin:9px 0}svg{width:100%;height:auto}aside{padding:16px 20px;background:#fff1cd;border-left:4px solid #d9a400;border-radius:8px}strong{color:#113b30}@media print{main{padding:0}pre{white-space:pre-wrap}h2{break-after:avoid}}</style><main><svg viewBox="0 0 1000 130" role="img" aria-label="Input to queue to worker to verified artifacts to portable resume"><defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#36b49d"/></marker></defs><g fill="#eaf6f2" stroke="#36b49d" stroke-width="2"><rect x="10" y="30" width="160" height="65" rx="14"/><rect x="210" y="30" width="160" height="65" rx="14"/><rect x="410" y="30" width="160" height="65" rx="14"/><rect x="610" y="30" width="160" height="65" rx="14"/><rect x="810" y="30" width="180" height="65" rx="14"/></g><g stroke="#36b49d" stroke-width="2" marker-end="url(#a)"><path d="M170 62H205"/><path d="M370 62H405"/><path d="M570 62H605"/><path d="M770 62H805"/></g><g fill="#173b36" text-anchor="middle" font-family="system-ui" font-size="17"><text x="90" y="68">Real inputs</text><text x="290" y="68">Queue / hash</text><text x="490" y="68">Isolated worker</text><text x="690" y="68">PNG / log / QA</text><text x="900" y="68">ZIP / restore</text></g></svg><aside>32 c?u h?nh trong h?ng ??i; ch?a x?c nh?n ch?y ??y ?? tr?n Kaggle GPU. Xem m?c b?ng ch?ng v? gi?i h?n tr??c khi s? d?ng k?t qu?.</aside><h1>KAGGLE SD IMAGE BENCHMARK</h1>
+<ul>
+<li><strong>Motivation/Background</strong>: So sánh các checkpoint và phương pháp trong danh mục đã thảo luận, theo từng nhóm trên Kaggle.</li>
+<li><strong>Purpose</strong>: Bàn giao hàng đợi inference thật, ghi nhận lỗi và khôi phục kết quả; phân biệt rõ phần đã kiểm thử với phần chưa chạy GPU.</li>
+<li><strong>Overview Pipeline</strong>: Chuẩn bị ảnh → lập queue → worker riêng từng cấu hình → kiểm tra artifacts → gallery/log → xuất ZIP → restore/resume.</li>
+<li><strong>Detailed Plan</strong>: Phạm vi, cách chạy, resume, bằng chứng kiểm thử, giới hạn và nguồn tham khảo.</li>
+<li><strong>References</strong>: <a href="../../notebooks/SD_ALL_BENCHMARK_KAGGLE.ipynb">Notebook</a>, <a href="../../configs/generation/sd_all_benchmark.yaml">suite</a>, <a href="../../configs/generation/sd_benchmark_catalog.yaml">catalog</a>, <a href="KAGGLE_SD_IMAGE_DEMO.md">pilot</a>.</li>
+<li><strong>Created</strong>: 2026-11-09T14:20:00+07:00</li>
+<li><strong>Last Updated</strong>: 2026-11-09T14:20:00+07:00</li>
+</ul>
+<h2>Phạm vi và cách đếm</h2>
+<p>Đây là benchmark <strong>ảnh</strong>, dùng pretrained, không fine-tune. <strong>32 cấu hình sinh ảnh</strong> gồm 18 cấu hình checkpoint và 14 cấu hình reference; mở rộng theo mode thành <strong>44 tác vụ cho mỗi ảnh nguồn</strong> ở cấu hình mặc định. Mỗi case reference tạo một ảnh; checkpoint tạo một ảnh cho mỗi mode được hỗ trợ. Mặc định <code>source_limit: 1</code>, chuẩn bị ba ảnh thật để có cặp source/target khác nhau.</p>
+<p>Danh mục có <strong>31 mục tham khảo</strong>: 9 mục model nền, 7 mục checkpoint tùy biến, 12 mục phương pháp/conditioning, 3 công cụ thực thi. Một số mục gộp nhiều phiên bản nên số cấu hình khác số mục. Diffusers, ComfyUI và AUTOMATIC1111 là công cụ; chúng không được tính như ba thuật toán sinh ảnh hay ba thí nghiệm đã hoàn thành.</p>
+<ul>
+<li>Checkpoints: SD 1.4, SD 1.5, SDXL, SD 1.5 Inpainting, SDXL Inpainting, SD 3.5 Medium/Large/Large Turbo, SDXL Turbo/Lightning; Realistic Vision 5.1, DreamShaper 8, RealVisXL 5, Juggernaut XL 9, DreamShaper XL Lightning, epiCRealism, AbsoluteReality 1.81/1.6525.</li>
+<li>Reference: ControlNet Canny, IP-Adapter, IP-Adapter-FaceID SD1.5/PlusV2 SDXL, InstantID, PhotoMaker v1, Face-Adapter, REFace, Arc2Face, PuLID v1/v1.1, FastComposer, FlashFace, ConsistentID SD1.5.</li>
+<li><strong>T2I</strong> không có danh tính nguồn. <strong>img2img/inpainting</strong> chỉnh ảnh nhưng không tự bảo đảm đổi danh tính. <strong>Reference generation</strong> giữ danh tính để sinh chân dung mới. <strong>Face swapping</strong> nhận source identity và target ảnh riêng; hai case ở đây là Face-Adapter và REFace. ControlNet Canny/IP-Adapter thường không chuyên bảo toàn danh tính. Không xếp hạng chung các tác vụ như thể tương đương.</li>
+</ul>
+<h2>Chạy trên Kaggle</h2>
+<ol>
+<li>Import notebook; bật GPU + Internet, gắn source bundle <code>SD_ALL_BENCHMARK_KAGGLE.zip</code> dạng ZIP hoặc Dataset đã giải nén.</li>
+<li>Cài <code>requirements/generation.txt</code>, giữ cặp CUDA torch/torchvision của Kaggle. Chuẩn bị ba ảnh từ Drive bằng module hiện có; xem preview và mask.</li>
+<li>Chạy cell plan, sau đó cell batch. <code>GROUP="all"</code>, <code>MAX_JOBS=2</code> mặc định; chạy lại cell để tiếp tục các case còn pending. Dùng <code>GROUP="checkpoints"</code> hoặc <code>"methods"</code> để tách nhóm; <code>CASE_IDS=["sd15", "sd15_inpaint"]</code> để thử đúng hai case trước.</li>
+<li>Xem <code>index.html</code> và <code>cases/&lt;case_id&gt;_&lt;hash&gt;/worker.log</code>. Case thành công có <code>gallery.html</code>, PNG, manifest, summary và technical QA. Download ZIP kết quả sau mỗi batch hoặc Save Version với outputs.</li>
+</ol>
+<p>CLI tương đương, chạy từ root repo:</p>
+<pre><code class="language-bash">python -m src.pipelines.prepare_image_demo
+python -m src.pipelines.sd_all_benchmark --plan-only
+python -m src.pipelines.sd_all_benchmark --group checkpoints --max-jobs 2
+python -m src.pipelines.sd_all_benchmark --cases sd15 sd15_inpaint --max-jobs 2
+python -m src.pipelines.sd_all_benchmark --group methods --max-jobs 2
+</code></pre>
+<p>Các checkpoint gated cần tài khoản đã chấp nhận điều khoản và <code>HF_TOKEN</code> qua Kaggle Secrets/environment. Không lưu token trong cell, config hoặc Git. Mô hình public/free download vẫn có license khác nhau; InsightFace và một số weights giới hạn nghiên cứu phi thương mại. Dùng ảnh được phép xử lý.</p>
+<h2>Resume và retry</h2>
+<pre class="mermaid">flowchart LR
+    A[Ảnh thật + YAML] --&gt; B[Queue + fingerprint]
+    B --&gt; C[Worker riêng / một GPU job]
+    C --&gt; D{Đủ ảnh, decode, SHA256?}
+    D --&gt;|Có| E[completed + gallery]
+    D --&gt;|Không| F[failed + log]
+    E --&gt; G[ZIP kết quả]
+    F --&gt; G
+    G --&gt; H[Restore phiên mới]
+    H --&gt; B
+</pre>
+<p>Queue lưu ở <code>experiments/runs/sd_all_benchmark/queue.json</code>. Fingerprint gồm YAML case/pilot, hash ảnh nguồn và mã nguồn <code>src/</code>. Đổi các nội dung này tạo lượt mới. Chỉ skip case completed khi đủ số ảnh mong đợi, <code>is_mock=false</code>, PNG decode được và SHA256 khớp. Case checkpoint còn có resume từng ảnh; case reference chạy lại cả case nếu dở dang. Trạng thái running từ phiên trước được đổi thành interrupted để thử lại.</p>
+<p>Failed được giữ nguyên và bỏ qua ở lượt thường. Đọc log rồi dùng <code>retry_failed=True</code> hoặc CLI <code>--retry-failed</code>. Lỗi dependency, gated/access, OOM, timeout và execution được lưu riêng; không biến chúng thành điểm chất lượng thấp. <code>MAX_JOBS</code> đếm số lượt thử, gồm cả lượt thất bại. Khóa OS ngăn hai runner cùng sửa queue; timeout hoặc ngắt worker sẽ kết thúc nhóm tiến trình con trên Linux/Kaggle.</p>
+<p>Notebook gọi <code>export_results</code> và <code>restore_results</code> trong <a href="../../src/pipelines/sd_benchmark_archive.py">archive module</a>. ZIP loại venv, vendor repo, model cache và scratch. Restore chỉ vào thư mục trống, kiểm tra đường dẫn ZIP, chuyển các đường dẫn artifacts sang thư mục mới. <strong>Working storage của Kaggle không tự bền qua phiên mới</strong>: cần lưu ZIP/outputs và gắn lại chúng. Chuẩn bị lại đúng ảnh nguồn và dùng cùng source bundle để giữ fingerprint. Model và môi trường sẽ cài/tải lại.</p>
+<h2>Dependency và provenance</h2>
+<p>Native checkpoints dùng AutoPipeline theo mode; Lightning sử dụng UNet/scheduler/steps riêng. Không thay checkpoint bị lỗi bằng model khác. Optional backends dùng venv theo phương pháp, kế thừa CUDA torch; Face-Adapter và FastComposer có profile API cũ riêng. FastComposer cài <code>facenet-pytorch</code> không kéo lại torch; đây là profile tương thích thử nghiệm, phải kiểm tra bằng lượt chạy thật. Các profile mới chưa được chứng minh tương thích đầy đủ trên Kaggle hiện tại.</p>
+<p>Các repo phương pháp được pin commit trong YAML. REFace dùng <code>inference_swap_selected.py</code>, không dùng script Flask demo. Arc2Face giữ recognition weights riêng khi khởi tạo InsightFace. PuLID v1 dùng SDXL Base + Lightning UNet đúng constructor upstream; không ghi nhầm thành DreamShaper XL.</p>
+<p>Mỗi case lưu config, seed, source/target snapshots, kích thước yêu cầu/kích thước native, prompt thực tế và provenance. Native checkpoints/Lightning UNet được resolve Hub commit trước load. Reference workers ghi upstream commit, package versions và các snapshot/download metadata quan sát được. <strong>Các download phụ do upstream tự thực hiện chưa được pin toàn bộ</strong>; provenance không phải cam kết môi trường hoàn toàn tái lập. CLI phụ có namespace riêng, tránh nhầm <code>src</code> của REFace với <code>src</code> của coursework.</p>
+<p>Mỗi worker chạy tuần tự và thoát để giải phóng GPU. Mặc định dọn <code>_model_cache</code> và <code>_runtime</code> sau case; dùng <code>keep_model_cache=True</code> nếu muốn giữ để debug. Venv và vendor assets vẫn chiếm disk trong run directory, không được đóng vào ZIP kết quả. SD3.5 Large có thể vượt VRAM/RAM/disk Kaggle; CPU offload không bảo đảm chạy được và không ghép hai GPU thành một vùng VRAM.</p>
+<h2>Bằng chứng và giới hạn</h2>
+<ul>
+<li>Unit/regression: 11 smoke checks và 59 tests toàn bộ đã pass; bao phủ catalog, kết quả thiếu/hỏng/mock, batch, explicit retry, skip kết quả hợp lệ, khôi phục ZIP khác thư mục, chống ghi đè/traversal, khóa queue và timeout/nonzero exit. Đây là kiểm thử orchestration, không phải bằng chứng chất lượng generator.</li>
+<li>Integration thật trên CPU: <code>hf-internal-testing/tiny-stable-diffusion-torch</code>, AutoPipeline, 64×64, 2 steps, ba ảnh thật × ba mode = 9 PNG; chạy lại resume 9/9. Artifact cục bộ ở <code>experiments/runs/tiny_sd_auto_validation/</code>. Fixture nhỏ không đại diện chất lượng SD đầy đủ; safety checker không có trong config fixture upstream, không bị wrapper vô hiệu hóa.</li>
+<li><strong>Chưa chạy 32 cấu hình trên Kaggle GPU.</strong> Tất cả case có <code>gpu_validation: not_run</code> trong config. Danh mục đầy đủ không có nghĩa mọi backend đã cài/load/infer thành công.</li>
+<li>Technical QA chỉ kiểm tra đọc ảnh, kích thước, hash và Laplacian variance thực. Chưa có ID similarity, pose/expression preservation, perceptual quality, FID/KID đủ mẫu, đánh giá người hay hiệu quả bổ sung data cho detector. Không gọi bộ dữ liệu này là đã đạt success criteria; không dùng detector chưa huấn luyện để kết luận hard samples.</li>
+<li>Cấu hình khác nhau về model, resolution, steps, scheduler và conditioning. Đây là screening output baseline; thời gian thực tế gồm load/download/QA, không phải benchmark inference thuần có điều kiện kiểm soát.</li>
+</ul>
+<h2>Nguồn tham khảo</h2>
+<h3>1. Nội bộ</h3>
+<p><a href="KAGGLE_SD_IMAGE_DEMO.md">Pilot</a>, <a href="../../src/pipelines/sd_all_benchmark.py">queue</a>, <a href="../../src/models/diffusion/reference_backends.py">reference backends</a>, <a href="../../configs/generation/sd_all_benchmark.yaml">suite</a>.</p>
+<h3>2. Framework chính thức</h3>
+<p><a href="https://huggingface.co/docs/diffusers/v0.35.1/en/api/pipelines/auto_pipeline">Diffusers AutoPipeline</a>, <a href="https://huggingface.co/docs/diffusers/v0.35.1/en/using-diffusers/ip_adapter">IP-Adapter integration</a>.</p>
+<h3>3. Model cards</h3>
+<p><a href="https://huggingface.co/ByteDance/SDXL-Lightning">SDXL-Lightning</a>, <a href="https://huggingface.co/stabilityai/sdxl-turbo">SDXL Turbo</a>, <a href="https://huggingface.co/stabilityai/stable-diffusion-3.5-large-turbo">SD3.5 Large Turbo</a>, <a href="../../configs/generation/sd_benchmark_catalog.yaml">toàn bộ nguồn checkpoint trong catalog</a>.</p>
+<h3>4. Upstream phương pháp</h3>
+<p><a href="https://github.com/Sanoojan/REFace">REFace</a>, <a href="https://github.com/FaceAdapter/Face-Adapter">Face-Adapter</a>, <a href="https://github.com/ToTheBeginning/PuLID">PuLID</a>, <a href="https://github.com/foivospar/Arc2Face">Arc2Face</a>, <a href="https://github.com/mit-han-lab/fastcomposer">FastComposer</a>, <a href="https://github.com/ali-vilab/FlashFace">FlashFace</a>, <a href="https://github.com/JackAILab/ConsistentID">ConsistentID</a>, <a href="https://github.com/TencentARC/PhotoMaker">PhotoMaker</a>, <a href="https://github.com/instantX-research/InstantID">InstantID</a>, <a href="https://github.com/tencent-ailab/IP-Adapter">IP-Adapter</a>.</p></main><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';mermaid.initialize({startOnLoad:true,theme:'neutral',securityLevel:'strict'});</script></html>

@@ -1,0 +1,467 @@
+schema_version: 1
+catalog: configs/generation/sd_benchmark_catalog.yaml
+pilot_config: configs/generation/kaggle_image_demo.yaml
+run_dir: experiments/runs/sd_all_benchmark
+source_limit: 1
+timeout_seconds: 3600
+cases:
+- id: sd14
+  catalog_id: base_01
+  group: checkpoints
+  backend: diffusers
+  model_name: CompVis/stable-diffusion-v1-4
+  modes:
+  - text2img
+  - img2img
+  size: 512
+  steps: 30
+  guidance: 7.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sd15
+  catalog_id: base_02
+  group: checkpoints
+  backend: diffusers
+  model_name: stable-diffusion-v1-5/stable-diffusion-v1-5
+  modes:
+  - text2img
+  - img2img
+  size: 512
+  steps: 30
+  guidance: 7.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sdxl
+  catalog_id: base_03
+  group: checkpoints
+  backend: diffusers
+  model_name: stabilityai/stable-diffusion-xl-base-1.0
+  modes:
+  - text2img
+  - img2img
+  size: 1024
+  steps: 30
+  guidance: 5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sd15_inpaint
+  catalog_id: base_04
+  group: checkpoints
+  backend: diffusers
+  model_name: stable-diffusion-v1-5/stable-diffusion-inpainting
+  modes:
+  - inpaint
+  size: 512
+  steps: 30
+  guidance: 7.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sdxl_inpaint
+  catalog_id: base_05
+  group: checkpoints
+  backend: diffusers
+  model_name: diffusers/stable-diffusion-xl-1.0-inpainting-0.1
+  modes:
+  - inpaint
+  size: 1024
+  steps: 30
+  guidance: 5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sd35_medium
+  catalog_id: base_06
+  group: checkpoints
+  backend: diffusers
+  model_name: stabilityai/stable-diffusion-3.5-medium
+  modes:
+  - text2img
+  size: 1024
+  steps: 30
+  guidance: 4.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sd35_large
+  catalog_id: base_07
+  group: checkpoints
+  backend: diffusers
+  model_name: stabilityai/stable-diffusion-3.5-large
+  modes:
+  - text2img
+  size: 1024
+  steps: 28
+  guidance: 3.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sd35_large_turbo
+  catalog_id: base_07
+  group: checkpoints
+  backend: diffusers
+  model_name: stabilityai/stable-diffusion-3.5-large-turbo
+  modes:
+  - text2img
+  size: 1024
+  steps: 4
+  guidance: 0
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sdxl_turbo
+  catalog_id: base_08
+  group: checkpoints
+  backend: diffusers
+  model_name: stabilityai/sdxl-turbo
+  modes:
+  - text2img
+  - img2img
+  size: 512
+  steps: 2
+  guidance: 0
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: sdxl_lightning
+  catalog_id: base_09
+  group: checkpoints
+  backend: diffusers
+  model_name: stabilityai/stable-diffusion-xl-base-1.0
+  modes:
+  - text2img
+  size: 1024
+  steps: 4
+  guidance: 0
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+    scheduler: euler
+    timestep_spacing: trailing
+    unet_override:
+      repo: ByteDance/SDXL-Lightning
+      filename: sdxl_lightning_4step_unet.safetensors
+  gpu_validation: not_run
+- id: realistic_v51
+  catalog_id: checkpoint_01
+  group: checkpoints
+  backend: diffusers
+  model_name: SG161222/Realistic_Vision_V5.1_noVAE
+  modes:
+  - text2img
+  - img2img
+  size: 512
+  steps: 30
+  guidance: 7.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: dreamshaper8
+  catalog_id: checkpoint_02
+  group: checkpoints
+  backend: diffusers
+  model_name: Lykon/dreamshaper-8
+  modes:
+  - text2img
+  - img2img
+  size: 512
+  steps: 30
+  guidance: 7.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: realvisxl5
+  catalog_id: checkpoint_03
+  group: checkpoints
+  backend: diffusers
+  model_name: SG161222/RealVisXL_V5.0
+  modes:
+  - text2img
+  - img2img
+  size: 1024
+  steps: 30
+  guidance: 5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: juggernautxl9
+  catalog_id: checkpoint_04
+  group: checkpoints
+  backend: diffusers
+  model_name: RunDiffusion/Juggernaut-XL-v9
+  modes:
+  - text2img
+  - img2img
+  size: 1024
+  steps: 30
+  guidance: 5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: dreamshaperxl_lightning
+  catalog_id: checkpoint_05
+  group: checkpoints
+  backend: diffusers
+  model_name: Lykon/dreamshaper-xl-lightning
+  modes:
+  - text2img
+  - img2img
+  size: 1024
+  steps: 4
+  guidance: 2
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+    scheduler: dpmpp
+  gpu_validation: not_run
+- id: epicrealism
+  catalog_id: checkpoint_06
+  group: checkpoints
+  backend: diffusers
+  model_name: emilianJR/epiCRealism
+  modes:
+  - text2img
+  - img2img
+  size: 512
+  steps: 30
+  guidance: 7.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: absolute181
+  catalog_id: checkpoint_07
+  group: checkpoints
+  backend: diffusers
+  model_name: Lykon/absolute-reality-1.81
+  modes:
+  - text2img
+  - img2img
+  size: 512
+  steps: 30
+  guidance: 7.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: absolute16525
+  catalog_id: checkpoint_07
+  group: checkpoints
+  backend: diffusers
+  model_name: Lykon/absolute-reality-1.6525
+  modes:
+  - text2img
+  - img2img
+  size: 512
+  steps: 30
+  guidance: 7.5
+  engine:
+    pipeline_family: auto
+    cpu_offload: true
+  gpu_validation: not_run
+- id: controlnet
+  catalog_id: method_01
+  group: methods
+  backend: controlnet
+  model_name: stable-diffusion-v1-5/stable-diffusion-v1-5
+  modes:
+  - reference
+  size: 512
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+- id: ip_adapter
+  catalog_id: method_02
+  group: methods
+  backend: ip_adapter
+  model_name: stable-diffusion-v1-5/stable-diffusion-v1-5
+  modes:
+  - reference
+  size: 512
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+- id: faceid_sd15
+  catalog_id: method_03
+  group: methods
+  backend: faceid_sd15
+  model_name: stable-diffusion-v1-5/stable-diffusion-v1-5
+  modes:
+  - reference
+  size: 512
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: 62e4af9d0c1ac7d5f8dd386a0ccf2211346af1a2
+- id: faceid_plusv2_xl
+  catalog_id: method_03
+  group: methods
+  backend: faceid_plusv2_xl
+  model_name: stabilityai/stable-diffusion-xl-base-1.0
+  modes:
+  - reference
+  size: 1024
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: 62e4af9d0c1ac7d5f8dd386a0ccf2211346af1a2
+- id: instantid
+  catalog_id: method_04
+  group: methods
+  backend: instantid
+  model_name: stabilityai/stable-diffusion-xl-base-1.0
+  modes:
+  - reference
+  size: 1024
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: 2145b67f9607da6234702063692330185f374486
+- id: photomaker
+  catalog_id: method_05
+  group: methods
+  backend: photomaker
+  model_name: stabilityai/stable-diffusion-xl-base-1.0
+  modes:
+  - reference
+  size: 1024
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: 060b4fcb10b76a4554edf565d6106b7e36c968f0
+- id: face_adapter
+  catalog_id: method_06
+  group: methods
+  backend: face_adapter
+  model_name: stable-diffusion-v1-5/stable-diffusion-v1-5
+  modes:
+  - reference
+  size: 512
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: 6e313885188e05740a7c40e12c1b9015c748bf08
+- id: reface
+  catalog_id: method_07
+  group: methods
+  backend: reface
+  model_name: Sanoojan/REFace
+  modes:
+  - reference
+  size: 512
+  steps: 50
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: f73bd8d4ad5a2ca362d294982e6f381d83e58e62
+- id: arc2face
+  catalog_id: method_08
+  group: methods
+  backend: arc2face
+  model_name: stable-diffusion-v1-5/stable-diffusion-v1-5
+  modes:
+  - reference
+  size: 512
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: 8f3acd701d17fda7fde4c9f1d170fc88fecbe9ad
+- id: pulid_v1
+  catalog_id: method_09
+  group: methods
+  backend: pulid_v1
+  model_name: stabilityai/stable-diffusion-xl-base-1.0
+  modes:
+  - reference
+  size: 1024
+  steps: 4
+  guidance: 1.2
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: 1aa2fc7df4bf51080df39f355f9abdc1cbfefbaa
+- id: pulid_v11
+  catalog_id: method_09
+  group: methods
+  backend: pulid_v11
+  model_name: RunDiffusion/Juggernaut-XL-v9
+  modes:
+  - reference
+  size: 1024
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: 1aa2fc7df4bf51080df39f355f9abdc1cbfefbaa
+- id: fastcomposer
+  catalog_id: method_10
+  group: methods
+  backend: fastcomposer
+  model_name: stable-diffusion-v1-5/stable-diffusion-v1-5
+  modes:
+  - reference
+  size: 512
+  steps: 50
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: b9304a2e7d09ffe4036ebd8ed5656bb08d6a8ca9
+- id: flashface
+  catalog_id: method_11
+  group: methods
+  backend: flashface
+  model_name: shilongz/FlashFace-SD1.5
+  modes:
+  - reference
+  size: 512
+  steps: 30
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: fff0f078b72d6a0cfe32d24626235dce1b72561c
+- id: consistentid
+  catalog_id: method_12
+  group: methods
+  backend: consistentid
+  model_name: SG161222/Realistic_Vision_V5.1_noVAE
+  modes:
+  - reference
+  size: 512
+  steps: 50
+  guidance: 5.0
+  engine: {}
+  gpu_validation: not_run
+  upstream_revision: e234008e96bbfeef31b327b45f5600347a472738
+frameworks:
+- catalog_id: framework_01
+  name: Diffusers
+  role: suite execution engine
+- catalog_id: framework_02
+  name: ComfyUI
+  role: alternative GUI, not a generation method
+- catalog_id: framework_03
+  name: AUTOMATIC1111
+  role: alternative GUI, not a generation method
