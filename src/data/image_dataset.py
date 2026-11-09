@@ -55,9 +55,11 @@ class DeepfakeImageDataset(Dataset):
     def __getitem__(self, idx: int) -> ImageSample:
         metadata = self.metadata_list[idx]
 
-        # Use cache if available
+        # Use cache if available (keyed by image_id or file_path)
         if metadata.image_id in self.cache:
             img = self.cache[metadata.image_id]
+        elif metadata.file_path in self.cache:
+            img = self.cache[metadata.file_path]
         elif metadata.file_path:
             img = self._load_image_from_disk(metadata.file_path)
         else:

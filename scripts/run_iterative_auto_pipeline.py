@@ -200,6 +200,7 @@ def run_pipeline(
         model=m0_model,
         synthetic_metadata=pool1_fakes,
         bypass_threshold=0.50,
+        min_hard_samples=max(1, len(pool1_fakes) // 2),
         device=device,
         hard_manifest_path=base_dir / "h1_manifest.jsonl",
     )
@@ -283,6 +284,7 @@ def run_pipeline(
         model=m1_model,
         synthetic_metadata=pool2_fakes,
         bypass_threshold=0.35,
+        min_hard_samples=max(1, len(pool2_fakes) // 2),
         device=device,
         hard_manifest_path=base_dir / "h2_manifest.jsonl",
     )

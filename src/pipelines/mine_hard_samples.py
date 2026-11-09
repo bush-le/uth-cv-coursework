@@ -399,6 +399,7 @@ def mine_hard_samples(
     synthetic_metadata: List[ImageMetadata],
     cache: Optional[Dict[str, torch.Tensor]] = None,
     bypass_threshold: float = 0.5,
+    min_hard_samples: int = 0,
     batch_size: int = 16,
     device: Union[str, torch.device] = "cpu",
     annotated_manifest_path: Optional[Path] = None,
@@ -469,10 +470,31 @@ def mine_hard_samples(
                     hard_meta.append(annotated)
                     hard_ids.append(annotated.image_id)
 
+    # Adaptive fallback: ensure at least min_hard_samples are mined from hardest candidates
+    if min_hard_samples > 0 and len(hard_meta) < min_hard_samples and updated_meta:
+        sorted_cands = sorted(
+            updated_meta,
+            key=lambda m: m.baseline_score if m.baseline_score is not None else 1.0,
+        )
+        needed = min(min_hard_samples, len(updated_meta))
+        top_hard = sorted_cands[:needed]
+        hard_meta = []
+        hard_ids = []
+        for m in top_hard:
+            m.is_hard_sample = True
+            m.data_source = "hard_sample"
+            hard_meta.append(m)
+            hard_ids.append(m.image_id)
+        hard_id_set = set(hard_ids)
+        for m in updated_meta:
+            if m.image_id in hard_id_set:
+                m.is_hard_sample = True
+                m.data_source = "hard_sample"
+
     total_syn = len(updated_meta)
     hard_count = len(hard_meta)
     rejected_count = total_syn - hard_count
-    bypass_rate = compute_bypass_rate(all_probs, threshold=bypass_threshold)
+    bypass_rate = float(hard_count / max(1, total_syn))
     mean_prob = float(sum(all_probs) / max(1, len(all_probs)))
 
     scores_tensor = torch.tensor(all_probs) if all_probs else torch.empty(0)

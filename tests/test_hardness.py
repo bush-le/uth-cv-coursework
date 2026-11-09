@@ -103,3 +103,34 @@ def test_diversity_filter_prunes_near_duplicate_embeddings():
     assert 2 in selected_indices
     assert 3 in selected_indices
 
+
+def test_mine_hard_samples_guarantees_non_empty_when_candidates_exist():
+    """Verify adaptive fallback guarantees non-empty hard mining when candidates exist."""
+    from src.pipelines.mine_hard_samples import mine_hard_samples
+    from src.data.image_schema import ImageMetadata
+    import torch
+    import torch.nn as nn
+
+    class StubDetector(nn.Module):
+        def forward(self, x):
+            # Returns logits with sigmoid ~0.55 > 0.50 for all items
+            return torch.full((x.shape[0], 1), 0.20)
+
+    metas = [
+        ImageMetadata(image_id=f"syn_{i}", label=1, file_path=f"dummy_{i}.png")
+        for i in range(4)
+    ]
+    cache = {f"dummy_{i}.png": torch.zeros(3, 32, 32) for i in range(4)}
+
+    # At static tau=0.50, all 4 are rejected. With min_hard_samples=2, top 2 hardest must be mined.
+    report = mine_hard_samples(
+        model=StubDetector(),
+        synthetic_metadata=metas,
+        cache=cache,
+        bypass_threshold=0.50,
+        min_hard_samples=2,
+    )
+    assert report.bypassed_hard_count == 2
+    assert len(report.hard_sample_ids) == 2
+
+
