@@ -33,6 +33,14 @@ def test_build_model_dinovit_factory(dummy_batch_tensor: torch.Tensor) -> None:
     assert out.shape == (2, 1)
 
 
+@pytest.mark.smoke
+def test_build_model_dinov2_factory(dummy_batch_tensor: torch.Tensor) -> None:
+    """Smoke test: verify factory builds DeepfakeImageDetector with dinov2_small backbone."""
+    detector = build_model(architecture="dinov2_small", num_classes=1, pretrained=True)
+    assert isinstance(detector, DeepfakeImageDetector)
+    assert detector.backbone_name == "dinov2_small"
+
+
 def test_build_model_factory() -> None:
     """Verify factory returns valid nn.Module instance."""
     model = build_model(architecture="custom_cnn", num_classes=10)

@@ -25,7 +25,10 @@ def build_model(
         Configured nn.Module instance.
     """
     arch = architecture.lower()
-    if arch in ("dino_vit", "dinovit", "dinov2", "dinov2_vitb14", "deepfake_detector"):
+    if arch in ("dinov2_small", "dinov2", "dinov2_vitb14"):
+        return DeepfakeImageDetector(backbone="dinov2_small", num_classes=num_classes, **kwargs)
+
+    if arch in ("dino_vit", "dinovit", "deepfake_detector"):
         return DeepfakeImageDetector(backbone="dino_vit", num_classes=num_classes, **kwargs)
 
     if arch in ("custom_cnn", "simple_cnn", "default"):
