@@ -171,3 +171,27 @@ def test_stats_contains_no_inputs_only_computed_counts(tmp_path):
     assert "hard_rate_by_mode" in stats
     assert stats["counts_by_source"]["raw_real"] == 1
     assert stats["counts_by_source"]["hard_samples"] == 1
+
+
+def test_strict_identity_isolation_across_rounds():
+    """Verify strict identity disjointness and immutable partition generation."""
+    from src.data.splits import create_identity_partitions
+    from src.data.image_schema import ImageMetadata
+    import tempfile
+    from pathlib import Path
+    import json
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_p = Path(tmp_dir)
+        records = [
+            ImageMetadata(image_id=f"ffhq_{i:05d}", label=0, source_real_id=f"ffhq_{i:05d}")
+            for i in range(100)
+        ]
+        train_p, test_p = create_identity_partitions(records, output_dir=tmp_p, train_ratio=0.8, seed=42)
+        assert train_p.exists() and test_p.exists()
+        train_ids = {json.loads(line)["source_real_id"] for line in open(train_p)}
+        test_ids = {json.loads(line)["source_real_id"] for line in open(test_p)}
+        assert len(train_ids) == 80
+        assert len(test_ids) == 20
+        assert train_ids.isdisjoint(test_ids)
+

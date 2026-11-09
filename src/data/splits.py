@@ -8,7 +8,7 @@ from collections import defaultdict
 import json
 from pathlib import Path
 import random
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 import numpy as np
 
 from src.common.logger import get_logger
@@ -247,3 +247,67 @@ def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
     logger.info("Saved dataset statistics to %s", stats_file)
     return stats
+
+
+def create_identity_partitions(
+    records: List[ImageMetadata],
+    output_dir: Path,
+    train_ratio: float = 0.8,
+    seed: int = 42,
+) -> Tuple[Path, Path]:
+    """Create strict identity-disjoint partition files ensuring 100% zero data leakage.
+
+    Args:
+        records: List of raw candidate image metadata.
+        output_dir: Directory where partition manifests will be written.
+        train_ratio: Fraction of unique identities assigned to Train partition.
+        seed: Random seed for deterministic shuffling.
+
+    Returns:
+        (train_partition_path, test_partition_path).
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Group records by unique subject identity
+    groups: Dict[str, List[ImageMetadata]] = defaultdict(list)
+    for m in records:
+        groups[get_group_key(m)].append(m)
+
+    unique_keys = sorted(groups.keys())
+    rng = random.Random(seed)
+    rng.shuffle(unique_keys)
+
+    n_total = len(unique_keys)
+    n_train = int(round(n_total * train_ratio))
+    if n_total >= 2:
+        if n_train >= n_total:
+            n_train = n_total - 1
+        elif n_train < 1:
+            n_train = 1
+
+    train_keys = set(unique_keys[:n_train])
+    test_keys = set(unique_keys[n_train:])
+
+    train_path = output_dir / "train_identities.jsonl"
+    test_path = output_dir / "test_identities.jsonl"
+
+    with open(train_path, "w", encoding="utf-8") as tf:
+        for k in unique_keys[:n_train]:
+            for m in groups[k]:
+                tf.write(json.dumps(m.to_dict()) + "\n")
+
+    with open(test_path, "w", encoding="utf-8") as tef:
+        for k in unique_keys[n_train:]:
+            for m in groups[k]:
+                tef.write(json.dumps(m.to_dict()) + "\n")
+
+    logger.info(
+        "Created identity-disjoint partitions: %d train IDs (%s), %d test IDs (%s)",
+        len(train_keys),
+        train_path,
+        len(test_keys),
+        test_path,
+    )
+    return train_path, test_path
+
