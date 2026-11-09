@@ -50,6 +50,8 @@ def run_image_generation(
     max_samples: Optional[int] = None,
     steps: int = 20,
     use_mock_fallback: bool = False,
+    mode: str = "all",
+    resume: bool = True,
     seed: int = 42,
 ) -> int:
     """Generate synthetic deepfake faces (DF img) from real image manifest.
@@ -64,6 +66,8 @@ def run_image_generation(
         max_samples: Optional maximum number of real samples to synthesize from.
         steps: Number of diffusion inference steps.
         use_mock_fallback: Whether to allow fallback to mock generator on failure.
+        mode: Synthesis mode ('all', 'img2img', 'inpaint', 'text2img').
+        resume: Skip re-generating images already existing on disk.
         seed: Random seed for reproducibility.
 
     Returns:
@@ -94,23 +98,75 @@ def run_image_generation(
         real_id = item["image_id"]
         demographics = item.get("demographics")
 
-        if mock_cache and real_id in mock_cache:
-            source_img = mock_cache[real_id]
-        elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
-            with Image.open(item["file_path"]) as img:
-                img_rgb = img.convert("RGB").resize((256, 256), Image.Resampling.BILINEAR)
-                np_img = np.array(img_rgb, dtype=np.float32) / 255.0
-                source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
-        else:
-            source_img = torch.rand(3, 256, 256)
+        source_img = None
 
         for k in range(num_per_real):
             fake_id = f"fake_{real_id}_{k}"
 
-            mode_idx = (item_idx + k) % 3
+            # Determine mode
+            if mode == "all":
+                mode_idx = (item_idx + k) % 3
+            elif mode == "img2img":
+                mode_idx = 0
+            elif mode == "inpaint":
+                mode_idx = 1
+            elif mode == "text2img":
+                mode_idx = 2
+            else:
+                mode_idx = (item_idx + k) % 3
+
             if mode_idx == 0:
+                manip_type = "sd_img2img"
+                sub_folder = "img2img"
                 base_p = "subtle facial manipulation, realistic skin texture"
-                prompt_used = _build_demographic_prompt(demographics, base_p)
+            elif mode_idx == 1:
+                manip_type = "sd_inpaint"
+                sub_folder = "inpainting"
+                base_p = "altered facial expression and eyes"
+            else:
+                manip_type = "sd_text2img"
+                sub_folder = "text2image"
+                base_p = "photorealistic portrait of a synthetic person"
+
+            prompt_used = _build_demographic_prompt(demographics, base_p)
+            sub_dir = output_dir / sub_folder
+            sub_dir.mkdir(parents=True, exist_ok=True)
+            out_file = sub_dir / f"{fake_id}.png"
+            flat_file = output_dir / f"{fake_id}.png"
+
+            # Check resume
+            if resume and out_file.exists() and out_file.stat().st_size > 0:
+                logger.info("Resuming %s: already exists on disk, skipping generation.", out_file.name)
+                meta = ImageMetadata(
+                    image_id=fake_id,
+                    label=1,
+                    manipulation_type=manip_type,
+                    prompt=prompt_used,
+                    source_real_id=real_id,
+                    file_path=str(out_file),
+                    is_hard_sample=False,
+                    data_source="synthetic",
+                    demographics=demographics,
+                )
+                fake_records.append(meta.to_dict())
+                generated_count += 1
+                continue
+
+            # Need source image for img2img / inpaint
+            if source_img is None:
+                if mock_cache and real_id in mock_cache:
+                    source_img = mock_cache[real_id]
+                elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
+                    with Image.open(item["file_path"]) as img:
+                        img_rgb = img.convert("RGB").resize((256, 256), Image.Resampling.BILINEAR)
+                        np_img = np.array(img_rgb, dtype=np.float32) / 255.0
+                        source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
+                else:
+                    source_img = torch.rand(3, 256, 256)
+
+            h, w = source_img.shape[1], source_img.shape[2]
+
+            if mode_idx == 0:
                 fake_tensor = engine.generate_img2img(
                     source_image=source_img,
                     prompt=prompt_used,
@@ -118,14 +174,13 @@ def run_image_generation(
                     num_inference_steps=steps,
                     seed=seed + k,
                 )
-                manip_type = "sd_img2img"
-                sub_folder = "img2img"
             elif mode_idx == 1:
-                h, w = source_img.shape[1], source_img.shape[2]
                 mask = torch.zeros(1, h, w)
                 mask[:, h // 4 : 3 * h // 4, w // 4 : 3 * w // 4] = 1.0
-                base_p = "altered facial expression and eyes"
-                prompt_used = _build_demographic_prompt(demographics, base_p)
+                # Soft boundary blending with smooth 2D pooling
+                mask = torch.nn.functional.avg_pool2d(
+                    mask.unsqueeze(0), kernel_size=9, stride=1, padding=4
+                ).squeeze(0)
                 fake_tensor = engine.generate_inpaint(
                     source_image=source_img,
                     mask=mask,
@@ -133,12 +188,7 @@ def run_image_generation(
                     num_inference_steps=steps,
                     seed=seed + k,
                 )
-                manip_type = "sd_inpaint"
-                sub_folder = "inpainting"
             else:
-                h, w = source_img.shape[1], source_img.shape[2]
-                base_p = "photorealistic portrait of a synthetic person"
-                prompt_used = _build_demographic_prompt(demographics, base_p)
                 fake_tensor = engine.generate_text2img(
                     prompt=prompt_used,
                     height=h,
@@ -146,18 +196,12 @@ def run_image_generation(
                     num_inference_steps=steps,
                     seed=seed + k,
                 )
-                manip_type = "sd_text2img"
-                sub_folder = "text2image"
 
             # Save PNG into dedicated mode folder
-            sub_dir = output_dir / sub_folder
-            sub_dir.mkdir(parents=True, exist_ok=True)
-            out_file = sub_dir / f"{fake_id}.png"
             np_img = (fake_tensor.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
             Image.fromarray(np_img).save(out_file)
 
             # Also save flat copy in output_dir root for flat lookup
-            flat_file = output_dir / f"{fake_id}.png"
             if flat_file != out_file:
                 Image.fromarray(np_img).save(flat_file)
 
@@ -211,6 +255,25 @@ def main() -> None:
         action="store_true",
         help="Force mock generator mode for offline testing",
     )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["all", "img2img", "inpaint", "text2img"],
+        default="all",
+        help="Generation mode (all, img2img, inpaint, text2img). Default: all.",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        default=True,
+        help="Skip generation if image file already exists on disk (default True).",
+    )
+    parser.add_argument(
+        "--no-resume",
+        action="store_false",
+        dest="resume",
+        help="Force overwrite/regenerate all images even if they already exist.",
+    )
     parser.add_argument("--num-per-real", type=int, default=1)
     parser.add_argument("--max-samples", type=int, default=None, help="Max real samples to synthesize from")
     parser.add_argument("--steps", type=int, default=20, help="Number of diffusion inference steps")
@@ -227,6 +290,8 @@ def main() -> None:
         max_samples=args.max_samples,
         steps=args.steps,
         use_mock_fallback=args.mock,
+        mode=args.mode,
+        resume=args.resume,
         seed=args.seed,
     )
 

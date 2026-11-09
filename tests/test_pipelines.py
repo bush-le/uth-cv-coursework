@@ -130,6 +130,57 @@ def test_mine_hard_samples_cli_feature_similarity(tmp_path, monkeypatch):
     assert out_hard.exists()
 
 
+def test_generate_pipeline_balanced_mode_distribution(tmp_path):
+    """Verify that deepfake generator balances modes equally and supports resume."""
+    from src.pipelines.generate_deepfake_images import run_image_generation
+
+    in_manifest = tmp_path / "raw_in.jsonl"
+    out_manifest = tmp_path / "fake_out.jsonl"
+    out_dir = tmp_path / "synthetic"
+
+    # Create 6 dummy real inputs
+    import json
+    with open(in_manifest, "w", encoding="utf-8") as f:
+        for i in range(6):
+            f.write(json.dumps({"image_id": f"real_{i:04d}", "label": 0}) + "\n")
+
+    count = run_image_generation(
+        input_manifest=in_manifest,
+        output_manifest=out_manifest,
+        output_dir=out_dir,
+        model_name="mock_sd",
+        num_per_real=1,
+        max_samples=6,
+        use_mock_fallback=True,
+        mode="all",
+        resume=True,
+    )
+    assert count == 6
+
+    with open(out_manifest, "r", encoding="utf-8") as f:
+        records = [json.loads(line) for line in f if line.strip()]
+
+    types = [r["manipulation_type"] for r in records]
+    assert types.count("sd_img2img") == 2
+    assert types.count("sd_inpaint") == 2
+    assert types.count("sd_text2img") == 2
+
+    # Second run with resume=True should reuse existing images without errors
+    count_resumed = run_image_generation(
+        input_manifest=in_manifest,
+        output_manifest=out_manifest,
+        output_dir=out_dir,
+        model_name="mock_sd",
+        num_per_real=1,
+        max_samples=6,
+        use_mock_fallback=True,
+        mode="all",
+        resume=True,
+    )
+    assert count_resumed == 6
+
+
+
 
 def test_mine_hard_samples_by_feature_similarity():
     """Verify objective hard sample mining via DINOv2 latent feature cosine similarity."""
