@@ -102,6 +102,7 @@ def train_deepfake_image_detector(
     optimizer = AdamW(param_groups, weight_decay=1e-4)
     trainable_params = classifier_params + backbone_params
     criterion_raw = nn.BCEWithLogitsLoss(reduction="none")
+    scaler = torch.amp.GradScaler("cuda", enabled=(dev.type == "cuda"))
 
     datamodule.setup()
     train_loader = datamodule.train_dataloader()
@@ -112,10 +113,11 @@ def train_deepfake_image_detector(
     latest_metrics: Dict[str, float] = {}
 
     logger.info(
-        "Starting dinoViT fine-tuning on %s for %d epochs (hard_sample_weight=%.2f)...",
+        "Starting dinoViT fine-tuning on %s for %d epochs (hard_sample_weight=%.2f, amp=%s)...",
         device,
         num_epochs,
         hard_sample_loss_weight,
+        dev.type == "cuda",
     )
 
     for epoch in range(1, num_epochs + 1):
@@ -129,20 +131,22 @@ def train_deepfake_image_detector(
             labels = batch["labels"].to(dev).float().view(-1, 1)
             is_hard = batch.get("is_hard_sample")
 
-            logits = model(images)
-            per_sample_loss = criterion_raw(logits, labels)
+            with torch.amp.autocast(device_type=dev.type, enabled=(dev.type == "cuda")):
+                logits = model(images)
+                per_sample_loss = criterion_raw(logits, labels)
 
-            if is_hard is not None:
-                hard_mask = is_hard.to(dev).float().view(-1, 1)
-                weights = 1.0 + (hard_sample_loss_weight - 1.0) * hard_mask
-                loss = torch.mean(per_sample_loss * weights)
-            else:
-                loss = torch.mean(per_sample_loss)
+                if is_hard is not None:
+                    hard_mask = is_hard.to(dev).float().view(-1, 1)
+                    weights = 1.0 + (hard_sample_loss_weight - 1.0) * hard_mask
+                    loss = torch.mean(per_sample_loss * weights)
+                else:
+                    loss = torch.mean(per_sample_loss)
 
-            loss.backward()
-
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(trainable_params, max_norm=1.0)
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
 
             epoch_loss += float(loss.item()) * images.size(0)
             train_samples += images.size(0)

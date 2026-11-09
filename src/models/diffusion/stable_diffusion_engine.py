@@ -16,11 +16,9 @@ from src.common.logger import get_logger
 logger = get_logger(__name__)
 
 DEFAULT_NEGATIVE_PROMPT = (
-    "(deformed, distorted, disfigured:1.3), bad anatomy, poorly drawn face, blurry, "
-    "plastic, artificial, mannequin, fake, cartoon, 3d render, "
-    "mirror, frame, border, vignette, circular frame, porthole, multiple faces, "
-    "distant face, small face, miniature face, wide shot, full body, torso, "
-    "out of frame, cropped face, bad eyes, distorted pupils"
+    "deformed, distorted face, bad anatomy, blurry, 3d render, cartoon, "
+    "mirror, frame, border, vignette, circular frame, multiple faces, "
+    "distant, full body, torso, out of frame, cropped, bad eyes"
 )
 
 

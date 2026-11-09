@@ -285,7 +285,7 @@ def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "ope
             gray,
             scaleFactor=1.1,
             minNeighbors=3,
-            minSize=(20, 20),
+            minSize=(40, 40),
         )
         if len(faces) == 0:
             # Relaxed pass for slightly tilted faces or sunglasses
@@ -293,9 +293,16 @@ def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "ope
                 gray,
                 scaleFactor=1.05,
                 minNeighbors=2,
-                minSize=(20, 20),
+                minSize=(40, 40),
             )
-        return len(faces)
+        if len(faces) <= 1:
+            return len(faces)
+
+        # Filter out minor background texture false alarms if dominant face exists
+        boxes = sorted([tuple(b) for b in faces], key=lambda b: b[2] * b[3], reverse=True)
+        dominant_area = boxes[0][2] * boxes[0][3]
+        sig_faces = [b for b in boxes if (b[2] * b[3]) >= 0.20 * dominant_area]
+        return len(sig_faces)
 
     raise ValueError(f"Unknown face detection backend: {backend}")
 
@@ -342,20 +349,35 @@ def verify_facial_geometry(
 
     if len(faces) == 0:
         return False, ["No face landmark detected"]
-    if len(faces) > 1:
-        return False, [f"Multiple faces detected ({len(faces)}), expecting single portrait"]
 
-    fx, fy, fw, fh = faces[0]
+    # Filter out spurious Haar noise boxes (e.g. tiny patches on clothing/textures)
+    # when a prominent dominant portrait face exists
+    faces_list = [tuple(b) for b in faces]
+    faces_list.sort(key=lambda b: b[2] * b[3], reverse=True)
+    dominant_box = faces_list[0]
+    dom_area = dominant_box[2] * dominant_box[3]
+    total_area = float(w * h)
+
+    # Significant faces must be at least 20% of the dominant face area and at least 5% of total frame
+    significant_faces = [
+        b for b in faces_list
+        if (b[2] * b[3]) >= 0.20 * dom_area and (b[2] * b[3]) >= 0.05 * total_area
+    ]
+
+    if len(significant_faces) > 1:
+        return False, [f"Multiple faces detected ({len(significant_faces)}), expecting single portrait"]
+
+    fx, fy, fw, fh = dominant_box
     aspect_ratio = fh / max(1, fw)
     if aspect_ratio < 0.65 or aspect_ratio > 1.6:
         reasons.append(f"Abnormal facial aspect ratio: {aspect_ratio:.2f}")
 
-    # Area ratio check (face must occupy 20% to 85% of frame, rejecting miniature mirror faces and extreme crops)
+    # Area ratio check (face must occupy 20% to 90% of frame, rejecting miniature mirror faces and extreme crops)
     face_area_ratio = (fw * fh) / float(w * h)
     if face_area_ratio < 0.20:
         reasons.append(f"Face occupies too small area of frame ({face_area_ratio:.2%} < 20%): likely vignette/distant frame")
-    elif face_area_ratio > 0.85:
-        reasons.append(f"Face occupies too large area of frame ({face_area_ratio:.2%} > 85%): extreme crop")
+    elif face_area_ratio > 0.90:
+        reasons.append(f"Face occupies too large area of frame ({face_area_ratio:.2%} > 90%): extreme crop")
 
     # Centering check
     center_x = (fx + fw / 2.0) / float(w)

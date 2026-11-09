@@ -34,10 +34,10 @@ SLOT_TAXONOMY: Dict[str, List[str]] = {
     ],
     "optics": [
         "shot on 85mm f/1.4 prime lens, creamy background bokeh, ultra sharp eye focus",
-        "shot on 50mm f/1.8 street photography lens, balanced natural perspective",
+        "shot on 50mm portrait prime, balanced facial proportions, crisp eye details",
         "shot on 35mm film camera, subtle analog film grain, authentic depth",
         "medium format Hasselblad portrait, hyper-detailed skin pores, flawless micro-contrast",
-        "135mm telephoto portrait lens, compressed background, flattering facial perspective",
+        "shot on 85mm headshot prime, tight facial framing, sharp iris reflections",
         "classic vintage 85mm portrait lens, warm organic film aesthetic, sharp facial details",
     ],
     "lighting": [
@@ -47,7 +47,7 @@ SLOT_TAXONOMY: Dict[str, List[str]] = {
         "diffuse north-facing window light, soft gradient shadows, gentle ambient illumination",
         "dramatic cinematic side lighting, chiascurro shadows, high-contrast cheekbones",
         "cool overcast daylight, even exposure, true-to-life color rendering",
-        "subtle neon ambient city reflection, colorful rim lighting, atmospheric glow",
+        "subtle colorful rim lighting, studio beauty glow, sculpted facial contours",
         "cozy candlelit warm glow, intimate low-key illumination, deep soft shadows",
     ],
     "expression": [
@@ -186,7 +186,10 @@ class PromptGrammarEngine:
         rng = np.random.RandomState(sample_s)
 
         # 1. Base photographic quality anchor (close-up framing prevents miniature environmental portraits)
-        base_prefix = "close-up centered face portrait, RAW photo, dslr, authentic human face, direct eye contact"
+        if mode == "text2img":
+            base_prefix = "tight close-up headshot of human face, centered portrait framing, authentic face, direct eye contact"
+        else:
+            base_prefix = "close-up centered portrait, authentic face, direct eye contact"
 
         # 2. Subject demographics (respect demographic dict if provided, else sample dynamically)
         age_tag = ""
@@ -255,17 +258,22 @@ class PromptGrammarEngine:
                 base_prefix,
                 gender_tag,
                 age_tag,
-                expression_tag,
-                optics_tag,
                 lighting_tag,
+                optics_tag,
+                expression_tag,
                 occlusion_tag,
                 imperfection_tag,
             ]
 
-        # Filter empty strings and join cleanly
+        # Filter empty strings and assemble full phrases without mid-sentence clipping
         cleaned_parts = [p.strip() for p in prompt_parts if p.strip()]
-        full_text = ", ".join(cleaned_parts)
-        words = full_text.split()
-        if len(words) > 60:
-            full_text = " ".join(words[:60])
-        return full_text
+        selected_parts = []
+        cur_words = 0
+        for part in cleaned_parts:
+            part_words = len(part.split())
+            if cur_words + part_words <= 58:
+                selected_parts.append(part)
+                cur_words += part_words
+            else:
+                break
+        return ", ".join(selected_parts)
