@@ -9,6 +9,7 @@ from src.data.image_schema import ImageMetadata
 from src.pipelines.run_closed_loop_active_learning import (
     extract_error_attribution_from_hard_samples,
     run_active_learning_loop,
+    split_hard_samples,
 )
 
 
@@ -104,4 +105,47 @@ def test_stateful_round_resume_detection(tmp_path):
 
     # Should have executed Round 2 since Round 1 was detected as completed
     assert metrics["rounds"][-1]["round"] == 2
+
+
+def test_split_hard_samples_deterministic():
+    """Verify hard samples are deterministically split into 85% train and 15% challenge test without overlap."""
+    hard_pool = [
+        ImageMetadata(image_id=f"h_{i}", label=1, is_hard_sample=True)
+        for i in range(20)
+    ]
+    train_h1, test_h1 = split_hard_samples(hard_pool, test_ratio=0.15, seed=42)
+    train_h2, test_h2 = split_hard_samples(hard_pool, test_ratio=0.15, seed=42)
+
+    # Determinism
+    assert [m.image_id for m in train_h1] == [m.image_id for m in train_h2]
+    assert [m.image_id for m in test_h1] == [m.image_id for m in test_h2]
+
+    # No overlap & exact union
+    train_ids = {m.image_id for m in train_h1}
+    test_ids = {m.image_id for m in test_h1}
+    assert train_ids.isdisjoint(test_ids)
+    assert train_ids.union(test_ids) == {f"h_{i}" for i in range(20)}
+    assert len(test_h1) == 3  # round(20 * 0.15) = 3
+
+
+def test_dual_benchmark_dry_run_records_both_metrics(tmp_path):
+    """Verify orchestrator dry-run outputs both master_test_metrics and challenge_test_metrics."""
+    out_dir = tmp_path / "closed_loop"
+    metrics = run_active_learning_loop(
+        num_rounds=2,
+        candidates_per_round=10,
+        dry_run=True,
+        output_base_dir=out_dir,
+    )
+
+    assert "rounds" in metrics
+    assert len(metrics["rounds"]) == 2
+    for r_entry in metrics["rounds"]:
+        assert "master_test_metrics" in r_entry
+        assert "challenge_test_metrics" in r_entry
+        assert "hard_train_count" in r_entry
+        assert "hard_test_count" in r_entry
+        assert r_entry["master_test_metrics"]["roc_auc"] > 0
+        assert r_entry["challenge_test_metrics"]["roc_auc"] > 0
+
 

@@ -14,7 +14,8 @@ Coordinates iterative cycles of:
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+import random
 import numpy as np
 import torch
 import yaml
@@ -119,6 +120,34 @@ def extract_error_attribution_from_hard_samples(
     }
 
 
+def split_hard_samples(
+    mined_hard: List[ImageMetadata],
+    test_ratio: float = 0.15,
+    seed: int = 42,
+) -> Tuple[List[ImageMetadata], List[ImageMetadata]]:
+    """Split mined hard samples into training buffer (85%) and cumulative challenge test set (15%).
+
+    Guarantees deterministic identity and record isolation to prevent train-test contamination.
+    """
+    if not mined_hard:
+        return [], []
+    if len(mined_hard) == 1:
+        return list(mined_hard), []
+
+    rng = random.Random(seed)
+    indices = list(range(len(mined_hard)))
+    rng.shuffle(indices)
+
+    n_test = max(1, int(round(len(mined_hard) * test_ratio)))
+    if n_test >= len(mined_hard):
+        n_test = len(mined_hard) - 1
+
+    test_idx = set(indices[:n_test])
+    train_hards = [mined_hard[i] for i in range(len(mined_hard)) if i not in test_idx]
+    test_hards = [mined_hard[i] for i in range(len(mined_hard)) if i in test_idx]
+    return train_hards, test_hards
+
+
 def run_active_learning_loop(
     num_rounds: int = 2,
     candidates_per_round: int = 60,
@@ -193,6 +222,13 @@ def run_active_learning_loop(
     if test_manifest_path.exists():
         with open(test_manifest_path, "r", encoding="utf-8") as f:
             test_records = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
+
+    # Cumulative Challenge Test Set Path (dynamically updated with 15% slices of mined H_r)
+    challenge_manifest_path = base_dir / "cumulative_challenge_test.jsonl"
+    challenge_test_records: List[ImageMetadata] = []
+    if challenge_manifest_path.exists():
+        with open(challenge_manifest_path, "r", encoding="utf-8") as f:
+            challenge_test_records = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
 
     # Tracking records
     rounds_log: List[Dict[str, Any]] = []
@@ -282,17 +318,30 @@ def run_active_learning_loop(
             budget_ctrl.compute_mode_quotas(attrib["mode_errors"])
             prompt_eng.update_error_weights(attrib["keyword_errors"])
 
-            mock_test_metrics = {
+            train_mock, test_mock = split_hard_samples(mock_hard, test_ratio=0.15, seed=seed + r)
+
+            mock_master_metrics = {
                 "accuracy": 0.60 + 0.05 * r,
                 "roc_auc": 0.65 + 0.06 * r,
                 "hard_sample_recall": 0.50 + 0.20 * r,
                 "bypass_rate": max(0.0, 0.40 - 0.15 * r),
                 "loss": 0.60 - 0.05 * r,
             }
+            mock_challenge_metrics = {
+                "accuracy": 0.55 + 0.10 * r,
+                "roc_auc": 0.58 + 0.10 * r,
+                "hard_sample_recall": 0.45 + 0.25 * r,
+                "bypass_rate": max(0.0, 0.50 - 0.20 * r),
+                "loss": 0.65 - 0.06 * r,
+            }
             rounds_log.append({
                 "round": r,
                 "hard_sample_count": len(mock_hard),
-                "test_metrics": mock_test_metrics,
+                "hard_train_count": len(train_mock),
+                "hard_test_count": len(test_mock),
+                "master_test_metrics": mock_master_metrics,
+                "challenge_test_metrics": mock_challenge_metrics,
+                "test_metrics": mock_master_metrics,
                 "attribution": attrib,
             })
 
@@ -425,8 +474,17 @@ def run_active_learning_loop(
         prompt_eng.update_error_weights(attribution["keyword_errors"], temperature=0.7)
         prev_attribution = attribution
 
-        # 9. Expand Dataset: D_r = D_{r-1} U H_r
-        current_train_records = current_train_records + mined_hard
+        # 9. Dual-Benchmark Split: 85% Train / 15% Cumulative Challenge Test
+        h_train, h_test = split_hard_samples(mined_hard, test_ratio=0.15, seed=seed + r)
+        if h_test:
+            challenge_test_records.extend(h_test)
+            with open(challenge_manifest_path, "a", encoding="utf-8") as ch_f:
+                for ht in h_test:
+                    ch_f.write(json.dumps(ht.to_dict()) + "\n")
+            logger.info("Added %d hard samples to cumulative challenge test vault (total: %d).", len(h_test), len(challenge_test_records))
+
+        # Expand Training Dataset: D_r = D_{r-1} U H_r^{train}
+        current_train_records = current_train_records + h_train
         logger.info(
             "Dataset expanded to D_%d: %d total training samples (includes %d hard samples).",
             r,
@@ -458,16 +516,33 @@ def run_active_learning_loop(
             seed=seed,
         )
 
-        # 11. Evaluate on Frozen Held-out Test Set
+        # 11. Dual-Benchmark Evaluation
         m_best_ckpt = checkpoints_dir / f"active_learning_m{r}_best.pt"
         if m_best_ckpt.exists():
             state = torch.load(m_best_ckpt, map_location=device)
             if "model_state_dict" in state:
                 round_detector.load_state_dict(state["model_state_dict"])
 
-        test_loader = round_dm.test_dataloader()
-        test_metrics = evaluate_image_detector(round_detector, test_loader, device=device)
-        logger.info("Round %d Test Results: %s", r, test_metrics)
+        # 11a. Evaluate on Master Frozen Test Set
+        master_test_metrics = {}
+        if test_records:
+            test_loader = round_dm.test_dataloader()
+            master_test_metrics = evaluate_image_detector(round_detector, test_loader, device=device)
+            logger.info("Round %d Master Frozen Test Results: %s", r, master_test_metrics)
+
+        # 11b. Evaluate on Cumulative Challenge Test Set
+        challenge_test_metrics = {}
+        if challenge_test_records:
+            chal_dm = DeepfakeImageDataModule(
+                train_metadata=[],
+                val_metadata=[],
+                test_metadata=challenge_test_records,
+                batch_size=16,
+                seed=seed,
+            )
+            chal_dm.setup()
+            challenge_test_metrics = evaluate_image_detector(round_detector, chal_dm.test_dataloader(), device=device)
+            logger.info("Round %d Cumulative Challenge Test Results: %s", r, challenge_test_metrics)
 
         # Update current checkpoint pointer for next round
         current_detector_ckpt = m_best_ckpt
@@ -476,8 +551,12 @@ def run_active_learning_loop(
             "round": r,
             "training_samples_count": len(current_train_records),
             "hard_sample_count": len(mined_hard),
+            "hard_train_count": len(h_train),
+            "hard_test_count": len(h_test),
             "mining_stats": mining_stats,
-            "test_metrics": test_metrics,
+            "master_test_metrics": master_test_metrics,
+            "challenge_test_metrics": challenge_test_metrics,
+            "test_metrics": master_test_metrics,
             "attribution": attribution,
             "mode_quotas": mode_quotas,
         })
