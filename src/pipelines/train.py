@@ -189,7 +189,19 @@ def train_single_stage(
     val_path = bench_dir / "val.jsonl"
     test_path = bench_dir / "test.jsonl"
 
-    if train_path.exists() and val_path.exists() and test_path.exists():
+    if meta_list:
+        logger.info("Using dynamic evolutionary meta_list for stage %s (%d samples)...", stage_name, len(meta_list))
+        dm = DeepfakeImageDataModule(
+            metadata_list=meta_list,
+            batch_size=batch_size,
+            train_ratio=0.85,
+            val_ratio=0.15,
+            test_ratio=0.0,
+            hard_sample_oversample_factor=hard_sample_oversample_factor,
+            identity_disjoint=True,
+            seed=seed,
+        )
+    elif train_path.exists() and val_path.exists() and test_path.exists():
         logger.info("Loading pre-packaged benchmark splits from %s...", bench_dir)
         with open(train_path, "r", encoding="utf-8") as f:
             train_records = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
@@ -211,9 +223,9 @@ def train_single_stage(
         dm = DeepfakeImageDataModule(
             metadata_list=meta_list,
             batch_size=batch_size,
-            train_ratio=0.70,
+            train_ratio=0.85,
             val_ratio=0.15,
-            test_ratio=0.15,
+            test_ratio=0.0,
             hard_sample_oversample_factor=hard_sample_oversample_factor,
             identity_disjoint=True,
             seed=seed,

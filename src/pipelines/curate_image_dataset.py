@@ -331,5 +331,9 @@ def main() -> None:
     )
 
 
+# Alias for backward-compatibility with closed-loop pipelines
+curate_dataset = curate_image_manifest
+
+
 if __name__ == "__main__":
     main()

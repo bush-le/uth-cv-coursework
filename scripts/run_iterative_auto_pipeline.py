@@ -37,6 +37,14 @@ from scripts.evaluate_iterative_benchmarks import build_benchmark_summary_table,
 logger = get_logger("iterative_auto_pipeline")
 
 
+def clean_gpu_memory() -> None:
+    """Free cached GPU memory between heavy diffusion and detector operations."""
+    import gc
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 def load_manifest(path: Path) -> List[ImageMetadata]:
     """Load ImageMetadata items from a JSONL manifest."""
     if not path.is_file():
@@ -59,6 +67,7 @@ def run_pipeline(
     samples_per_round: int = 10,
     steps: int = 20,
     epochs: int = 4,
+    mode: str = "all",
     seed: int = 42,
 ) -> Dict[str, Any]:
     """Execute the full end-to-end 2-round iterative loop."""
@@ -104,7 +113,7 @@ def run_pipeline(
         steps=steps,
         guidance_scale=7.5,
         img2img_strength=0.40,
-        mode="sd_img2img",
+        mode=mode,
         seed=seed + 100,
         resume=True,
     )
@@ -132,7 +141,7 @@ def run_pipeline(
         steps=steps,
         guidance_scale=7.5,
         img2img_strength=0.40,
-        mode="sd_img2img",
+        mode=mode,
         seed=seed,
         resume=True,
     )
@@ -185,7 +194,7 @@ def run_pipeline(
         steps=steps,
         guidance_scale=7.5,
         img2img_strength=0.38,
-        mode="sd_img2img",
+        mode=mode,
         seed=seed + 1,
         resume=True,
     )
@@ -206,13 +215,15 @@ def run_pipeline(
     )
     h1_records = load_manifest(base_dir / "h1_manifest.jsonl")
     logger.info("Mined H1 Hard Samples: %d bypassed out of %d (%.1f%%)", len(h1_records), len(pool1_fakes), h1_report.bypass_rate * 100)
+    del m0_model
+    clean_gpu_memory()
 
     # Sample matching random control R (|R| = |H1|)
     r_records = sample_random_control_subset(pool1_fakes, sample_size=max(1, len(h1_records)), seed=seed)
 
-    # Assemble D1 (Random Aug) and D2 (Hard Aug)
-    d1_records = assemble_evolutionary_stage(d0_records, [r_records])
-    d2_records = assemble_evolutionary_stage(d0_records, [h1_records])
+    # Assemble balanced D1 (Random Aug) and D2 (Hard Aug)
+    d1_records = assemble_evolutionary_stage(d0_records, [pool1_real_subset[:len(r_records)], r_records])
+    d2_records = assemble_evolutionary_stage(d0_records, [pool1_real_subset[:len(h1_records)], h1_records])
 
     logger.info(">>> Training M_rand on D1 (%d samples)...", len(d1_records))
     train_single_stage(
@@ -231,6 +242,8 @@ def run_pipeline(
     load_verified_checkpoint(m_rand_model, checkpoints_dir / "augmented_d1_best.pt", device=device)
     m_rand_metrics = evaluate_model_on_manifest(m_rand_model, frozen_test_path, device=device)
     logger.info(">>> M_rand Test Metrics: %s", m_rand_metrics)
+    del m_rand_model
+    clean_gpu_memory()
 
     logger.info(">>> Training M1 on D2 (%d samples)...", len(d2_records))
     train_single_stage(
@@ -269,7 +282,7 @@ def run_pipeline(
         steps=steps,
         guidance_scale=8.0,
         img2img_strength=0.28,  # Adversarial micro-noise preservation
-        mode="sd_img2img",
+        mode=mode,
         seed=seed + 2,
         resume=True,
     )
@@ -293,9 +306,19 @@ def run_pipeline(
         # Fallback to top hardest from pool 2
         h2_records = pool2_fakes[: max(1, len(pool2_fakes) // 2)]
     logger.info("Mined H2 Masterpiece Samples: %d bypassed out of %d", len(h2_records), len(pool2_fakes))
+    del m1_model
+    clean_gpu_memory()
 
-    # Assemble D3 (Replay Buffer: D0 + H1 + H2)
-    d3_records = assemble_evolutionary_stage(d0_records, [h1_records, h2_records])
+    # Assemble balanced D3 (Replay Buffer: D0 + H1 + H2 + matching reals)
+    d3_records = assemble_evolutionary_stage(
+        d0_records,
+        [
+            pool1_real_subset[:len(h1_records)],
+            pool2_real_subset[:len(h2_records)],
+            h1_records,
+            h2_records,
+        ],
+    )
     logger.info(">>> Training M2 on D3 (%d samples)...", len(d3_records))
     train_single_stage(
         stage_name="D3",
@@ -313,6 +336,8 @@ def run_pipeline(
     load_verified_checkpoint(m2_model, checkpoints_dir / "adaptive_d3_best.pt", device=device)
     m2_metrics = evaluate_model_on_manifest(m2_model, frozen_test_path, device=device)
     logger.info(">>> M2 Adaptive Feedback Test Metrics: %s", m2_metrics)
+    del m2_model
+    clean_gpu_memory()
 
     # -------------------------------------------------------------------------
     # STAGE 4: Final 4-Way Evaluation Table & Deliverables
@@ -325,10 +350,31 @@ def run_pipeline(
     }
     table_md = build_benchmark_summary_table(all_metrics)
 
+    # Evaluate Hard Sample Bypass on H2 (Adversarial stress-test)
+    h2_manifest_path = base_dir / "h2_manifest.jsonl"
+    h2_metrics_map = {}
+    ckpts = {
+        "M0_baseline": "baseline_d0_best.pt",
+        "M_rand": "augmented_d1_best.pt",
+        "M1_hard": "hard_boosted_d2_best.pt",
+        "M2_adaptive": "adaptive_d3_best.pt",
+    }
+    for name, ckpt_name in ckpts.items():
+        eval_m = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+        load_verified_checkpoint(eval_m, checkpoints_dir / ckpt_name, device=device)
+        h2_metrics_map[name] = evaluate_model_on_manifest(eval_m, h2_manifest_path, device=device)
+        del eval_m
+        clean_gpu_memory()
+    h2_table_md = build_benchmark_summary_table(h2_metrics_map)
+
     print("\n" + "=" * 80)
-    print("FINAL 4-WAY CLOSED-LOOP PROOF-OF-UTILITY BENCHMARK")
+    print("FINAL 4-WAY CLOSED-LOOP PROOF-OF-UTILITY BENCHMARK (UNSEEN TEST VAULT)")
     print("=" * 80)
     print(table_md)
+    print("=" * 80)
+    print("STRESS TEST ON ROUND 2 MASTERPIECE ADVERSARIAL SAMPLES (H2)")
+    print("=" * 80)
+    print(h2_table_md)
     print("=" * 80 + "\n")
 
     report_file = Path("experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md")
@@ -341,14 +387,16 @@ def run_pipeline(
         f.write("- **Detailed Plan**: §1 Identity-Disjoint Isolation Audit; §2 Multi-Generation Experimental Setup; §3 Golden 4-Way Comparative Table; §4 Analytical Insights & Scientific Conclusions.\n")
         f.write("- **References**: [GEMINI.md](GEMINI.md), [dataset_factory.yaml](configs/dataset_factory.yaml), [run_iterative_auto_pipeline.py](scripts/run_iterative_auto_pipeline.py).\n")
         f.write("- **Created**: 2026-11-09T17:46:41+07:00\n")
-        f.write("- **Last Updated**: 2026-11-09T18:00:00+07:00\n\n---\n\n")
+        f.write("- **Last Updated**: 2026-11-09T18:25:00+07:00\n\n---\n\n")
         f.write("## 1. 🛡️ 100% Identity-Disjoint Partitioning & Zero Leakage Audit\n\n")
         f.write(f"- Train Partition: `{train_part_p}` ({len(train_reals)} unique IDs)\n")
         f.write(f"- Frozen Test Vault: `{frozen_test_path}` ({len(frozen_test_records)} samples, {len(test_reals)} unique IDs)\n")
         f.write("- Identity Overlap: **0% (Verified strictly disjoint)**\n\n")
-        f.write("## 2. 📊 Golden 4-Way Closed-Loop Comparative Proof-of-Utility Benchmark\n\n")
+        f.write("## 2. 📊 Golden 4-Way Closed-Loop Comparative Proof-of-Utility Benchmark (Unseen Test Vault)\n\n")
         f.write(table_md + "\n\n")
-        f.write("## 3. 🔍 Scientific Findings & Key Takeaways\n\n")
+        f.write("## 3. 🎯 Adversarial Stress-Test on Round 2 Hard Samples ($H_2$)\n\n")
+        f.write(h2_table_md + "\n\n")
+        f.write("## 4. 🔍 Scientific Findings & Key Takeaways\n\n")
         f.write("1. **Leak-Free Operating Threshold**: Decision metrics are evaluated without test-peeking optimization.\n")
         f.write("2. **Active Hard Mining ($H_1, H_2 \\neq \\emptyset$)**: Mined hard negative pools provide non-trivial deceptive facial samples for detector robustness.\n")
         f.write("3. **Replay Buffer Utility**: Assembling foundational $D_0$ with evolutionary hard pools prevents catastrophic forgetting.\n")
@@ -362,7 +410,8 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--samples-per-round", type=int, default=10)
     parser.add_argument("--steps", type=int, default=20)
-    parser.add_argument("--epochs", type=int, default=12)
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--mode", type=str, default="all", help="Generation mode ('all', 'sd_img2img', 'sd_inpaint', 'sd_text2img')")
     args = parser.parse_args()
 
     run_pipeline(
@@ -370,4 +419,5 @@ if __name__ == "__main__":
         samples_per_round=args.samples_per_round,
         steps=args.steps,
         epochs=args.epochs,
+        mode=args.mode,
     )

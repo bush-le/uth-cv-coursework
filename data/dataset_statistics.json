@@ -1,57 +1,57 @@
 {
   "counts_by_source": {
     "raw_real": 4000,
-    "synthetic_total": 30,
-    "curated_synthetic": 25,
-    "hard_samples": 11
+    "synthetic_total": 150,
+    "curated_synthetic": 120,
+    "hard_samples": 39
   },
   "counts_by_mode": {
-    "sd_img2img": 9,
-    "sd_inpaint": 7,
-    "sd_text2img": 9
+    "sd_img2img": 47,
+    "sd_inpaint": 39,
+    "sd_text2img": 34
   },
   "demographics": {
     "age_distribution": {
-      "0-2": 75,
-      "30-39": 449,
-      "3-6": 134,
-      "20-29": 588,
-      "40-49": 264,
-      "50-69": 224,
-      "10-14": 74,
-      "15-19": 113,
-      "7-9": 72,
-      "70-120": 32,
+      "0-2": 78,
+      "30-39": 471,
+      "3-6": 139,
+      "20-29": 616,
+      "40-49": 277,
+      "50-69": 233,
+      "10-14": 79,
+      "15-19": 118,
+      "7-9": 74,
+      "70-120": 35,
       "young": 1576,
       "mature": 424
     },
     "gender_distribution": {
-      "male": 1419,
-      "female": 2606
+      "male": 1468,
+      "female": 2652
     },
     "glasses_distribution": {
-      "None": 3518,
-      "Normal": 352,
-      "Dark": 95,
+      "None": 3594,
+      "Normal": 368,
+      "Dark": 98,
       "Glasses": 60
     }
   },
-  "curation_pass_rate": 0.8333333333333334,
+  "curation_pass_rate": 0.8,
   "hard_rate_by_mode": {
-    "sd_text2img": 0.1111111111111111,
-    "sd_inpaint": 0.7142857142857143,
-    "sd_img2img": 0.5555555555555556
+    "sd_text2img": 0.4117647058823529,
+    "sd_inpaint": 0.38461538461538464,
+    "sd_img2img": 0.2127659574468085
   },
   "tau": null,
   "hardness_config": {
-    "method": "detector",
+    "method": "real_manifold",
     "backbone_id": "facebook/dinov2-small",
-    "k_neighbors": 3,
+    "k_neighbors": 5,
     "reference_quantile": 0.5,
     "detector_checkpoint": "experiments/checkpoints/baseline_detector_best.pt",
     "detector_tau": 0.5,
     "batch_size": 16,
-    "max_real_reference": 200
+    "max_real_reference": 150
   },
   "generation_config": {
     "model_id": "runwayml/stable-diffusion-v1-5",
@@ -62,15 +62,15 @@
       "sd_text2img"
     ],
     "num_per_real": 1,
-    "max_real_samples": 30,
-    "steps": 25,
+    "max_real_samples": 150,
+    "steps": 15,
     "guidance_scale": 7.5,
-    "img2img_strength": 0.4,
+    "img2img_strength": 0.35,
     "image_size": [
       256,
       256
     ],
-    "negative_prompt": "deformed, blurry, bad anatomy, bad eyes, disfigured, poorly drawn face",
+    "negative_prompt": "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, plastic, doll, 3d render, cartoon, anime, artificial, mannequin, fake looking, blurry",
     "inpaint_mask_box": [
       0.3,
       0.25,
