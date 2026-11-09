@@ -77,6 +77,19 @@ def create_identity_partitions(
     return splits
 
 
+def load_metadata_manifest(manifest_path: Path) -> List[ImageMetadata]:
+    """Load metadata records from a JSONL manifest file."""
+    if not manifest_path.exists():
+        return []
+    records: List[ImageMetadata] = []
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line_str = line.strip()
+            if line_str:
+                records.append(ImageMetadata.from_dict(json.loads(line_str)))
+    return records
+
+
 def synthesize_and_curate_quota(
     input_manifest: Path,
     output_raw_manifest: Path,
@@ -90,13 +103,7 @@ def synthesize_and_curate_quota(
     max_attempts: int = 3,
 ) -> List[ImageMetadata]:
     """Synthesize candidates and curate iteratively until target_count valid samples are reached."""
-    def _load_meta(p: Path) -> List[ImageMetadata]:
-        if not p.exists():
-            return []
-        with open(p, "r", encoding="utf-8") as f:
-            return [ImageMetadata.from_dict(json.loads(l)) for l in f if l.strip()]
-
-    curated = _load_meta(output_curated_manifest)
+    curated = load_metadata_manifest(output_curated_manifest)
     if len(curated) >= target_count:
         logger.info(
             "Manifest %s already has %d valid samples (target %d), reusing.",
@@ -141,7 +148,7 @@ def synthesize_and_curate_quota(
             report_path=att_rep,
         )
 
-        new_samples = _load_meta(att_cur)
+        new_samples = load_metadata_manifest(att_cur)
         existing_ids = {m.image_id for m in curated}
         for s in new_samples:
             if s.image_id not in existing_ids:
@@ -380,9 +387,9 @@ def run_block1_pipeline(
 
     # 6. Train Baseline Detector M0
     logger.info(">>> Training Baseline Detector M0 on D0...")
-    all_train = _load_meta(manifest_paths["d0_train"])
-    all_val = _load_meta(manifest_paths["d0_val"])
-    all_test = _load_meta(manifest_paths["d0_test"])
+    all_train = load_metadata_manifest(manifest_paths["d0_train"])
+    all_val = load_metadata_manifest(manifest_paths["d0_val"])
+    all_test = load_metadata_manifest(manifest_paths["d0_test"])
 
     dm = DeepfakeImageDataModule(
         train_metadata=all_train,
