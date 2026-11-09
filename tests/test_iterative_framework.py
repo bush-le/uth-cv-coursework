@@ -19,3 +19,20 @@ def test_replay_buffer_prevents_catastrophic_forgetting():
     # Baseline faces must be 100% preserved
     base_ids_in_d2 = {m.image_id for m in d2 if m.data_source == "baseline"}
     assert len(base_ids_in_d2) == 10
+
+
+def test_four_way_benchmark_schema():
+    """Verify formatting of the 4-way comparative Proof-of-Utility benchmark table."""
+    from scripts.evaluate_iterative_benchmarks import build_benchmark_summary_table
+
+    metrics = {
+        "M0_baseline": {"accuracy": 0.85, "fake_recall": 0.80, "bypass_rate": 0.20, "auc": 0.875, "fpr": 0.10},
+        "M_rand": {"accuracy": 0.875, "fake_recall": 0.85, "bypass_rate": 0.15, "auc": 0.900, "fpr": 0.10},
+        "M1_hard": {"accuracy": 0.925, "fake_recall": 0.90, "bypass_rate": 0.10, "auc": 0.940, "fpr": 0.05},
+        "M2_adaptive": {"accuracy": 0.975, "fake_recall": 0.95, "bypass_rate": 0.05, "auc": 0.985, "fpr": 0.00},
+    }
+    markdown_table = build_benchmark_summary_table(metrics)
+    assert "| Model |" in markdown_table
+    assert "M2_adaptive" in markdown_table
+    assert "0.985" in markdown_table
+

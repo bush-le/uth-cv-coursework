@@ -73,6 +73,37 @@ def compute_accuracy(predictions: np.ndarray | list[int], targets: np.ndarray | 
     return float(np.mean(preds == targs))
 
 
+def compute_precision(
+    predictions: np.ndarray | list[int],
+    targets: np.ndarray | list[int],
+    positive_label: int = 1,
+) -> float:
+    """Compute binary classification precision for target positive label."""
+    preds = np.asarray(predictions).ravel()
+    targs = np.asarray(targets).ravel()
+    tp = int(np.sum((preds == positive_label) & (targs == positive_label)))
+    fp = int(np.sum((preds == positive_label) & (targs != positive_label)))
+    if tp + fp == 0:
+        return 0.0
+    return float(tp / (tp + fp))
+
+
+def compute_recall(
+    predictions: np.ndarray | list[int],
+    targets: np.ndarray | list[int],
+    positive_label: int = 1,
+) -> float:
+    """Compute binary classification recall for target positive label."""
+    preds = np.asarray(predictions).ravel()
+    targs = np.asarray(targets).ravel()
+    tp = int(np.sum((preds == positive_label) & (targs == positive_label)))
+    fn = int(np.sum((preds != positive_label) & (targs == positive_label)))
+    if tp + fn == 0:
+        return 0.0
+    return float(tp / (tp + fn))
+
+
+
 def compute_roc_auc(y_true: np.ndarray | list[int], y_score: np.ndarray | list[float]) -> float:
     """Compute ROC-AUC via vectorized Wilcoxon-Mann-Whitney rank-sum statistic.
 
