@@ -81,6 +81,8 @@ data/hard_samples/*
 !data/hard_samples/.gitkeep
 data/benchmarks/*
 !data/benchmarks/.gitkeep
+data/partitions/*
+!data/partitions/.gitkeep
 data/iterative_loop/**/*.png
 data/iterative_loop/**/*.jpg
 
