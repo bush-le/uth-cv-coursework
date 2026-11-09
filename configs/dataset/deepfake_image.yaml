@@ -1,10 +1,12 @@
 # Dataset Configuration: 2D Deepfake Image & Hard-Sample Dataset
 name: "deepfake_image_dataset"
-dataset_dir: "data/processed/images"
-raw_dir: "data/raw/faces"
-baseline_manifest_path: "data/raw/manifest.jsonl"
-synthetic_manifest_path: "data/processed/curated_manifest.jsonl"
-hard_samples_manifest_path: "data/processed/hard_samples_manifest.jsonl"
+dataset_dir: "data/04_benchmarks"
+raw_dir: "data/01_raw_faces"
+baseline_manifest_path: "data/01_raw_faces/raw_faces_manifest.jsonl"
+synthetic_manifest_path: "data/02_synthetic_sd/manifests/curated_synthetic.jsonl"
+hard_samples_manifest_path: "data/03_hard_samples/hard_samples_manifest.jsonl"
+benchmarks_dir: "data/04_benchmarks"
+sample_manifest_path: "data/samples/sample_manifest.jsonl"
 
 image:
   size: [256, 256] # [H, W]

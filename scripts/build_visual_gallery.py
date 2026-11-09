@@ -43,9 +43,21 @@ def main() -> None:
     parser.add_argument("--num-samples", type=int, default=4)
     args = parser.parse_args()
 
-    real_paths = extract_paths_from_manifest(Path(args.real_manifest), args.num_samples)
-    synthetic_paths = extract_paths_from_manifest(Path(args.synthetic_manifest), args.num_samples)
-    hard_paths = extract_paths_from_manifest(Path(args.hard_manifest), args.num_samples)
+    real_manifest = Path(args.real_manifest)
+    if not real_manifest.exists() and Path("data/01_raw_faces/raw_faces_manifest.jsonl").exists():
+        real_manifest = Path("data/01_raw_faces/raw_faces_manifest.jsonl")
+
+    syn_manifest = Path(args.synthetic_manifest)
+    if not syn_manifest.exists() and Path("data/02_synthetic_sd/manifests/curated_synthetic.jsonl").exists():
+        syn_manifest = Path("data/02_synthetic_sd/manifests/curated_synthetic.jsonl")
+
+    hard_manifest = Path(args.hard_manifest)
+    if not hard_manifest.exists() and Path("data/03_hard_samples/hard_samples_manifest.jsonl").exists():
+        hard_manifest = Path("data/03_hard_samples/hard_samples_manifest.jsonl")
+
+    real_paths = extract_paths_from_manifest(real_manifest, args.num_samples)
+    synthetic_paths = extract_paths_from_manifest(syn_manifest, args.num_samples)
+    hard_paths = extract_paths_from_manifest(hard_manifest, args.num_samples)
 
     logger.info(
         "Extracted paths for gallery: %d real, %d synthetic, %d hard samples",

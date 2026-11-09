@@ -199,9 +199,18 @@ def train_pipeline(
     backbone = cfg.get("detection", {}).get("model", {}).get("spatial_backbone", "dinov2_small")
     pretrained = bool(cfg.get("detection", {}).get("model", {}).get("pretrained_backbone", True))
 
-    baseline_path = Path("data/raw/manifest.jsonl")
-    syn_path = Path("data/processed/curated_manifest.jsonl")
-    hard_path = Path("data/processed/hard_samples_manifest.jsonl")
+    paths_cfg = cfg.get("paths", {})
+    baseline_path = Path(paths_cfg.get("baseline_manifest", "data/01_raw_faces/raw_faces_manifest.jsonl"))
+    if not baseline_path.exists():
+        baseline_path = Path("data/raw/manifest.jsonl")
+
+    syn_path = Path(paths_cfg.get("synthetic_manifest", "data/02_synthetic_sd/manifests/curated_synthetic.jsonl"))
+    if not syn_path.exists():
+        syn_path = Path("data/processed/curated_manifest.jsonl")
+
+    hard_path = Path(paths_cfg.get("hard_samples_manifest", "data/03_hard_samples/hard_samples_manifest.jsonl"))
+    if not hard_path.exists():
+        hard_path = Path("data/processed/hard_samples_manifest.jsonl")
     log_dir = Path("experiments/logs")
     log_dir.mkdir(parents=True, exist_ok=True)
 

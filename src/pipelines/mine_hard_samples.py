@@ -189,6 +189,9 @@ def main() -> None:
 
     seed_everything(args.seed)
     in_path = Path(args.input_manifest)
+    if not in_path.exists() and Path("data/02_synthetic_sd/manifests/curated_synthetic.jsonl").exists():
+        in_path = Path("data/02_synthetic_sd/manifests/curated_synthetic.jsonl")
+
     if in_path.exists():
         with open(in_path, "r", encoding="utf-8") as f:
             meta_list = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]

@@ -63,10 +63,23 @@ def evaluate_pipeline(
     model.to(device)
     model.eval()
 
+    paths_cfg = cfg.get("paths", {})
+    b_path = Path(paths_cfg.get("baseline_manifest", "data/01_raw_faces/raw_faces_manifest.jsonl"))
+    if not b_path.exists():
+        b_path = Path("data/raw/manifest.jsonl")
+
+    s_path = Path(paths_cfg.get("synthetic_manifest", "data/02_synthetic_sd/manifests/curated_synthetic.jsonl"))
+    if not s_path.exists():
+        s_path = Path("data/processed/curated_manifest.jsonl")
+
+    h_path = Path(paths_cfg.get("hard_samples_manifest", "data/03_hard_samples/hard_samples_manifest.jsonl"))
+    if not h_path.exists():
+        h_path = Path("data/processed/hard_samples_manifest.jsonl")
+
     meta_list = combine_training_manifests(
-        baseline_manifest=Path("data/raw/manifest.jsonl"),
-        synthetic_manifest=Path("data/processed/curated_manifest.jsonl"),
-        hard_sample_manifest=Path("data/processed/hard_samples_manifest.jsonl"),
+        baseline_manifest=b_path,
+        synthetic_manifest=s_path,
+        hard_sample_manifest=h_path,
     )
 
     if meta_list:
