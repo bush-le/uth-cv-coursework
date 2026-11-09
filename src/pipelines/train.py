@@ -163,6 +163,7 @@ def train_single_stage(
     seed: int,
     hard_sample_loss_weight: float = 1.0,
     hard_sample_oversample_factor: int = 1,
+    unfreeze_last_n_blocks: Optional[int] = None,
     checkpoint_dir: Path = Path("experiments/checkpoints"),
 ) -> Dict[str, float]:
     """Train and evaluate deepfake detector for one stage."""
@@ -193,6 +194,7 @@ def train_single_stage(
         num_epochs=epochs,
         learning_rate=lr,
         hard_sample_loss_weight=hard_sample_loss_weight,
+        unfreeze_last_n_blocks=unfreeze_last_n_blocks,
         checkpoint_dir=checkpoint_dir,
         checkpoint_prefix=ckpt_prefix,
         device=device,

@@ -51,6 +51,19 @@ def test_dinovit_freeze_and_partial_unfreeze() -> None:
     assert all(p.requires_grad for p in model.extractor.blocks[-1].parameters())
 
 
+def test_dinov2_small_freeze_and_partial_unfreeze() -> None:
+    """Verify MetaDinoV2Wrapper partial unfreezing enables gradients on last block."""
+    model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, freeze_extractor=True, pretrained=False)
+    assert all(not p.requires_grad for p in model.extractor.parameters())
+    assert all(p.requires_grad for p in model.classifier.parameters())
+
+    model.unfreeze_backbone(unfreeze_last_n_blocks=1)
+    layers = list(model.extractor.backbone.encoder.layer)
+    assert all(not p.requires_grad for p in layers[0].parameters())
+    assert any(p.requires_grad for p in layers[-1].parameters())
+
+
+
 def test_deepfake_image_detector_forward_simple_and_resnet() -> None:
     """Test DeepfakeImageDetector forward pass with simple CNN and ResNet-18 backbones."""
     for bb in ("simple_cnn", "resnet18"):

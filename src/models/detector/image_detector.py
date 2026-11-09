@@ -271,6 +271,9 @@ class DeepfakeImageDetector(nn.Module):
             for layer in list(layers)[-unfreeze_last_n_blocks:]:
                 for param in layer.parameters():
                     param.requires_grad = True
+            if hasattr(self.extractor.backbone, "layernorm"):
+                for param in self.extractor.backbone.layernorm.parameters():
+                    param.requires_grad = True
         elif (
             unfreeze_last_n_blocks is not None
             and isinstance(self.extractor, DinoViTBackbone)
