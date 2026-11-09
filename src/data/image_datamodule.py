@@ -115,8 +115,16 @@ class DeepfakeImageDataModule:
             perm_idx = torch.randperm(len(keys), generator=generator).tolist()
             shuffled = [keys[i] for i in perm_idx]
 
-            # When 3+ groups exist, guarantee at least 1 in val and 1 in test
-            if len(shuffled) >= 3:
+            # When 6+ groups exist, guarantee at least 2 in val and 2 in test
+            if len(shuffled) >= 6:
+                n_val = max(2, round(len(shuffled) * self.val_ratio))
+                n_test = max(2, round(len(shuffled) * self.test_ratio))
+                if n_val + n_test >= len(shuffled) - 1:
+                    n_val = 1
+                    n_test = 1
+                n_train = len(shuffled) - n_val - n_test
+                return shuffled[:n_train], shuffled[n_train : n_train + n_val], shuffled[n_train + n_val :]
+            elif len(shuffled) >= 3:
                 n_val = max(1, round(len(shuffled) * self.val_ratio))
                 n_test = max(1, round(len(shuffled) * self.test_ratio))
                 if n_val + n_test >= len(shuffled):
