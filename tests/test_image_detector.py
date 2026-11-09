@@ -60,6 +60,13 @@ def test_deepfake_image_detector_forward_simple_and_resnet() -> None:
         assert logits.shape == (2, 1)
 
 
+def test_dinov2_pretrained_wrapper() -> None:
+    """Verify loading real Meta DINOv2 backbone or factory."""
+    model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
+    assert model.feature_dim == 384
+    assert model.backbone_name == "dinov2_small"
+
+
 def test_mine_hard_samples_reject_vs_bypass(tmp_path: Path) -> None:
     """Test Phase 2 hard-sample mining separating Rejected vs Bypassed synthetic DF images."""
     model = DeepfakeImageDetector(backbone="dino_vit", num_classes=1)

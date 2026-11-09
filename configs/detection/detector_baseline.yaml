@@ -1,9 +1,9 @@
 # DINO ViT (dinoViT) Baseline Benchmark, Hard-Sample Mining & Fine-Tuning Configuration
 model:
   name: "deepfake_image_detector"
-  spatial_backbone: "dino_vit" # Self-supervised Vision Transformer (DINO / DINOv2)
-  pretrained_backbone: false
-  embed_dim: 192
+  spatial_backbone: "dinov2_small" # Official Meta DINOv2 Vision Transformer (384-dim)
+  pretrained_backbone: true
+  embed_dim: 384
   patch_size: 16
   depth: 4
   num_heads: 4
