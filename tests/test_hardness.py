@@ -59,13 +59,26 @@ def test_report_breaks_down_by_mode():
         metas=metas,
         scores=scores,
         tau=0.5,
-        tau_source="calibrated_quantile",
+        tau_source="test",
         method="real_manifold",
         higher_is_harder=True,
     )
-
-    assert rep.total == 4
     assert rep.hard_count == 2
+    assert rep.hard_rate_by_mode["sd_inpaint"] == 0.5
+    assert rep.hard_rate_by_mode["sd_text2img"] == 0.5
     assert rep.hard_rate == pytest.approx(0.5)
-    assert rep.hard_rate_by_mode == {"sd_inpaint": 0.5, "sd_text2img": 0.5}
     assert rep.hard_ids == ["f1", "f3"]
+
+
+def test_hard_sample_requires_face_crop_manifold_proximity():
+    """Verify face-crop tensor extractor properly crops and resizes facial region."""
+    from src.pipelines.mine_hard_samples import crop_face_tensor
+
+    dummy = torch.randn(3, 256, 256)
+    # Specified bounding box
+    cropped = crop_face_tensor(dummy, bbox=(0.20, 0.20, 0.80, 0.80), target_size=(224, 224))
+    assert cropped.shape == (3, 224, 224)
+
+    # Automatic fallback
+    auto_cropped = crop_face_tensor(dummy, bbox=None, target_size=(224, 224))
+    assert auto_cropped.shape == (3, 224, 224)

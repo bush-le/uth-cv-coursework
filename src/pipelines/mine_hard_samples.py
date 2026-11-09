@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
 import shutil
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -50,6 +50,55 @@ class HardSampleMiningReport:
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+
+def crop_face_tensor(
+    image: torch.Tensor,
+    bbox: Optional[Tuple[float, float, float, float]] = None,
+    target_size: Tuple[int, int] = (224, 224),
+) -> torch.Tensor:
+    """Crop the facial region from an image tensor and resize to target_size.
+
+    Args:
+        image: Tensor of shape (C, H, W) in [0, 1].
+        bbox: Optional normalized (ymin, xmin, ymax, xmax) coordinates.
+        target_size: Desired (height, width) of output face crop.
+
+    Returns:
+        Cropped and resized face tensor of shape (C, target_size[0], target_size[1]).
+    """
+    import cv2
+    import numpy as np
+    import torch.nn.functional as F
+
+    c, h, w = image.shape
+    if bbox is None:
+        np_img = (image.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
+        gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        cascade = cv2.CascadeClassifier(cascade_path)
+        faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30))
+        if len(faces) > 0:
+            fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+            bbox = (float(fy / h), float(fx / w), float((fy + fh) / h), float((fx + fw) / w))
+        else:
+            bbox = (0.15, 0.15, 0.85, 0.85)
+
+    ymin, xmin, ymax, xmax = bbox
+    face_h = ymax - ymin
+    face_w = xmax - xmin
+    ymin = max(0.0, ymin - 0.10 * face_h)
+    ymax = min(1.0, ymax + 0.10 * face_h)
+    xmin = max(0.0, xmin - 0.10 * face_w)
+    xmax = min(1.0, xmax + 0.10 * face_w)
+
+    py_min, py_max = int(ymin * h), max(int(ymin * h) + 1, int(ymax * h))
+    px_min, px_max = int(xmin * w), max(int(xmin * w) + 1, int(xmax * w))
+
+    face_crop = image[:, py_min:py_max, px_min:px_max]
+    face_crop_batched = face_crop.unsqueeze(0)
+    resized = F.interpolate(face_crop_batched, size=target_size, mode="bilinear", align_corners=False)
+    return resized.squeeze(0)
 
 
 def _save_mining_results(
@@ -156,6 +205,7 @@ def mine_hard_samples_real_manifold(
         batch_size=batch_size,
         device=device,
         cache=cache,
+        crop_faces=True,
     )
     real_id_to_idx = {m.image_id: idx for idx, m in enumerate(real_metadata)}
 
@@ -178,6 +228,7 @@ def mine_hard_samples_real_manifold(
         batch_size=batch_size,
         device=device,
         cache=cache,
+        crop_faces=True,
     )
 
     # 3. Exclude own source real index

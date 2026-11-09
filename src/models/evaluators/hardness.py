@@ -40,6 +40,7 @@ def embed_images(
     batch_size: int = 16,
     device: Union[str, torch.device] = "cpu",
     cache: Optional[Dict[str, torch.Tensor]] = None,
+    crop_faces: bool = False,
 ) -> torch.Tensor:
     """Extract L2-normalized deep representations for a list of image metadata.
 
@@ -49,6 +50,7 @@ def embed_images(
         batch_size: Batch size for forward pass.
         device: Device to execute forward pass.
         cache: Optional memory cache mapping image_id to tensor.
+        crop_faces: Whether to crop the face region prior to embedding.
 
     Returns:
         Tensor of shape (N, D) where N = len(metas), D = embedding dimension.
@@ -72,6 +74,10 @@ def embed_images(
     with torch.no_grad():
         for batch in loader:
             imgs = batch["images"].to(dev)
+            if crop_faces:
+                from src.pipelines.mine_hard_samples import crop_face_tensor
+                cropped_list = [crop_face_tensor(img, bbox=None) for img in imgs]
+                imgs = torch.stack(cropped_list, dim=0).to(dev)
             emb = extractor(imgs)
             emb_norm = F.normalize(emb, p=2, dim=-1)
             all_embs.append(emb_norm.detach().cpu())
