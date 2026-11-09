@@ -1,11 +1,13 @@
 {
   "total_hard_samples": 3,
   "age_distribution": {
-    "20-29": 2,
+    "30-39": 1,
+    "7-9": 1,
     "40-49": 1
   },
   "gender_distribution": {
-    "male": 3
+    "male": 2,
+    "female": 1
   },
-  "mean_score": 0.5070408923285348
+  "mean_score": 0.6413795862879071
 }

@@ -20,10 +20,10 @@
 
 | Model | Training Dataset | Operating Threshold | Test Accuracy | Fake Recall (↑) | Bypass Rate (FNR ↓) | ROC-AUC (↑) | Real FPR (↓) |
 |---|---|---|---|---|---|---|---|
-| **M0_baseline** | D0 (Base Real + Fake) | tau=0.500 | 50.0% | **100.0%** | 0.0% | **1.000** | 100.0% |
-| **M_rand** | D1 (D0 + Random Fakes) | tau=0.500 | 50.0% | **100.0%** | 0.0% | **0.944** | 100.0% |
-| **M1_hard** | D2 (D0 + H1 Bypass) | tau=0.500 | 50.0% | **100.0%** | 0.0% | **0.611** | 100.0% |
-| **M2_adaptive** | D3 (D0 + H1 + H2 Feedback) | tau=0.500 | 50.0% | **100.0%** | 0.0% | **0.639** | 100.0% |
+| **M0_baseline** | D0 (Base Real + Fake) | tau=0.500 | 50.0% | **0.0%** | 100.0% | **0.583** | 0.0% |
+| **M_rand** | D1 (D0 + Random Fakes) | tau=0.500 | 50.0% | **100.0%** | 0.0% | **0.611** | 100.0% |
+| **M1_hard** | D2 (D0 + H1 Bypass) | tau=0.500 | 50.0% | **100.0%** | 0.0% | **0.556** | 100.0% |
+| **M2_adaptive** | D3 (D0 + H1 + H2 Feedback) | tau=0.500 | 50.0% | **100.0%** | 0.0% | **0.778** | 100.0% |
 
 ## 3. 🔍 Scientific Findings & Key Takeaways
 

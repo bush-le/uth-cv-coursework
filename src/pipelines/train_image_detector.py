@@ -89,8 +89,18 @@ def train_deepfake_image_detector(
     model.to(dev)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = AdamW(trainable_params, lr=learning_rate, weight_decay=1e-5)
+    classifier_params = [p for p in model.classifier.parameters() if p.requires_grad]
+    backbone_params = [
+        p for n, p in model.named_parameters() if p.requires_grad and not n.startswith("classifier")
+    ]
+    param_groups = [
+        {"params": classifier_params, "lr": max(learning_rate, 1e-3)},
+    ]
+    if backbone_params:
+        param_groups.append({"params": backbone_params, "lr": min(learning_rate, 5e-5)})
+
+    optimizer = AdamW(param_groups, weight_decay=1e-4)
+    trainable_params = classifier_params + backbone_params
     criterion_raw = nn.BCEWithLogitsLoss(reduction="none")
 
     datamodule.setup()

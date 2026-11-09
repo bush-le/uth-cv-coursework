@@ -151,8 +151,8 @@ def run_pipeline(
         stage_name="D0",
         meta_list=d0_records,
         epochs=epochs,
-        batch_size=8,
-        lr=5e-5,
+        batch_size=4,
+        lr=1e-3,
         device=device,
         backbone="dinov2_small",
         pretrained=True,
@@ -219,8 +219,8 @@ def run_pipeline(
         stage_name="D1",
         meta_list=d1_records,
         epochs=epochs,
-        batch_size=8,
-        lr=5e-5,
+        batch_size=4,
+        lr=1e-3,
         device=device,
         backbone="dinov2_small",
         pretrained=True,
@@ -237,8 +237,8 @@ def run_pipeline(
         stage_name="D2",
         meta_list=d2_records,
         epochs=epochs,
-        batch_size=8,
-        lr=5e-5,
+        batch_size=4,
+        lr=1e-3,
         device=device,
         backbone="dinov2_small",
         pretrained=True,
@@ -301,8 +301,8 @@ def run_pipeline(
         stage_name="D3",
         meta_list=d3_records,
         epochs=epochs,
-        batch_size=8,
-        lr=5e-5,
+        batch_size=4,
+        lr=1e-3,
         device=device,
         backbone="dinov2_small",
         pretrained=True,
@@ -362,7 +362,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--samples-per-round", type=int, default=10)
     parser.add_argument("--steps", type=int, default=20)
-    parser.add_argument("--epochs", type=int, default=4)
+    parser.add_argument("--epochs", type=int, default=12)
     args = parser.parse_args()
 
     run_pipeline(
