@@ -1,7 +1,12 @@
 """Evaluation and quality curation metrics for 2D Deepfake Detection and Hard-Sample Mining."""
 
+from typing import Any, Optional, Sequence
 import numpy as np
 import torch
+
+from src.common.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def compute_iou(
@@ -193,32 +198,99 @@ def compute_laplacian_sharpness(image: torch.Tensor) -> float:
     return variance
 
 
-def compute_clip_similarity_proxy(image: torch.Tensor, prompt: str) -> float:
-    """Compute semantic text-image alignment score proxy in range [0.0, 1.0].
+def calibrate_threshold(reference_scores: Sequence[float], quantile: float) -> float:
+    """Calibrate a decision threshold as a quantile over a reference distribution.
 
     Args:
-        image: torch.Tensor of shape (C, H, W) in [0.0, 1.0].
-        prompt: Text description string.
+        reference_scores: Sequence of scores from reference distribution.
+        quantile: Desired quantile level in [0.0, 1.0].
 
     Returns:
-        Similarity score float bounded in [0.0, 1.0].
+        Scalar threshold float.
     """
-    if not isinstance(image, torch.Tensor):
-        image = torch.tensor(image, dtype=torch.float32)
+    if len(reference_scores) == 0:
+        raise ValueError("reference_scores cannot be empty for calibration.")
+    if not (0.0 <= quantile <= 1.0):
+        raise ValueError(f"quantile must be in [0.0, 1.0], got {quantile}")
+    arr = np.asarray(reference_scores, dtype=np.float64)
+    return float(np.quantile(arr, quantile))
 
-    if image.ndim == 4:
-        image = image[0]
 
-    # Spatial frequency + color distribution feature proxy (192-dim)
-    pooled = torch.nn.functional.adaptive_avg_pool2d(image, (8, 8)).view(-1)
-    norm = torch.norm(pooled, p=2) + 1e-8
-    img_feat = pooled / norm
+def detect_faces(image_rgb: np.ndarray, backend: str = "opencv_haar") -> int:
+    """Detect faces in an RGB uint8 image using classical or lightweight detector.
 
-    # Deterministic prompt pseudo-embedding
-    gen = torch.Generator().manual_seed(abs(hash(prompt)) % 100000)
-    prompt_feat = torch.randn(img_feat.shape[0], generator=gen)
-    prompt_feat = prompt_feat / (torch.norm(prompt_feat, p=2) + 1e-8)
+    Args:
+        image_rgb: NumPy array of shape (H, W, 3) in uint8 RGB format.
+        backend: Face detector backend ('opencv_haar' or 'none').
 
-    cosine_sim = float(torch.dot(img_feat, prompt_feat).item())
-    # Scale to [0.0, 1.0]
-    return float(np.clip((cosine_sim + 1.0) / 2.0, 0.0, 1.0))
+    Returns:
+        Number of faces detected.
+    """
+    if backend == "none":
+        return 1
+
+    if backend == "opencv_haar":
+        import cv2
+
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        face_cascade = cv2.CascadeClassifier(cascade_path)
+        if face_cascade.empty():
+            logger.warning("Haarcascade file could not be loaded; defaulting to 1 face.")
+            return 1
+
+        gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
+        faces = face_cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=3,
+            minSize=(20, 20),
+        )
+        return len(faces)
+
+    raise ValueError(f"Unknown face detection backend: {backend}")
+
+
+class ClipScorer:
+    """Real CLIP semantic image-text similarity evaluator using Hugging Face transformers."""
+
+    def __init__(self, model_id: str = "openai/clip-vit-base-patch32", device: str = "cpu"):
+        self.model_id = model_id
+        self.device = device
+        self._model = None
+        self._processor = None
+
+    def _ensure_loaded(self) -> None:
+        if self._model is None:
+            from transformers import CLIPModel, CLIPProcessor
+
+            self._processor = CLIPProcessor.from_pretrained(self.model_id)
+            self._model = CLIPModel.from_pretrained(self.model_id).to(self.device)
+            self._model.eval()
+
+    def score(self, image: torch.Tensor, prompt: str) -> float:
+        """Compute cosine similarity between image (3, H, W) and prompt text."""
+        self._ensure_loaded()
+        from PIL import Image
+
+        img_tensor = image.detach().cpu().clamp(0.0, 1.0)
+        np_arr = (img_tensor.permute(1, 2, 0).numpy() * 255.0).astype(np.uint8)
+        pil_img = Image.fromarray(np_arr)
+
+        inputs = self._processor(
+            text=[prompt],
+            images=pil_img,
+            return_tensors="pt",
+            padding=True,
+        ).to(self.device)
+
+        with torch.no_grad():
+            img_feats = self._model.get_image_features(pixel_values=inputs["pixel_values"])
+            txt_feats = self._model.get_text_features(
+                input_ids=inputs["input_ids"], attention_mask=inputs.get("attention_mask")
+            )
+
+            img_feats = img_feats / img_feats.norm(dim=-1, keepdim=True)
+            txt_feats = txt_feats / txt_feats.norm(dim=-1, keepdim=True)
+            sim = (img_feats * txt_feats).sum(dim=-1).item()
+
+        return float(np.clip(sim, -1.0, 1.0))
