@@ -102,4 +102,80 @@ def test_mine_hard_samples_cli_loads_checkpoint(tmp_path, monkeypatch):
     assert out_annotated.exists()
 
 
+def test_mine_hard_samples_cli_feature_similarity(tmp_path, monkeypatch):
+    """Verify that mining CLI works with --method feature_similarity without requiring a checkpoint."""
+    import sys
+    from src.pipelines.mine_hard_samples import main as mine_main
+
+    out_annotated = tmp_path / "annotated_sim.jsonl"
+    out_hard = tmp_path / "hard_sim.jsonl"
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "mine_hard_samples.py",
+            "--method",
+            "feature_similarity",
+            "--threshold",
+            "0.99",
+            "--annotated-manifest",
+            str(out_annotated),
+            "--hard-manifest",
+            str(out_hard),
+        ],
+    )
+    mine_main()
+    assert out_annotated.exists()
+    assert out_hard.exists()
+
+
+
+def test_mine_hard_samples_by_feature_similarity():
+    """Verify objective hard sample mining via DINOv2 latent feature cosine similarity."""
+    import torch
+    from src.data.image_schema import ImageMetadata
+    from src.models.detector.image_detector import MetaDinoV2Wrapper
+    from src.pipelines.mine_hard_samples import mine_hard_samples_by_feature_similarity
+
+    extractor = MetaDinoV2Wrapper(pretrained=True)
+
+    # Identical image for fake_0 -> high cosine similarity (~1.0) -> Hard sample
+    # Distinct pattern vs noise for fake_1 -> cosine similarity ~0.65 (< 0.85) -> Rejected
+    img_real0 = torch.arange(70 * 70 * 3, dtype=torch.float32).reshape(3, 70, 70) / (70 * 70 * 3)
+    img_fake0 = img_real0.clone()
+    img_real1 = img_real0.clone()
+    img_fake1 = torch.randn(3, 70, 70)
+
+    cache = {
+        "real_0": img_real0,
+        "fake_0": img_fake0,
+        "real_1": img_real1,
+        "fake_1": img_fake1,
+    }
+
+    real_metas = [
+        ImageMetadata(image_id="real_0", label=0, file_path="real_0.png"),
+        ImageMetadata(image_id="real_1", label=0, file_path="real_1.png"),
+    ]
+    syn_metas = [
+        ImageMetadata(image_id="fake_0", label=1, source_real_id="real_0", file_path="fake_0.png"),
+        ImageMetadata(image_id="fake_1", label=1, source_real_id="real_1", file_path="fake_1.png"),
+    ]
+
+    report = mine_hard_samples_by_feature_similarity(
+        extractor=extractor,
+        synthetic_metadata=syn_metas,
+        real_metadata=real_metas,
+        cache=cache,
+        similarity_threshold=0.85,
+    )
+
+    assert report.total_synthetic == 2
+    assert "fake_0" in report.hard_sample_ids
+    assert report.bypassed_hard_count == 1
+    assert report.rejected_count == 1
+
+
+
 
