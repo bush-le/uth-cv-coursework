@@ -6,21 +6,23 @@
 - **Detailed Plan**: §1 Executive Summary; §2 Root Cause Audit of All Remedied Bugs; §3 Official Inpainting Checkpoint Setup & Verification; §4 Multi-Stage Evolutionary Results & Dual Benchmark Tables; §5 Test Suite & Code Quality Status; §6 Actionable Next Steps for Future Sessions.
 - **References**: [GEMINI.md](GEMINI.md), [docs/PURPOSE.md](docs/PURPOSE.md), [configs/dataset_factory.yaml](configs/dataset_factory.yaml), [docs/plans/2026_11_09_DEEP_INPAINTING_SETUP_AND_ITERATIVE_PIPELINE_PLAN.md](docs/plans/2026_11_09_DEEP_INPAINTING_SETUP_AND_ITERATIVE_PIPELINE_PLAN.md), [experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md](experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md).
 - **Created**: 2026-11-09T19:38:00+07:00
-- **Last Updated**: 2026-11-09T19:38:00+07:00
+- **Last Updated**: 2026-11-09T21:12:00+07:00
 
 ---
 
 ## 1. 📌 Executive Summary
 
-During this session, we performed an exhaustive diagnostic audit and systematic engineering overhaul of the Coursework Topic 11 codebase. We identified and eliminated the hidden architectural causes of previously degraded/collapsed benchmark tables (where models suffered 100% bypass or 100% false positive rates).
+During this session, we performed an exhaustive diagnostic audit and systematic engineering overhaul of the Coursework Topic 11 codebase. We identified and eliminated the hidden architectural causes of previously degraded/collapsed benchmark tables, and resolved generation artifacts (circular vignettes, miniature faces, deformed eyes).
 
 Key achievements in this session:
 1. **Official Inpainting Checkpoint Loaded & Verified**: Downloaded, verified, and wired `stable-diffusion-v1-5/stable-diffusion-inpainting` (9-channel UNet) on GPU for high-fidelity anatomical facial inpainting.
-2. **Fixed Static Split Override**: Eliminated a critical bug in `train_single_stage` that was discarding the dynamic dataset and loading an old static split with 105 Real and 0 Fake images.
-3. **Calibrated Classifier Head & Loss Checkpointing**: Replaced the under-converged MLP with a LayerNorm + Linear Probe and introduced loss-calibrated checkpoint selection.
-4. **Executed Full 4-Way Evolutionary Closed Loop**: Ran $M_0 \to M_{\text{rand}} \to M_1 \to M_2$ with active neural mining of non-empty hard pools ($H_1, H_2$).
-5. **Empirically Proven Proof of Utility**: On the adversarial stress-test $H_2$, baseline $M_0$ and $M_1$ suffered 100% Bypass Rate, while adaptive replay model $M_2$ achieved **0.0% Bypass Rate (100% Fake Recall, 100% Accuracy)**.
-6. **100% Test Pass Rate & Clean Git Push**: All 119/119 unit tests pass in 13.88s; code pushed to `origin/baseline/initial-baseline` (`d82fc8d`).
+2. **Native 512x512 Resolution Upgrade**: Eliminated legacy 256x256 resizing across the entire pipeline. Real 1024x1024 images downscale to 512x512 using high-fidelity `Image.Resampling.LANCZOS` (anti-aliased), preserving 4x more facial pore detail and preventing latent collapse into circular vignette frames.
+3. **Inpainting Bounding Box Auto-Normalization & Detection**: Fixed a coordinate space mismatch where `[0, 0, 1024, 1024]` pixel bboxes multiplied by dimensions produced out-of-canvas coordinates and 100% black masks (`sum = 0.0`). The system now auto-detects canvas bounds and extracts anatomical face bounds via Haar cascade detection.
+4. **Hardened 2-Tier Curation Gate**: Enforced `0.20 <= face_area_ratio <= 0.80` and `len(faces) == 1`. Instantly detects and rejects melted miniature faces, mirror frames, and multiple faces.
+5. **Cleaned Prompt Taxonomy & Universal Anti-Frame Negative Prompts**: Removed vignette keywords (`slight optical vignette`) and added universal negative tokens (`mirror, frame, border, vignette, circular frame, porthole, multiple faces, distorted eyes`).
+6. **Active Curation Quota Replenishment**: Implemented `synthesize_and_curate_quota()` with deterministic sample offset indexing so that rejected candidates are automatically regenerated until exact quota targets are fulfilled.
+7. **Block 1 Live Baseline Verified on CUDA**: Verified end-to-end execution of Master Frozen Test Set generation, D0 training dataset packaging, and DINOv2 baseline detector $M_0$ fine-tuning on RTX 3050 Laptop GPU.
+8. **100% Test Pass Rate**: All **125 / 125 unit and integration tests passing in 15.41s** (`taskset -c 0-3 pytest`).
 
 ---
 
