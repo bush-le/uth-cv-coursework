@@ -71,6 +71,7 @@ def run_image_generation(
     mask_targets: Optional[List[str]] = None,
     total_samples: Optional[int] = None,
     device: Optional[str] = None,
+    sample_offset: int = 0,
 ) -> int:
     """Generate synthetic deepfake faces (DF img) from real image manifest.
 
@@ -173,27 +174,56 @@ def run_image_generation(
         for m_name, count in mode_quotas.items():
             m_idx = mode_mapping.get(m_name, 0)
             for c in range(count):
-                real_item = real_items[t_idx % len(real_items)]
+                real_item = real_items[(t_idx + sample_offset) % len(real_items)]
                 real_id = real_item["image_id"]
-                fake_id = f"fake_{real_id}_q{m_idx}_{c}"
+                fake_id = f"fake_{real_id}_q{m_idx}_{c + sample_offset}"
                 tasks.append({
-                    "item_idx": t_idx,
+                    "item_idx": t_idx + sample_offset,
                     "item": real_item,
                     "real_id": real_id,
-                    "k": c,
+                    "k": c + sample_offset,
                     "fake_id": fake_id,
                     "mode_idx": m_idx,
                     "demographics": real_item.get("demographics"),
                 })
                 t_idx += 1
+    elif total_samples is not None and total_samples > 0:
+        for t_idx in range(total_samples):
+            item_idx = (t_idx + sample_offset) % len(real_items)
+            k = ((t_idx + sample_offset) // len(real_items))
+            item = real_items[item_idx]
+            real_id = item["image_id"]
+            demographics = item.get("demographics")
+            fake_id = f"fake_{real_id}_{k}"
+            if mode_val == "all":
+                mode_idx = t_idx % 3
+            elif mode_val in ("img2img", "sd_img2img"):
+                mode_idx = 0
+            elif mode_val in ("inpaint", "sd_inpaint"):
+                mode_idx = 1
+            elif mode_val in ("text2img", "sd_text2img"):
+                mode_idx = 2
+            else:
+                mode_idx = t_idx % 3
+
+            tasks.append({
+                "item_idx": t_idx + sample_offset,
+                "item": item,
+                "real_id": real_id,
+                "k": k,
+                "fake_id": fake_id,
+                "mode_idx": mode_idx,
+                "demographics": demographics,
+            })
     else:
         for item_idx, item in enumerate(real_items):
             real_id = item["image_id"]
             demographics = item.get("demographics")
             for k in range(num_per_real_val):
-                fake_id = f"fake_{real_id}_{k}"
+                actual_k = k + sample_offset
+                fake_id = f"fake_{real_id}_{actual_k}"
                 if mode_val == "all":
-                    mode_idx = (item_idx + k) % 3
+                    mode_idx = (item_idx + actual_k) % 3
                 elif mode_val in ("img2img", "sd_img2img"):
                     mode_idx = 0
                 elif mode_val in ("inpaint", "sd_inpaint"):
@@ -201,19 +231,17 @@ def run_image_generation(
                 elif mode_val in ("text2img", "sd_text2img"):
                     mode_idx = 2
                 else:
-                    mode_idx = (item_idx + k) % 3
+                    mode_idx = (item_idx + actual_k) % 3
 
                 tasks.append({
-                    "item_idx": item_idx,
+                    "item_idx": item_idx + sample_offset,
                     "item": item,
                     "real_id": real_id,
-                    "k": k,
+                    "k": actual_k,
                     "fake_id": fake_id,
                     "mode_idx": mode_idx,
                     "demographics": demographics,
                 })
-        if total_samples is not None and total_samples > 0:
-            tasks = tasks[:total_samples]
 
     # Group by mode_idx (img2img, inpaint, text2img)
     tasks.sort(key=lambda t: t["mode_idx"])

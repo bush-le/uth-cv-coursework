@@ -77,6 +77,96 @@ def create_identity_partitions(
     return splits
 
 
+def synthesize_and_curate_quota(
+    input_manifest: Path,
+    output_raw_manifest: Path,
+    output_curated_manifest: Path,
+    output_dir: Path,
+    target_count: int,
+    prompt_engine: PromptGrammarEngine,
+    report_path: Path,
+    device: str = "cpu",
+    seed: int = 42,
+    max_attempts: int = 3,
+) -> List[ImageMetadata]:
+    """Synthesize candidates and curate iteratively until target_count valid samples are reached."""
+    def _load_meta(p: Path) -> List[ImageMetadata]:
+        if not p.exists():
+            return []
+        with open(p, "r", encoding="utf-8") as f:
+            return [ImageMetadata.from_dict(json.loads(l)) for l in f if l.strip()]
+
+    curated = _load_meta(output_curated_manifest)
+    if len(curated) >= target_count:
+        logger.info(
+            "Manifest %s already has %d valid samples (target %d), reusing.",
+            output_curated_manifest.name,
+            len(curated),
+            target_count,
+        )
+        return curated[:target_count]
+
+    attempt = 0
+    while len(curated) < target_count and attempt < max_attempts:
+        needed = target_count - len(curated)
+        batch_size = int(needed * 1.15) + 2 if attempt > 0 else target_count
+        logger.info(
+            "Quota synthesis attempt %d/%d for %s: need %d valid samples, generating %d candidates...",
+            attempt + 1,
+            max_attempts,
+            output_curated_manifest.name,
+            needed,
+            batch_size,
+        )
+
+        att_raw = output_raw_manifest.parent / f"{output_raw_manifest.stem}_att{attempt}.jsonl"
+        att_cur = output_curated_manifest.parent / f"{output_curated_manifest.stem}_att{attempt}.jsonl"
+        att_rep = report_path.parent / f"{report_path.stem}_att{attempt}.json"
+
+        run_image_generation(
+            input_manifest=input_manifest,
+            output_manifest=att_raw,
+            output_dir=output_dir,
+            total_samples=batch_size,
+            prompt_engine=prompt_engine,
+            device=device,
+            seed=seed + (attempt * 1000),
+            resume=True,
+            sample_offset=len(curated) + (attempt * 500),
+        )
+
+        curate_dataset(
+            input_manifest=att_raw,
+            output_manifest=att_cur,
+            report_path=att_rep,
+        )
+
+        new_samples = _load_meta(att_cur)
+        existing_ids = {m.image_id for m in curated}
+        for s in new_samples:
+            if s.image_id not in existing_ids:
+                curated.append(s)
+                existing_ids.add(s.image_id)
+            if len(curated) >= target_count:
+                break
+
+        attempt += 1
+
+    # Save final aggregated curated manifest
+    output_curated_manifest.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_curated_manifest, "w", encoding="utf-8") as f:
+        for m in curated[:target_count]:
+            f.write(json.dumps(m.to_dict()) + "\n")
+
+    logger.info(
+        "Quota fulfillment for %s: achieved %d/%d valid samples.",
+        output_curated_manifest.name,
+        min(len(curated), target_count),
+        target_count,
+    )
+    return curated[:target_count]
+
+
 def package_benchmark_d0(
     partitions: Dict[str, List[ImageMetadata]],
     curated_fakes: Dict[str, List[ImageMetadata]],
@@ -222,86 +312,67 @@ def run_block1_pipeline(
     # Live Synthesis Execution
     prompt_eng = PromptGrammarEngine(seed=seed)
 
-    # 2. Synthesize Master Test Fakes
+    # 2. Synthesize Master Test Fakes (Quota Ensured)
     test_fakes_raw = syn_dir / "master_test_fakes_raw.jsonl"
     test_fakes_curated = syn_dir / "master_test_fakes_curated.jsonl"
     test_fakes_dir = syn_dir / "master_test_images"
     test_reals_manifest = partitions_dir / "test_reals.jsonl"
 
     logger.info(">>> Synthesizing %d Master Test Fakes from held-out Test IDs...", test_fake_count)
-    run_image_generation(
+    curated_test_fakes = synthesize_and_curate_quota(
         input_manifest=test_reals_manifest,
-        output_manifest=test_fakes_raw,
+        output_raw_manifest=test_fakes_raw,
+        output_curated_manifest=test_fakes_curated,
         output_dir=test_fakes_dir,
-        total_samples=test_fake_count,
+        target_count=test_fake_count,
         prompt_engine=prompt_eng,
+        report_path=syn_dir / "master_test_curation_report.json",
         device=device,
         seed=seed + 100,
-        resume=True,
-    )
-    curate_dataset(
-        input_manifest=test_fakes_raw,
-        output_manifest=test_fakes_curated,
-        report_path=syn_dir / "master_test_curation_report.json",
     )
 
-    # 3. Synthesize Baseline D0 Train Fakes
+    # 3. Synthesize Baseline D0 Train Fakes (Quota Ensured)
     train_fakes_raw = syn_dir / "d0_train_fakes_raw.jsonl"
     train_fakes_curated = syn_dir / "d0_train_fakes_curated.jsonl"
     train_fakes_dir = syn_dir / "d0_train_images"
     train_reals_manifest = partitions_dir / "train_reals.jsonl"
 
     logger.info(">>> Synthesizing %d Baseline D0 Train Fakes...", train_fake_count)
-    run_image_generation(
+    curated_train_fakes = synthesize_and_curate_quota(
         input_manifest=train_reals_manifest,
-        output_manifest=train_fakes_raw,
+        output_raw_manifest=train_fakes_raw,
+        output_curated_manifest=train_fakes_curated,
         output_dir=train_fakes_dir,
-        total_samples=train_fake_count,
+        target_count=train_fake_count,
         prompt_engine=prompt_eng,
+        report_path=syn_dir / "d0_train_curation_report.json",
         device=device,
         seed=seed + 200,
-        resume=True,
-    )
-    curate_dataset(
-        input_manifest=train_fakes_raw,
-        output_manifest=train_fakes_curated,
-        report_path=syn_dir / "d0_train_curation_report.json",
     )
 
-    # 4. Synthesize Baseline D0 Val Fakes
+    # 4. Synthesize Baseline D0 Val Fakes (Quota Ensured)
     val_fakes_raw = syn_dir / "d0_val_fakes_raw.jsonl"
     val_fakes_curated = syn_dir / "d0_val_fakes_curated.jsonl"
     val_fakes_dir = syn_dir / "d0_val_images"
     val_reals_manifest = partitions_dir / "val_reals.jsonl"
 
     logger.info(">>> Synthesizing %d Baseline D0 Val Fakes...", val_fake_count)
-    run_image_generation(
+    curated_val_fakes = synthesize_and_curate_quota(
         input_manifest=val_reals_manifest,
-        output_manifest=val_fakes_raw,
+        output_raw_manifest=val_fakes_raw,
+        output_curated_manifest=val_fakes_curated,
         output_dir=val_fakes_dir,
-        total_samples=val_fake_count,
+        target_count=val_fake_count,
         prompt_engine=prompt_eng,
+        report_path=syn_dir / "d0_val_curation_report.json",
         device=device,
         seed=seed + 300,
-        resume=True,
     )
-    curate_dataset(
-        input_manifest=val_fakes_raw,
-        output_manifest=val_fakes_curated,
-        report_path=syn_dir / "d0_val_curation_report.json",
-    )
-
-    # Load curated fakes
-    def _load_meta(p: Path) -> List[ImageMetadata]:
-        if not p.exists():
-            return []
-        with open(p, "r", encoding="utf-8") as f:
-            return [ImageMetadata.from_dict(json.loads(l)) for l in f if l.strip()]
 
     curated_fakes_dict = {
-        "test": _load_meta(test_fakes_curated),
-        "train": _load_meta(train_fakes_curated),
-        "val": _load_meta(val_fakes_curated),
+        "test": curated_test_fakes,
+        "train": curated_train_fakes,
+        "val": curated_val_fakes,
     }
 
     # 5. Package D0 Benchmarks and Frozen Test Set
