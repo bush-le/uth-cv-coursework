@@ -1,50 +1,44 @@
-# EXPERIMENT_PROTOCOL.md — Quy Trình Thử Nghiệm & Chứng Minh Tác Dụng
+# EXPERIMENT_PROTOCOL.md — Phụ Lục: Giao Thức Thực Nghiệm Proof of Utility ($D_0 \to D_1 \to D_2$)
 
-- **Motivation/Background**: Đặt ra cách so sánh rõ ràng, công bằng để chứng minh rằng việc thêm dữ liệu tổng hợp Stable Diffusion và các Mẫu khó (`Hard Sample`) thực sự giúp mô hình `dinoViT` phát hiện ảnh giả tốt hơn.
-- **Purpose**: Quy định 3 chế độ huấn luyện (`D0`, `D1`, `D2`) và các con số dùng để chấm điểm mô hình.
-- **Overview Pipeline**: Cố định tập kiểm thử độc lập -> Huấn luyện `dinoViT` trên 3 chế độ (`D0`, `D1`, `D2`) -> Chấm điểm `ROC-AUC`, `Hard-Sample Recall`, `Bypass Rate` -> Kết luận tác dụng của dữ liệu.
-- **Detailed Plan**: §1 Ba chế độ huấn luyện đối chứng (`D0`, `D1`, `D2`); §2 Bốn chỉ số chấm điểm dễ hiểu; §3 Khi nào thì kết luận dữ liệu có tác dụng?
-- **References**: [ ../PURPOSE.md ](../PURPOSE.md), [ ../coursework/TAXONOMY_AND_DATA_SPEC.md ](../coursework/TAXONOMY_AND_DATA_SPEC.md).
+- **Motivation/Background**: Thiết lập giao thức thực nghiệm khoa học, minh bạch và có tính lặp lại cao nhằm đo lường giá trị thực tế của bộ dữ liệu đối với downstream detectors.
+- **Purpose**: Định nghĩa 3 giai đoạn đối chứng benchmark ($D_0, D_1, D_2$), 4 tiêu chuẩn đo lường và quy chuẩn kết luận tác dụng của bộ dữ liệu.
+- **Overview Pipeline**: `data/benchmarks/` -> Downstream Detector -> Đánh giá trên tập test cố định -> Đo lường delta metrics (`ROC-AUC`, `Hard-Sample Recall`, `Bypass Rate`).
+- **Detailed Plan**: §1 Ba chế độ thực nghiệm đối chứng ($D_0, D_1, D_2$); §2 Bốn thước đo đánh giá định lượng; §3 Tiêu chuẩn kiểm chứng tác dụng của bộ dữ liệu.
+- **References**: [../PURPOSE.md](../PURPOSE.md), [../OVERVIEW.md](../OVERVIEW.md), `configs/dataset_factory.yaml`.
 - **Created**: 2026-11-02T07:30:00+07:00
-- **Last Updated**: 2026-11-08T18:38:00+07:00
+- **Last Updated**: 2026-11-09T15:15:00+07:00
 
 ---
 
-## 1. Ba Chế Độ Huấn Luyện Để So Sánh (`D0`, `D1`, `D2`)
+## 1. Ba Chế Độ Thực Nghiệm Đối Chứng ($D_0, D_1, D_2$)
 
-Cả 3 chế độ đều dùng **cùng một mô hình `dinoViT`**, **cùng số vòng lặp học (epochs)** và được chấm điểm trên **cùng một tập kiểm thử độc lập (`Held-Out Test Set`)**:
+Cả 3 chế độ đều sử dụng chung một kiến trúc mô hình, cùng điều kiện siêu tham số huấn luyện và được chấm điểm trên **cùng một tập kiểm thử độc lập cố định (`test.jsonl`)**:
 
-| Chế độ | Tập dữ liệu dùng để dạy `dinoViT` | Ý nghĩa thực tế |
+| Chế độ | Dữ liệu huấn luyện (`train.jsonl`) | Ý nghĩa khoa học |
 | :--- | :--- | :--- |
-| **Chế độ `D0`** | Chỉ dùng **Dữ liệu gốc (`Data Baseline`)** | Đây là mô hình gốc ban đầu trước khi có dữ liệu Stable Diffusion của nhóm. |
-| **Chế độ `D1`** | **Dữ liệu gốc + Ảnh sinh mới thông thường (`Syn Data`)** | Mô hình được học thêm ảnh giả Stable Diffusion nhưng chưa tập trung vào các mẫu khó. |
-| **Chế độ `D2`** | **Dữ liệu gốc + Ảnh sinh mới + Mẫu khó (`Hard Sample`)** | Mô hình được học đầy đủ cả ảnh sinh mới lẫn các **Mẫu khó từng đánh lừa `D0`** (kèm nhân bản và trọng số phạt cao). |
+| **Chế độ $D_0$** | Chỉ gồm **Ảnh cơ sở (`baseline`)** | Đo lường năng lực ban đầu của mô hình trước khi tiếp cận dữ liệu tổng hợp phái sinh. |
+| **Chế độ $D_1$** | **Ảnh cơ sở + Ảnh giả thông thường (`synthetic`)** | Đo lường mức cải thiện khi chỉ bổ sung ảnh giả diện rộng không qua lọc độ khó. |
+| **Chế độ $D_2$** | **Ảnh cơ sở + Ảnh giả + Nhân đôi Mẫu Khó (`hard_sample`)** | Đo lường mức độ tối ưu hóa biên phân định khi tập trung tăng cường các Mẫu Khó sát đa tạp ảnh thật. |
 
 ---
 
-## 2. Bốn Chỉ Số Chấm Điểm Dễ Hiểu
+## 2. Bốn Thước Đo Đánh Giá Định Lượng
 
-Thay vì chỉ nhìn độ chính xác chung chung, nhóm chấm điểm bằng 4 chỉ số trực tiếp trả lời câu hỏi của giảng viên:
-
-1. **Tỷ lệ lọt lưới (`Bypass Rate` — càng thấp càng tốt)**:
-   - Trong số các bức ảnh giả, có bao nhiêu phần trăm đánh lừa được mô hình (được chấm điểm giả $< 0.5$)?
-   - Trước khi học lại (`D0`), tỷ lệ lọt lưới cao; sau khi học lại (`D2`), tỷ lệ lọt lưới phải giảm mạnh.
-
-2. **Tỷ lệ bắt được Mẫu khó (`Hard-Sample Recall` — càng cao càng tốt)**:
-   - Trong số các **Mẫu khó (`Hard Sample`)** từng vượt qua mô hình gốc, nay mô hình mới đã bắt lại được bao nhiêu phần trăm?
-   - Đây là con số trực tiếp nhất chứng minh mô hình đã vá được lỗ hổng của mình.
-
-3. **Điểm phân biệt tổng thể (`ROC-AUC` — từ 0 đến 1, càng gần 1 càng tốt)**:
-   - Đo khả năng phân biệt rạch ròi giữa ảnh thật và ảnh giả ở mọi mức ngưỡng.
-
-4. **Độ chính xác và điểm cân bằng (`Accuracy` & `F1-Score`)**:
-   - Đảm bảo khi mô hình bắt thêm được ảnh giả khó thì vẫn không đoán nhầm ảnh người thật thành ảnh giả.
+1. **Tỷ lệ nhận diện Mẫu Khó (`Hard-Sample Recall` — Càng cao càng tốt)**:
+   - Đo lường khả năng bắt lại các mẫu khó đối kháng từng nằm sát đa tạp ảnh thật.
+   - Đây là chỉ số trực tiếp nhất chứng minh mô hình đã vá được điểm mù sau khi học trên tập $D_2$.
+2. **Tỷ lệ bỏ lọt (`Bypass Rate` — Càng thấp càng tốt)**:
+   - Tỷ lệ các mẫu giả mạo đánh lừa được mô hình và bị phân loại nhầm thành ảnh thật.
+3. **Chỉ số phân tách tổng thể (`ROC-AUC` — Trong [0.0, 1.0])**:
+   - Diện tích dưới đường cong ROC đo lường năng lực phân biệt ảnh thật và ảnh giả độc lập với việc chọn ngưỡng quyết định.
+4. **Độ chính xác và độ cân bằng (`Accuracy` & `F1-Score`)**:
+   - Đảm bảo việc tăng độ nhạy trên ảnh giả không làm tăng tỷ lệ báo động giả trên ảnh người thật (False Positives).
 
 ---
 
-## 3. Khi Nào Kết Luận Bộ Dữ Liệu Có Tác Dụng?
+## 3. Tiêu Chuẩn Kết Luận Tác Dụng Của Bộ Dữ Liệu
 
-Bộ dữ liệu tổng hợp Stable Diffusion và quy trình khai phá Mẫu khó của **Nhóm 4** được chứng minh là **có tác dụng rõ rệt** khi kết quả trên tập Kiểm thử thỏa mãn:
-1. **Bắt lại được Mẫu khó**: Điểm `Hard-Sample Recall` của chế độ `D2` tăng vọt so với mô hình gốc `D0`.
-2. **Giảm mạnh tỷ lệ lọt lưới**: `Bypass Rate` giảm rõ rệt từ `D0` $\rightarrow$ `D1` $\rightarrow$ `D2`.
-3. **Nâng cao năng lực tổng thể**: Đường cong `ROC-AUC` của `D2` nằm cao hơn `D1` và `D0`, đồng thời không làm giảm độ chính xác trên các ảnh thật ban đầu.
+Bộ dữ liệu do pipeline của Nhóm 4 tạo ra được kết luận là **có giá trị thực tiễn cao** khi thỏa mãn:
+1. **Khắc phục điểm mù**: Điểm `Hard-Sample Recall` của $D_2$ tăng vượt bậc so với $D_0$ và $D_1$.
+2. **Giảm thiểu rủi ro bảo mật**: `Bypass Rate` giảm đều đặn theo chiều $D_0 \to D_1 \to D_2$.
+3. **Nâng cao năng lực tổng thể**: Điểm số `ROC-AUC` của $D_2$ đạt cao nhất trong cả 3 chế độ trên cùng tập test độc lập.

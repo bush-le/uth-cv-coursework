@@ -1,39 +1,44 @@
-# PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md — Bước 3: Huấn Luyện Lại (`Fine-Tune`) & Kiểm Chứng Tác Dụng
+# PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md — Phụ Lục: Đóng Gói Benchmark & Thực Nghiệm Proof of Utility
 
-- **Motivation/Background**: Thực hiện bước cuối cùng trong yêu cầu của giảng viên (`data baseline + syn data + hard sample -> finetuned up -> nếu bắt được -> có tác dụng`).
-- **Purpose**: Giải thích đơn giản cách gộp 3 nguồn dữ liệu, 3 kỹ thuật giúp `dinoViT` học tốt các mẫu khó và cách kiểm tra không để rò rỉ dữ liệu.
-- **Overview Pipeline**: Gộp `Data Baseline + Syn Data + Hard Sample` -> Khóa danh tính người gốc -> Tinh chỉnh `dinoViT` (Mở khóa các tầng cuối + Nhân bản mẫu khó + Phạt nặng khi đoán sai mẫu khó) -> Kiểm tra bắt lại mẫu khó trên tập Test.
-- **Detailed Plan**: §1 Gộp 3 nguồn dữ liệu; §2 Ba cách giúp `dinoViT` học thuộc đặc điểm của Mẫu khó; §3 Kiểm tra an toàn không trùng người giữa tập Học và tập Thi.
-- **References**: [ ../PURPOSE.md ](../PURPOSE.md), [ PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md ](PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md), [ ../experiments/EXPERIMENT_PROTOCOL.md ](../experiments/EXPERIMENT_PROTOCOL.md).
+- **Motivation/Background**: Quy định phương thức đóng gói bộ benchmark đối chứng ($D_0, D_1, D_2$) và giao thức thực nghiệm **Proof of Utility** nhằm kiểm chứng giá trị thực tế của bộ dữ liệu đối với các mô hình phát hiện Deepfake.
+- **Purpose**: Đặc tả cấu trúc các bộ dữ liệu so sánh, cơ chế oversampling Mẫu Khó, phân chia `identity-disjoint` và thước đo cải thiện năng lực phân loại.
+- **Overview Pipeline**: `data/benchmarks/` ($D_0, D_1, D_2$) -> Huấn luyện detector đối chứng -> Đánh giá độc lập trên tập test cố định (`test.jsonl`) -> Đo lường mức cải thiện `ROC-AUC` và `Hard-Sample Recall`.
+- **Detailed Plan**: §1 Cấu trúc 3 bộ benchmark đối chứng; §2 Cơ chế tập trung vào Mẫu Khó; §3 Giao thức kiểm thử Proof of Utility không rò rỉ danh tính.
+- **References**: [../PURPOSE.md](../PURPOSE.md), [../OVERVIEW.md](../OVERVIEW.md), `configs/dataset_factory.yaml`.
 - **Created**: 2026-11-02T07:30:00+07:00
-- **Last Updated**: 2026-11-08T18:39:00+07:00
+- **Last Updated**: 2026-11-09T15:15:00+07:00
 
 ---
 
-## 1. Gộp 3 Nguồn Dữ Liệu Để Huấn Luyện Lại
+## 1. Cấu Trúc 3 Bộ Benchmark Đối Chứng ($D_0, D_1, D_2$)
 
-Ở Bước 3 (`src/pipelines/train_image_detector.py`), hàm `combine_training_manifests()` gộp chung 3 nguồn dữ liệu lại thành một bộ dữ liệu thống nhất:
+Để chứng minh luận điểm nghiên cứu: *"Tập trung vào Mẫu Khó giúp mô hình phát hiện Deepfake hiệu quả hơn hẳn việc tăng dữ liệu ồ ạt"*, hệ thống đóng gói 3 tập benchmark có chung tập test cố định:
 
-1. **`Data Baseline` (`baseline`)**: Tập ảnh thật và ảnh giả đối chứng ban đầu (giúp mô hình không quên kiến thức gốc).
-2. **`Synthetic Data` (`synthetic`)**: Các ảnh giả Stable Diffusion đã bị `dinoViT` bắt được ở Bước 2 (giúp giữ sự đa dạng của ảnh tổng hợp).
-3. **`Hard Samples` (`hard_sample`)**: Các ảnh giả tinh vi từng đánh lừa được `dinoViT` ở Bước 2 (giúp vá đúng lỗ hổng của mô hình).
-
----
-
-## 2. Ba Kỹ Thuật Giúp `dinoViT` Bắt Được Mẫu Khó Khi Học Lại (`Fine-Tune`)
-
-Để mô hình sau khi huấn luyện lại thực sự bắt được các mẫu khó mà không bị học vẹt, nhóm áp dụng 3 kỹ thuật đơn giản nhưng hiệu quả:
-
-1. **Mở khóa các tầng cuối của `dinoViT` (`Partial Unfreeze`)**:
-   - Giữ nguyên các tầng đầu của `dinoViT` (để bảo toàn khả năng nhìn hình dạng khuôn mặt cơ bản), chỉ mở khóa các khối Transformer cuối cùng và bộ phân lớp để tinh chỉnh theo dữ liệu mới.
-2. **Cho Mẫu khó xuất hiện nhiều hơn trong lúc học (`Hard-Sample Oversampling`)**:
-   - Trong tập huấn luyện (`Train`), các bức ảnh có cờ `is_hard_sample = True` được nhân bản để mô hình được nhìn thấy và ôn luyện thường xuyên hơn.
-3. **Tăng điểm phạt nếu đoán sai Mẫu khó (`Weighted BCE Loss`)**:
-   - Trong hàm tính lỗi (Loss), nếu mô hình vẫn đoán nhầm một **Mẫu khó** thì mức phạt sẽ được nhân cao hơn (ví dụ gấp đôi so với mẫu thường), buộc mô hình phải tập trung sửa sai ở những bức ảnh này.
+1. **`D0_baseline`**:
+   - Dữ liệu huấn luyện: Chỉ gồm ảnh cơ sở (`baseline`).
+   - Mục đích: Xác lập đường cơ sở (Baseline accuracy và ROC-AUC) của mô hình.
+2. **`D1_augmented`**:
+   - Dữ liệu huấn luyện: Ảnh cơ sở + Toàn bộ ảnh mặt giả Stable Diffusion đã qua lọc curation (`baseline` + `synthetic`).
+   - Mục đích: Trả lời câu hỏi nghiên cứu: *"Nếu chỉ bổ sung thêm ảnh tổng hợp thông thường thì mô hình cải thiện được bao nhiêu?"*.
+3. **`D2_hard_boosted`**:
+   - Dữ liệu huấn luyện: Ảnh cơ sở + Ảnh giả + Ưu tiên trọng số Mẫu Khó (`oversample_hard` theo cấu hình YAML).
+   - Mục đích: Chứng minh đóng góp chính của đề tài: Huấn luyện có định hướng Mẫu Khó giúp mô hình vá triệt để các lỗ hổng nhận diện.
 
 ---
 
-## 3. Kiểm Soát Chất Lượng & Chống Gian Lận Dữ Liệu
+## 2. Kỹ Thuật Tăng Cường Mẫu Khó Trong Benchmark
 
-- **Không trùng người giữa tập Học và tập Thi**: Tất cả ảnh thật, ảnh giả thường và mẫu khó sinh ra từ cùng một người thật (`source_real_id`) bắt buộc phải nằm chung một tập. Tập Kiểm thử (`Test`) hoàn toàn là những người mới.
-- **Chứng minh rõ ràng bằng con số**: Hàm `compare_baseline_vs_finetuned()` chấm điểm cả mô hình gốc lẫn mô hình đã huấn luyện lại trên cùng tập Test để chỉ ra mức tăng của `ROC-AUC`, mức tăng tỷ lệ bắt mẫu khó (`hard_sample_recall_gain`) và mức giảm tỷ lệ lọt lưới (`bypass_rate_reduction`).
+Khi xuất tập huấn luyện cho giai đoạn $D_2$:
+1. **Hard-Sample Oversampling**: Các bản ghi mang cờ `is_hard_sample = True` được lặp lại theo tỷ số `benchmarks.stages[D2].oversample_hard` (mặc định cấu hình trong `configs/dataset_factory.yaml`), đảm bảo mô hình có đủ tần suất học tập các ca biên giới.
+2. **Bảo tồn nguồn gốc (`data_source`)**: Mọi bản ghi giữ nguyên trường `data_source` tương ứng (`baseline`, `synthetic`, `hard_sample`), tuyệt đối không bị ghi đè nhãn nguồn gốc.
+
+---
+
+## 3. Giao Thức Proof of Utility (Đánh Giá Không Rò Rỉ)
+
+1. **Tập Test cố định tuyệt đối**: Cả 3 giai đoạn $D_0, D_1, D_2$ đều sử dụng chung một tệp `test.jsonl` duy nhất, không bị thay đổi giữa các stage.
+2. **Bảo vệ danh tính (`identity-disjoint`)**: Nhóm danh tính thật và các biến thể sinh ra từ nó bắt buộc thuộc cùng một split, loại bỏ rủi ro mô hình ghi nhớ khuôn mặt thay vì học đặc trưng giả mạo.
+3. **Thước đo tác dụng**: Đo đạc sự thay đổi của:
+   - Mức tăng diện tích dưới đường cong ROC (`ROC-AUC Gain`).
+   - Mức tăng tỷ lệ nhận diện Mẫu Khó (`Hard-Sample Recall Gain`).
+   - Mức giảm tỷ lệ bỏ lọt (`Bypass Rate Reduction`).
