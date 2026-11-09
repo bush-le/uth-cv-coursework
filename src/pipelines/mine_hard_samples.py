@@ -210,13 +210,33 @@ def main() -> None:
     parser.add_argument(
         "--hard-manifest", type=str, default="data/hard_samples/hard_samples_manifest.jsonl"
     )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Path to trained baseline dinoViT checkpoint (.pt). Required for production mining.",
+    )
+    parser.add_argument(
+        "--allow-untrained",
+        action="store_true",
+        help="Allow running with untrained random weights strictly for headless testing.",
+    )
     parser.add_argument("--backbone", type=str, default="dinov2_small", help="Backbone architecture (dinov2_small or dino_vit)")
-    parser.add_argument("--threshold", type=float, default=0.511)
+    parser.add_argument("--threshold", type=float, default=0.5, help="Classification threshold tau (default 0.5)")
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     seed_everything(args.seed)
+
+    if not args.checkpoint and not args.allow_untrained:
+        raise ValueError(
+            "Refusing to mine hard samples with uninitialized/untrained weights! "
+            "Provide a trained baseline checkpoint via --checkpoint <path> "
+            "(e.g. experiments/checkpoints/baseline_d0_best.pt). "
+            "See .agents/rules/ZERO_MOCK_DATA_RULE.md"
+        )
+
     in_path = Path(args.input_manifest)
     if not in_path.exists() and Path("data/processed/curated_manifest.jsonl").exists():
         in_path = Path("data/processed/curated_manifest.jsonl")
@@ -236,6 +256,17 @@ def main() -> None:
         freeze_extractor=True,
         pretrained=True,
     )
+
+    if args.checkpoint:
+        ckpt_path = Path(args.checkpoint)
+        if not ckpt_path.exists():
+            raise FileNotFoundError(f"Checkpoint not found at: {ckpt_path}")
+        logger.info("Loading baseline detector checkpoint from %s...", ckpt_path)
+        ckpt = torch.load(ckpt_path, map_location=args.device, weights_only=False)
+        state_dict = ckpt["model_state_dict"] if isinstance(ckpt, dict) and "model_state_dict" in ckpt else ckpt
+        model.load_state_dict(state_dict, strict=False)
+        logger.info("Successfully loaded trained weights into baseline detector.")
+
     mine_hard_samples(
         model=model,
         synthetic_metadata=meta_list,

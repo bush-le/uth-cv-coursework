@@ -62,6 +62,7 @@ def train_deepfake_image_detector(
     hard_sample_loss_weight: float = 2.0,
     unfreeze_last_n_blocks: Optional[int] = 2,
     checkpoint_dir: Path = Path("experiments/checkpoints"),
+    checkpoint_prefix: Optional[str] = None,
     device: str = "cpu",
     seed: int = 42,
 ) -> Dict[str, float]:
@@ -175,6 +176,12 @@ def train_deepfake_image_detector(
         if is_best:
             torch.save(state, checkpoint_dir / "best_model.pt")
             logger.info("New best dinoViT model saved with Val AUC: %.4f", best_auc)
+
+        if checkpoint_prefix:
+            torch.save(state, checkpoint_dir / f"{checkpoint_prefix}_last.pt")
+            if is_best:
+                torch.save(state, checkpoint_dir / f"{checkpoint_prefix}_best.pt")
+                logger.info("Saved %s best checkpoint (Val AUC: %.4f)", checkpoint_prefix, best_auc)
 
     return latest_metrics
 

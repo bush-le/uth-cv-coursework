@@ -98,26 +98,50 @@ class DeepfakeImageDataModule:
             key = meta.source_real_id if meta.source_real_id else meta.image_id
             groups.setdefault(key, []).append(meta)
 
-        group_keys = sorted(groups.keys())
-        num_groups = len(group_keys)
-        generator = torch.Generator().manual_seed(self.seed)
-        perm_keys = [group_keys[i] for i in torch.randperm(num_groups, generator=generator).tolist()]
+        # Stratified Group Partitioning: separate groups containing fake samples from real-only groups
+        fake_group_keys: List[str] = []
+        real_group_keys: List[str] = []
+        for key in sorted(groups.keys()):
+            if any(m.label == 1 for m in groups[key]):
+                fake_group_keys.append(key)
+            else:
+                real_group_keys.append(key)
 
-        train_target = int(total * self.train_ratio)
-        val_target = int(total * self.val_ratio)
+        generator = torch.Generator().manual_seed(self.seed)
+
+        def _partition_group_keys(keys: List[str]) -> Tuple[List[str], List[str], List[str]]:
+            if not keys:
+                return [], [], []
+            perm_idx = torch.randperm(len(keys), generator=generator).tolist()
+            shuffled = [keys[i] for i in perm_idx]
+
+            # When 3+ groups exist, guarantee at least 1 in val and 1 in test
+            if len(shuffled) >= 3:
+                n_val = max(1, round(len(shuffled) * self.val_ratio))
+                n_test = max(1, round(len(shuffled) * self.test_ratio))
+                if n_val + n_test >= len(shuffled):
+                    n_val = 1
+                    n_test = 1
+                n_train = len(shuffled) - n_val - n_test
+                return shuffled[:n_train], shuffled[n_train : n_train + n_val], shuffled[n_train + n_val :]
+            elif len(shuffled) == 2:
+                return shuffled[:1], [], shuffled[1:]
+            else:
+                return shuffled, [], []
+
+        tr_fake, val_fake, te_fake = _partition_group_keys(fake_group_keys)
+        tr_real, val_real, te_real = _partition_group_keys(real_group_keys)
 
         train_meta: List[ImageMetadata] = []
         val_meta: List[ImageMetadata] = []
         test_meta: List[ImageMetadata] = []
 
-        for key in perm_keys:
-            items = groups[key]
-            if len(train_meta) < train_target:
-                train_meta.extend(items)
-            elif len(val_meta) < val_target:
-                val_meta.extend(items)
-            else:
-                test_meta.extend(items)
+        for key in tr_fake + tr_real:
+            train_meta.extend(groups[key])
+        for key in val_fake + val_real:
+            val_meta.extend(groups[key])
+        for key in te_fake + te_real:
+            test_meta.extend(groups[key])
 
         return train_meta, val_meta, test_meta
 

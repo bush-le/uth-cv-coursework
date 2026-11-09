@@ -99,10 +99,12 @@ def build_stage_dataset(
                 hard_records.append(ImageMetadata.from_dict(json.loads(line)))
 
     if stage == "D0":
-        # Baseline stage: real images + generic fake label without hard-sample tags
-        generic_fakes = []
-        for s in syn_records:
-            generic_fakes.append(
+        # Baseline stage: real images + initial baseline fakes (first half of synthetic identities)
+        # to leave held-out synthetic fakes for Phase 2 mining and testing
+        n_base = max(1, len(syn_records) // 2) if len(syn_records) > 2 else len(syn_records)
+        base_fakes = []
+        for s in syn_records[:n_base]:
+            base_fakes.append(
                 ImageMetadata(
                     image_id=s.image_id,
                     label=1,
@@ -117,14 +119,30 @@ def build_stage_dataset(
                     demographics=s.demographics,
                 )
             )
-        return real_records + generic_fakes
+        return real_records + base_fakes
 
     elif stage == "D1":
-        # Stage 1: real images + standard curated synthetic fakes (no extra hard-sample weight)
-        return real_records + syn_records
+        # Stage 1: real images + all standard curated synthetic fakes (no hard-sample weighting)
+        standard_fakes = [
+            ImageMetadata(
+                image_id=s.image_id,
+                label=1,
+                manipulation_type=s.manipulation_type,
+                prompt=s.prompt,
+                source_real_id=s.source_real_id,
+                file_path=s.file_path,
+                bbox=s.bbox,
+                is_hard_sample=False,
+                baseline_score=s.baseline_score,
+                data_source="synthetic",
+                demographics=s.demographics,
+            )
+            for s in syn_records
+        ]
+        return real_records + standard_fakes
 
     else:
-        # Stage 2: real + synthetic + mined hard samples with active hard-sample flags
+        # Stage 2: real + all synthetic fakes + mined hard samples with active hard-sample flags
         combined_by_id = {m.image_id: m for m in real_records}
         for s in syn_records:
             combined_by_id[s.image_id] = s
@@ -155,9 +173,17 @@ def train_single_stage(
         metadata_list=meta_list,
         batch_size=batch_size,
         hard_sample_oversample_factor=hard_sample_oversample_factor,
+        identity_disjoint=True,
         seed=seed,
     )
     dm.setup()
+
+    stage_prefix_map = {
+        "D0": "baseline_d0",
+        "D1": "augmented_d1",
+        "D2": "hard_boosted_d2",
+    }
+    ckpt_prefix = stage_prefix_map.get(stage_name, stage_name.lower())
 
     model = DeepfakeImageDetector(backbone=backbone, num_classes=1, pretrained=pretrained)
     train_deepfake_image_detector(
@@ -167,9 +193,16 @@ def train_single_stage(
         learning_rate=lr,
         hard_sample_loss_weight=hard_sample_loss_weight,
         checkpoint_dir=checkpoint_dir,
+        checkpoint_prefix=ckpt_prefix,
         device=device,
         seed=seed,
     )
+
+    best_file = checkpoint_dir / f"{ckpt_prefix}_best.pt"
+    alias_file = checkpoint_dir / f"{ckpt_prefix}.pt"
+    if best_file.exists():
+        import shutil
+        shutil.copy2(best_file, alias_file)
 
     test_loader = dm.test_dataloader()
     metrics = evaluate_image_detector(model, test_loader, device=device)

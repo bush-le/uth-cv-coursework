@@ -86,6 +86,9 @@ data/benchmarks/*
 !data/samples/**
 !docs/assets/
 
+# Superpowers execution ledgers
+.superpowers/
+
 # Archives & Large Media
 *.zip
 *.tar
