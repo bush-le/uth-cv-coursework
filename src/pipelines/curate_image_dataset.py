@@ -331,8 +331,29 @@ def main() -> None:
     )
 
 
-# Alias for backward-compatibility with closed-loop pipelines
-curate_dataset = curate_image_manifest
+def curate_dataset(
+    input_manifest: Path,
+    output_manifest: Path,
+    report_path: Optional[Path] = None,
+    curation_report: Optional[Path] = None,
+    gate: Optional[ImageCurationGate] = None,
+    min_sharpness: float = 10.0,
+    dedup: bool = True,
+) -> Dict[str, Any]:
+    """High-level wrapper to curate a synthetic dataset manifest."""
+    if gate is None:
+        gate = ImageCurationGate(
+            min_sharpness=min_sharpness,
+            clip_enabled=False,
+            dedup=dedup,
+        )
+    rep = report_path or curation_report
+    return curate_image_manifest(
+        input_manifest=Path(input_manifest),
+        output_manifest=Path(output_manifest),
+        gate=gate,
+        curation_report=Path(rep) if rep else None,
+    )
 
 
 if __name__ == "__main__":

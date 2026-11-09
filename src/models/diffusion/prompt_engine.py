@@ -264,4 +264,8 @@ class PromptGrammarEngine:
 
         # Filter empty strings and join cleanly
         cleaned_parts = [p.strip() for p in prompt_parts if p.strip()]
-        return ", ".join(cleaned_parts)
+        full_text = ", ".join(cleaned_parts)
+        words = full_text.split()
+        if len(words) > 60:
+            full_text = " ".join(words[:60])
+        return full_text
