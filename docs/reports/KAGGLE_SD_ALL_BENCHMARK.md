@@ -72,7 +72,7 @@ Mỗi worker chạy tuần tự và thoát để giải phóng GPU. Mặc địn
 
 ## Bằng chứng và giới hạn
 
-- Unit/regression: 11 smoke checks và 61 tests toàn bộ đã pass; bao phủ catalog, kết quả thiếu/hỏng/mock, batch, explicit retry, skip kết quả hợp lệ, khôi phục ZIP khác thư mục, chống ghi đè/traversal, khóa queue và timeout/nonzero exit. Đây là kiểm thử orchestration, không phải bằng chứng chất lượng generator.
+- Unit/regression: 11 smoke checks và 62 tests toàn bộ đã pass; bao phủ catalog, kết quả thiếu/hỏng/mock, batch, explicit retry, skip kết quả hợp lệ, khôi phục ZIP khác thư mục, chống ghi đè/traversal, khóa queue và timeout/nonzero exit. Đây là kiểm thử orchestration, không phải bằng chứng chất lượng generator.
 - Integration thật trên CPU: `hf-internal-testing/tiny-stable-diffusion-torch`, AutoPipeline, 64×64, 2 steps, ba ảnh thật × ba mode = 9 PNG; chạy lại resume 9/9. Artifact cục bộ ở `experiments/runs/tiny_sd_auto_validation/`. Fixture nhỏ không đại diện chất lượng SD đầy đủ; safety checker không có trong config fixture upstream, không bị wrapper vô hiệu hóa.
 - **Chưa chạy 32 cấu hình trên Kaggle GPU.** Tất cả case có `gpu_validation: not_run` trong config. Danh mục đầy đủ không có nghĩa mọi backend đã cài/load/infer thành công.
 - Technical QA chỉ kiểm tra đọc ảnh, kích thước, hash và Laplacian variance thực. Chưa có ID similarity, pose/expression preservation, perceptual quality, FID/KID đủ mẫu, đánh giá người hay hiệu quả bổ sung data cho detector. Không gọi bộ dữ liệu này là đã đạt success criteria; không dùng detector chưa huấn luyện để kết luận hard samples.
@@ -95,3 +95,7 @@ Mỗi worker chạy tuần tự và thoát để giải phóng GPU. Mặc địn
 ### 4. Upstream phương pháp
 
 [REFace](https://github.com/Sanoojan/REFace), [Face-Adapter](https://github.com/FaceAdapter/Face-Adapter), [PuLID](https://github.com/ToTheBeginning/PuLID), [Arc2Face](https://github.com/foivospar/Arc2Face), [FastComposer](https://github.com/mit-han-lab/fastcomposer), [FlashFace](https://github.com/ali-vilab/FlashFace), [ConsistentID](https://github.com/JackAILab/ConsistentID), [PhotoMaker](https://github.com/TencentARC/PhotoMaker), [InstantID](https://github.com/instantX-research/InstantID), [IP-Adapter](https://github.com/tencent-ailab/IP-Adapter).
+
+## Failure diagnostics in the notebook
+
+The dashboard expands the last 12 KB of each failed case worker.log and its setup exception. The no-completed-results cell displays this dashboard instead of only a generic message. Pending cases have not necessarily run. This improves diagnosis; the actual cause still requires the failing runtime log.

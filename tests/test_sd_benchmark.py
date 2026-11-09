@@ -19,9 +19,36 @@ from src.pipelines.sd_all_benchmark import (
     run_suite,
     run_worker,
     valid_completed_artifacts,
+    write_dashboard,
 )
 from src.pipelines.sd_benchmark_archive import export_results, restore_results
 from src.pipelines.sd_benchmark_env import COMMON, prepare_environment
+
+
+def test_dashboard_shows_real_failure_and_escapes_log_content(tmp_path):
+    directory = tmp_path / "failed"
+    directory.mkdir()
+    (directory / "worker.log").write_text(
+        "ImportError: missing dependency <script>bad()</script>"
+    )
+    state = {
+        "jobs": [
+            {
+                "case_id": "sd15",
+                "group": "checkpoints",
+                "status": "failed",
+                "directory": str(directory),
+                "error": "setup failed",
+            }
+        ],
+        "frameworks": [],
+    }
+    page = tmp_path / "index.html"
+    write_dashboard(state, page)
+    content = page.read_text(encoding="utf-8")
+    assert "ImportError: missing dependency" in content
+    assert "setup failed" in content
+    assert "&lt;script&gt;" in content and "<script>bad()" not in content
 
 
 def test_native_installs_are_scoped_to_venv_and_keep_kaggle_protobuf(

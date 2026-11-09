@@ -177,12 +177,39 @@ def write_dashboard(state: dict[str, Any], output: Path) -> None:
         for j in state["jobs"]
     )
     tools = ", ".join(f["name"] for f in state["frameworks"])
+    counts = {
+        status: sum(j["status"] == status for j in state["jobs"])
+        for status in {j["status"] for j in state["jobs"]}
+    }
+    diagnostics = []
+    for job in state["jobs"]:
+        if job["status"] != "failed":
+            continue
+        log_path = Path(job["directory"]) / "worker.log"
+        tail = "No worker.log. Check the setup exception below."
+        if log_path.is_file():
+            with log_path.open("rb") as stream:
+                stream.seek(max(0, log_path.stat().st_size - 12000))
+                tail = stream.read().decode("utf-8", errors="replace")
+        diagnostics.append(
+            "<details open><summary>Failed: "
+            + html.escape(job["case_id"])
+            + "</summary><p>"
+            + html.escape(job.get("error", ""))
+            + '</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'
+            + html.escape(tail)
+            + "</pre></details>"
+        )
     output.write_text(
         '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SD benchmark queue</title><style>body{font:15px/1.6 Segoe UI,Arial;margin:30px;background:#f6f6f1;color:#17242e}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:12px;text-align:left}th{background:#edf2fc}</style><h1>SD benchmark queue</h1><p>Completed means real outputs validated, not that identity or quality passed. Failed jobs are not assigned quality scores.</p><p>Framework inventory (not independent image methods): '
         + html.escape(tools)
+        + "</p><p>"
+        + html.escape(str(counts))
         + "</p><table><tr><th>Case</th><th>Group</th><th>Status</th><th>Failure kind</th><th>Wall seconds</th></tr>"
         + rows
-        + "</table></html>",
+        + "</table><h2>Failure diagnostics</h2>"
+        + "".join(diagnostics)
+        + "</html>",
         encoding="utf-8",
     )
 
