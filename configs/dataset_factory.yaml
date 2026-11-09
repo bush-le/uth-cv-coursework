@@ -20,7 +20,7 @@ paths:
 
 generation:
   model_id: "runwayml/stable-diffusion-v1-5"
-  inpaint_model_id: "runwayml/stable-diffusion-v1-5"
+  inpaint_model_id: "stable-diffusion-v1-5/stable-diffusion-inpainting"
   modes:
     - "sd_img2img"
     - "sd_inpaint"

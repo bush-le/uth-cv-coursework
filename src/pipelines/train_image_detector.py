@@ -94,10 +94,10 @@ def train_deepfake_image_detector(
         p for n, p in model.named_parameters() if p.requires_grad and not n.startswith("classifier")
     ]
     param_groups = [
-        {"params": classifier_params, "lr": max(learning_rate, 1e-3)},
+        {"params": classifier_params, "lr": learning_rate},
     ]
     if backbone_params:
-        param_groups.append({"params": backbone_params, "lr": min(learning_rate, 5e-5)})
+        param_groups.append({"params": backbone_params, "lr": min(learning_rate * 0.1, 5e-5)})
 
     optimizer = AdamW(param_groups, weight_decay=1e-4)
     trainable_params = classifier_params + backbone_params
@@ -107,7 +107,8 @@ def train_deepfake_image_detector(
     train_loader = datamodule.train_dataloader()
     val_loader = datamodule.val_dataloader()
 
-    best_auc = 0.0
+    best_auc = -1.0
+    best_loss = float("inf")
     latest_metrics: Dict[str, float] = {}
 
     logger.info(
@@ -172,9 +173,14 @@ def train_deepfake_image_detector(
             "best_metric": max(best_auc, val_metrics["roc_auc"]),
             "metrics": val_metrics,
         }
-        is_best = val_metrics["roc_auc"] >= best_auc
+        val_auc = float(val_metrics.get("roc_auc", 0.0))
+        val_loss = float(val_metrics.get("loss", float("inf")))
+        is_best = (val_auc > best_auc + 1e-4) or (
+            abs(val_auc - best_auc) <= 1e-4 and val_loss < best_loss
+        )
         if is_best:
-            best_auc = val_metrics["roc_auc"]
+            best_auc = val_auc
+            best_loss = val_loss
         save_checkpoint(
             state=state,
             is_best=is_best,

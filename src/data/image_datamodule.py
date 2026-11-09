@@ -42,7 +42,10 @@ class DeepfakeImageDataModule:
 
     def __init__(
         self,
-        metadata_list: List[ImageMetadata],
+        metadata_list: Optional[List[ImageMetadata]] = None,
+        train_metadata: Optional[List[ImageMetadata]] = None,
+        val_metadata: Optional[List[ImageMetadata]] = None,
+        test_metadata: Optional[List[ImageMetadata]] = None,
         cache: Optional[Dict[str, torch.Tensor]] = None,
         train_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
         val_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
@@ -56,7 +59,10 @@ class DeepfakeImageDataModule:
         identity_disjoint: bool = True,
         seed: int = 42,
     ) -> None:
-        self.metadata_list = metadata_list
+        self.metadata_list = metadata_list or []
+        self.train_metadata = train_metadata
+        self.val_metadata = val_metadata
+        self.test_metadata = test_metadata
         self.cache = cache
         self.train_transform = train_transform
         self.val_transform = val_transform
@@ -117,23 +123,28 @@ class DeepfakeImageDataModule:
 
             # When 6+ groups exist, guarantee at least 2 in val and 2 in test
             if len(shuffled) >= 6:
-                n_val = max(2, round(len(shuffled) * self.val_ratio))
-                n_test = max(2, round(len(shuffled) * self.test_ratio))
+                n_val = max(2, round(len(shuffled) * self.val_ratio)) if self.val_ratio > 0 else 0
+                n_test = max(2, round(len(shuffled) * self.test_ratio)) if self.test_ratio > 0 else 0
                 if n_val + n_test >= len(shuffled) - 1:
-                    n_val = 1
-                    n_test = 1
+                    n_val = 1 if self.val_ratio > 0 else 0
+                    n_test = 1 if self.test_ratio > 0 else 0
                 n_train = len(shuffled) - n_val - n_test
                 return shuffled[:n_train], shuffled[n_train : n_train + n_val], shuffled[n_train + n_val :]
             elif len(shuffled) >= 3:
-                n_val = max(1, round(len(shuffled) * self.val_ratio))
-                n_test = max(1, round(len(shuffled) * self.test_ratio))
+                n_val = max(1, round(len(shuffled) * self.val_ratio)) if self.val_ratio > 0 else 0
+                n_test = max(1, round(len(shuffled) * self.test_ratio)) if self.test_ratio > 0 else 0
                 if n_val + n_test >= len(shuffled):
-                    n_val = 1
-                    n_test = 1
+                    n_val = 1 if self.val_ratio > 0 else 0
+                    n_test = 1 if self.test_ratio > 0 else 0
                 n_train = len(shuffled) - n_val - n_test
                 return shuffled[:n_train], shuffled[n_train : n_train + n_val], shuffled[n_train + n_val :]
             elif len(shuffled) == 2:
-                return shuffled[:1], [], shuffled[1:]
+                if self.test_ratio > 0:
+                    return shuffled[:1], [], shuffled[1:]
+                elif self.val_ratio > 0:
+                    return shuffled[:1], shuffled[1:], []
+                else:
+                    return shuffled, [], []
             else:
                 return shuffled, [], []
 
@@ -155,7 +166,12 @@ class DeepfakeImageDataModule:
 
     def setup(self) -> None:
         """Partition metadata into train, val, and test splits and apply hard-sample oversampling on train."""
-        train_meta, val_meta, test_meta = self._partition_splits()
+        if self.train_metadata is not None:
+            train_meta = list(self.train_metadata)
+            val_meta = list(self.val_metadata) if self.val_metadata is not None else []
+            test_meta = list(self.test_metadata) if self.test_metadata is not None else []
+        else:
+            train_meta, val_meta, test_meta = self._partition_splits()
 
         # Oversample mined hard samples in the training split when requested
         if self.hard_sample_oversample_factor > 1 and train_meta:

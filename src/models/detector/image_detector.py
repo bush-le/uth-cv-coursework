@@ -232,10 +232,9 @@ class DeepfakeImageDetector(nn.Module):
 
         self.feature_dim = feature_dim
         self.classifier = nn.Sequential(
-            nn.Dropout(p=dropout),
-            nn.Linear(feature_dim, 64),
-            nn.GELU(),
-            nn.Linear(64, num_classes),
+            nn.LayerNorm(feature_dim),
+            nn.Dropout(p=dropout) if dropout > 0 else nn.Identity(),
+            nn.Linear(feature_dim, num_classes),
         )
 
         if freeze_extractor:

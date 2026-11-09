@@ -22,9 +22,11 @@ def test_real_engine_configuration():
     """Test real engine configuration attributes and pipeline mode factories."""
     engine = StableDiffusionEngine(
         model_name="runwayml/stable-diffusion-v1-5",
+        inpaint_model_name="stable-diffusion-v1-5/stable-diffusion-inpainting",
         use_mock_fallback=False,
     )
     assert engine.model_name == "runwayml/stable-diffusion-v1-5"
+    assert engine.inpaint_model_name == "stable-diffusion-v1-5/stable-diffusion-inpainting"
     assert engine.use_mock_fallback is False
     assert "deformed" in engine.default_negative_prompt
     assert hasattr(engine, "get_text2img_pipeline")

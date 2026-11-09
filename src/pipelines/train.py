@@ -44,8 +44,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-real-samples",
         type=int,
-        default=30,
-        help="Maximum real samples to balance with synthetic fakes during CPU training",
+        default=150,
+        help="Maximum real samples to balance with synthetic fakes during training",
     )
     parser.add_argument(
         "--stage",
@@ -68,7 +68,7 @@ def build_stage_dataset(
     baseline_path: Path,
     synthetic_path: Path,
     hard_path: Path,
-    max_real_samples: int = 30,
+    max_real_samples: int = 150,
 ) -> List[ImageMetadata]:
     """Construct dataset metadata for a specific benchmark stage (D0, D1, D2)."""
     real_records: List[ImageMetadata] = []
@@ -170,15 +170,6 @@ def train_single_stage(
     logger = get_logger("train_single_stage")
     logger.info("--- Starting Training for Stage %s (%d samples) ---", stage_name, len(meta_list))
 
-    dm = DeepfakeImageDataModule(
-        metadata_list=meta_list,
-        batch_size=batch_size,
-        hard_sample_oversample_factor=hard_sample_oversample_factor,
-        identity_disjoint=True,
-        seed=seed,
-    )
-    dm.setup()
-
     stage_prefix_map = {
         "D0": "baseline_d0",
         "D1": "augmented_d1",
@@ -186,6 +177,53 @@ def train_single_stage(
         "D3": "adaptive_d3",
     }
     ckpt_prefix = stage_prefix_map.get(stage_name, stage_name.lower())
+
+    stage_folder_map = {
+        "D0": "D0_baseline",
+        "D1": "D1_augmented",
+        "D2": "D2_hard_boosted",
+    }
+    folder_name = stage_folder_map.get(stage_name, stage_name)
+    bench_dir = Path("data/benchmarks") / folder_name
+    train_path = bench_dir / "train.jsonl"
+    val_path = bench_dir / "val.jsonl"
+    test_path = bench_dir / "test.jsonl"
+
+    if train_path.exists() and val_path.exists() and test_path.exists():
+        logger.info("Loading pre-packaged benchmark splits from %s...", bench_dir)
+        with open(train_path, "r", encoding="utf-8") as f:
+            train_records = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
+        with open(val_path, "r", encoding="utf-8") as f:
+            val_records = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
+        with open(test_path, "r", encoding="utf-8") as f:
+            test_records = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
+
+        dm = DeepfakeImageDataModule(
+            train_metadata=train_records,
+            val_metadata=val_records,
+            test_metadata=test_records,
+            batch_size=batch_size,
+            hard_sample_oversample_factor=1,
+            seed=seed,
+        )
+    else:
+        logger.info("Using meta_list partitioning for stage %s (%d samples)...", stage_name, len(meta_list))
+        dm = DeepfakeImageDataModule(
+            metadata_list=meta_list,
+            batch_size=batch_size,
+            train_ratio=0.70,
+            val_ratio=0.15,
+            test_ratio=0.15,
+            hard_sample_oversample_factor=hard_sample_oversample_factor,
+            identity_disjoint=True,
+            seed=seed,
+        )
+    dm.setup()
+
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    for f in [checkpoint_dir / f"{ckpt_prefix}_best.pt", checkpoint_dir / f"{ckpt_prefix}_last.pt"]:
+        if f.exists():
+            f.unlink()
 
     model = DeepfakeImageDetector(backbone=backbone, num_classes=1, pretrained=pretrained)
     train_deepfake_image_detector(
@@ -206,6 +244,9 @@ def train_single_stage(
     if best_file.exists():
         import shutil
         shutil.copy2(best_file, alias_file)
+        ckpt = torch.load(best_file, map_location=device)
+        if "model_state_dict" in ckpt:
+            model.load_state_dict(ckpt["model_state_dict"])
 
     test_loader = dm.test_dataloader()
     metrics = evaluate_image_detector(model, test_loader, device=device)
@@ -217,7 +258,7 @@ def train_pipeline(
     config_path: str = "configs/config.yaml",
     dry_run: bool = False,
     epochs_override: Optional[int] = None,
-    max_real_samples: int = 30,
+    max_real_samples: int = 150,
     stage_choice: str = "all",
 ) -> dict[str, Any]:
     """Execute the dinoViT deepfake detector fine-tuning and benchmarking pipeline."""
@@ -240,13 +281,13 @@ def train_pipeline(
     if not baseline_path.exists():
         baseline_path = Path("data/raw/manifest.jsonl")
 
-    syn_path = Path(paths_cfg.get("synthetic_manifest", "data/02_synthetic_sd/manifests/curated_synthetic.jsonl"))
+    syn_path = Path(paths_cfg.get("synthetic_manifest", "data/synthetic/curated_manifest.jsonl"))
     if not syn_path.exists():
-        syn_path = Path("data/processed/curated_manifest.jsonl")
+        syn_path = Path("data/synthetic/curated_manifest.jsonl")
 
-    hard_path = Path(paths_cfg.get("hard_samples_manifest", "data/03_hard_samples/hard_samples_manifest.jsonl"))
+    hard_path = Path(paths_cfg.get("hard_samples_manifest", "data/hard_samples/hard_samples_manifest.jsonl"))
     if not hard_path.exists():
-        hard_path = Path("data/processed/hard_samples_manifest.jsonl")
+        hard_path = Path("data/hard_samples/hard_samples_manifest.jsonl")
     log_dir = Path("experiments/logs")
     log_dir.mkdir(parents=True, exist_ok=True)
 

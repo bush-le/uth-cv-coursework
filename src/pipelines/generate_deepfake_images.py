@@ -98,6 +98,7 @@ def run_image_generation(
     out_manifest_path = Path(_res(output_manifest, "paths.fake_manifest", "data/synthetic/fake_manifest.jsonl"))
     out_dir_path = Path(_res(output_dir, "paths.synthetic_dir", "data/synthetic"))
     model_name_val = str(_res(model_name, "generation.model_id", "runwayml/stable-diffusion-v1-5"))
+    inpaint_model_val = str(_res(None, "generation.inpaint_model_id", "stable-diffusion-v1-5/stable-diffusion-inpainting"))
     num_per_real_val = int(_res(num_per_real, "generation.num_per_real", 1))
     max_samples_val = _res(max_samples, "generation.max_real_samples", None)
     if max_samples_val is not None:
@@ -138,6 +139,7 @@ def run_image_generation(
 
     engine = StableDiffusionEngine(
         model_name=model_name_val,
+        inpaint_model_name=inpaint_model_val,
         use_mock_fallback=use_mock_fallback,
     )
     generated_count = 0
@@ -231,14 +233,14 @@ def run_image_generation(
             old_rec = existing_records.get(fake_id)
             old_gen = old_rec.get("generation") if old_rec else None
 
-            # Must match key parameters to safely reuse
-            if old_gen and (
+            # Must match key parameters to safely reuse, or reuse existing valid file if manifest missing
+            if old_gen is None or (
                 old_gen.get("steps") == curr_gen["steps"]
                 and old_gen.get("model_id") == curr_gen["model_id"]
                 and old_gen.get("mode") == curr_gen["mode"]
                 and old_gen.get("seed") == curr_gen["seed"]
             ):
-                logger.info("Resuming %s: identical generation parameters, skipping generation.", out_file.name)
+                logger.info("Resuming %s: valid image file exists, skipping generation.", out_file.name)
                 meta = ImageMetadata(
                     image_id=fake_id,
                     label=1,
@@ -250,7 +252,7 @@ def run_image_generation(
                     data_source="synthetic",
                     demographics=demographics,
                     generation=curr_gen,
-                    scores=old_rec.get("scores"),
+                    scores=old_rec.get("scores") if old_rec else None,
                 )
                 fake_records.append(meta.to_dict())
                 generated_count += 1
@@ -334,6 +336,11 @@ def run_image_generation(
     logger.info(
         "Generation complete: %d synthetic faces saved to %s.", generated_count, out_manifest_path
     )
+    del engine
+    import gc
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     return generated_count
 
 

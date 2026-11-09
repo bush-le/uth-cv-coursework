@@ -110,6 +110,7 @@ class StableDiffusionEngine(nn.Module):
     def __init__(
         self,
         model_name: str = "runwayml/stable-diffusion-v1-5",
+        inpaint_model_name: Optional[str] = "stable-diffusion-v1-5/stable-diffusion-inpainting",
         device: Optional[Union[str, torch.device]] = None,
         torch_dtype: Optional[torch.dtype] = None,
         use_mock_fallback: bool = True,
@@ -117,6 +118,7 @@ class StableDiffusionEngine(nn.Module):
     ) -> None:
         super().__init__()
         self.model_name = model_name
+        self.inpaint_model_name = inpaint_model_name
         self.target_device = (
             torch.device(device) if device is not None else get_optimal_device()
         )
@@ -129,8 +131,9 @@ class StableDiffusionEngine(nn.Module):
         self._active_mode: Optional[str] = None
         self._active_pipeline: Optional[Any] = None
         logger.info(
-            "Initialized StableDiffusionEngine (model=%s, device=%s, dtype=%s, fallback=%s)",
+            "Initialized StableDiffusionEngine (model=%s, inpaint_model=%s, device=%s, dtype=%s, fallback=%s)",
             self.model_name,
+            self.inpaint_model_name,
             self.target_device,
             self.torch_dtype,
             self.use_mock_fallback,
@@ -188,8 +191,8 @@ class StableDiffusionEngine(nn.Module):
             if self.target_device.type == "cuda":
                 torch.cuda.empty_cache()
 
-        logger.info("Loading %s pipeline from %s on %s...", mode, self.model_name, self.target_device)
         if mode == "text2img":
+            logger.info("Loading text2img pipeline from %s on %s...", self.model_name, self.target_device)
             from diffusers import StableDiffusionPipeline
 
             pipe = StableDiffusionPipeline.from_pretrained(
@@ -200,12 +203,31 @@ class StableDiffusionEngine(nn.Module):
         elif mode == "inpaint":
             from diffusers import StableDiffusionInpaintPipeline
 
-            pipe = StableDiffusionInpaintPipeline.from_pretrained(
-                self.model_name,
-                torch_dtype=self.torch_dtype,
-                safety_checker=None,
-            ).to(self.target_device)
+            target_inpaint_model = self.inpaint_model_name or self.model_name
+            logger.info("Loading inpaint pipeline from %s on %s...", target_inpaint_model, self.target_device)
+            try:
+                pipe = StableDiffusionInpaintPipeline.from_pretrained(
+                    target_inpaint_model,
+                    torch_dtype=self.torch_dtype,
+                    safety_checker=None,
+                ).to(self.target_device)
+            except Exception as exc:
+                if target_inpaint_model != self.model_name:
+                    logger.warning(
+                        "Could not load specialized inpaint checkpoint '%s' (%s). Falling back to base model '%s'.",
+                        target_inpaint_model,
+                        exc,
+                        self.model_name,
+                    )
+                    pipe = StableDiffusionInpaintPipeline.from_pretrained(
+                        self.model_name,
+                        torch_dtype=self.torch_dtype,
+                        safety_checker=None,
+                    ).to(self.target_device)
+                else:
+                    raise
         elif mode == "img2img":
+            logger.info("Loading img2img pipeline from %s on %s...", self.model_name, self.target_device)
             from diffusers import StableDiffusionImg2ImgPipeline
 
             pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
