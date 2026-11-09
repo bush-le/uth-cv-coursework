@@ -24,6 +24,7 @@ class ImageMetadata:
         is_hard_sample: True if this synthetic DF sample bypassed the baseline dinoViT detector.
         baseline_score: Predicted fake probability P(fake) from baseline dinoViT in [0.0, 1.0].
         data_source: Provenance bucket ('baseline', 'synthetic', 'hard_sample').
+        demographics: Optional dictionary storing demographic attributes (age_group, gender, glasses, identity_id).
     """
 
     image_id: str
@@ -36,6 +37,7 @@ class ImageMetadata:
     is_hard_sample: bool = False
     baseline_score: Optional[float] = None
     data_source: str = "baseline"
+    demographics: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize metadata to a dictionary."""
@@ -56,6 +58,7 @@ class ImageMetadata:
             is_hard_sample=bool(data.get("is_hard_sample", False)),
             baseline_score=float(baseline_score_raw) if baseline_score_raw is not None else None,
             data_source=str(data.get("data_source", "baseline")),
+            demographics=data.get("demographics"),
         )
 
 

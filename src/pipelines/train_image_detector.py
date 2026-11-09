@@ -190,7 +190,7 @@ def main() -> None:
     parser.add_argument(
         "--hard-manifest", type=str, default="data/processed/hard_samples_manifest.jsonl"
     )
-    parser.add_argument("--backbone", type=str, default="dino_vit")
+    parser.add_argument("--backbone", type=str, default="dinov2_small", help="Backbone (dinov2_small or dino_vit)")
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--hard-weight", type=float, default=2.0)
@@ -221,7 +221,7 @@ def main() -> None:
         hard_sample_oversample_factor=2,
         seed=args.seed,
     )
-    model = DeepfakeImageDetector(backbone=args.backbone, num_classes=1)
+    model = DeepfakeImageDetector(backbone=args.backbone, num_classes=1, pretrained=True)
     train_deepfake_image_detector(
         model=model,
         datamodule=dm,

@@ -20,6 +20,7 @@ def test_image_metadata_serialization() -> None:
         is_hard_sample=True,
         baseline_score=0.22,
         data_source="hard_sample",
+        demographics={"age_group": "50-69", "gender": "male", "glasses": "Dark"},
     )
     d = meta.to_dict()
     assert d["image_id"] == "face_001"
@@ -28,6 +29,7 @@ def test_image_metadata_serialization() -> None:
     assert d["is_hard_sample"] is True
     assert d["baseline_score"] == pytest.approx(0.22)
     assert d["data_source"] == "hard_sample"
+    assert d["demographics"]["age_group"] == "50-69"
 
     restored = ImageMetadata.from_dict(d)
     assert restored.image_id == meta.image_id
@@ -35,6 +37,7 @@ def test_image_metadata_serialization() -> None:
     assert restored.is_hard_sample is True
     assert restored.baseline_score == pytest.approx(0.22)
     assert restored.data_source == "hard_sample"
+    assert restored.demographics == {"age_group": "50-69", "gender": "male", "glasses": "Dark"}
 
 
 def test_image_sample_contract() -> None:

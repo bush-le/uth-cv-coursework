@@ -68,3 +68,46 @@ def save_image_grid(
     out.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out, dpi=150, bbox_inches="tight")
     plt.close(fig)
+
+
+def plot_real_vs_synthetic_comparison(
+    real_paths: list[str | Path],
+    synthetic_paths: list[str | Path],
+    hard_paths: list[str | Path],
+    output_path: str | Path = "experiments/predictions/real_vs_synthetic_gallery.png",
+    num_samples: int = 4,
+) -> None:
+    """Generate a 3-row comparison gallery: Real Faces vs Synthetic Faces vs Mined Hard Samples."""
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    fig, axes = plt.subplots(3, num_samples, figsize=(num_samples * 3.0, 9.0))
+    categories = [
+        ("Real Baseline Face (label=0)", real_paths, "#2ecc71"),
+        ("Synthetic SD Face (label=1)", synthetic_paths, "#e67e22"),
+        ("Mined Hard Sample (Bypass)", hard_paths, "#e74c3c"),
+    ]
+
+    for row_idx, (cat_label, paths, color) in enumerate(categories):
+        for col_idx in range(num_samples):
+            ax = axes[row_idx, col_idx] if num_samples > 1 else axes[row_idx]
+            if col_idx < len(paths) and Path(paths[col_idx]).exists():
+                with Image.open(paths[col_idx]) as img:
+                    ax.imshow(img.convert("RGB"))
+            else:
+                ax.text(0.5, 0.5, "No sample", ha="center", va="center")
+            ax.set_xticks([])
+            ax.set_yticks([])
+            if col_idx == 0:
+                ax.set_ylabel(cat_label, fontsize=10, fontweight="bold", color=color)
+
+    plt.suptitle(
+        "UTH Topic 11 — Real vs Synthetic vs Hard-Sample Deepfakes",
+        fontsize=14,
+        fontweight="bold",
+    )
+    plt.tight_layout()
+    out = Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close(fig)
