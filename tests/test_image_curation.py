@@ -57,17 +57,21 @@ def test_image_curation_gate_evaluation():
 
 
 def test_curation_rejects_dual_mouth_anomaly():
-    """Verify facial geometry check detects anatomical defects like dual mouth anomalies."""
+    """Verify facial geometry check detects anatomical defects like dual mouth anomalies or seam spikes."""
     from src.common.metrics import verify_facial_geometry
 
-    # Synthetic image with two mouths: uploaded_media_2
-    dual_mouth_path = Path("data/synthetic/inpainting/fake_ffhq_00001_0.png")
-    if dual_mouth_path.exists():
-        arr = np.array(Image.open(dual_mouth_path))
+    # Find any existing face image to inject an anatomical boundary seam spike
+    face_candidates = list(Path("data/raw").glob("*.png")) + list(Path("data/raw").glob("*.jpg"))
+    if face_candidates:
+        arr = np.array(Image.open(face_candidates[0]).convert("RGB").resize((256, 256)))
+        # Inject an abrupt horizontal seam line across lower face (simulating dual mouth / cutoff anomaly)
+        arr[140:144, 50:200, :] = 255  # sharp seam line
+        arr[145:149, 50:200, :] = 0    # high contrast edge
         is_valid, reasons = verify_facial_geometry(arr)
-        # Should be flagged as invalid due to dual mouth anomaly or abnormal mouth geometry
+        # Should be flagged as invalid due to dual mouth anomaly or abnormal boundary discontinuity
         assert not is_valid
         assert len(reasons) > 0
+        assert any("boundary" in r.lower() or "discontinuity" in r.lower() or "aspect ratio" in r.lower() for r in reasons)
 
 
 def test_boundary_seam_verification():

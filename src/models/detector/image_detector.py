@@ -120,6 +120,17 @@ class MetaDinoV2Wrapper(nn.Module):
         super().__init__()
         from transformers import AutoConfig, AutoModel
 
+        # Normalize common short aliases to canonical Hugging Face Hub IDs
+        alias_map = {
+            "dinov2_small": "facebook/dinov2-small",
+            "dinov2-small": "facebook/dinov2-small",
+            "dinov2_base": "facebook/dinov2-base",
+            "dinov2-base": "facebook/dinov2-base",
+            "dinov2_large": "facebook/dinov2-large",
+            "dinov2-large": "facebook/dinov2-large",
+        }
+        model_name = alias_map.get(model_name, model_name)
+
         self.model_name = model_name
         self.pretrained = pretrained
         try:

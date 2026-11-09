@@ -61,12 +61,20 @@ def test_hard_sample_mining_flow_dinov2():
     assert 0.0 <= report.bypass_rate <= 1.0
 
 
-def test_mine_hard_samples_enforces_checkpoint_guardrail(monkeypatch):
+def test_mine_hard_samples_enforces_checkpoint_guardrail(monkeypatch, tmp_path):
     """Zero-Mock Invariant: Running mining pipeline with detector method without --checkpoint or --allow-untrained must raise ValueError."""
     import sys
     from src.pipelines.mine_hard_samples import main as mine_main
 
-    monkeypatch.setattr(sys, "argv", ["mine_hard_samples.py", "--method", "detector"])
+    # Provide an empty config to ensure detector_checkpoint is None
+    empty_cfg = tmp_path / "empty_factory.yaml"
+    empty_cfg.write_text("paths: {}\n")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["mine_hard_samples.py", "--config", str(empty_cfg), "--method", "detector"],
+    )
     with pytest.raises(ValueError, match="Refusing to mine hard samples with uninitialized/untrained weights"):
         mine_main()
 
