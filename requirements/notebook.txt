@@ -1,0 +1,5 @@
+# Lightweight controller only. Do not pin Hub, protobuf, transformers or torch here.
+gdown==5.2.0
+beautifulsoup4>=4.12,<5
+PyYAML>=6.0.1,<7
+Pillow>=10,<13

@@ -15,7 +15,7 @@ COMMON = [
     "safetensors==0.6.2",
     "peft==0.17.1",
     "sentencepiece>=0.2,<0.3",
-    "protobuf>=3.20,<6",
+    "protobuf>=3.20",
     "einops",
     "scipy",
     "omegaconf",
@@ -24,6 +24,7 @@ COMMON = [
 ]
 FACE = ["insightface==0.7.3", "onnxruntime>=1.18,<2"]
 PROFILES = {
+    "diffusers": [],
     "controlnet": [],
     "ip_adapter": [],
     "faceid_sd15": FACE,
@@ -70,8 +71,6 @@ def prepare_environment(
     Installation conflicts fail visibly; the user's global runtime is untouched.
     Downloaded source/checkpoint availability is tested by the worker, not here.
     """
-    if backend == "diffusers":
-        return Path(sys.executable)
     if backend not in PROFILES:
         raise ValueError(f"No environment profile for {backend}")
     root = env_root / backend
@@ -109,7 +108,11 @@ def prepare_environment(
             ]
         )
         requirements += PROFILES[backend]
-    signature = {"requirements": requirements, "torch": torch_versions}
+    signature = {
+        "schema_version": 2,
+        "requirements": requirements,
+        "torch": torch_versions,
+    }
     if marker.is_file():
         import json
 

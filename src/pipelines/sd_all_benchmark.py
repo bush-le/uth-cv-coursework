@@ -397,6 +397,8 @@ def _run_suite(
                 environment["XDG_CACHE_HOME"] = str(cache / "xdg")
                 environment.pop("TRANSFORMERS_CACHE", None)
                 environment["HF_HUB_DISABLE_TELEMETRY"] = "1"
+                environment["USE_TF"] = "0"
+                environment["USE_FLAX"] = "0"
                 exit_code = run_worker(
                     [
                         str(python),

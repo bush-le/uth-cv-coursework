@@ -1,4 +1,5 @@
-# Kaggle already supplies a matched CUDA torch/torchvision pair; do not replace it.
+# Inference worker requirements. Install inside a venv, not the Kaggle kernel.
+# Notebook controller uses requirements/notebook.txt instead.
 diffusers==0.35.1
 transformers==4.56.2
 accelerate==1.10.1
@@ -9,4 +10,4 @@ beautifulsoup4>=4.12,<5
 PyYAML>=6.0.1,<7
 Pillow>=10,<13
 sentencepiece>=0.2,<0.3
-protobuf>=3.20,<6
+protobuf>=3.20

@@ -21,7 +21,7 @@ Danh mục có **31 mục tham khảo**: 9 mục model nền, 7 mục checkpoint
 ## Chạy trên Kaggle
 
 1. Import notebook; bật GPU + Internet, gắn source bundle `SD_ALL_BENCHMARK_KAGGLE.zip` dạng ZIP hoặc Dataset đã giải nén.
-2. Cài `requirements/generation.txt`, giữ cặp CUDA torch/torchvision của Kaggle. Chuẩn bị ba ảnh từ Drive bằng module hiện có; xem preview và mask.
+2. Notebook chỉ cài `requirements/notebook.txt` vào kernel. Cả native Diffusers lẫn adapter được cài/chạy trong venv worker; giữ cặp CUDA torch/torchvision của Kaggle. Chuẩn bị ba ảnh từ Drive bằng module hiện có; xem preview và mask.
 3. Chạy cell plan, sau đó cell batch. `GROUP="all"`, `MAX_JOBS=2` mặc định; chạy lại cell để tiếp tục các case còn pending. Dùng `GROUP="checkpoints"` hoặc `"methods"` để tách nhóm; `CASE_IDS=["sd15", "sd15_inpaint"]` để thử đúng hai case trước.
 4. Xem `index.html` và `cases/<case_id>_<hash>/worker.log`. Case thành công có `gallery.html`, PNG, manifest, summary và technical QA. Download ZIP kết quả sau mỗi batch hoặc Save Version với outputs.
 
@@ -60,6 +60,8 @@ Notebook gọi `export_results` và `restore_results` trong [archive module](../
 
 ## Dependency và provenance
 
+Bản cũ đã cài `huggingface-hub==0.36.0` và `protobuf<6` trực tiếp vào kernel, xung đột với Gradio/TensorFlow/Google packages trên Kaggle mới. Bản sửa bỏ trần protobuf và chuyển cả native checkpoint vào venv. Nếu đã chạy cell cũ: lưu kết quả, tạo session Kaggle mới và dùng notebook/ZIP mới; restart riêng kernel không hoàn tác các gói pip đã thay. Không nâng/hạ hàng loạt gói trong kernel để chữa từng cảnh báo. Venv dùng `--system-site-packages` để kế thừa torch nên pip có thể vẫn báo xung đột với ứng dụng hệ thống không sử dụng; mọi cài đặt nằm trong venv, không thay kernel. Worker tắt tích hợp TensorFlow/Flax của Transformers vì benchmark dùng PyTorch.
+
 Native checkpoints dùng AutoPipeline theo mode; Lightning sử dụng UNet/scheduler/steps riêng. Không thay checkpoint bị lỗi bằng model khác. Optional backends dùng venv theo phương pháp, kế thừa CUDA torch; Face-Adapter và FastComposer có profile API cũ riêng. FastComposer cài `facenet-pytorch` không kéo lại torch; đây là profile tương thích thử nghiệm, phải kiểm tra bằng lượt chạy thật. Các profile mới chưa được chứng minh tương thích đầy đủ trên Kaggle hiện tại.
 
 Các repo phương pháp được pin commit trong YAML. REFace dùng `inference_swap_selected.py`, không dùng script Flask demo. Arc2Face giữ recognition weights riêng khi khởi tạo InsightFace. PuLID v1 dùng SDXL Base + Lightning UNet đúng constructor upstream; không ghi nhầm thành DreamShaper XL.
@@ -70,7 +72,7 @@ Mỗi worker chạy tuần tự và thoát để giải phóng GPU. Mặc địn
 
 ## Bằng chứng và giới hạn
 
-- Unit/regression: 11 smoke checks và 59 tests toàn bộ đã pass; bao phủ catalog, kết quả thiếu/hỏng/mock, batch, explicit retry, skip kết quả hợp lệ, khôi phục ZIP khác thư mục, chống ghi đè/traversal, khóa queue và timeout/nonzero exit. Đây là kiểm thử orchestration, không phải bằng chứng chất lượng generator.
+- Unit/regression: 11 smoke checks và 61 tests toàn bộ đã pass; bao phủ catalog, kết quả thiếu/hỏng/mock, batch, explicit retry, skip kết quả hợp lệ, khôi phục ZIP khác thư mục, chống ghi đè/traversal, khóa queue và timeout/nonzero exit. Đây là kiểm thử orchestration, không phải bằng chứng chất lượng generator.
 - Integration thật trên CPU: `hf-internal-testing/tiny-stable-diffusion-torch`, AutoPipeline, 64×64, 2 steps, ba ảnh thật × ba mode = 9 PNG; chạy lại resume 9/9. Artifact cục bộ ở `experiments/runs/tiny_sd_auto_validation/`. Fixture nhỏ không đại diện chất lượng SD đầy đủ; safety checker không có trong config fixture upstream, không bị wrapper vô hiệu hóa.
 - **Chưa chạy 32 cấu hình trên Kaggle GPU.** Tất cả case có `gpu_validation: not_run` trong config. Danh mục đầy đủ không có nghĩa mọi backend đã cài/load/infer thành công.
 - Technical QA chỉ kiểm tra đọc ảnh, kích thước, hash và Laplacian variance thực. Chưa có ID similarity, pose/expression preservation, perceptual quality, FID/KID đủ mẫu, đánh giá người hay hiệu quả bổ sung data cho detector. Không gọi bộ dữ liệu này là đã đạt success criteria; không dùng detector chưa huấn luyện để kết luận hard samples.

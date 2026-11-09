@@ -21,6 +21,45 @@ from src.pipelines.sd_all_benchmark import (
     valid_completed_artifacts,
 )
 from src.pipelines.sd_benchmark_archive import export_results, restore_results
+from src.pipelines.sd_benchmark_env import COMMON, prepare_environment
+
+
+def test_native_installs_are_scoped_to_venv_and_keep_kaggle_protobuf(
+    tmp_path, monkeypatch
+):
+    calls = []
+
+    def run(command, **kwargs):
+        calls.append(command)
+        if "venv" in command:
+            Path(command[-1]).mkdir(parents=True, exist_ok=True)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    python = prepare_environment(
+        "diffusers", tmp_path, {"torch": "2.8.0", "torchvision": "0.23.0"}
+    )
+    assert python != Path(sys.executable)
+    assert "--system-site-packages" in calls[0]
+    assert all(command[0] == str(python) for command in calls if "pip" in command)
+    assert "protobuf>=3.20" in COMMON
+    assert not any("protobuf" in item and "<" in item for item in COMMON)
+    prepare_environment(
+        "diffusers", tmp_path, {"torch": "2.8.0", "torchvision": "0.23.0"}
+    )
+    assert len(calls) == 2  # Matching marker reuses the environment.
+
+
+def test_kaggle_notebooks_never_install_inference_stack_into_kernel():
+    for name in ("SD_IMAGE_DEMO_KAGGLE.ipynb", "SD_ALL_BENCHMARK_KAGGLE.ipynb"):
+        notebook = json.loads((Path("notebooks") / name).read_text(encoding="utf-8"))
+        source = "\n".join(
+            "".join(cell["source"])
+            for cell in notebook["cells"]
+            if cell["cell_type"] == "code"
+        )
+        assert "%pip install -q -r requirements/notebook.txt" in source
+        assert "%pip install -q -r requirements/generation.txt" not in source
 
 
 def output_fixture(root: Path) -> Path:

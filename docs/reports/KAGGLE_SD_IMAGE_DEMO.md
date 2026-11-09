@@ -33,16 +33,16 @@ Sơ đồ vector của luồng này có trong [bản HTML](KAGGLE_SD_IMAGE_DEMO.
 1. Tạo Kaggle Notebook Python, bật **GPU** và **Internet**.
 2. Upload gói `SD_IMAGE_DEMO_KAGGLE.zip` được bàn giao thành một **Kaggle Dataset riêng tư**, rồi attach Dataset vào notebook. Gói này chỉ chứa code/config/docs/notebook, không chứa weights hay ảnh thật.
 3. Import [SD_IMAGE_DEMO_KAGGLE.ipynb](../../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb).
-4. Chạy phần môi trường và chuẩn bị dữ liệu. Notebook tự giải nén code vào working directory và cài [requirements/generation.txt](../../requirements/generation.txt). **Không thay torch/torchvision CUDA có sẵn của Kaggle.** Nếu kernel đã import các phiên bản Transformers/Diffusers khác, restart kernel sau khi cài.
+4. Chạy phần môi trường và chuẩn bị dữ liệu. Notebook giải nén source rồi chỉ cài [requirements/notebook.txt](../../requirements/notebook.txt) vào kernel; [launcher](../../src/pipelines/sd_demo_launcher.py) cài/chạy model trong venv worker, giữ torch/torchvision CUDA. Nếu đã chạy cell cũ cài generation.txt vào kernel, lưu outputs và tạo session Kaggle mới; restart kernel không hoàn tác pip. Không còn ép protobuf xuống dưới 6.
 5. Xem contact sheet nguồn/mask. Mask trắng là vùng sửa. Nếu lệch vùng miệng, sửa `mask_box_xyxy_normalized` hoặc thêm `mask_path` cho từng ảnh vào manifest trước khi inference.
 6. Chạy inference, xem gallery và tải ZIP artifacts ở cell cuối. Thời gian thật và GPU peak memory được ghi sau chạy; chưa có số đo tốc độ Kaggle trong báo cáo này.
 
 Các lệnh tương đương, chạy từ root repo:
 
 ```bash
-python -m pip install -r requirements/generation.txt
+python -m pip install -r requirements/notebook.txt
 python -m src.pipelines.prepare_image_demo --config configs/generation/kaggle_image_demo.yaml
-python -m src.pipelines.sd_image_demo --config configs/generation/kaggle_image_demo.yaml
+python -m src.pipelines.sd_demo_launcher --config configs/generation/kaggle_image_demo.yaml
 # Runner hiện có cũng gọi đúng config demo:
 bash scripts/run_pipeline.sh generate configs/generation/kaggle_image_demo.yaml
 ```
