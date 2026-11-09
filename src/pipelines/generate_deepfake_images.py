@@ -74,6 +74,15 @@ def run_image_generation(
         Number of synthetic images generated.
     """
     seed_everything(seed)
+    if use_mock_fallback:
+        out_res = output_dir.resolve()
+        data_res = Path("data").resolve()
+        if out_res == data_res or data_res in out_res.parents:
+            raise ValueError(
+                "Mock generator mode is strictly forbidden from writing to production data/ directory! "
+                "See .agents/rules/ZERO_MOCK_DATA_RULE.md"
+            )
+
     output_dir.mkdir(parents=True, exist_ok=True)
     output_manifest.parent.mkdir(parents=True, exist_ok=True)
 
@@ -153,18 +162,21 @@ def run_image_generation(
                 continue
 
             # Need source image for img2img / inpaint
-            if source_img is None:
-                if mock_cache and real_id in mock_cache:
-                    source_img = mock_cache[real_id]
-                elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
-                    with Image.open(item["file_path"]) as img:
-                        img_rgb = img.convert("RGB").resize((256, 256), Image.Resampling.BILINEAR)
-                        np_img = np.array(img_rgb, dtype=np.float32) / 255.0
-                        source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
-                else:
-                    source_img = torch.rand(3, 256, 256)
-
-            h, w = source_img.shape[1], source_img.shape[2]
+            if mode_idx in (0, 1):
+                if source_img is None:
+                    if mock_cache and real_id in mock_cache:
+                        source_img = mock_cache[real_id]
+                    elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
+                        with Image.open(item["file_path"]) as img:
+                            img_rgb = img.convert("RGB").resize((256, 256), Image.Resampling.BILINEAR)
+                            np_img = np.array(img_rgb, dtype=np.float32) / 255.0
+                            source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
+                    else:
+                        logger.warning("Skipping %s: source image missing for mode %s", real_id, manip_type)
+                        continue
+                h, w = source_img.shape[1], source_img.shape[2]
+            else:
+                h, w = 256, 256
 
             if mode_idx == 0:
                 fake_tensor = engine.generate_img2img(
@@ -222,14 +234,6 @@ def run_image_generation(
     with open(output_manifest, "w", encoding="utf-8") as f:
         for r in fake_records:
             f.write(json.dumps(r) + "\n")
-
-    # Mirror to data/processed for backwards compatibility
-    if "synthetic" in str(output_manifest):
-        legacy_manifest = Path("data/processed/fake_manifest.jsonl")
-        legacy_manifest.parent.mkdir(parents=True, exist_ok=True)
-        with open(legacy_manifest, "w", encoding="utf-8") as f:
-            for r in fake_records:
-                f.write(json.dumps(r) + "\n")
 
     logger.info(
         "Generation complete: %d synthetic faces saved to %s.", generated_count, output_manifest

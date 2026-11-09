@@ -127,8 +127,8 @@ def curate_image_manifest(
                         logger.warning("Error reading %s for curation (%s), skipping.", file_path, err)
                         rejected_count += 1
                 else:
-                    curated_lines.append(json.dumps(item) + "\n")
-                    kept_count += 1
+                    logger.warning("Rejecting %s: image file does not exist (%s)", item.get("image_id"), file_path)
+                    rejected_count += 1
 
     with open(output_manifest, "w", encoding="utf-8") as f:
         f.writelines(curated_lines)
@@ -144,7 +144,6 @@ def curate_image_manifest(
 
 def main() -> None:
     import argparse
-    import shutil
 
     parser = argparse.ArgumentParser(description="Curate synthetic images using automated quality gate.")
     parser.add_argument("--input-manifest", type=str, default="data/synthetic/fake_manifest.jsonl")
@@ -154,8 +153,8 @@ def main() -> None:
     args = parser.parse_args()
 
     in_path = Path(args.input_manifest)
-    if not in_path.exists() and Path("data/processed/fake_manifest.jsonl").exists():
-        in_path = Path("data/processed/fake_manifest.jsonl")
+    if not in_path.exists():
+        raise FileNotFoundError(f"Input manifest not found: {in_path}")
 
     gate = ImageCurationGate(min_sharpness=args.min_sharpness, min_clip_score=args.min_clip)
     curate_image_manifest(
@@ -163,12 +162,6 @@ def main() -> None:
         output_manifest=Path(args.output_manifest),
         gate=gate,
     )
-
-    # Mirror to data/processed for backwards compatibility
-    if "synthetic" in args.output_manifest:
-        legacy_curated = Path("data/processed/curated_manifest.jsonl")
-        legacy_curated.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(args.output_manifest, legacy_curated)
 
 
 if __name__ == "__main__":

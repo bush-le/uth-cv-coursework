@@ -43,8 +43,7 @@ class DeepfakeImageDataset(Dataset):
         """Load image from disk and return RGB float tensor (3, H, W) in [0.0, 1.0]."""
         path = Path(file_path)
         if not path.exists():
-            h, w = self.target_size if self.target_size else (256, 256)
-            return torch.zeros(3, h, w, dtype=torch.float32)
+            raise FileNotFoundError(f"Image file does not exist on disk: {path}")
 
         with Image.open(path) as img:
             img_rgb = img.convert("RGB")

@@ -45,13 +45,19 @@ def test_image_curation_gate_evaluation():
 
 
 def test_curate_image_manifest_pipeline(tmp_path):
-    """Test curation manifest filtering."""
+    """Test curation manifest filtering with real image files on disk."""
+    from PIL import Image
     input_manifest = tmp_path / "raw.jsonl"
     output_manifest = tmp_path / "curated.jsonl"
 
+    img_p1 = tmp_path / "face_1.png"
+    img_p2 = tmp_path / "face_2.png"
+    Image.new("RGB", (64, 64), color="blue").save(img_p1)
+    Image.new("RGB", (64, 64), color="green").save(img_p2)
+
     items = [
-        {"image_id": "face_1", "label": 1, "file_path": None},
-        {"image_id": "face_2", "label": 1, "file_path": None},
+        {"image_id": "face_1", "label": 1, "file_path": str(img_p1)},
+        {"image_id": "face_2", "label": 1, "file_path": str(img_p2)},
     ]
     with open(input_manifest, "w") as f:
         for it in items:
@@ -62,3 +68,15 @@ def test_curate_image_manifest_pipeline(tmp_path):
 
     assert summary["kept"] == 2
     assert output_manifest.exists()
+
+
+def test_curation_rejects_missing_file(tmp_path):
+    """Zero-Mock Invariant: Manifest entry pointing to missing file must be rejected, not kept."""
+    m_in = tmp_path / "in.jsonl"
+    m_out = tmp_path / "out.jsonl"
+    m_in.write_text(json.dumps({"image_id": "a", "label": 1, "file_path": "non_existent.png"}) + "\n")
+    gate = ImageCurationGate(min_sharpness=0.0, min_clip_score=0.0)
+    summary = curate_image_manifest(m_in, m_out, gate)
+    assert summary["kept"] == 0
+    assert summary["rejected"] == 1
+

@@ -138,11 +138,16 @@ def test_generate_pipeline_balanced_mode_distribution(tmp_path):
     out_manifest = tmp_path / "fake_out.jsonl"
     out_dir = tmp_path / "synthetic"
 
-    # Create 6 dummy real inputs
+    # Create 6 dummy real inputs with actual image files on disk
     import json
+    from PIL import Image
+    real_img_dir = tmp_path / "real_images"
+    real_img_dir.mkdir(parents=True, exist_ok=True)
     with open(in_manifest, "w", encoding="utf-8") as f:
         for i in range(6):
-            f.write(json.dumps({"image_id": f"real_{i:04d}", "label": 0}) + "\n")
+            p = real_img_dir / f"real_{i:04d}.png"
+            Image.new("RGB", (64, 64), color=(120, 120, 120)).save(p)
+            f.write(json.dumps({"image_id": f"real_{i:04d}", "label": 0, "file_path": str(p)}) + "\n")
 
     count = run_image_generation(
         input_manifest=in_manifest,
@@ -226,6 +231,64 @@ def test_mine_hard_samples_by_feature_similarity():
     assert "fake_0" in report.hard_sample_ids
     assert report.bypassed_hard_count == 1
     assert report.rejected_count == 1
+
+
+def test_generator_skips_img2img_when_source_missing(tmp_path):
+    """Zero-Mock: Generator must skip img2img when source image file is missing, never use random noise."""
+    import json
+    from src.pipelines.generate_deepfake_images import run_image_generation
+
+    in_manifest = tmp_path / "in.jsonl"
+    out_manifest = tmp_path / "out.jsonl"
+    out_dir = tmp_path / "synthetic"
+    in_manifest.write_text(
+        json.dumps({"image_id": "r1", "label": 0, "file_path": "non_existent.png"}) + "\n",
+        encoding="utf-8",
+    )
+    count = run_image_generation(
+        input_manifest=in_manifest,
+        output_manifest=out_manifest,
+        output_dir=out_dir,
+        model_name="mock_sd",
+        use_mock_fallback=True,
+        mode="img2img",
+    )
+    assert count == 0
+
+
+def test_mock_refuses_output_inside_data_dir(tmp_path):
+    """Zero-Mock Invariant: Mock generator is strictly forbidden from writing to production data/ directory."""
+    from pathlib import Path
+    from src.pipelines.generate_deepfake_images import run_image_generation
+
+    with pytest.raises(ValueError, match=r"(?i)mock.*data"):
+        run_image_generation(
+            input_manifest=tmp_path / "dummy.jsonl",
+            output_manifest=Path("data/synthetic/fake_manifest.jsonl"),
+            output_dir=Path("data/synthetic"),
+            model_name="mock_sd",
+            use_mock_fallback=True,
+        )
+
+
+def test_miner_raises_when_manifest_missing(monkeypatch, tmp_path):
+    """Zero-Mock Invariant: Miner must raise FileNotFoundError when input manifest is missing, never fabricate data."""
+    import sys
+    from src.pipelines.mine_hard_samples import main as mine_main
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "mine_hard_samples.py",
+            "--input-manifest",
+            str(tmp_path / "missing_curated.jsonl"),
+            "--allow-untrained",
+        ],
+    )
+    with pytest.raises(FileNotFoundError):
+        mine_main()
+
 
 
 

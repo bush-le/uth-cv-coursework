@@ -152,3 +152,11 @@ def test_stratified_identity_disjoint_guarantees_both_classes_in_splits() -> Non
         assert 0 in test_labels, f"Test split at seed={seed} must contain Real samples (label=0)"
         assert 1 in test_labels, f"Test split at seed={seed} must contain Fake samples (label=1)"
 
+
+def test_dataset_raises_on_missing_file() -> None:
+    """Zero-Mock Invariant: Dataset must raise FileNotFoundError when loading missing file from disk."""
+    ds = DeepfakeImageDataset([ImageMetadata(image_id="x", label=0, file_path="non_existent_file.png")])
+    with pytest.raises(FileNotFoundError):
+        _ = ds[0]
+
+

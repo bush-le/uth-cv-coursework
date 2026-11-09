@@ -64,17 +64,9 @@ def evaluate_pipeline(
     model.eval()
 
     paths_cfg = cfg.get("paths", {})
-    b_path = Path(paths_cfg.get("baseline_manifest", "data/01_raw_faces/raw_faces_manifest.jsonl"))
-    if not b_path.exists():
-        b_path = Path("data/raw/manifest.jsonl")
-
-    s_path = Path(paths_cfg.get("synthetic_manifest", "data/02_synthetic_sd/manifests/curated_synthetic.jsonl"))
-    if not s_path.exists():
-        s_path = Path("data/processed/curated_manifest.jsonl")
-
-    h_path = Path(paths_cfg.get("hard_samples_manifest", "data/03_hard_samples/hard_samples_manifest.jsonl"))
-    if not h_path.exists():
-        h_path = Path("data/processed/hard_samples_manifest.jsonl")
+    b_path = Path(paths_cfg.get("baseline_manifest", "data/raw/manifest.jsonl"))
+    s_path = Path(paths_cfg.get("synthetic_manifest", "data/synthetic/curated_manifest.jsonl"))
+    h_path = Path(paths_cfg.get("hard_samples_manifest", "data/hard_samples/hard_samples_manifest.jsonl"))
 
     meta_list = combine_training_manifests(
         baseline_manifest=b_path,
@@ -82,22 +74,20 @@ def evaluate_pipeline(
         hard_sample_manifest=h_path,
     )
 
-    if meta_list:
-        dm = DeepfakeImageDataModule(
-            metadata_list=meta_list,
-            batch_size=8,
-            seed=42,
+    if not meta_list:
+        raise ValueError(
+            "No metadata found to evaluate! Ensure raw/curated/hard manifests exist. "
+            "Mock evaluation batches with torch.rand are strictly forbidden under Zero-Mock."
         )
-        dm.setup()
-        test_loader = dm.test_dataloader()
-        return evaluate_image_detector(model, test_loader, device=device)
 
-    mock_batch = {
-        "images": torch.rand(4, 3, 64, 64),
-        "labels": torch.tensor([0, 1, 0, 1], dtype=torch.long),
-        "is_hard_sample": torch.tensor([False, True, False, False], dtype=torch.bool),
-    }
-    return evaluate_image_detector(model, [mock_batch], device=device)
+    dm = DeepfakeImageDataModule(
+        metadata_list=meta_list,
+        batch_size=8,
+        seed=42,
+    )
+    dm.setup()
+    test_loader = dm.test_dataloader()
+    return evaluate_image_detector(model, test_loader, device=device)
 
 
 if __name__ == "__main__":

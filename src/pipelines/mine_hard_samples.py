@@ -435,17 +435,11 @@ def main() -> None:
         threshold = 0.45 if args.method == "feature_similarity" else 0.5
 
     in_path = Path(args.input_manifest)
-    if not in_path.exists() and Path("data/processed/curated_manifest.jsonl").exists():
-        in_path = Path("data/processed/curated_manifest.jsonl")
+    if not in_path.exists():
+        raise FileNotFoundError(f"Input manifest not found: {in_path}")
 
-    if in_path.exists():
-        with open(in_path, "r", encoding="utf-8") as f:
-            meta_list = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
-    else:
-        meta_list = [
-            ImageMetadata(image_id=f"syn_df_{i}", label=1, manipulation_type="sd_inpaint")
-            for i in range(8)
-        ]
+    with open(in_path, "r", encoding="utf-8") as f:
+        meta_list = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
 
     if args.method == "feature_similarity":
         logger.info(
