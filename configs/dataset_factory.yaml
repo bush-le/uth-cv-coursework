@@ -58,6 +58,7 @@ hardness:
   detector_checkpoint: null
   detector_tau: 0.50
   batch_size: 16
+  max_real_reference: 200
 
 benchmarks:
   split_ratios:

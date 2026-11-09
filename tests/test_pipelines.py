@@ -62,25 +62,32 @@ def test_hard_sample_mining_flow_dinov2():
 
 
 def test_mine_hard_samples_enforces_checkpoint_guardrail(monkeypatch):
-    """Zero-Mock Invariant: Running mining pipeline without --checkpoint or --allow-untrained must raise ValueError."""
+    """Zero-Mock Invariant: Running mining pipeline with detector method without --checkpoint or --allow-untrained must raise ValueError."""
     import sys
     from src.pipelines.mine_hard_samples import main as mine_main
 
-    monkeypatch.setattr(sys, "argv", ["mine_hard_samples.py"])
+    monkeypatch.setattr(sys, "argv", ["mine_hard_samples.py", "--method", "detector"])
     with pytest.raises(ValueError, match="Refusing to mine hard samples with uninitialized/untrained weights"):
         mine_main()
 
 
 def test_mine_hard_samples_cli_loads_checkpoint(tmp_path, monkeypatch):
     """Verify that mining CLI properly loads weights from checkpoint."""
+    import json
     import sys
     import torch
+    from PIL import Image
     from src.models.detector.image_detector import DeepfakeImageDetector
     from src.pipelines.mine_hard_samples import main as mine_main
 
     detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
     ckpt_file = tmp_path / "dummy_baseline.pt"
     torch.save({"model_state_dict": detector.state_dict()}, ckpt_file)
+
+    img_p = tmp_path / "test_fake.png"
+    Image.new("RGB", (64, 64), color="red").save(img_p)
+    in_manifest = tmp_path / "curated.jsonl"
+    in_manifest.write_text(json.dumps({"image_id": "f1", "label": 1, "file_path": str(img_p)}) + "\n")
 
     out_annotated = tmp_path / "annotated.jsonl"
     out_hard = tmp_path / "hard.jsonl"
@@ -90,6 +97,10 @@ def test_mine_hard_samples_cli_loads_checkpoint(tmp_path, monkeypatch):
         "argv",
         [
             "mine_hard_samples.py",
+            "--method",
+            "detector",
+            "--input-manifest",
+            str(in_manifest),
             "--checkpoint",
             str(ckpt_file),
             "--annotated-manifest",
@@ -103,9 +114,21 @@ def test_mine_hard_samples_cli_loads_checkpoint(tmp_path, monkeypatch):
 
 
 def test_mine_hard_samples_cli_feature_similarity(tmp_path, monkeypatch):
-    """Verify that mining CLI works with --method feature_similarity without requiring a checkpoint."""
+    """Verify that mining CLI works with --method real_manifold."""
+    import json
     import sys
+    from PIL import Image
     from src.pipelines.mine_hard_samples import main as mine_main
+
+    img_real = tmp_path / "real.png"
+    img_fake = tmp_path / "fake.png"
+    Image.new("RGB", (64, 64), color="blue").save(img_real)
+    Image.new("RGB", (64, 64), color="blue").save(img_fake)
+
+    raw_manifest = tmp_path / "raw.jsonl"
+    curated_manifest = tmp_path / "curated.jsonl"
+    raw_manifest.write_text(json.dumps({"image_id": "r1", "label": 0, "file_path": str(img_real)}) + "\n")
+    curated_manifest.write_text(json.dumps({"image_id": "f1", "label": 1, "file_path": str(img_fake)}) + "\n")
 
     out_annotated = tmp_path / "annotated_sim.jsonl"
     out_hard = tmp_path / "hard_sim.jsonl"
@@ -116,7 +139,11 @@ def test_mine_hard_samples_cli_feature_similarity(tmp_path, monkeypatch):
         [
             "mine_hard_samples.py",
             "--method",
-            "feature_similarity",
+            "real_manifold",
+            "--input-manifest",
+            str(curated_manifest),
+            "--raw-manifest",
+            str(raw_manifest),
             "--threshold",
             "0.99",
             "--annotated-manifest",

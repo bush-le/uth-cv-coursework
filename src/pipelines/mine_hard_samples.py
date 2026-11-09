@@ -1,27 +1,37 @@
-"""Phase 2 Pipeline: Baseline dinoViT Benchmark Evaluation & Bypass Hard-Sample Mining.
+"""Phase 2 Pipeline: Hard-Sample Mining via Real-Manifold Proximity or Baseline dinoViT.
 
-Passes Stable Diffusion synthetic Deepfake images (DF img) through the baseline
-dinoViT detector:
-- Rejected (caught): P(fake) >= threshold -> detected by baseline.
-- Bypassed (fooled): P(fake) < threshold -> misclassified as Real -> mined as a Hard Sample!
+Extracts hard synthetic samples:
+- real_manifold: Top-k cosine similarity to real reference manifold (excluding own source face).
+                 Threshold tau calibrated dynamically from leave-one-out reference quantile.
+- detector: P(fake) < tau from trained and verified baseline classifier.
 """
 
 import argparse
 from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
+import shutil
 from typing import Any, Dict, List, Optional, Union
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
+from src.common.config import cfg_get, load_config
 from src.common.logger import get_logger
-from src.common.metrics import compute_bypass_rate
+from src.common.metrics import calibrate_threshold, compute_bypass_rate
 from src.common.seed import seed_everything
 from src.data.image_datamodule import collate_image_samples
 from src.data.image_dataset import DeepfakeImageDataset
 from src.data.image_schema import ImageMetadata
 from src.models.detector.image_detector import DeepfakeImageDetector, MetaDinoV2Wrapper
-from torch.utils.data import DataLoader
+from src.models.evaluators.hardness import (
+    HardnessReport,
+    build_report,
+    embed_images,
+    load_verified_checkpoint,
+    real_manifold_scores,
+    real_reference_scores,
+)
 
 logger = get_logger(__name__)
 
@@ -48,6 +58,7 @@ def _save_mining_results(
     mean_score: float,
     annotated_manifest_path: Optional[Path],
     hard_manifest_path: Optional[Path],
+    hardness_report: Optional[HardnessReport] = None,
 ) -> None:
     """Save updated manifests, copy hard sample images, and export demographic audit report."""
     if annotated_manifest_path is not None:
@@ -68,7 +79,6 @@ def _save_mining_results(
         hard_img_dir.mkdir(parents=True, exist_ok=True)
         audit_dir.mkdir(parents=True, exist_ok=True)
 
-        import shutil
         saved_names = set()
         for m in hard_meta:
             if m.file_path and Path(m.file_path).exists():
@@ -103,6 +113,150 @@ def _save_mining_results(
         with open(audit_dir / "hard_sample_demographics.json", "w", encoding="utf-8") as af:
             json.dump(audit_data, af, indent=2)
 
+        if hardness_report is not None:
+            with open(audit_dir / "hardness_report.json", "w", encoding="utf-8") as hf:
+                json.dump(hardness_report.to_dict(), hf, indent=2)
+
+
+def mine_hard_samples_real_manifold(
+    extractor: nn.Module,
+    synthetic_metadata: List[ImageMetadata],
+    real_metadata: List[ImageMetadata],
+    cache: Optional[Dict[str, torch.Tensor]] = None,
+    tau: Optional[float] = None,
+    reference_quantile: float = 0.5,
+    k_neighbors: int = 5,
+    max_real_reference: Optional[int] = None,
+    batch_size: int = 16,
+    device: Union[str, torch.device] = "cpu",
+    annotated_manifest_path: Optional[Path] = None,
+    hard_manifest_path: Optional[Path] = None,
+) -> HardnessReport:
+    """Mine hard samples via objective real-manifold proximity."""
+    if max_real_reference is not None and len(real_metadata) > max_real_reference:
+        real_metadata = real_metadata[:max_real_reference]
+    if not synthetic_metadata:
+        rep = HardnessReport(
+            method="real_manifold",
+            tau=tau or 0.0,
+            tau_source="empty",
+            total=0,
+            hard_count=0,
+            hard_rate=0.0,
+            hard_rate_by_mode={},
+            hard_rate_by_group={},
+            hard_ids=[],
+        )
+        return rep
+
+    # 1. Embed real reference images and calibrate tau
+    real_embs = embed_images(
+        extractor=extractor,
+        metas=real_metadata,
+        batch_size=batch_size,
+        device=device,
+        cache=cache,
+    )
+    real_id_to_idx = {m.image_id: idx for idx, m in enumerate(real_metadata)}
+
+    if tau is None:
+        if len(real_metadata) > 1:
+            ref_scores = real_reference_scores(real_embs, k=k_neighbors)
+            tau_val = calibrate_threshold(ref_scores.tolist(), quantile=reference_quantile)
+            tau_source = f"reference_quantile_{reference_quantile:.2f}"
+        else:
+            tau_val = 0.5
+            tau_source = "default_fallback"
+    else:
+        tau_val = float(tau)
+        tau_source = "cli_override"
+
+    # 2. Embed synthetic images
+    syn_embs = embed_images(
+        extractor=extractor,
+        metas=synthetic_metadata,
+        batch_size=batch_size,
+        device=device,
+        cache=cache,
+    )
+
+    # 3. Exclude own source real index
+    exclude_idx: List[Optional[int]] = [
+        real_id_to_idx.get(m.source_real_id) if m.source_real_id else None
+        for m in synthetic_metadata
+    ]
+
+    scores = real_manifold_scores(
+        fake_emb=syn_embs,
+        real_emb=real_embs,
+        k=k_neighbors,
+        exclude_idx=exclude_idx,
+    )
+
+    hardness_report = build_report(
+        metas=synthetic_metadata,
+        scores=scores,
+        tau=tau_val,
+        tau_source=tau_source,
+        method="real_manifold",
+        higher_is_harder=True,
+    )
+
+    updated_meta: List[ImageMetadata] = []
+    hard_meta: List[ImageMetadata] = []
+
+    for i, meta in enumerate(synthetic_metadata):
+        score_val = float(scores[i].item())
+        is_hard = score_val >= tau_val
+
+        scores_dict = meta.scores.copy() if meta.scores else {}
+        scores_dict["real_manifold"] = score_val
+
+        # Diagnostic source similarity if source real face exists
+        ex_idx = exclude_idx[i]
+        if ex_idx is not None and ex_idx < real_embs.shape[0]:
+            src_sim = float(torch.dot(syn_embs[i], real_embs[ex_idx]).item())
+            scores_dict["source_similarity"] = src_sim
+
+        annotated = ImageMetadata(
+            image_id=meta.image_id,
+            label=meta.label,
+            manipulation_type=meta.manipulation_type,
+            prompt=meta.prompt,
+            source_real_id=meta.source_real_id,
+            file_path=meta.file_path,
+            bbox=meta.bbox,
+            is_hard_sample=is_hard,
+            baseline_score=score_val,
+            data_source="hard_sample" if is_hard else "synthetic",
+            demographics=meta.demographics,
+            generation=meta.generation,
+            scores=scores_dict,
+        )
+        updated_meta.append(annotated)
+        if is_hard:
+            hard_meta.append(annotated)
+
+    _save_mining_results(
+        updated_meta=updated_meta,
+        hard_meta=hard_meta,
+        mean_score=float(scores.mean().item()) if len(scores) > 0 else 0.0,
+        annotated_manifest_path=annotated_manifest_path,
+        hard_manifest_path=hard_manifest_path,
+        hardness_report=hardness_report,
+    )
+
+    logger.info(
+        "Real-manifold mining complete: total=%d | rejected=%d | hard_samples=%d (%.1f%%) | tau=%.3f (%s)",
+        hardness_report.total,
+        hardness_report.total - hardness_report.hard_count,
+        hardness_report.hard_count,
+        hardness_report.hard_rate * 100.0,
+        hardness_report.tau,
+        hardness_report.tau_source,
+    )
+    return hardness_report
+
 
 def mine_hard_samples_by_feature_similarity(
     extractor: nn.Module,
@@ -115,140 +269,27 @@ def mine_hard_samples_by_feature_similarity(
     annotated_manifest_path: Optional[Path] = None,
     hard_manifest_path: Optional[Path] = None,
 ) -> HardSampleMiningReport:
-    """Extract hard samples by measuring latent feature cosine similarity to real faces using DINOv2.
-
-    Synthetic faces whose deep representation is >= similarity_threshold compared to their
-    source real face (or closest real face) are flagged as Hard Samples.
-    """
-    dev = torch.device(device)
-    extractor.eval()
-    extractor.to(dev)
-
-    if not synthetic_metadata:
-        return HardSampleMiningReport(
-            total_synthetic=0,
-            rejected_count=0,
-            bypassed_hard_count=0,
-            bypass_rate=0.0,
-            mean_fake_prob=0.0,
-            threshold=similarity_threshold,
-            hard_sample_ids=[],
-        )
-
-    # 1. Precompute real embeddings if real_metadata is provided
-    real_embeddings: Dict[str, torch.Tensor] = {}
-    if real_metadata:
-        needed_real_ids = {m.source_real_id for m in synthetic_metadata if m.source_real_id}
-        if needed_real_ids:
-            subset_real = [m for m in real_metadata if m.image_id in needed_real_ids]
-            if not subset_real:
-                subset_real = real_metadata[:100]
-        else:
-            subset_real = real_metadata[:100]
-
-        real_dataset = DeepfakeImageDataset(metadata_list=subset_real, cache=cache)
-        real_loader = DataLoader(
-            real_dataset,
-            batch_size=batch_size,
-            shuffle=False,
-            collate_fn=collate_image_samples,
-        )
-        with torch.no_grad():
-            for batch in real_loader:
-                imgs = batch["images"].to(dev)
-                metas: List[ImageMetadata] = batch["metadata"]
-                embs = extractor(imgs)
-                embs = torch.nn.functional.normalize(embs, p=2, dim=-1)
-                for meta, emb in zip(metas, embs):
-                    real_embeddings[meta.image_id] = emb.detach().cpu()
-
-    # 2. Compute synthetic embeddings and cosine similarities
-    syn_dataset = DeepfakeImageDataset(metadata_list=synthetic_metadata, cache=cache)
-    syn_loader = DataLoader(
-        syn_dataset,
+    """Compatibility wrapper evaluating real-manifold proximity."""
+    rep = mine_hard_samples_real_manifold(
+        extractor=extractor,
+        synthetic_metadata=synthetic_metadata,
+        real_metadata=real_metadata or [],
+        cache=cache,
+        tau=similarity_threshold,
         batch_size=batch_size,
-        shuffle=False,
-        collate_fn=collate_image_samples,
-    )
-
-    all_sims: List[float] = []
-    updated_meta: List[ImageMetadata] = []
-    hard_meta: List[ImageMetadata] = []
-    hard_ids: List[str] = []
-
-    with torch.no_grad():
-        for batch in syn_loader:
-            imgs = batch["images"].to(dev)
-            metas: List[ImageMetadata] = batch["metadata"]
-            embs = extractor(imgs)
-            embs = torch.nn.functional.normalize(embs, p=2, dim=-1)
-
-            for meta, emb in zip(metas, embs):
-                emb_cpu = emb.detach().cpu()
-                sim_val = 0.0
-                if meta.source_real_id and meta.source_real_id in real_embeddings:
-                    target_emb = real_embeddings[meta.source_real_id]
-                    sim_val = float(torch.dot(emb_cpu, target_emb).item())
-                elif real_embeddings:
-                    sim_val = max(
-                        float(torch.dot(emb_cpu, r_emb).item())
-                        for r_emb in real_embeddings.values()
-                    )
-                else:
-                    sim_val = 0.0
-
-                all_sims.append(sim_val)
-                is_hard = sim_val >= similarity_threshold
-
-                annotated = ImageMetadata(
-                    image_id=meta.image_id,
-                    label=meta.label,
-                    manipulation_type=meta.manipulation_type,
-                    prompt=meta.prompt,
-                    source_real_id=meta.source_real_id,
-                    file_path=meta.file_path,
-                    bbox=meta.bbox,
-                    is_hard_sample=is_hard,
-                    baseline_score=sim_val,
-                    data_source="hard_sample" if is_hard else "synthetic",
-                    demographics=meta.demographics,
-                )
-                updated_meta.append(annotated)
-                if is_hard:
-                    hard_meta.append(annotated)
-                    hard_ids.append(annotated.image_id)
-
-    total_syn = len(updated_meta)
-    hard_count = len(hard_meta)
-    rejected_count = total_syn - hard_count
-    bypass_rate = float(hard_count / max(1, total_syn))
-    mean_sim = float(sum(all_sims) / max(1, len(all_sims)))
-
-    _save_mining_results(
-        updated_meta=updated_meta,
-        hard_meta=hard_meta,
-        mean_score=mean_sim,
+        device=device,
         annotated_manifest_path=annotated_manifest_path,
         hard_manifest_path=hard_manifest_path,
     )
-
-    report = HardSampleMiningReport(
-        total_synthetic=total_syn,
-        rejected_count=rejected_count,
-        bypassed_hard_count=hard_count,
-        bypass_rate=bypass_rate,
-        mean_fake_prob=mean_sim,
-        threshold=similarity_threshold,
-        hard_sample_ids=hard_ids,
+    return HardSampleMiningReport(
+        total_synthetic=rep.total,
+        rejected_count=rep.total - rep.hard_count,
+        bypassed_hard_count=rep.hard_count,
+        bypass_rate=rep.hard_rate,
+        mean_fake_prob=rep.tau,
+        threshold=rep.tau,
+        hard_sample_ids=rep.hard_ids,
     )
-    logger.info(
-        "DINOv2 Feature similarity mining complete: total=%d | rejected=%d | hard_samples=%d (%.1f%%)",
-        total_syn,
-        rejected_count,
-        hard_count,
-        bypass_rate * 100.0,
-    )
-    return report
 
 
 def mine_hard_samples(
@@ -261,23 +302,7 @@ def mine_hard_samples(
     annotated_manifest_path: Optional[Path] = None,
     hard_manifest_path: Optional[Path] = None,
 ) -> HardSampleMiningReport:
-    """Evaluate synthetic DF images against baseline dinoViT and extract bypassed hard samples.
-
-    Args:
-        model: Baseline DeepfakeImageDetector (e.g., dinoViT).
-        synthetic_metadata: List of ImageMetadata for synthetic fake images (label=1).
-        cache: Optional in-memory image tensor cache for headless testing.
-        bypass_threshold: Probability threshold tau below which a fake image is considered
-                          to have bypassed the baseline detector (default 0.5).
-        batch_size: Batch size for inference.
-        device: Target compute device ('cpu' or 'cuda').
-        annotated_manifest_path: Optional path to write all synthetic items updated with
-                                 baseline_score and is_hard_sample flags.
-        hard_manifest_path: Optional path to write only the bypassed hard samples.
-
-    Returns:
-        HardSampleMiningReport containing bypass analytics and mined hard sample IDs.
-    """
+    """Evaluate synthetic DF images against baseline dinoViT and extract bypassed hard samples."""
     dev = torch.device(device)
     model.eval()
     model.to(dev)
@@ -317,8 +342,10 @@ def mine_hard_samples(
             for meta, prob in zip(metas, probs):
                 p_val = float(prob)
                 all_probs.append(p_val)
-                # Synthetic DF sample (label=1) that scores below threshold bypassed the baseline!
                 is_bypass = (meta.label == 1) and (p_val < bypass_threshold)
+
+                scores_dict = meta.scores.copy() if meta.scores else {}
+                scores_dict["detector_fake_prob"] = p_val
 
                 annotated = ImageMetadata(
                     image_id=meta.image_id,
@@ -332,6 +359,8 @@ def mine_hard_samples(
                     baseline_score=p_val,
                     data_source="hard_sample" if is_bypass else "synthetic",
                     demographics=meta.demographics,
+                    generation=meta.generation,
+                    scores=scores_dict,
                 )
                 updated_meta.append(annotated)
                 if is_bypass:
@@ -344,12 +373,23 @@ def mine_hard_samples(
     bypass_rate = compute_bypass_rate(all_probs, threshold=bypass_threshold)
     mean_prob = float(sum(all_probs) / max(1, len(all_probs)))
 
+    scores_tensor = torch.tensor(all_probs) if all_probs else torch.empty(0)
+    rep = build_report(
+        metas=synthetic_metadata,
+        scores=scores_tensor,
+        tau=bypass_threshold,
+        tau_source="detector_threshold",
+        method="detector",
+        higher_is_harder=False,
+    )
+
     _save_mining_results(
         updated_meta=updated_meta,
         hard_meta=hard_meta,
         mean_score=mean_prob,
         annotated_manifest_path=annotated_manifest_path,
         hard_manifest_path=hard_manifest_path,
+        hardness_report=rep,
     )
 
     report = HardSampleMiningReport(
@@ -373,142 +413,114 @@ def mine_hard_samples(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Mine bypassed hard samples using DINOv2 latent feature similarity or baseline detector."
+        description="Mine hard samples using real-manifold proximity or baseline detector."
     )
+    parser.add_argument("--config", type=str, default="configs/dataset_factory.yaml", help="Path to config YAML")
     parser.add_argument(
         "--method",
         type=str,
-        choices=["feature_similarity", "detector"],
-        default="detector",
-        help="Mining method: 'feature_similarity' (DINOv2 cosine similarity against real faces) "
-             "or 'detector' (P(fake) < tau from trained baseline classifier). Default: detector.",
-    )
-    parser.add_argument(
-        "--input-manifest", type=str, default="data/synthetic/curated_manifest.jsonl"
-    )
-    parser.add_argument(
-        "--raw-manifest",
-        type=str,
-        default="data/raw/manifest.jsonl",
-        help="Path to real faces manifest used for feature similarity matching.",
-    )
-    parser.add_argument(
-        "--annotated-manifest",
-        type=str,
-        default="data/synthetic/annotated_synthetic_manifest.jsonl",
-    )
-    parser.add_argument(
-        "--hard-manifest", type=str, default="data/hard_samples/hard_samples_manifest.jsonl"
-    )
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
+        choices=["real_manifold", "detector"],
         default=None,
-        help="Path to trained baseline dinoViT checkpoint (.pt). Required when --method=detector.",
     )
-    parser.add_argument(
-        "--allow-untrained",
-        action="store_true",
-        help="Allow running with untrained random weights strictly for headless testing.",
-    )
-    parser.add_argument(
-        "--backbone",
-        type=str,
-        default="facebook/dinov2-small",
-        help="Backbone architecture (e.g., facebook/dinov2-small, dinov2_small, or dino_vit)",
-    )
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=None,
-        help="Threshold (default 0.45 for feature_similarity, 0.5 for detector)",
-    )
-    parser.add_argument("--device", type=str, default="cpu")
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--input-manifest", type=str, default=None)
+    parser.add_argument("--raw-manifest", type=str, default=None)
+    parser.add_argument("--annotated-manifest", type=str, default=None)
+    parser.add_argument("--hard-manifest", type=str, default=None)
+    parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument("--allow-untrained", action="store_true")
+    parser.add_argument("--backbone", type=str, default=None)
+    parser.add_argument("--threshold", type=float, default=None)
+    parser.add_argument("--device", type=str, default=None)
+    parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
 
-    seed_everything(args.seed)
+    cfg: Dict[str, Any] = {}
+    cfg_p = Path(args.config)
+    if cfg_p.is_file():
+        cfg = load_config(cfg_p)
 
-    # Determine default threshold based on method if not explicitly specified
-    threshold = args.threshold
-    if threshold is None:
-        threshold = 0.45 if args.method == "feature_similarity" else 0.5
+    def _res(cli_val: Any, dotted_key: str, default_val: Any) -> Any:
+        if cli_val is not None:
+            return cli_val
+        try:
+            return cfg_get(cfg, dotted_key)
+        except (KeyError, TypeError):
+            return default_val
 
-    in_path = Path(args.input_manifest)
-    if not in_path.exists():
-        raise FileNotFoundError(f"Input manifest not found: {in_path}")
+    seed_val = int(_res(args.seed, "seed", 42))
+    seed_everything(seed_val)
 
-    with open(in_path, "r", encoding="utf-8") as f:
-        meta_list = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
+    method = str(_res(args.method, "hardness.method", "real_manifold"))
+    in_manifest_path = Path(_res(args.input_manifest, "paths.curated_manifest", "data/synthetic/curated_manifest.jsonl"))
+    raw_manifest_path = Path(_res(args.raw_manifest, "paths.raw_manifest", "data/raw/manifest.jsonl"))
+    annotated_manifest_path = Path(_res(args.annotated_manifest, "paths.annotated_manifest", "data/synthetic/annotated_synthetic_manifest.jsonl"))
+    hard_manifest_path = Path(_res(args.hard_manifest, "paths.hard_manifest", "data/hard_samples/hard_samples_manifest.jsonl"))
+    backbone_id = str(_res(args.backbone, "hardness.backbone_id", "facebook/dinov2-small"))
+    device = str(_res(args.device, "device", "cpu"))
+    batch_size = int(_res(None, "hardness.batch_size", 16))
 
-    if args.method == "feature_similarity":
-        logger.info(
-            "Running objective DINOv2 latent feature similarity mining (threshold=%.2f)...",
-            threshold,
-        )
-        backbone_id = (
-            args.backbone if "dinov2" in args.backbone else "facebook/dinov2-small"
-        )
+    if not in_manifest_path.exists():
+        raise FileNotFoundError(f"Input manifest not found: {in_manifest_path}")
+
+    with open(in_manifest_path, "r", encoding="utf-8") as f:
+        synthetic_meta = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
+
+    if method == "real_manifold":
+        if not raw_manifest_path.exists():
+            raise FileNotFoundError(f"Raw reference manifest not found: {raw_manifest_path}")
+        with open(raw_manifest_path, "r", encoding="utf-8") as rf:
+            real_meta = [ImageMetadata.from_dict(json.loads(line)) for line in rf if line.strip()]
+
+        k_neighbors = int(_res(None, "hardness.k_neighbors", 5))
+        ref_quantile = float(_res(None, "hardness.reference_quantile", 0.5))
+        max_real_ref = int(_res(None, "hardness.max_real_reference", 200))
         extractor = MetaDinoV2Wrapper(model_name=backbone_id, pretrained=True)
 
-        real_meta_list: Optional[List[ImageMetadata]] = None
-        raw_path = Path(args.raw_manifest)
-        if raw_path.exists():
-            with open(raw_path, "r", encoding="utf-8") as rf:
-                real_meta_list = [
-                    ImageMetadata.from_dict(json.loads(line))
-                    for line in rf
-                    if line.strip()
-                ]
-
-        mine_hard_samples_by_feature_similarity(
+        mine_hard_samples_real_manifold(
             extractor=extractor,
-            synthetic_metadata=meta_list,
-            real_metadata=real_meta_list,
-            similarity_threshold=threshold,
-            device=args.device,
-            annotated_manifest_path=Path(args.annotated_manifest),
-            hard_manifest_path=Path(args.hard_manifest),
+            synthetic_metadata=synthetic_meta,
+            real_metadata=real_meta,
+            tau=args.threshold,
+            reference_quantile=ref_quantile,
+            k_neighbors=k_neighbors,
+            max_real_reference=max_real_ref,
+            batch_size=batch_size,
+            device=device,
+            annotated_manifest_path=annotated_manifest_path,
+            hard_manifest_path=hard_manifest_path,
         )
         return
 
     # Method == "detector": enforce checkpoint requirement
-    if not args.checkpoint and not args.allow_untrained:
+    checkpoint_path = _res(args.checkpoint, "hardness.detector_checkpoint", None)
+    if not checkpoint_path and not args.allow_untrained:
         raise ValueError(
             "Refusing to mine hard samples with uninitialized/untrained weights! "
             "Provide a trained baseline checkpoint via --checkpoint <path> "
-            "(e.g. experiments/checkpoints/baseline_d0_best.pt). "
+            "or configure hardness.detector_checkpoint in dataset_factory.yaml. "
             "See .agents/rules/ZERO_MOCK_DATA_RULE.md"
         )
 
     model = DeepfakeImageDetector(
-        backbone=args.backbone,
+        backbone=backbone_id,
         num_classes=1,
         freeze_extractor=True,
         pretrained=True,
     )
 
-    if args.checkpoint:
-        ckpt_path = Path(args.checkpoint)
-        if not ckpt_path.exists():
-            raise FileNotFoundError(f"Checkpoint not found at: {ckpt_path}")
-        logger.info("Loading baseline detector checkpoint from %s...", ckpt_path)
-        ckpt = torch.load(ckpt_path, map_location=args.device, weights_only=False)
-        state_dict = (
-            ckpt["model_state_dict"]
-            if isinstance(ckpt, dict) and "model_state_dict" in ckpt
-            else ckpt
-        )
-        model.load_state_dict(state_dict, strict=False)
-        logger.info("Successfully loaded trained weights into baseline detector.")
+    if checkpoint_path:
+        load_verified_checkpoint(model, checkpoint_path, device=device)
+
+    detector_tau = float(_res(args.threshold, "hardness.detector_tau", 0.5))
 
     mine_hard_samples(
         model=model,
-        synthetic_metadata=meta_list,
-        bypass_threshold=threshold,
-        device=args.device,
-        annotated_manifest_path=Path(args.annotated_manifest),
-        hard_manifest_path=Path(args.hard_manifest),
+        synthetic_metadata=synthetic_meta,
+        bypass_threshold=detector_tau,
+        batch_size=batch_size,
+        device=device,
+        annotated_manifest_path=annotated_manifest_path,
+        hard_manifest_path=hard_manifest_path,
     )
 
 
