@@ -13,7 +13,7 @@ from src.common.logger import get_logger
 from src.common.seed import seed_everything
 from src.data.image_schema import ImageMetadata
 from src.data.provenance import generation_params, sample_seed
-from src.models.diffusion.stable_diffusion_engine import StableDiffusionEngine
+from src.models.diffusion.stable_diffusion_engine import StableDiffusionEngine, generate_dynamic_face_mask
 
 logger = get_logger(__name__)
 
@@ -277,16 +277,8 @@ def run_image_generation(
                 guidance_scale=guidance_scale_val,
             )
         elif mode_idx == 1:
-            mask_box = curr_gen.get("inpaint_mask_box", [0.25, 0.25, 0.75, 0.75])
-            ymin_pct, xmin_pct, ymax_pct, xmax_pct = mask_box
-            ymin, ymax = int(ymin_pct * h), int(ymax_pct * h)
-            xmin, xmax = int(xmin_pct * w), int(xmax_pct * w)
-
-            mask = torch.zeros(1, h, w)
-            mask[:, ymin:ymax, xmin:xmax] = 1.0
-            mask = torch.nn.functional.avg_pool2d(
-                mask.unsqueeze(0), kernel_size=9, stride=1, padding=4
-            ).squeeze(0)
+            raw_bbox = item.get("bbox")
+            mask = generate_dynamic_face_mask(source_img, bbox=raw_bbox, blur_radius=16)
 
             fake_tensor = engine.generate_inpaint(
                 source_image=source_img,

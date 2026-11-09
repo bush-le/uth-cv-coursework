@@ -2,8 +2,9 @@
 
 import gc
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 import zlib
+import cv2
 import numpy as np
 from PIL import Image
 import torch
@@ -21,6 +22,66 @@ DEFAULT_NEGATIVE_PROMPT = (
 
 
 NATIVE_SD_SIZE = 512
+
+
+def generate_dynamic_face_mask(
+    image: torch.Tensor,
+    bbox: Optional[Tuple[float, float, float, float]] = None,
+    blur_radius: int = 16,
+) -> torch.Tensor:
+    """Generate a smooth anatomical oval mask encompassing face, cheeks, and full jawline.
+
+    Args:
+        image: Source face tensor of shape (C, H, W) in [0, 1].
+        bbox: Optional normalized (ymin, xmin, ymax, xmax) bounding box.
+        blur_radius: Gaussian blur radius for boundary feathering.
+
+    Returns:
+        Feathered mask tensor of shape (1, H, W) in [0, 1].
+    """
+    _, h, w = image.shape
+    if bbox is None:
+        np_img = (image.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
+        gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        cascade = cv2.CascadeClassifier(cascade_path)
+        faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
+        if len(faces) > 0:
+            fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+            bbox = (float(fy / h), float(fx / w), float((fy + fh) / h), float((fx + fw) / w))
+        else:
+            bbox = (0.18, 0.22, 0.75, 0.78)
+
+    ymin, xmin, ymax, xmax = bbox
+    face_h = ymax - ymin
+    face_w = xmax - xmin
+
+    # Expand downwards by 18% of face height to fully cover the mouth, jaw, and chin
+    expanded_ymax = min(1.0, ymax + 0.18 * face_h)
+    expanded_xmin = max(0.0, xmin - 0.05 * face_w)
+    expanded_xmax = min(1.0, xmax + 0.05 * face_w)
+
+    center_y = int(((ymin + expanded_ymax) / 2.0) * h)
+    center_x = int(((expanded_xmin + expanded_xmax) / 2.0) * w)
+    axis_y = max(1, int(((expanded_ymax - ymin) / 2.0) * h))
+    axis_x = max(1, int(((expanded_xmax - expanded_xmin) / 2.0) * w))
+
+    mask_np = np.zeros((h, w), dtype=np.uint8)
+    cv2.ellipse(
+        mask_np,
+        (center_x, center_y),
+        (axis_x, axis_y),
+        angle=0,
+        startAngle=0,
+        endAngle=360,
+        color=255,
+        thickness=-1,
+    )
+
+    ksize = blur_radius * 2 + 1
+    blurred = cv2.GaussianBlur(mask_np, (ksize, ksize), sigmaX=blur_radius / 2.0)
+    norm_mask = blurred.astype(np.float32) / 255.0
+    return torch.from_numpy(norm_mask).unsqueeze(0).to(image.device)
 
 
 class StableDiffusionEngine(nn.Module):
