@@ -35,3 +35,28 @@ def test_logger_instance() -> None:
     """Verify logger setup."""
     logger = get_logger("test_logger")
     assert logger.name == "test_logger"
+
+
+def test_hard_sample_mining_flow_dinov2():
+    """Verify hard sample mining flow with Meta DINOv2 pretrained baseline."""
+    import torch
+    from src.data.image_schema import ImageMetadata
+    from src.models.detector.image_detector import DeepfakeImageDetector
+    from src.pipelines.mine_hard_samples import mine_hard_samples
+
+    detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
+    cache = {f"synth_{i}": torch.rand(3, 64, 64) for i in range(4)}
+    metas = [
+        ImageMetadata(image_id=f"synth_{i}", label=1, manipulation_type="sd_inpaint")
+        for i in range(4)
+    ]
+    report = mine_hard_samples(
+        model=detector,
+        synthetic_metadata=metas,
+        cache=cache,
+        bypass_threshold=0.5,
+    )
+    assert report.total_synthetic == 4
+    assert report.rejected_count + report.bypassed_hard_count == 4
+    assert 0.0 <= report.bypass_rate <= 1.0
+

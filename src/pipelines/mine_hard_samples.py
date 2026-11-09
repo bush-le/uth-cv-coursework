@@ -122,6 +122,7 @@ def mine_hard_samples(
                     is_hard_sample=is_bypass,
                     baseline_score=p_val,
                     data_source="hard_sample" if is_bypass else "synthetic",
+                    demographics=meta.demographics,
                 )
                 updated_meta.append(annotated)
                 if is_bypass:
@@ -180,7 +181,7 @@ def main() -> None:
     parser.add_argument(
         "--hard-manifest", type=str, default="data/processed/hard_samples_manifest.jsonl"
     )
-    parser.add_argument("--backbone", type=str, default="dino_vit")
+    parser.add_argument("--backbone", type=str, default="dinov2_small", help="Backbone architecture (dinov2_small or dino_vit)")
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--seed", type=int, default=42)
@@ -197,7 +198,12 @@ def main() -> None:
             for i in range(8)
         ]
 
-    model = DeepfakeImageDetector(backbone=args.backbone, num_classes=1, freeze_extractor=True)
+    model = DeepfakeImageDetector(
+        backbone=args.backbone,
+        num_classes=1,
+        freeze_extractor=True,
+        pretrained=True,
+    )
     mine_hard_samples(
         model=model,
         synthetic_metadata=meta_list,
