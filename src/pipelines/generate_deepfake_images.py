@@ -64,6 +64,11 @@ def run_image_generation(
     resume: bool = True,
     seed: Optional[int] = None,
     config: Optional[Union[Dict[str, Any], Path, str]] = None,
+    prompt_engine: Optional[Any] = None,
+    mode_quotas: Optional[Dict[str, int]] = None,
+    mask_targets: Optional[List[str]] = None,
+    total_samples: Optional[int] = None,
+    device: Optional[str] = None,
 ) -> int:
     """Generate synthetic deepfake faces (DF img) from real image manifest.
 
@@ -157,35 +162,58 @@ def run_image_generation(
 
     # Pre-plan generation tasks and group by mode to load each pipeline ONCE
     tasks = []
-    for item_idx, item in enumerate(real_items):
-        real_id = item["image_id"]
-        demographics = item.get("demographics")
-        for k in range(num_per_real_val):
-            fake_id = f"fake_{real_id}_{k}"
-            if mode_val == "all":
-                mode_idx = (item_idx + k) % 3
-            elif mode_val in ("img2img", "sd_img2img"):
-                mode_idx = 0
-            elif mode_val in ("inpaint", "sd_inpaint"):
-                mode_idx = 1
-            elif mode_val in ("text2img", "sd_text2img"):
-                mode_idx = 2
-            else:
-                mode_idx = (item_idx + k) % 3
+    if mode_quotas:
+        mode_mapping = {"sd_img2img": 0, "img2img": 0, "sd_inpaint": 1, "inpaint": 1, "sd_text2img": 2, "text2img": 2}
+        t_idx = 0
+        for m_name, count in mode_quotas.items():
+            m_idx = mode_mapping.get(m_name, 0)
+            for c in range(count):
+                real_item = real_items[t_idx % len(real_items)]
+                real_id = real_item["image_id"]
+                fake_id = f"fake_{real_id}_q{m_idx}_{c}"
+                tasks.append({
+                    "item_idx": t_idx,
+                    "item": real_item,
+                    "real_id": real_id,
+                    "k": c,
+                    "fake_id": fake_id,
+                    "mode_idx": m_idx,
+                    "demographics": real_item.get("demographics"),
+                })
+                t_idx += 1
+    else:
+        for item_idx, item in enumerate(real_items):
+            real_id = item["image_id"]
+            demographics = item.get("demographics")
+            for k in range(num_per_real_val):
+                fake_id = f"fake_{real_id}_{k}"
+                if mode_val == "all":
+                    mode_idx = (item_idx + k) % 3
+                elif mode_val in ("img2img", "sd_img2img"):
+                    mode_idx = 0
+                elif mode_val in ("inpaint", "sd_inpaint"):
+                    mode_idx = 1
+                elif mode_val in ("text2img", "sd_text2img"):
+                    mode_idx = 2
+                else:
+                    mode_idx = (item_idx + k) % 3
 
-            tasks.append({
-                "item_idx": item_idx,
-                "item": item,
-                "real_id": real_id,
-                "k": k,
-                "fake_id": fake_id,
-                "mode_idx": mode_idx,
-                "demographics": demographics,
-            })
+                tasks.append({
+                    "item_idx": item_idx,
+                    "item": item,
+                    "real_id": real_id,
+                    "k": k,
+                    "fake_id": fake_id,
+                    "mode_idx": mode_idx,
+                    "demographics": demographics,
+                })
+        if total_samples is not None and total_samples > 0:
+            tasks = tasks[:total_samples]
 
     # Group by mode_idx (img2img, inpaint, text2img)
     tasks.sort(key=lambda t: t["mode_idx"])
 
+    inpaint_counter = 0
     for task in tasks:
         item = task["item"]
         real_id = task["real_id"]
@@ -208,7 +236,11 @@ def run_image_generation(
             sub_folder = "text2image"
             base_p = "RAW photo, authentic portrait of a person, sharp focus, natural skin texture, 8k uhd, dslr, soft studio lighting"
 
-        prompt_used = _build_demographic_prompt(demographics, base_p)
+        if prompt_engine:
+            mode_str = "img2img" if mode_idx == 0 else ("inpaint" if mode_idx == 1 else "text2img")
+            prompt_used = prompt_engine.generate_prompt(demographics, mode=mode_str, seed_offset=task["item_idx"])
+        else:
+            prompt_used = _build_demographic_prompt(demographics, base_p)
         sub_dir = out_dir_path / sub_folder
         sub_dir.mkdir(parents=True, exist_ok=True)
         out_file = sub_dir / f"{fake_id}.png"
@@ -216,11 +248,12 @@ def run_image_generation(
         # Derive per-sample deterministic seed
         curr_seed = sample_seed(seed_val, fake_id, k)
 
+        active_model_id = inpaint_model_val if manip_type == "sd_inpaint" else model_name_val
         curr_gen = generation_params(
             cfg,
             manip_type,
             overrides={
-                "model_id": model_name_val,
+                "model_id": active_model_id,
                 "steps": steps_val,
                 "guidance_scale": guidance_scale_val,
                 "img2img_strength": img2img_strength_val,
@@ -286,7 +319,13 @@ def run_image_generation(
             )
         elif mode_idx == 1:
             raw_bbox = item.get("bbox")
-            region_choice = ["periocular", "lips", "full"][task["item_idx"] % 3]
+            if mask_targets and inpaint_counter < len(mask_targets):
+                region_choice = mask_targets[inpaint_counter]
+            else:
+                region_choice = ["periocular", "lips", "full"][task["item_idx"] % 3]
+            inpaint_counter += 1
+            curr_gen["inpaint_mask_target"] = region_choice
+
             mask = generate_dynamic_face_mask(
                 source_img, bbox=raw_bbox, blur_radius=18, target_region=region_choice
             )
