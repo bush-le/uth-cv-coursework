@@ -492,6 +492,21 @@ def run_active_learning_loop(
             sum(1 for m in current_train_records if m.is_hard_sample),
         )
 
+        # Persist benchmark dataset manifests for D1_augmented and D2_hard_boosted
+        bench_folder_name = "D1_augmented" if r == 1 else ("D2_hard_boosted" if r == 2 else f"D{r}_expanded")
+        bench_dir = Path("data/benchmarks") / bench_folder_name
+        bench_dir.mkdir(parents=True, exist_ok=True)
+        with open(bench_dir / "train.jsonl", "w", encoding="utf-8") as bf:
+            for m in current_train_records:
+                bf.write(json.dumps(m.to_dict()) + "\n")
+        with open(bench_dir / "val.jsonl", "w", encoding="utf-8") as bf:
+            for m in val_records:
+                bf.write(json.dumps(m.to_dict()) + "\n")
+        with open(bench_dir / "test.jsonl", "w", encoding="utf-8") as bf:
+            for m in test_records:
+                bf.write(json.dumps(m.to_dict()) + "\n")
+        logger.info("Persisted benchmark dataset %s to %s", bench_folder_name, bench_dir)
+
         # 10. Retrain Detector M_r on Expanded Dataset D_r
         round_dm = DeepfakeImageDataModule(
             train_metadata=current_train_records,
@@ -510,14 +525,14 @@ def run_active_learning_loop(
             num_epochs=epochs_per_round,
             learning_rate=2e-4,
             hard_sample_loss_weight=2.0,
-            checkpoint_dir=checkpoints_dir,
+            checkpoint_dir=ckpt_dir,
             checkpoint_prefix=f"active_learning_m{r}",
             device=device,
             seed=seed,
         )
 
         # 11. Dual-Benchmark Evaluation
-        m_best_ckpt = checkpoints_dir / f"active_learning_m{r}_best.pt"
+        m_best_ckpt = ckpt_dir / f"active_learning_m{r}_best.pt"
         if m_best_ckpt.exists():
             state = torch.load(m_best_ckpt, map_location=device)
             if "model_state_dict" in state:
