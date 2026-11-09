@@ -44,6 +44,11 @@ conda-env/
 *.tflite
 *.ckpt
 *.h5
+*.safetensors
+*.bin
+*.joblib
+*.pkl
+*.pickle
 
 # PyTorch hub / Torchvision cache
 .cache/
@@ -83,8 +88,25 @@ data/benchmarks/*
 !data/benchmarks/.gitkeep
 data/partitions/*
 !data/partitions/.gitkeep
-data/iterative_loop/**/*.png
-data/iterative_loop/**/*.jpg
+data/active_learning/*
+!data/active_learning/.gitkeep
+data/iterative_loop/*
+!data/iterative_loop/.gitkeep
+
+# Heavy generated and raw media across data subdirectories
+data/**/*.png
+data/**/*.jpg
+data/**/*.jpeg
+data/**/*.webp
+
+# Scratch and temporary directories
+scratch/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
 
 # Allow sample data and documentation assets
 !data/samples/**
