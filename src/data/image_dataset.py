@@ -29,7 +29,7 @@ class DeepfakeImageDataset(Dataset):
         metadata_list: List[ImageMetadata],
         cache: Optional[Dict[str, torch.Tensor]] = None,
         transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
-        target_size: Optional[Tuple[int, int]] = (256, 256),
+        target_size: Optional[Tuple[int, int]] = (512, 512),
     ) -> None:
         self.metadata_list = metadata_list
         self.cache = cache or {}
@@ -48,7 +48,7 @@ class DeepfakeImageDataset(Dataset):
         with Image.open(path) as img:
             img_rgb = img.convert("RGB")
             if self.target_size is not None:
-                img_rgb = img_rgb.resize(self.target_size, Image.Resampling.BILINEAR)
+                img_rgb = img_rgb.resize(self.target_size, Image.Resampling.LANCZOS)
             np_img = np.array(img_rgb, dtype=np.float32) / 255.0
             return torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
 
@@ -63,7 +63,7 @@ class DeepfakeImageDataset(Dataset):
         elif metadata.file_path:
             img = self._load_image_from_disk(metadata.file_path)
         else:
-            h, w = self.target_size if self.target_size else (256, 256)
+            h, w = self.target_size if self.target_size else (512, 512)
             img = torch.zeros(3, h, w, dtype=torch.float32)
 
         if self.transform is not None:

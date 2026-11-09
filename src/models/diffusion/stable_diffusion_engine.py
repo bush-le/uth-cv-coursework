@@ -16,11 +16,10 @@ from src.common.logger import get_logger
 logger = get_logger(__name__)
 
 DEFAULT_NEGATIVE_PROMPT = (
-    "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, "
-    "extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), "
-    "disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation, "
-    "plastic, doll, 3d render, cartoon, anime, artificial, mannequin, fake looking, "
-    "oversaturated, painting, drawing, sketch, low quality, artifacts"
+    "(deformed, distorted, disfigured:1.3), bad anatomy, poorly drawn face, blurry, "
+    "plastic, artificial, mannequin, fake, cartoon, 3d render, "
+    "mirror, frame, border, vignette, circular frame, porthole, multiple faces, "
+    "out of frame, cropped face, bad eyes, distorted pupils"
 )
 
 
@@ -46,7 +45,25 @@ def generate_dynamic_face_mask(
         Feathered mask tensor of shape (1, H, W) in [0, 1].
     """
     _, h, w = image.shape
+
+    # Detect if bbox is missing, pixel-coordinate formatted, or a dummy full-canvas bbox
+    needs_detection = False
     if bbox is None:
+        needs_detection = True
+    elif any(coord > 1.0 for coord in bbox):
+        # Pixel coordinates passed (e.g. [0, 0, 1024, 1024] or [x1, y1, x2, y2])
+        bx1, by1, bx2, by2 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
+        bw, bh = abs(bx2 - bx1), abs(by2 - by1)
+        if bw >= 0.90 * max(w, 1024) and bh >= 0.90 * max(h, 1024):
+            needs_detection = True
+        else:
+            ref_w, ref_h = max(w, 1024), max(h, 1024)
+            bbox = (min(by1, by2) / ref_h, min(bx1, bx2) / ref_w, max(by1, by2) / ref_h, max(bx1, bx2) / ref_w)
+    elif (bbox[2] - bbox[0] >= 0.90) and (bbox[3] - bbox[1] >= 0.90):
+        # Normalized but spans >= 90% of frame -> raw canvas dummy box
+        needs_detection = True
+
+    if needs_detection:
         np_img = (image.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
         gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
         cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -101,6 +118,10 @@ def generate_dynamic_face_mask(
     ksize = blur_radius * 2 + 1
     blurred = cv2.GaussianBlur(mask_np, (ksize, ksize), sigmaX=blur_radius / 2.0)
     norm_mask = blurred.astype(np.float32) / 255.0
+    if norm_mask.sum() == 0:
+        cv2.ellipse(mask_np, (w // 2, h // 2), (w // 4, h // 3), 0, 0, 360, 255, -1)
+        blurred = cv2.GaussianBlur(mask_np, (ksize, ksize), sigmaX=blur_radius / 2.0)
+        norm_mask = blurred.astype(np.float32) / 255.0
     return torch.from_numpy(norm_mask).unsqueeze(0).to(image.device)
 
 
@@ -258,8 +279,8 @@ class StableDiffusionEngine(nn.Module):
     def generate_text2img(
         self,
         prompt: str = "a photorealistic face",
-        height: int = 256,
-        width: int = 256,
+        height: int = 512,
+        width: int = 512,
         seed: int = 42,
         num_inference_steps: int = 25,
         guidance_scale: float = 7.5,

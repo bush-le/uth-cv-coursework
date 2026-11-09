@@ -43,9 +43,11 @@ def _build_demographic_prompt(demographics: Optional[Dict[str, Any]], base_promp
     elif glasses in ("Normal", "Glasses") or demographics.get("eyeglasses") is True:
         tags.append("wearing eyeglasses with realistic frame reflections")
 
-    if tags:
-        return f"{base_prompt}, {', '.join(tags)}"
-    return base_prompt
+    res = f"{base_prompt}, {', '.join(tags)}" if tags else base_prompt
+    words = res.split()
+    if len(words) > 60:
+        res = " ".join(words[:60])
+    return res
 
 
 def run_image_generation(
@@ -113,6 +115,9 @@ def run_image_generation(
     img2img_strength_val = float(_res(img2img_strength, "generation.img2img_strength", 0.55))
     seed_val = int(_res(seed, "seed", 42))
     mode_val = str(mode or "all")
+
+    image_size_cfg = _res(None, "generation.image_size", [512, 512])
+    target_h, target_w = int(image_size_cfg[0]), int(image_size_cfg[1])
 
     seed_everything(seed_val)
 
@@ -298,7 +303,7 @@ def run_image_generation(
                     source_img = mock_cache[real_id]
                 elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
                     with Image.open(item["file_path"]) as img:
-                        img_rgb = img.convert("RGB").resize((256, 256), Image.Resampling.BILINEAR)
+                        img_rgb = img.convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
                         np_img = np.array(img_rgb, dtype=np.float32) / 255.0
                         source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
                 else:
@@ -306,7 +311,7 @@ def run_image_generation(
                     continue
             h, w = source_img.shape[1], source_img.shape[2]
         else:
-            h, w = 256, 256
+            h, w = target_h, target_w
 
         if mode_idx == 0:
             fake_tensor = engine.generate_img2img(

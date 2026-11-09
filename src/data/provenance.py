@@ -76,7 +76,7 @@ def generation_params(
     steps = int(overrides.get("steps", gen_cfg.get("steps", 30)))
     guidance_scale = float(overrides.get("guidance_scale", gen_cfg.get("guidance_scale", 7.5)))
     img2img_strength = float(overrides.get("img2img_strength", gen_cfg.get("img2img_strength", 0.55)))
-    image_size = list(overrides.get("image_size", gen_cfg.get("image_size", [256, 256])))
+    image_size = list(overrides.get("image_size", gen_cfg.get("image_size", [512, 512])))
     negative_prompt = str(overrides.get("negative_prompt", gen_cfg.get("negative_prompt", "")))
     inpaint_mask_box = list(overrides.get("inpaint_mask_box", gen_cfg.get("inpaint_mask_box", [0.25, 0.25, 0.75, 0.75])))
 

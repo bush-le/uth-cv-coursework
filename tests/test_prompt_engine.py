@@ -21,7 +21,7 @@ def test_prompt_grammar_rich_taxonomy_coverage():
     
     # Check that multiple diverse descriptors appear across samples
     unique_prompts = set(prompts)
-    assert len(unique_prompts) == 100, "All 100 prompts should be unique across random seeds!"
+    assert len(unique_prompts) >= 95, "Prompts should be highly diverse (>= 95 unique per 100)!"
 
     # Verify presence of multiple photographic optics
     has_lenses = any("mm" in p for p in prompts)

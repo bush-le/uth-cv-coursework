@@ -38,7 +38,7 @@ SLOT_TAXONOMY: Dict[str, List[str]] = {
         "shot on 35mm film camera, subtle analog film grain, authentic depth",
         "medium format Hasselblad portrait, hyper-detailed skin pores, flawless micro-contrast",
         "135mm telephoto portrait lens, compressed background, flattering facial perspective",
-        "classic vintage SLR lens, slight optical vignette, warm photographic aesthetic",
+        "classic vintage 85mm portrait lens, warm organic film aesthetic, sharp facial details",
     ],
     "lighting": [
         "soft studio key light, diffuse beauty dish fill, subtle catchlights in eyes",

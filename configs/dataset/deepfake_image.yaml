@@ -9,7 +9,7 @@ benchmarks_dir: "data/benchmarks"
 sample_manifest_path: "data/samples/sample_manifest.jsonl"
 
 image:
-  size: [256, 256] # [H, W]
+  size: [512, 512] # [H, W]
   channels: 3
   color_space: "RGB"
   normalization:

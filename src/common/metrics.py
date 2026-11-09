@@ -320,24 +320,37 @@ def verify_facial_geometry(
 
     reasons: List[str] = []
     h, w = image.shape[:2]
-    if (h, w) != (256, 256):
-        image = cv2.resize(image, (256, 256))
-        h, w = 256, 256
+    if (h, w) != (512, 512):
+        image = cv2.resize(image, (512, 512))
+        h, w = 512, 512
 
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     face_cascade = cv2.CascadeClassifier(face_cascade_path)
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30))
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
 
     if len(faces) == 0:
         return False, ["No face landmark detected"]
-    if len(faces) > 2:
-        return False, [f"Too many faces detected ({len(faces)})"]
+    if len(faces) > 1:
+        return False, [f"Multiple faces detected ({len(faces)}), expecting single portrait"]
 
-    fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+    fx, fy, fw, fh = faces[0]
     aspect_ratio = fh / max(1, fw)
     if aspect_ratio < 0.65 or aspect_ratio > 1.6:
         reasons.append(f"Abnormal facial aspect ratio: {aspect_ratio:.2f}")
+
+    # Area ratio check (face must occupy 20% to 85% of frame, rejecting miniature mirror faces and extreme crops)
+    face_area_ratio = (fw * fh) / float(w * h)
+    if face_area_ratio < 0.20:
+        reasons.append(f"Face occupies too small area of frame ({face_area_ratio:.2%} < 20%): likely vignette/distant frame")
+    elif face_area_ratio > 0.85:
+        reasons.append(f"Face occupies too large area of frame ({face_area_ratio:.2%} > 85%): extreme crop")
+
+    # Centering check
+    center_x = (fx + fw / 2.0) / float(w)
+    center_y = (fy + fh / 2.0) / float(h)
+    if center_x < 0.15 or center_x > 0.85 or center_y < 0.15 or center_y > 0.85:
+        reasons.append(f"Face is severely off-center: ({center_x:.2f}, {center_y:.2f})")
 
     # Inspect lower face for horizontal inpainting boundary / seam spike
     lower = gray[fy + int(0.35 * fh) : fy + int(0.85 * fh), fx + int(0.1 * fw) : fx + int(0.9 * fw)]
