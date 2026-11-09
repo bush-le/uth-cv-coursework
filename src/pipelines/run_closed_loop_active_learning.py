@@ -125,6 +125,8 @@ def run_active_learning_loop(
     config_path: str = "configs/dataset_factory.yaml",
     dry_run: bool = False,
     output_base_dir: Optional[Path] = None,
+    checkpoints_dir: Optional[Path] = None,
+    resume: bool = True,
     device: str = "cpu",
     epochs_per_round: int = 5,
     seed: int = 42,
@@ -132,11 +134,13 @@ def run_active_learning_loop(
     """Execute multi-round closed-loop active learning deepfake dataset expansion.
 
     Args:
-        num_rounds: Number of adaptive rounds (M0 -> M1 -> M2).
+        num_rounds: Number of adaptive rounds to execute.
         candidates_per_round: Total candidate images to synthesize per round.
         config_path: Path to YAML configuration.
         dry_run: If True, executes fast mock pipeline without heavy model loading.
         output_base_dir: Base directory to store active learning outputs and logs.
+        checkpoints_dir: Directory where model checkpoints are saved and loaded.
+        resume: Whether to detect and resume from the latest completed round.
         device: Compute device ('cpu' or 'cuda').
         epochs_per_round: Number of fine-tuning epochs per detector round.
         seed: Master random seed.
@@ -149,10 +153,10 @@ def run_active_learning_loop(
 
     base_dir = output_base_dir or Path("data/active_learning")
     base_dir.mkdir(parents=True, exist_ok=True)
-    logs_dir = Path("experiments/logs")
+    logs_dir = (output_base_dir / "logs") if output_base_dir else Path("experiments/logs")
     logs_dir.mkdir(parents=True, exist_ok=True)
-    checkpoints_dir = Path("experiments/checkpoints")
-    checkpoints_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_dir = checkpoints_dir or Path("experiments/checkpoints")
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Initialize components
     budget_ctrl = AdaptiveBudgetController(
@@ -198,15 +202,59 @@ def run_active_learning_loop(
         "keyword_errors": {},
     }
 
+    # 3. Detect pre-existing completed rounds for stateful resume
+    latest_completed = 0
+    current_detector_ckpt = ckpt_dir / "baseline_d0_best.pt"
+    resume_records = list(current_train_records)
+
+    if resume:
+        r_cand = 1
+        while True:
+            r_dir = base_dir / f"round_{r_cand}"
+            r_hard_path = r_dir / "hard_samples.jsonl"
+            r_ckpt = ckpt_dir / f"active_learning_m{r_cand}_best.pt"
+            if r_hard_path.exists() and r_ckpt.exists():
+                logger.info("Found completed Round %d artifacts at %s and %s", r_cand, r_dir, r_ckpt.name)
+                with open(r_hard_path, "r", encoding="utf-8") as hf:
+                    new_hards = [ImageMetadata.from_dict(json.loads(line)) for line in hf if line.strip()]
+                    resume_records.extend(new_hards)
+                latest_completed = r_cand
+                current_detector_ckpt = r_ckpt
+                r_cand += 1
+            else:
+                break
+
+    if latest_completed > 0:
+        logger.info(
+            "Stateful resume activated: detected %d completed rounds. Resuming from Round %d.",
+            latest_completed,
+            latest_completed + 1,
+        )
+        current_train_records = resume_records
+        metrics_file = logs_dir / "closed_loop_metrics.json"
+        if metrics_file.exists():
+            try:
+                with open(metrics_file, "r", encoding="utf-8") as mf:
+                    old_data = json.load(mf)
+                    rounds_log = old_data.get("rounds", [])
+                    if rounds_log:
+                        prev_attribution = rounds_log[-1].get("attribution", prev_attribution)
+            except Exception:
+                pass
+
+    start_round = latest_completed + 1
+    end_round = latest_completed + num_rounds
+
     logger.info(
-        "=== Beginning Closed-Loop Active Learning Pipeline (%d rounds, %d candidates/round) ===",
-        num_rounds,
+        "=== Beginning Closed-Loop Active Learning Pipeline (Rounds %d -> %d, %d candidates/round) ===",
+        start_round,
+        end_round,
         candidates_per_round,
     )
 
     if dry_run:
         # Fast synthetic dry-run verification
-        for r in range(num_rounds):
+        for r in range(start_round, end_round + 1):
             mock_hard = [
                 ImageMetadata(
                     image_id=f"dry_hard_{r}_{i}",
@@ -254,9 +302,7 @@ def run_active_learning_loop(
         return out_summary
 
     # Live Execution Loop
-    current_detector_ckpt = checkpoints_dir / "baseline_d0_best.pt"
-
-    for r in range(1, num_rounds + 1):
+    for r in range(start_round, end_round + 1):
         round_dir = base_dir / f"round_{r}"
         round_dir.mkdir(parents=True, exist_ok=True)
         logger.info("\n--- [Active Learning Round %d/%d] ---", r, num_rounds)

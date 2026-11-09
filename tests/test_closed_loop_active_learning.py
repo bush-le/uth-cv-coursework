@@ -77,3 +77,31 @@ def test_closed_loop_dry_run_scaffolding(tmp_path):
     assert "test_metrics" in r0
     assert "hard_sample_count" in r0
     assert "attribution" in r0
+
+
+def test_stateful_round_resume_detection(tmp_path):
+    """Verify orchestrator detects pre-existing completed rounds and resumes from next round."""
+    out_dir = tmp_path / "closed_loop"
+    ckpt_dir = tmp_path / "checkpoints"
+    ckpt_dir.mkdir(parents=True)
+
+    # Simulate completed Round 1
+    r1_dir = out_dir / "round_1"
+    r1_dir.mkdir(parents=True)
+    h1_file = r1_dir / "hard_samples.jsonl"
+    h1_file.write_text(json.dumps({"image_id": "h1_sample", "label": 1, "is_hard_sample": True}) + "\n")
+    
+    m1_ckpt = ckpt_dir / "active_learning_m1_best.pt"
+    torch.save({"epoch": 2, "best_metric": 0.75}, m1_ckpt)
+
+    metrics = run_active_learning_loop(
+        num_rounds=1,
+        candidates_per_round=6,
+        dry_run=True,
+        output_base_dir=out_dir,
+        checkpoints_dir=ckpt_dir,
+    )
+
+    # Should have executed Round 2 since Round 1 was detected as completed
+    assert metrics["rounds"][-1]["round"] == 2
+
