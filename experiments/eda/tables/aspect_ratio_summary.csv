@@ -1,0 +1,3 @@
+group,image_count,mean_ar,std_ar,min_ar,median_ar,max_ar,non_square_count,square_Numeric_pct
+celeba_hq,2000,1.0,0.0,1.0,1.0,1.0,0,100.0
+ffhq,1168,1.0,0.0,1.0,1.0,1.0,0,100.0

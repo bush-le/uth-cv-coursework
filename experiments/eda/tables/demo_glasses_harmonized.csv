@@ -1,0 +1,5 @@
+dataset,glasses_norm,count,percentage
+celeba_hq,without_glasses,1940,97.0
+celeba_hq,with_glasses,60,3.0
+ffhq,without_glasses,912,78.08
+ffhq,with_glasses,256,21.92

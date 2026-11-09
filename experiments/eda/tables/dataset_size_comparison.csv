@@ -1,0 +1,3 @@
+group,manifest_records,manifest_share_pct,existing_files,existing_share_pct,missing_files,availability_pct,total_storage_mb
+celeba_hq,2000,50.0,2000,63.13,0,100.0,231.83
+ffhq,2000,50.0,1168,36.87,832,58.4,1495.25

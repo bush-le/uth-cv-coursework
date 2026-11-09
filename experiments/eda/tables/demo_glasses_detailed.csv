@@ -1,0 +1,6 @@
+dataset,glasses_detail,count,percentage
+celeba_hq,None,1940,97.0
+celeba_hq,Eyeglasses,60,3.0
+ffhq,None,912,78.08
+ffhq,Normal,206,17.64
+ffhq,Dark,50,4.28
