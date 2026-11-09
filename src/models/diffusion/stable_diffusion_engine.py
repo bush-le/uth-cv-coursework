@@ -28,13 +28,16 @@ def generate_dynamic_face_mask(
     image: torch.Tensor,
     bbox: Optional[Tuple[float, float, float, float]] = None,
     blur_radius: int = 16,
+    target_region: str = "full",
 ) -> torch.Tensor:
-    """Generate a smooth anatomical oval mask encompassing face, cheeks, and full jawline.
+    """Generate a smooth anatomical oval mask encompassing face, cheeks, and full jawline,
+    or localized micro-regions (periocular or lips) for adversarial synthesis.
 
     Args:
         image: Source face tensor of shape (C, H, W) in [0, 1].
         bbox: Optional normalized (ymin, xmin, ymax, xmax) bounding box.
         blur_radius: Gaussian blur radius for boundary feathering.
+        target_region: "full" for complete face/jaw, "periocular" for eye zone, "lips" for mouth zone.
 
     Returns:
         Feathered mask tensor of shape (1, H, W) in [0, 1].
@@ -56,15 +59,29 @@ def generate_dynamic_face_mask(
     face_h = ymax - ymin
     face_w = xmax - xmin
 
-    # Expand downwards by 18% of face height to fully cover the mouth, jaw, and chin
-    expanded_ymax = min(1.0, ymax + 0.18 * face_h)
-    expanded_xmin = max(0.0, xmin - 0.05 * face_w)
-    expanded_xmax = min(1.0, xmax + 0.05 * face_w)
+    if target_region == "periocular":
+        # Target periocular / eye strip (upper-mid face)
+        m_ymin = ymin + 0.15 * face_h
+        m_ymax = ymin + 0.58 * face_h
+        m_xmin = max(0.0, xmin - 0.05 * face_w)
+        m_xmax = min(1.0, xmax + 0.05 * face_w)
+    elif target_region == "lips":
+        # Target mouth / lips region (lower face)
+        m_ymin = ymin + 0.55 * face_h
+        m_ymax = min(1.0, ymax + 0.18 * face_h)
+        m_xmin = xmin + 0.10 * face_w
+        m_xmax = xmax - 0.10 * face_w
+    else:
+        # Full face: expand downwards by 18% of face height to fully cover mouth, jaw, and chin
+        m_ymin = ymin
+        m_ymax = min(1.0, ymax + 0.18 * face_h)
+        m_xmin = max(0.0, xmin - 0.05 * face_w)
+        m_xmax = min(1.0, xmax + 0.05 * face_w)
 
-    center_y = int(((ymin + expanded_ymax) / 2.0) * h)
-    center_x = int(((expanded_xmin + expanded_xmax) / 2.0) * w)
-    axis_y = max(1, int(((expanded_ymax - ymin) / 2.0) * h))
-    axis_x = max(1, int(((expanded_xmax - expanded_xmin) / 2.0) * w))
+    center_y = int(((m_ymin + m_ymax) / 2.0) * h)
+    center_x = int(((m_xmin + m_xmax) / 2.0) * w)
+    axis_y = max(1, int(((m_ymax - m_ymin) / 2.0) * h))
+    axis_x = max(1, int(((m_xmax - m_xmin) / 2.0) * w))
 
     mask_np = np.zeros((h, w), dtype=np.uint8)
     cv2.ellipse(

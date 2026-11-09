@@ -39,3 +39,20 @@ def test_dynamic_oval_mask_auto_detects_or_fallbacks():
     mask = generate_dynamic_face_mask(dummy_img, bbox=None, blur_radius=12)
     assert mask.shape == (1, 256, 256)
     assert mask[:, 128, 128].item() > 0.5
+
+
+def test_micro_inpaint_preserves_facial_continuity():
+    """Verify localized micro-inpaint masks target only periocular or lip regions."""
+    from src.models.diffusion.stable_diffusion_engine import generate_dynamic_face_mask
+
+    dummy_img = torch.zeros(3, 256, 256)
+    face_bbox = (0.2, 0.2, 0.8, 0.8)
+    mask = generate_dynamic_face_mask(dummy_img, bbox=face_bbox, target_region="periocular", blur_radius=8)
+    assert mask.shape == (1, 256, 256)
+    # Eye region is masked (> 0.5)
+    eye_y = int((0.2 + 0.6 * 0.45) * 256)
+    assert mask[:, eye_y, 128].item() > 0.5
+    # Chin region remains unmasked (< 0.1)
+    chin_y = int((0.2 + 0.6 * 0.90) * 256)
+    assert mask[:, chin_y, 128].item() < 0.1
+
