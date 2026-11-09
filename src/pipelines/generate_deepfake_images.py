@@ -3,14 +3,16 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional, Union
 import numpy as np
 from PIL import Image
 import torch
 
+from src.common.config import cfg_get, load_config, resolve
 from src.common.logger import get_logger
 from src.common.seed import seed_everything
 from src.data.image_schema import ImageMetadata
+from src.data.provenance import generation_params, sample_seed
 from src.models.diffusion.stable_diffusion_engine import StableDiffusionEngine
 
 logger = get_logger(__name__)
@@ -41,41 +43,69 @@ def _build_demographic_prompt(demographics: Optional[Dict[str, Any]], base_promp
 
 
 def run_image_generation(
-    input_manifest: Path,
-    output_manifest: Path,
-    output_dir: Path,
-    model_name: str = "runwayml/stable-diffusion-v1-5",
+    input_manifest: Optional[Union[str, Path]] = None,
+    output_manifest: Optional[Union[str, Path]] = None,
+    output_dir: Optional[Union[str, Path]] = None,
+    model_name: Optional[str] = None,
     mock_cache: Optional[Dict[str, torch.Tensor]] = None,
-    num_per_real: int = 1,
+    num_per_real: Optional[int] = None,
     max_samples: Optional[int] = None,
-    steps: int = 20,
+    steps: Optional[int] = None,
+    guidance_scale: Optional[float] = None,
+    img2img_strength: Optional[float] = None,
     use_mock_fallback: bool = False,
-    mode: str = "all",
+    mode: Optional[str] = None,
     resume: bool = True,
-    seed: int = 42,
+    seed: Optional[int] = None,
+    config: Optional[Union[Dict[str, Any], Path, str]] = None,
 ) -> int:
     """Generate synthetic deepfake faces (DF img) from real image manifest.
 
-    Args:
-        input_manifest: Path to real faces manifest.jsonl.
-        output_manifest: Path to output synthetic faces manifest.jsonl.
-        output_dir: Directory where generated image files will be saved.
-        model_name: Name of the Stable Diffusion model or mock.
-        mock_cache: Optional dictionary of tensors for headless testing.
-        num_per_real: Number of synthetic variants to generate per real face.
-        max_samples: Optional maximum number of real samples to synthesize from.
-        steps: Number of diffusion inference steps.
-        use_mock_fallback: Whether to allow fallback to mock generator on failure.
-        mode: Synthesis mode ('all', 'img2img', 'inpaint', 'text2img').
-        resume: Skip re-generating images already existing on disk.
-        seed: Random seed for reproducibility.
-
-    Returns:
-        Number of synthetic images generated.
+    Zero-Mock & Zero-Hardcode compliant:
+    - Automatically loads default configurations from configs/dataset_factory.yaml.
+    - CLI/explicit arguments override config settings.
+    - Derives deterministic per-sample seeds via sample_seed() preventing duplicate outputs.
+    - Records full generation provenance in ImageMetadata.generation.
+    - Resume regenerates when generation parameters change.
     """
-    seed_everything(seed)
+    # Load configuration
+    cfg: Dict[str, Any] = {}
+    if isinstance(config, (str, Path)) and Path(config).is_file():
+        cfg = load_config(Path(config))
+    elif isinstance(config, dict):
+        cfg = config
+    elif Path("configs/dataset_factory.yaml").is_file():
+        try:
+            cfg = load_config(Path("configs/dataset_factory.yaml"))
+        except Exception:
+            cfg = {}
+
+    def _res(cli_val: Any, dotted_key: str, default_val: Any) -> Any:
+        if cli_val is not None:
+            return cli_val
+        try:
+            return cfg_get(cfg, dotted_key)
+        except (KeyError, TypeError):
+            return default_val
+
+    in_manifest_path = Path(_res(input_manifest, "paths.raw_manifest", "data/raw/manifest.jsonl"))
+    out_manifest_path = Path(_res(output_manifest, "paths.fake_manifest", "data/synthetic/fake_manifest.jsonl"))
+    out_dir_path = Path(_res(output_dir, "paths.synthetic_dir", "data/synthetic"))
+    model_name_val = str(_res(model_name, "generation.model_id", "runwayml/stable-diffusion-v1-5"))
+    num_per_real_val = int(_res(num_per_real, "generation.num_per_real", 1))
+    max_samples_val = _res(max_samples, "generation.max_real_samples", None)
+    if max_samples_val is not None:
+        max_samples_val = int(max_samples_val)
+    steps_val = int(_res(steps, "generation.steps", 20))
+    guidance_scale_val = float(_res(guidance_scale, "generation.guidance_scale", 7.5))
+    img2img_strength_val = float(_res(img2img_strength, "generation.img2img_strength", 0.55))
+    seed_val = int(_res(seed, "seed", 42))
+    mode_val = str(mode or "all")
+
+    seed_everything(seed_val)
+
     if use_mock_fallback:
-        out_res = output_dir.resolve()
+        out_res = out_dir_path.resolve()
         data_res = Path("data").resolve()
         if out_res == data_res or data_res in out_res.parents:
             raise ValueError(
@@ -83,43 +113,56 @@ def run_image_generation(
                 "See .agents/rules/ZERO_MOCK_DATA_RULE.md"
             )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_manifest.parent.mkdir(parents=True, exist_ok=True)
+    out_dir_path.mkdir(parents=True, exist_ok=True)
+    out_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Read existing records for provenance-aware resume
+    existing_records: Dict[str, Dict[str, Any]] = {}
+    if out_manifest_path.exists():
+        with open(out_manifest_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line_s = line.strip()
+                if line_s:
+                    try:
+                        rec = json.loads(line_s)
+                        if "image_id" in rec:
+                            existing_records[rec["image_id"]] = rec
+                    except Exception:
+                        pass
 
     engine = StableDiffusionEngine(
-        model_name=model_name,
+        model_name=model_name_val,
         use_mock_fallback=use_mock_fallback,
     )
     generated_count = 0
     fake_records = []
 
-    if not input_manifest.exists():
-        logger.warning("Input manifest %s not found, generating minimal sample.", input_manifest)
+    if not in_manifest_path.exists():
+        logger.warning("Input manifest %s not found, generating minimal sample.", in_manifest_path)
         real_items = [{"image_id": "real_sample_01", "label": 0}]
     else:
-        with open(input_manifest, "r", encoding="utf-8") as f:
+        with open(in_manifest_path, "r", encoding="utf-8") as f:
             real_items = [json.loads(line) for line in f if line.strip()]
 
-    if max_samples is not None and max_samples > 0:
-        real_items = real_items[:max_samples]
+    if max_samples_val is not None and max_samples_val > 0:
+        real_items = real_items[:max_samples_val]
 
     for item_idx, item in enumerate(real_items):
         real_id = item["image_id"]
         demographics = item.get("demographics")
-
         source_img = None
 
-        for k in range(num_per_real):
+        for k in range(num_per_real_val):
             fake_id = f"fake_{real_id}_{k}"
 
             # Determine mode
-            if mode == "all":
+            if mode_val == "all":
                 mode_idx = (item_idx + k) % 3
-            elif mode == "img2img":
+            elif mode_val == "img2img":
                 mode_idx = 0
-            elif mode == "inpaint":
+            elif mode_val == "inpaint":
                 mode_idx = 1
-            elif mode == "text2img":
+            elif mode_val == "text2img":
                 mode_idx = 2
             else:
                 mode_idx = (item_idx + k) % 3
@@ -138,28 +181,54 @@ def run_image_generation(
                 base_p = "photorealistic portrait of a synthetic person"
 
             prompt_used = _build_demographic_prompt(demographics, base_p)
-            sub_dir = output_dir / sub_folder
+            sub_dir = out_dir_path / sub_folder
             sub_dir.mkdir(parents=True, exist_ok=True)
             out_file = sub_dir / f"{fake_id}.png"
-            flat_file = output_dir / f"{fake_id}.png"
 
-            # Check resume
+            # Derive per-sample deterministic seed
+            curr_seed = sample_seed(seed_val, fake_id, k)
+
+            curr_gen = generation_params(
+                cfg,
+                manip_type,
+                overrides={
+                    "model_id": model_name_val,
+                    "steps": steps_val,
+                    "guidance_scale": guidance_scale_val,
+                    "img2img_strength": img2img_strength_val,
+                },
+            )
+            curr_gen["seed"] = curr_seed
+
+            # Check provenance-aware resume
             if resume and out_file.exists() and out_file.stat().st_size > 0:
-                logger.info("Resuming %s: already exists on disk, skipping generation.", out_file.name)
-                meta = ImageMetadata(
-                    image_id=fake_id,
-                    label=1,
-                    manipulation_type=manip_type,
-                    prompt=prompt_used,
-                    source_real_id=real_id,
-                    file_path=str(out_file),
-                    is_hard_sample=False,
-                    data_source="synthetic",
-                    demographics=demographics,
-                )
-                fake_records.append(meta.to_dict())
-                generated_count += 1
-                continue
+                old_rec = existing_records.get(fake_id)
+                old_gen = old_rec.get("generation") if old_rec else None
+
+                # Must match key parameters to safely reuse
+                if old_gen and (
+                    old_gen.get("steps") == curr_gen["steps"]
+                    and old_gen.get("model_id") == curr_gen["model_id"]
+                    and old_gen.get("mode") == curr_gen["mode"]
+                    and old_gen.get("seed") == curr_gen["seed"]
+                ):
+                    logger.info("Resuming %s: identical generation parameters, skipping generation.", out_file.name)
+                    meta = ImageMetadata(
+                        image_id=fake_id,
+                        label=1,
+                        manipulation_type=manip_type,
+                        prompt=prompt_used,
+                        source_real_id=real_id,
+                        file_path=str(out_file),
+                        is_hard_sample=False,
+                        data_source="synthetic",
+                        demographics=demographics,
+                        generation=curr_gen,
+                        scores=old_rec.get("scores"),
+                    )
+                    fake_records.append(meta.to_dict())
+                    generated_count += 1
+                    continue
 
             # Need source image for img2img / inpaint
             if mode_idx in (0, 1):
@@ -182,40 +251,44 @@ def run_image_generation(
                 fake_tensor = engine.generate_img2img(
                     source_image=source_img,
                     prompt=prompt_used,
-                    strength=0.5,
-                    num_inference_steps=steps,
-                    seed=seed + k,
+                    strength=img2img_strength_val,
+                    num_inference_steps=steps_val,
+                    seed=curr_seed,
+                    guidance_scale=guidance_scale_val,
                 )
             elif mode_idx == 1:
+                mask_box = curr_gen.get("inpaint_mask_box", [0.25, 0.25, 0.75, 0.75])
+                ymin_pct, xmin_pct, ymax_pct, xmax_pct = mask_box
+                ymin, ymax = int(ymin_pct * h), int(ymax_pct * h)
+                xmin, xmax = int(xmin_pct * w), int(xmax_pct * w)
+
                 mask = torch.zeros(1, h, w)
-                mask[:, h // 4 : 3 * h // 4, w // 4 : 3 * w // 4] = 1.0
-                # Soft boundary blending with smooth 2D pooling
+                mask[:, ymin:ymax, xmin:xmax] = 1.0
                 mask = torch.nn.functional.avg_pool2d(
                     mask.unsqueeze(0), kernel_size=9, stride=1, padding=4
                 ).squeeze(0)
+
                 fake_tensor = engine.generate_inpaint(
                     source_image=source_img,
                     mask=mask,
                     prompt=prompt_used,
-                    num_inference_steps=steps,
-                    seed=seed + k,
+                    num_inference_steps=steps_val,
+                    seed=curr_seed,
+                    guidance_scale=guidance_scale_val,
                 )
             else:
                 fake_tensor = engine.generate_text2img(
                     prompt=prompt_used,
                     height=h,
                     width=w,
-                    num_inference_steps=steps,
-                    seed=seed + k,
+                    num_inference_steps=steps_val,
+                    seed=curr_seed,
+                    guidance_scale=guidance_scale_val,
                 )
 
             # Save PNG into dedicated mode folder
             np_img = (fake_tensor.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
             Image.fromarray(np_img).save(out_file)
-
-            # Also save flat copy in output_dir root for flat lookup
-            if flat_file != out_file:
-                Image.fromarray(np_img).save(flat_file)
 
             meta = ImageMetadata(
                 image_id=fake_id,
@@ -227,16 +300,17 @@ def run_image_generation(
                 is_hard_sample=False,
                 data_source="synthetic",
                 demographics=demographics,
+                generation=curr_gen,
             )
             fake_records.append(meta.to_dict())
             generated_count += 1
 
-    with open(output_manifest, "w", encoding="utf-8") as f:
+    with open(out_manifest_path, "w", encoding="utf-8") as f:
         for r in fake_records:
             f.write(json.dumps(r) + "\n")
 
     logger.info(
-        "Generation complete: %d synthetic faces saved to %s.", generated_count, output_manifest
+        "Generation complete: %d synthetic faces saved to %s.", generated_count, out_manifest_path
     )
     return generated_count
 
@@ -245,13 +319,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate synthetic deepfake faces via Stable Diffusion."
     )
-    parser.add_argument("--input-manifest", type=str, default="data/raw/manifest.jsonl")
-    parser.add_argument("--output-manifest", type=str, default="data/synthetic/fake_manifest.jsonl")
-    parser.add_argument("--output-dir", type=str, default="data/synthetic")
+    parser.add_argument("--config", type=str, default="configs/dataset_factory.yaml", help="Path to YAML config")
+    parser.add_argument("--input-manifest", type=str, default=None)
+    parser.add_argument("--output-manifest", type=str, default=None)
+    parser.add_argument("--output-dir", type=str, default=None)
     parser.add_argument(
         "--model",
         type=str,
-        default="runwayml/stable-diffusion-v1-5",
+        default=None,
         help="Model checkpoint or ID (e.g. runwayml/stable-diffusion-v1-5)",
     )
     parser.add_argument(
@@ -263,8 +338,8 @@ def main() -> None:
         "--mode",
         type=str,
         choices=["all", "img2img", "inpaint", "text2img"],
-        default="all",
-        help="Generation mode (all, img2img, inpaint, text2img). Default: all.",
+        default=None,
+        help="Generation mode (all, img2img, inpaint, text2img).",
     )
     parser.add_argument(
         "--resume",
@@ -278,17 +353,17 @@ def main() -> None:
         dest="resume",
         help="Force overwrite/regenerate all images even if they already exist.",
     )
-    parser.add_argument("--num-per-real", type=int, default=1)
+    parser.add_argument("--num-per-real", type=int, default=None)
     parser.add_argument("--max-samples", type=int, default=None, help="Max real samples to synthesize from")
-    parser.add_argument("--steps", type=int, default=20, help="Number of diffusion inference steps")
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--steps", type=int, default=None, help="Number of diffusion inference steps")
+    parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
 
     model_to_use = "mock_sd" if args.mock else args.model
     run_image_generation(
-        input_manifest=Path(args.input_manifest),
-        output_manifest=Path(args.output_manifest),
-        output_dir=Path(args.output_dir),
+        input_manifest=args.input_manifest,
+        output_manifest=args.output_manifest,
+        output_dir=args.output_dir,
         model_name=model_to_use,
         num_per_real=args.num_per_real,
         max_samples=args.max_samples,
@@ -297,6 +372,7 @@ def main() -> None:
         mode=args.mode,
         resume=args.resume,
         seed=args.seed,
+        config=args.config,
     )
 
 

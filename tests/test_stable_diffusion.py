@@ -1,6 +1,7 @@
 """Unit tests for StableDiffusionEngine and synthetic generation pipeline."""
 
 import json
+from pathlib import Path
 import pytest
 import torch
 from src.models.diffusion.stable_diffusion_engine import StableDiffusionEngine
@@ -78,4 +79,6 @@ def test_run_image_generation_pipeline(tmp_path):
     )
     assert count == 2
     assert output_manifest.exists()
-    assert (output_dir / "fake_real_001_0.png").exists()
+    records = [json.loads(line) for line in output_manifest.read_text().splitlines() if line.strip()]
+    assert len(records) == 2
+    assert Path(records[0]["file_path"]).exists()

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
+import zlib
 import numpy as np
 from PIL import Image
 import torch
@@ -51,7 +52,8 @@ class StableDiffusionEngine(nn.Module):
 
     def _mock_text2img(self, prompt: str, height: int, width: int, seed: int = 42) -> torch.Tensor:
         """Deterministic mock text-to-image synthesis producing structured portrait patterns."""
-        gen = torch.Generator().manual_seed(seed + hash(prompt) % 10000)
+        seed_offset = zlib.crc32(prompt.encode("utf-8")) % 10000
+        gen = torch.Generator().manual_seed((seed + seed_offset) % (2**31 - 1))
         y = torch.linspace(-1.0, 1.0, height).view(height, 1).repeat(1, width)
         x = torch.linspace(-1.0, 1.0, width).view(1, width).repeat(height, 1)
         r = torch.sqrt(x**2 + y**2)

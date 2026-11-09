@@ -38,6 +38,8 @@ class ImageMetadata:
     baseline_score: Optional[float] = None
     data_source: str = "baseline"
     demographics: Optional[Dict[str, Any]] = None
+    generation: Optional[Dict[str, Any]] = None
+    scores: Optional[Dict[str, float]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize metadata to a dictionary."""
@@ -59,6 +61,8 @@ class ImageMetadata:
             baseline_score=float(baseline_score_raw) if baseline_score_raw is not None else None,
             data_source=str(data.get("data_source", "baseline")),
             demographics=data.get("demographics"),
+            generation=data.get("generation"),
+            scores=data.get("scores"),
         )
 
 
