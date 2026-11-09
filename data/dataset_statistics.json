@@ -22,12 +22,18 @@
       "15-19": 113,
       "7-9": 72,
       "70-120": 32,
-      "unknown": 2000
+      "young": 1576,
+      "mature": 424
     },
     "gender_distribution": {
-      "male": 966,
-      "female": 1059,
-      "unknown": 2000
+      "male": 1419,
+      "female": 2606
+    },
+    "glasses_distribution": {
+      "None": 3518,
+      "Normal": 352,
+      "Dark": 95,
+      "Glasses": 60
     }
   },
   "curation_pass_rate": 0.8333333333333334,

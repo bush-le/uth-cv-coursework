@@ -159,6 +159,49 @@ def build_stage(
     }
 
 
+def normalize_demographics(demo: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    """Normalize demographic dictionaries across CelebA-HQ and FFHQ schema variants.
+
+    Args:
+        demo: Raw demographic metadata dictionary.
+
+    Returns:
+        Unified dictionary with standardized string values for 'gender', 'age_group', and 'glasses'.
+    """
+    if not demo:
+        return {"gender": "unknown", "age_group": "unknown", "glasses": "None"}
+
+    # 1. Normalize Gender
+    if "gender" in demo and demo["gender"] is not None:
+        gender = str(demo["gender"]).lower()
+    elif "male" in demo and demo["male"] is not None:
+        gender = "male" if bool(demo["male"]) else "female"
+    else:
+        gender = "unknown"
+
+    # 2. Normalize Age Group
+    if "age_group" in demo and demo["age_group"] is not None:
+        age_group = str(demo["age_group"])
+    elif "young" in demo and demo["young"] is not None:
+        age_group = "young" if bool(demo["young"]) else "mature"
+    else:
+        age_group = "unknown"
+
+    # 3. Normalize Glasses / Occlusion
+    if "glasses" in demo and demo["glasses"] is not None:
+        glasses = str(demo["glasses"])
+    elif "eyeglasses" in demo and demo["eyeglasses"] is not None:
+        glasses = "Glasses" if bool(demo["eyeglasses"]) else "None"
+    else:
+        glasses = "None"
+
+    return {
+        "gender": gender,
+        "age_group": age_group,
+        "glasses": glasses,
+    }
+
+
 def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """Calculate and export comprehensive dataset statistics to paths.stats_file."""
     paths_cfg = cfg.get("paths", {})
@@ -202,15 +245,15 @@ def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
         m = it.get("manipulation_type", "unknown")
         counts_by_mode[m] += 1
 
-    # Demographics breakdown
+    # Demographics breakdown with unified schema normalization
     age_dist: Dict[str, int] = defaultdict(int)
     gender_dist: Dict[str, int] = defaultdict(int)
+    glasses_dist: Dict[str, int] = defaultdict(int)
     for it in raw_items + curated_items:
-        demo = it.get("demographics") or {}
-        a = demo.get("age_group", "unknown")
-        g = demo.get("gender", "unknown")
-        age_dist[a] += 1
-        gender_dist[g] += 1
+        norm_d = normalize_demographics(it.get("demographics"))
+        age_dist[norm_d["age_group"]] += 1
+        gender_dist[norm_d["gender"]] += 1
+        glasses_dist[norm_d["glasses"]] += 1
 
     # Hard samples by mode
     hard_by_mode: Dict[str, int] = defaultdict(int)
@@ -233,6 +276,7 @@ def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
         "demographics": {
             "age_distribution": dict(age_dist),
             "gender_distribution": dict(gender_dist),
+            "glasses_distribution": dict(glasses_dist),
         },
         "curation_pass_rate": curation_pass_rate,
         "hard_rate_by_mode": hard_rate_by_mode,

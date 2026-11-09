@@ -57,7 +57,8 @@ def main(output_dir: Optional[Union[str, Path]] = None) -> None:
             "\n"
             "# Import modular classes and config from src\n"
             "from src.common.config import load_config\n"
-            "from src.data.image_schema import ImageMetadata"
+            "from src.data.image_schema import ImageMetadata\n"
+            "from src.data.splits import normalize_demographics"
         ),
         md("### 1. Nạp và kiểm tra dữ liệu thô chuẩn hóa (`paths.raw_manifest`)"),
         code(
@@ -85,13 +86,14 @@ def main(output_dir: Optional[Union[str, Path]] = None) -> None:
             "    src = d.get('dataset', 'unknown')\n"
             "    datasets[src] = datasets.get(src, 0) + 1\n"
             "    \n"
-            "    age = d.get('age_group', 'unknown')\n"
+            "    norm_d = normalize_demographics(d)\n"
+            "    age = norm_d['age_group']\n"
             "    age_groups[age] = age_groups.get(age, 0) + 1\n"
             "    \n"
-            "    g = d.get('gender', 'unknown')\n"
+            "    g = norm_d['gender']\n"
             "    genders[g] = genders.get(g, 0) + 1\n"
             "    \n"
-            "    gl = d.get('glasses', 'unknown')\n"
+            "    gl = norm_d['glasses']\n"
             "    glasses[gl] = glasses.get(gl, 0) + 1\n"
             "\n"
             "fig, axes = plt.subplots(1, 3, figsize=(15, 4))\n"

@@ -195,3 +195,28 @@ def test_strict_identity_isolation_across_rounds():
         assert len(test_ids) == 20
         assert train_ids.isdisjoint(test_ids)
 
+
+def test_normalize_demographics_celeba_and_ffhq():
+    """Verify demographic normalization unifies CelebA-HQ boolean schema and FFHQ string schema."""
+    from src.data.splits import normalize_demographics
+
+    celeba_demo = {"dataset": "celeba_hq", "male": False, "young": True, "eyeglasses": False}
+    ffhq_demo = {"dataset": "ffhq", "gender": "male", "age_group": "30-39", "glasses": "None"}
+    celeba_male_glasses = {"dataset": "celeba_hq", "male": True, "young": False, "eyeglasses": True}
+
+    norm_celeba = normalize_demographics(celeba_demo)
+    assert norm_celeba["gender"] == "female"
+    assert norm_celeba["age_group"] == "young"
+    assert norm_celeba["glasses"] == "None"
+
+    norm_ffhq = normalize_demographics(ffhq_demo)
+    assert norm_ffhq["gender"] == "male"
+    assert norm_ffhq["age_group"] == "30-39"
+    assert norm_ffhq["glasses"] == "None"
+
+    norm_celeba2 = normalize_demographics(celeba_male_glasses)
+    assert norm_celeba2["gender"] == "male"
+    assert norm_celeba2["age_group"] == "mature"
+    assert norm_celeba2["glasses"] == "Glasses"
+
+
