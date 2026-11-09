@@ -69,11 +69,21 @@ def _save_mining_results(
         audit_dir.mkdir(parents=True, exist_ok=True)
 
         import shutil
+        saved_names = set()
         for m in hard_meta:
             if m.file_path and Path(m.file_path).exists():
                 dest_path = hard_img_dir / Path(m.file_path).name
+                saved_names.add(dest_path.name)
                 if Path(m.file_path).resolve() != dest_path.resolve():
                     shutil.copy2(m.file_path, dest_path)
+
+        # Remove any legacy or obsolete images not in the current hard sample set
+        for p in hard_img_dir.glob("*.png"):
+            if p.name not in saved_names:
+                try:
+                    p.unlink()
+                except OSError:
+                    pass
 
         age_dist: Dict[str, int] = {}
         gender_dist: Dict[str, int] = {}
@@ -411,7 +421,7 @@ def main() -> None:
         "--threshold",
         type=float,
         default=None,
-        help="Threshold (default 0.85 for feature_similarity, 0.5 for detector)",
+        help="Threshold (default 0.45 for feature_similarity, 0.5 for detector)",
     )
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--seed", type=int, default=42)
@@ -422,7 +432,7 @@ def main() -> None:
     # Determine default threshold based on method if not explicitly specified
     threshold = args.threshold
     if threshold is None:
-        threshold = 0.85 if args.method == "feature_similarity" else 0.5
+        threshold = 0.45 if args.method == "feature_similarity" else 0.5
 
     in_path = Path(args.input_manifest)
     if not in_path.exists() and Path("data/processed/curated_manifest.jsonl").exists():
