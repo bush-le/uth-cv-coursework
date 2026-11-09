@@ -2,7 +2,7 @@
   "method": "detector",
   "tau": 0.35,
   "tau_source": "detector_threshold",
-  "total": 6,
+  "total": 7,
   "hard_count": 0,
   "hard_rate": 0.0,
   "hard_rate_by_mode": {
@@ -10,14 +10,15 @@
   },
   "hard_rate_by_group": {
     "gender": {
-      "unknown": 0.0,
-      "female": 0.0,
-      "male": 0.0
+      "male": 0.0,
+      "female": 0.0
     },
     "age_group": {
-      "unknown": 0.0,
+      "20-29": 0.0,
+      "50-69": 0.0,
+      "40-49": 0.0,
       "30-39": 0.0,
-      "20-29": 0.0
+      "7-9": 0.0
     }
   },
   "hard_ids": []

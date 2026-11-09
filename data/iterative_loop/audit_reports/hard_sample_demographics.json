@@ -1,6 +1,11 @@
 {
-  "total_hard_samples": 0,
-  "age_distribution": {},
-  "gender_distribution": {},
-  "mean_score": 0.4771242042382558
+  "total_hard_samples": 3,
+  "age_distribution": {
+    "20-29": 2,
+    "40-49": 1
+  },
+  "gender_distribution": {
+    "male": 3
+  },
+  "mean_score": 0.5070408923285348
 }
