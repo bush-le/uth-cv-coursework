@@ -495,6 +495,16 @@ def main() -> None:
     device = str(_res(args.device, "device", "cpu"))
     batch_size = int(_res(None, "hardness.batch_size", 16))
 
+    # Method == "detector": enforce checkpoint requirement before file loading
+    checkpoint_path = _res(args.checkpoint, "hardness.detector_checkpoint", None)
+    if method == "detector" and not checkpoint_path and not args.allow_untrained:
+        raise ValueError(
+            "Refusing to mine hard samples with uninitialized/untrained weights! "
+            "Provide a trained baseline checkpoint via --checkpoint <path> "
+            "or configure hardness.detector_checkpoint in dataset_factory.yaml. "
+            "See .agents/rules/ZERO_MOCK_DATA_RULE.md"
+        )
+
     if not in_manifest_path.exists():
         raise FileNotFoundError(f"Input manifest not found: {in_manifest_path}")
 
@@ -527,15 +537,7 @@ def main() -> None:
         )
         return
 
-    # Method == "detector": enforce checkpoint requirement
-    checkpoint_path = _res(args.checkpoint, "hardness.detector_checkpoint", None)
-    if not checkpoint_path and not args.allow_untrained:
-        raise ValueError(
-            "Refusing to mine hard samples with uninitialized/untrained weights! "
-            "Provide a trained baseline checkpoint via --checkpoint <path> "
-            "or configure hardness.detector_checkpoint in dataset_factory.yaml. "
-            "See .agents/rules/ZERO_MOCK_DATA_RULE.md"
-        )
+    # Method == "detector": initialize detector model
 
     model = DeepfakeImageDetector(
         backbone=backbone_id,
