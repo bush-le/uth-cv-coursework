@@ -32,6 +32,26 @@ def test_compute_roc_auc_ranking() -> None:
     assert auc == pytest.approx(1.0)
 
 
+def test_compute_roc_auc_with_tied_scores() -> None:
+    """Verify tied probabilities yield unbiased 0.5 ROC-AUC via mid-rank averaging."""
+    targets = np.array([0, 0, 1, 1], dtype=np.int64)
+    # Saturated tied scores
+    probs = np.array([0.5, 0.5, 0.5, 0.5], dtype=np.float32)
+    auc = compute_roc_auc(targets, probs)
+    assert auc == pytest.approx(0.5, abs=1e-5), f"Expected 0.5 for tied scores, got {auc}"
+
+
+def test_compute_roc_auc_single_class_returns_nan() -> None:
+    """Verify single class targets return NaN rather than false 1.0."""
+    import math
+
+    targets = np.array([1, 1, 1, 1], dtype=np.int64)
+    probs = np.array([0.8, 0.9, 0.7, 0.95], dtype=np.float32)
+    auc = compute_roc_auc(targets, probs)
+    assert math.isnan(auc), f"Expected NaN for single-class target, got {auc}"
+
+
+
 def test_compute_bypass_rate() -> None:
     # 4 fake samples: 2 caught (>= 0.5), 2 bypassed (< 0.5)
     fake_probs = np.array([0.85, 0.72, 0.35, 0.15], dtype=np.float32)

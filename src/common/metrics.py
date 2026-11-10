@@ -105,14 +105,14 @@ def compute_recall(
 
 
 def compute_roc_auc(y_true: np.ndarray | list[int], y_score: np.ndarray | list[float]) -> float:
-    """Compute ROC-AUC via vectorized Wilcoxon-Mann-Whitney rank-sum statistic.
+    """Compute ROC-AUC via vectorized Wilcoxon-Mann-Whitney rank-sum statistic with mid-rank tie breaking.
 
     Args:
         y_true: Ground truth binary labels (0=Real, 1=Fake) of shape (N,).
         y_score: Predicted fake probabilities P(fake) of shape (N,).
 
     Returns:
-        ROC-AUC scalar float in [0.0, 1.0].
+        ROC-AUC scalar float in [0.0, 1.0], or NaN if single-class.
     """
     y_t = np.asarray(y_true).ravel()
     y_s = np.asarray(y_score).ravel()
@@ -123,15 +123,23 @@ def compute_roc_auc(y_true: np.ndarray | list[int], y_score: np.ndarray | list[f
     n_neg = int(np.sum(neg_mask))
 
     if n_pos == 0 or n_neg == 0:
-        return 1.0
+        return float("nan")
 
     order = np.argsort(y_s)
-    ranks = np.empty_like(order, dtype=np.float64)
-    ranks[order] = np.arange(len(y_s), dtype=np.float64) + 1.0
+    sorted_scores = y_s[order]
+    _, inverse_indices, counts = np.unique(sorted_scores, return_inverse=True, return_counts=True)
+    ends = np.cumsum(counts)
+    starts = ends - counts + 1
+    avg_ranks = (starts + ends) / 2.0
+
+    ranks = np.empty_like(y_s, dtype=np.float64)
+    ranks[order] = avg_ranks[inverse_indices]
 
     rank_sum_pos = float(np.sum(ranks[pos_mask]))
     auc = (rank_sum_pos - n_pos * (n_pos + 1.0) / 2.0) / (n_pos * n_neg)
     return float(np.clip(auc, 0.0, 1.0))
+
+
 
 
 def compute_bypass_rate(
