@@ -183,6 +183,7 @@ def run_active_learning_loop(
     device: str = "cpu",
     epochs_per_round: int = 5,
     seed: int = 42,
+    target_total_rounds: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Execute multi-round closed-loop active learning deepfake dataset expansion.
 
@@ -309,8 +310,33 @@ def run_active_learning_loop(
             except Exception:
                 pass
 
+        # Robust attribution recovery: if metrics_file missing or attribution empty, recompute from round artifacts
+        if latest_completed > 0 and (not prev_attribution.get("mode_errors")):
+            prev_cand_path = base_dir / f"round_{latest_completed}" / "candidates_curated.jsonl"
+            prev_hard_path = base_dir / f"round_{latest_completed}" / "hard_samples.jsonl"
+            if prev_cand_path.exists() and prev_hard_path.exists():
+                try:
+                    with open(prev_cand_path, "r", encoding="utf-8") as cf:
+                        prev_cands = [ImageMetadata.from_dict(json.loads(line)) for line in cf if line.strip()]
+                    with open(prev_hard_path, "r", encoding="utf-8") as hf:
+                        prev_hards = [ImageMetadata.from_dict(json.loads(line)) for line in hf if line.strip()]
+                    prev_attribution = extract_error_attribution_from_hard_samples(prev_hards, prev_cands)
+                    logger.info(
+                        "Successfully recovered error attribution from completed Round %d artifacts: %s",
+                        latest_completed,
+                        prev_attribution["mode_errors"],
+                    )
+                    if prev_attribution.get("keyword_errors"):
+                        prompt_eng.update_error_weights(prev_attribution["keyword_errors"], temperature=0.7)
+                        logger.info("Updated PromptGrammarEngine error weights from restored Round %d attribution.", latest_completed)
+                except Exception as exc:
+                    logger.warning("Could not recover attribution from Round %d: %s", latest_completed, exc)
+
     start_round = latest_completed + 1
-    end_round = latest_completed + num_rounds
+    if target_total_rounds is not None:
+        end_round = target_total_rounds
+    else:
+        end_round = latest_completed + num_rounds
 
     logger.info(
         "=== Beginning Closed-Loop Active Learning Pipeline (Rounds %d -> %d, %d candidates/round) ===",
@@ -652,6 +678,26 @@ def run_active_learning_loop(
             "attribution": attribution,
             "mode_quotas": mode_quotas,
         })
+
+        # Incremental metrics checkpoint: persist after each round so feedback is never lost
+        try:
+            intermediate_summary = {
+                "num_rounds": num_rounds,
+                "candidates_per_round": candidates_per_round,
+                "rounds": rounds_log,
+                "deltas": {
+                    "initial_auc": rounds_log[0]["test_metrics"]["roc_auc"] if rounds_log else 0.0,
+                    "final_auc": rounds_log[-1]["test_metrics"]["roc_auc"] if rounds_log else 0.0,
+                    "auc_gain": round(
+                        rounds_log[-1]["test_metrics"]["roc_auc"] - rounds_log[0]["test_metrics"]["roc_auc"], 4
+                    ) if rounds_log else 0.0,
+                },
+            }
+            with open(logs_dir / "closed_loop_metrics.json", "w", encoding="utf-8") as imf:
+                json.dump(intermediate_summary, imf, indent=2)
+            logger.info("Persisted active learning trajectory checkpoint for round %d to %s", r, logs_dir / "closed_loop_metrics.json")
+        except Exception as exc:
+            logger.warning("Could not persist intermediate round metrics: %s", exc)
 
     summary = {
         "num_rounds": num_rounds,

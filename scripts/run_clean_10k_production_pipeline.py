@@ -83,6 +83,7 @@ def run_clean_10k_pipeline(
         device=device,
         epochs_per_round=epochs_per_stage if not dry_run else 1,
         seed=seed,
+        target_total_rounds=2,
     )
     t2_elapsed = time.time() - t2_start
     logger.info(">>> [STAGE 2/3] Active Learning Complete (Elapsed: %.1f min).", t2_elapsed / 60.0)
