@@ -36,3 +36,16 @@ def test_optimize_pipeline_memory_dummy() -> None:
     optimize_pipeline_memory(dummy)
     assert dummy.sliced is True
     assert dummy.vae_slicing is True
+
+
+def test_temp_directory_configured_safely() -> None:
+    """Verify TMPDIR is pointed to project local cache on NVMe SSD, not the restricted tmpfs."""
+    import os
+    import tempfile
+    from pathlib import Path
+
+    tmpdir = os.environ.get("TMPDIR")
+    assert tmpdir is not None, "TMPDIR must be explicitly set"
+    assert not tmpdir.startswith("/tmp"), f"TMPDIR ({tmpdir}) must not be in /tmp (restricted tmpfs)"
+    assert Path(tmpdir).is_dir(), f"TMPDIR directory {tmpdir} must exist"
+

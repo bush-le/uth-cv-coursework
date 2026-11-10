@@ -1,8 +1,19 @@
 """Pytest fixtures for Computer Vision testing suite."""
 
+import os
+from pathlib import Path
+import tempfile
 import numpy as np
 import pytest
 import torch
+
+# Ensure TMPDIR points to the NVMe project cache rather than restricted tmpfs /tmp
+_cache_tmp = Path(__file__).resolve().parent.parent / ".cache" / "tmp"
+_cache_tmp.mkdir(parents=True, exist_ok=True)
+if "TMPDIR" not in os.environ or os.environ["TMPDIR"].startswith("/tmp"):
+    os.environ["TMPDIR"] = str(_cache_tmp)
+tempfile.tempdir = str(_cache_tmp)
+
 
 
 @pytest.fixture

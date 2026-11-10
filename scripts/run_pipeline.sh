@@ -15,6 +15,10 @@ CONFIG="${2:-configs/config.yaml}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
+export TMPDIR="${SCRIPT_DIR}/.cache/tmp"
+mkdir -p "$TMPDIR"
+
+
 if [[ -f ".venv/bin/python" ]]; then
     PYTHON=".venv/bin/python"
 elif command -v python3 &>/dev/null; then
