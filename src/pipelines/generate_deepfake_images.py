@@ -19,23 +19,40 @@ logger = get_logger(__name__)
 
 
 def _build_demographic_prompt(demographics: Optional[Dict[str, Any]], base_prompt: str) -> str:
-    """Enrich generation prompt with demographic context (age, occlusion, glasses)."""
+    """Enrich generation prompt with demographic context (age, occlusion, glasses) avoiding chimeras."""
     if not demographics:
         return base_prompt
     tags = []
-    age = demographics.get("age_group")
-    if age in ["0-2", "3-6", "7-9", "10-14", "young"]:
-        tags.append("young person portrait, soft natural skin")
-    elif age in ["50-69", "70-120", "mature"]:
-        tags.append("elderly person face, visible natural skin wrinkles, dignified aging")
-    elif demographics.get("gray_hair") is True:
-        tags.append("authentic face, natural gray hair")
+    age = str(demographics.get("age_group", "")).lower()
+    gender = str(demographics.get("gender", "")).lower()
 
-    gender = demographics.get("gender")
-    if gender == "male":
-        tags.append("man face")
-    elif gender == "female":
-        tags.append("woman face")
+    if any(k in age for k in ["0-2", "3-6", "infant", "toddler"]):
+        tags.append("toddler portrait, soft skin")
+        if gender == "male":
+            tags.append("baby boy")
+        elif gender == "female":
+            tags.append("baby girl")
+    elif any(k in age for k in ["7-9", "10-14", "young", "child"]):
+        tags.append("young person portrait, natural skin")
+        if gender == "male":
+            tags.append("boy face")
+        elif gender == "female":
+            tags.append("girl face")
+    elif any(k in age for k in ["50-69", "70-120", "mature", "elderly"]):
+        tags.append("elderly face, natural wrinkles, silver hair")
+        if gender == "male":
+            tags.append("mature man")
+        elif gender == "female":
+            tags.append("mature woman")
+    else:
+        tags.append("adult portrait, natural skin")
+        if gender == "male":
+            tags.append("man face")
+        elif gender == "female":
+            tags.append("woman face")
+
+    if demographics.get("gray_hair") is True and "elderly" not in age:
+        tags.append("natural gray hair")
 
     glasses = demographics.get("glasses")
     if glasses == "Dark":
@@ -45,9 +62,10 @@ def _build_demographic_prompt(demographics: Optional[Dict[str, Any]], base_promp
 
     res = f"{base_prompt}, {', '.join(tags)}" if tags else base_prompt
     words = res.split()
-    if len(words) > 60:
-        res = " ".join(words[:60])
+    if len(words) > 45:
+        res = " ".join(words[:45])
     return res
+
 
 
 def run_image_generation(
