@@ -190,11 +190,29 @@ def compute_hard_sample_recall(
     return float(caught / total_hard)
 
 
-def compute_laplacian_sharpness(image: torch.Tensor) -> float:
+_HAAR_FACE_CLASSIFIER: Optional[Any] = None
+
+
+def get_haar_face_classifier() -> Any:
+    """Return cached singleton instance of cv2.CascadeClassifier to avoid 22ms XML reparsing penalty."""
+    global _HAAR_FACE_CLASSIFIER
+    if _HAAR_FACE_CLASSIFIER is None:
+        import cv2
+
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        _HAAR_FACE_CLASSIFIER = cv2.CascadeClassifier(cascade_path)
+    return _HAAR_FACE_CLASSIFIER
+
+
+def compute_laplacian_sharpness(
+    image: torch.Tensor,
+    bbox_xyxy: Optional[Sequence[float]] = None,
+) -> float:
     """Compute sharpness metric via variance of the 2D discrete Laplacian operator.
 
     Args:
         image: torch.Tensor of shape (C, H, W) or (B, C, H, W) in [0.0, 1.0].
+        bbox_xyxy: Optional bounding box [x1, y1, x2, y2] to isolate face ROI.
 
     Returns:
         Scalar sharpness variance score (higher indicates crisper image).
@@ -204,6 +222,20 @@ def compute_laplacian_sharpness(image: torch.Tensor) -> float:
 
     if image.ndim == 4:
         image = image[0]  # Take first image in batch
+
+    # If bbox_xyxy is provided, crop to ROI
+    if bbox_xyxy is not None and len(bbox_xyxy) == 4:
+        _, h, w = image.shape
+        x1, y1, x2, y2 = [float(v) for v in bbox_xyxy]
+        # Handle normalized vs pixel coordinates
+        if max(x1, y1, x2, y2) <= 1.0:
+            x1, y1, x2, y2 = x1 * w, y1 * h, x2 * w, y2 * h
+        ix1 = max(0, min(w - 1, int(round(x1))))
+        iy1 = max(0, min(h - 1, int(round(y1))))
+        ix2 = max(ix1 + 1, min(w, int(round(x2))))
+        iy2 = max(iy1 + 1, min(h, int(round(y2))))
+        if ix2 > ix1 and iy2 > iy1:
+            image = image[:, iy1:iy2, ix1:ix2]
 
     # Convert to 1-channel grayscale (0.2989 R + 0.5870 G + 0.1140 B)
     if image.shape[0] == 3:
@@ -227,6 +259,7 @@ def compute_laplacian_sharpness(image: torch.Tensor) -> float:
     laplacian = torch.nn.functional.conv2d(gray, kernel, padding=1)
     variance = float(torch.var(laplacian).item()) * 1000.0
     return variance
+
 
 
 def calibrate_threshold(reference_scores: Sequence[float], quantile: float) -> float:
@@ -271,11 +304,11 @@ def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "ope
                 t = (t.clamp(0.0, 1.0) * 255.0).to(torch.uint8)
             image_rgb = t.numpy()
 
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        face_cascade = cv2.CascadeClassifier(cascade_path)
+        face_cascade = get_haar_face_classifier()
         if face_cascade.empty():
             logger.warning("Haarcascade file could not be loaded; defaulting to 1 face.")
             return 1
+
 
         if not isinstance(image_rgb, np.ndarray) or image_rgb.dtype != np.uint8:
             image_rgb = np.clip(image_rgb * 255.0 if np.issubdtype(image_rgb.dtype, np.floating) else image_rgb, 0, 255).astype(np.uint8)

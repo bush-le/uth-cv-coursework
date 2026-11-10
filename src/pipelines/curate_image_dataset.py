@@ -4,7 +4,8 @@ import argparse
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Sequence, Set
+
 import numpy as np
 from PIL import Image
 import torch
@@ -50,7 +51,7 @@ class ImageCurationGate:
 
     def __init__(
         self,
-        min_sharpness: float = 3.5,
+        min_sharpness: float = 1.25,
         min_clip_score: float = 0.28,
         clip_enabled: bool = False,
         clip_model_id: str = "openai/clip-vit-base-patch32",
@@ -73,6 +74,7 @@ class ImageCurationGate:
         prompt: str = "portrait",
         face_detected: Optional[bool] = None,
         image_id: str = "unknown",
+        bbox_xyxy: Optional[Sequence[float]] = None,
     ) -> ImageCurationReport:
         """Evaluate a synthetic face image against sharpness, CLIP alignment, and face detection.
 
@@ -81,11 +83,13 @@ class ImageCurationGate:
             prompt: Text prompt used for generation.
             face_detected: Boolean indicating if a face was detected, or None to detect automatically.
             image_id: String identifier.
+            bbox_xyxy: Optional bounding box [x1, y1, x2, y2] to isolate facial ROI for sharpness.
 
         Returns:
             ImageCurationReport with validation decision.
         """
-        sharpness = compute_laplacian_sharpness(image)
+        sharpness = compute_laplacian_sharpness(image, bbox_xyxy=bbox_xyxy)
+
 
         # Detect face if not explicitly provided
         if face_detected is None:

@@ -56,6 +56,30 @@ def test_image_curation_gate_evaluation():
     assert isinstance(report.is_valid, bool)
 
 
+def test_haar_face_classifier_is_singleton():
+    """Verify Haar cascade classifier is loaded once as a singleton to avoid 22ms per-image penalty."""
+    from src.common.metrics import get_haar_face_classifier
+
+    c1 = get_haar_face_classifier()
+    c2 = get_haar_face_classifier()
+    assert c1 is c2, "get_haar_face_classifier must return the identical singleton instance"
+
+
+def test_laplacian_sharpness_on_face_roi():
+    """Verify sharpness can be computed specifically on face ROI rather than blurred bokeh background."""
+    # Create image with smooth black background (256x256) but noisy/sharp face in [100, 100, 150, 150]
+    img = torch.zeros(3, 256, 256)
+    img[:, 100:150, 100:150] = torch.rand(3, 50, 50)
+
+    # Sharpness on full image is heavily diluted by 96% black background
+    full_sharpness = compute_laplacian_sharpness(img)
+    # Sharpness on ROI focuses on the face
+    roi_sharpness = compute_laplacian_sharpness(img, bbox_xyxy=[100, 100, 150, 150])
+
+    assert roi_sharpness > full_sharpness * 3.0, f"Expected ROI sharpness > 3x full, got {roi_sharpness} vs {full_sharpness}"
+
+
+
 def test_curation_rejects_dual_mouth_anomaly():
     """Verify facial geometry check detects anatomical defects like dual mouth anomalies or seam spikes."""
     from src.common.metrics import verify_facial_geometry
