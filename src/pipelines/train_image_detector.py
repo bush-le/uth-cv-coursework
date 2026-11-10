@@ -131,16 +131,21 @@ def train_deepfake_image_detector(
             labels = batch["labels"].to(dev).float().view(-1, 1)
             is_hard = batch.get("is_hard_sample")
 
-            with torch.amp.autocast(device_type=dev.type, enabled=(dev.type == "cuda")):
+            with torch.amp.autocast(
+                device_type=dev.type,
+                dtype=torch.bfloat16 if dev.type == "cuda" else torch.float32,
+                enabled=(dev.type == "cuda"),
+            ):
                 logits = model(images)
                 per_sample_loss = criterion_raw(logits, labels)
 
                 if is_hard is not None:
                     hard_mask = is_hard.to(dev).float().view(-1, 1)
                     weights = 1.0 + (hard_sample_loss_weight - 1.0) * hard_mask
-                    loss = torch.mean(per_sample_loss * weights)
+                    loss = torch.sum(per_sample_loss * weights) / torch.sum(weights)
                 else:
                     loss = torch.mean(per_sample_loss)
+
 
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)

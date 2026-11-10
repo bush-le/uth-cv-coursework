@@ -145,6 +145,12 @@ class MetaDinoV2Wrapper(nn.Module):
             self.backbone = AutoModel.from_config(cfg)
 
         self.embed_dim = self.backbone.config.hidden_size
+        self.register_buffer(
+            "mean", torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32).view(1, 3, 1, 1)
+        )
+        self.register_buffer(
+            "std", torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32).view(1, 3, 1, 1)
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Extract normalized [CLS] token embedding of shape (B, embed_dim)."""
@@ -154,7 +160,11 @@ class MetaDinoV2Wrapper(nn.Module):
             w_new = max(14, (w // 14) * 14)
             x = F.interpolate(x, size=(h_new, w_new), mode="bilinear", align_corners=False)
 
+        # Normalize with ImageNet mean and std
+        x = (x - self.mean) / self.std
+
         outputs = self.backbone(pixel_values=x)
+
         cls_out = outputs.last_hidden_state[:, 0]
         return F.normalize(cls_out, p=2, dim=-1)
 
@@ -257,9 +267,13 @@ class DeepfakeImageDetector(nn.Module):
 
         Args:
             unfreeze_last_n_blocks: If provided and extractor is DinoViTBackbone or MetaDinoV2Wrapper,
-                                    only unfreezes the last N transformer blocks. Otherwise
-                                    unfreezes the entire backbone.
+                                    only unfreezes the last N transformer blocks. If 0, keeps all frozen.
+                                    If None, unfreezes the entire backbone.
         """
+        if unfreeze_last_n_blocks == 0:
+            self.freeze_backbone()
+            return
+
         if (
             unfreeze_last_n_blocks is not None
             and isinstance(self.extractor, MetaDinoV2Wrapper)
@@ -287,6 +301,7 @@ class DeepfakeImageDetector(nn.Module):
         else:
             for param in self.extractor.parameters():
                 param.requires_grad = True
+
 
     def extract_features(self, x: torch.Tensor) -> torch.Tensor:
         """Extract backbone embedding vector of shape (B, feature_dim)."""

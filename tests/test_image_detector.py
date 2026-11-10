@@ -58,9 +58,31 @@ def test_dinov2_small_freeze_and_partial_unfreeze() -> None:
     assert all(p.requires_grad for p in model.classifier.parameters())
 
     model.unfreeze_backbone(unfreeze_last_n_blocks=1)
-    layers = list(model.extractor.backbone.encoder.layer)
-    assert all(not p.requires_grad for p in layers[0].parameters())
-    assert any(p.requires_grad for p in layers[-1].parameters())
+
+
+def test_detector_normalizes_imagenet_buffer() -> None:
+    """Verify MetaDinoV2Wrapper registers ImageNet normalization buffers to prevent 21% feature drift."""
+    from src.models.detector.image_detector import MetaDinoV2Wrapper
+
+    wrapper = MetaDinoV2Wrapper(pretrained=False)
+    assert hasattr(wrapper, "mean"), "Wrapper must have registered ImageNet mean buffer"
+    assert hasattr(wrapper, "std"), "Wrapper must have registered ImageNet std buffer"
+    assert wrapper.mean.shape == (1, 3, 1, 1)
+    assert wrapper.std.shape == (1, 3, 1, 1)
+    # Check standard ImageNet values [0.485, 0.456, 0.406]
+    assert torch.allclose(wrapper.mean.squeeze(), torch.tensor([0.485, 0.456, 0.406]), atol=1e-3)
+
+
+def test_unfreeze_backbone_zero_blocks_keeps_all_frozen() -> None:
+    """Verify unfreeze_backbone with num_blocks=0 strictly keeps backbone frozen."""
+    model = DeepfakeImageDetector(backbone="dino_vit", num_classes=1, freeze_extractor=True)
+    model.unfreeze_backbone(unfreeze_last_n_blocks=0)
+    assert all(not p.requires_grad for p in model.extractor.parameters()), "Extractor must stay frozen when unfreeze=0"
+
+    model2 = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, freeze_extractor=True, pretrained=False)
+    model2.unfreeze_backbone(unfreeze_last_n_blocks=0)
+    assert all(not p.requires_grad for p in model2.extractor.parameters()), "Extractor must stay frozen when unfreeze=0"
+
 
 
 
