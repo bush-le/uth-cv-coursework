@@ -13,7 +13,7 @@ from src.common.logger import get_logger
 logger = get_logger(__name__)
 
 STANDARD_MODES = ["sd_text2img", "sd_inpaint", "sd_img2img"]
-STANDARD_REGIONS = ["periocular", "lips", "nose", "full"]
+STANDARD_REGIONS = ["periocular", "lips", "full"]
 
 
 class AdaptiveBudgetController:

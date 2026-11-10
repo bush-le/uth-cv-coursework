@@ -60,7 +60,7 @@ def train_deepfake_image_detector(
     num_epochs: int = 5,
     learning_rate: float = 2e-4,
     hard_sample_loss_weight: float = 2.0,
-    unfreeze_last_n_blocks: Optional[int] = 2,
+    unfreeze_last_n_blocks: Optional[int] = 1,
     checkpoint_dir: Path = Path("experiments/checkpoints"),
     checkpoint_prefix: Optional[str] = None,
     device: str = "cpu",
@@ -142,7 +142,9 @@ def train_deepfake_image_detector(
                 if is_hard is not None:
                     hard_mask = is_hard.to(dev).float().view(-1, 1)
                     weights = 1.0 + (hard_sample_loss_weight - 1.0) * hard_mask
-                    loss = torch.sum(per_sample_loss * weights) / torch.sum(weights)
+                    loss = torch.sum(per_sample_loss * weights) / torch.clamp(
+                        torch.sum(weights), min=1e-8
+                    )
                 else:
                     loss = torch.mean(per_sample_loss)
 

@@ -17,6 +17,7 @@ cd "$SCRIPT_DIR"
 
 export TMPDIR="${SCRIPT_DIR}/.cache/tmp"
 mkdir -p "$TMPDIR"
+export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH:-}"
 
 
 if [[ -f ".venv/bin/python" ]]; then
@@ -35,6 +36,18 @@ echo "Python: $(${PYTHON} --version)"
 echo "=================================================="
 
 case "${STAGE}" in
+    "clean-10k"|"production")
+        echo "[Production] Launching Master Clean 10,000 Pipeline..."
+        ${PYTHON} scripts/run_clean_10k_production_pipeline.py "${@:2}"
+        ;;
+    "block1"|"baseline")
+        echo "[Stage 1] Running Block 1 Baseline Initialization..."
+        ${PYTHON} -m src.pipelines.run_block1_baseline "${@:2}"
+        ;;
+    "active-learning"|"al")
+        echo "[Stage 2-3] Running Closed-Loop Active Learning..."
+        ${PYTHON} -m src.pipelines.run_closed_loop_active_learning "${@:2}"
+        ;;
     "generate")
         echo "[Phase 1a] Generating synthetic DF images via Stable Diffusion..."
         ${PYTHON} -m src.pipelines.generate_deepfake_images "${@:2}"
@@ -60,7 +73,7 @@ case "${STAGE}" in
         ${PYTHON} -m src.pipelines.infer --config "${CONFIG}"
         ;;
     *)
-        echo "Error: Unknown stage '${STAGE}'. Allowed: generate, curate, mine, train, eval, infer."
+        echo "Error: Unknown stage '${STAGE}'. Allowed: clean-10k, block1, active-learning, generate, curate, mine, train, eval, infer."
         exit 1
         ;;
 esac

@@ -341,7 +341,7 @@ def curate_dataset(
     report_path: Optional[Path] = None,
     curation_report: Optional[Path] = None,
     gate: Optional[ImageCurationGate] = None,
-    min_sharpness: float = 3.5,
+    min_sharpness: float = 1.25,
     face_backend: str = "opencv_haar",
     dedup: bool = True,
 ) -> Dict[str, Any]:

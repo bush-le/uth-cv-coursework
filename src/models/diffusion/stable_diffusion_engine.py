@@ -16,8 +16,8 @@ from src.common.logger import get_logger
 logger = get_logger(__name__)
 
 CALIBRATED_NEGATIVE_PROMPT = (
-    "blurry, out of focus, distorted face, bad anatomy, deformed eyes, extra fingers, "
-    "cartoon, 3d render, doll, low quality, oversaturated, plastic skin, mutation, watermark"
+    "blurry, distorted face, bad anatomy, deformed eyes, extra fingers, cartoon, "
+    "3d render, doll, oversaturated, plastic skin, mutation, cropped forehead, unitooth, out of frame"
 )
 DEFAULT_NEGATIVE_PROMPT = CALIBRATED_NEGATIVE_PROMPT
 
@@ -54,25 +54,33 @@ def generate_dynamic_face_mask(
         # Pixel coordinates passed (e.g. [0, 0, 1024, 1024] or [x1, y1, x2, y2])
         bx1, by1, bx2, by2 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
         bw, bh = abs(bx2 - bx1), abs(by2 - by1)
-        if bw >= 0.90 * max(w, 1024) and bh >= 0.90 * max(h, 1024):
+        max_coord = max(bx1, by1, bx2, by2)
+        ref_w = 1024.0 if max_coord > max(w, h) else float(w)
+        ref_h = 1024.0 if max_coord > max(h, h) else float(h)
+        if bw >= 0.90 * ref_w and bh >= 0.90 * ref_h:
             needs_detection = True
         else:
-            ref_w, ref_h = max(w, 1024), max(h, 1024)
             bbox = (min(by1, by2) / ref_h, min(bx1, bx2) / ref_w, max(by1, by2) / ref_h, max(bx1, bx2) / ref_w)
     elif (bbox[2] - bbox[0] >= 0.90) and (bbox[3] - bbox[1] >= 0.90):
         # Normalized but spans >= 90% of frame -> raw canvas dummy box
         needs_detection = True
 
     if needs_detection:
-        np_img = (image.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
-        gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        cascade = cv2.CascadeClassifier(cascade_path)
-        faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
-        if len(faces) > 0:
-            fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
-            bbox = (float(fy / h), float(fx / w), float((fy + fh) / h), float((fx + fw) / w))
-        else:
+        try:
+            np_img = (image.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
+            gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
+            cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+            cascade = cv2.CascadeClassifier(cascade_path)
+            if not cascade.empty():
+                faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
+                if len(faces) > 0:
+                    fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+                    bbox = (float(fy / h), float(fx / w), float((fy + fh) / h), float((fx + fw) / w))
+                else:
+                    bbox = (0.18, 0.22, 0.75, 0.78)
+            else:
+                bbox = (0.18, 0.22, 0.75, 0.78)
+        except Exception:
             bbox = (0.18, 0.22, 0.75, 0.78)
 
     ymin, xmin, ymax, xmax = bbox
@@ -81,22 +89,22 @@ def generate_dynamic_face_mask(
 
     if target_region == "periocular":
         # Target periocular / eye strip (upper-mid face)
-        m_ymin = ymin + 0.15 * face_h
-        m_ymax = ymin + 0.58 * face_h
-        m_xmin = max(0.0, xmin - 0.05 * face_w)
-        m_xmax = min(1.0, xmax + 0.05 * face_w)
+        m_ymin = max(0.0, min(1.0, ymin + 0.15 * face_h))
+        m_ymax = max(0.0, min(1.0, ymin + 0.58 * face_h))
+        m_xmin = max(0.0, min(1.0, xmin - 0.05 * face_w))
+        m_xmax = max(0.0, min(1.0, xmax + 0.05 * face_w))
     elif target_region == "lips":
         # Target mouth / lips region (lower face)
-        m_ymin = ymin + 0.55 * face_h
-        m_ymax = min(1.0, ymax + 0.18 * face_h)
-        m_xmin = xmin + 0.10 * face_w
-        m_xmax = xmax - 0.10 * face_w
+        m_ymin = max(0.0, min(1.0, ymin + 0.55 * face_h))
+        m_ymax = max(0.0, min(1.0, ymax + 0.18 * face_h))
+        m_xmin = max(0.0, min(1.0, xmin + 0.10 * face_w))
+        m_xmax = max(0.0, min(1.0, xmax - 0.10 * face_w))
     else:
         # Full face: expand downwards by 18% of face height to fully cover mouth, jaw, and chin
-        m_ymin = ymin
-        m_ymax = min(1.0, ymax + 0.18 * face_h)
-        m_xmin = max(0.0, xmin - 0.05 * face_w)
-        m_xmax = min(1.0, xmax + 0.05 * face_w)
+        m_ymin = max(0.0, min(1.0, ymin))
+        m_ymax = max(0.0, min(1.0, ymax + 0.18 * face_h))
+        m_xmin = max(0.0, min(1.0, xmin - 0.05 * face_w))
+        m_xmax = max(0.0, min(1.0, xmax + 0.05 * face_w))
 
     center_y = int(((m_ymin + m_ymax) / 2.0) * h)
     center_x = int(((m_xmin + m_xmax) / 2.0) * w)
@@ -291,13 +299,14 @@ class StableDiffusionEngine(nn.Module):
         """Get or initialize StableDiffusionImg2ImgPipeline."""
         return self._switch_mode("img2img")
 
+    @torch.no_grad()
     def generate_text2img(
         self,
         prompt: str = "a photorealistic face",
         height: int = 512,
         width: int = 512,
         seed: int = 42,
-        num_inference_steps: int = 30,
+        num_inference_steps: int = 20,
         guidance_scale: float = 6.2,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
@@ -330,13 +339,14 @@ class StableDiffusionEngine(nn.Module):
                 return self._mock_text2img(prompt, height, width, seed=seed)
             raise e
 
+    @torch.no_grad()
     def generate_inpaint(
         self,
         source_image: torch.Tensor,
         mask: torch.Tensor,
         prompt: str = "realistic facial feature",
         seed: int = 42,
-        num_inference_steps: int = 30,
+        num_inference_steps: int = 20,
         guidance_scale: float = 6.2,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
@@ -344,9 +354,11 @@ class StableDiffusionEngine(nn.Module):
         c, h, w = source_image.shape
         if self.model_name.startswith("mock"):
             gen_img = self._mock_text2img(prompt=prompt, height=h, width=w, seed=seed)
-            mask_3c = mask.expand(3, h, w).to(source_image.device)
-            inpainted = mask_3c * gen_img.to(source_image.device) + (1.0 - mask_3c) * source_image
-            return torch.clamp(inpainted, 0.0, 1.0)
+            mask_expanded = mask.expand(3, h, w).to(source_image.device)
+            m = torch.clamp(mask_expanded, 0.0, 1.0)
+            m_smooth = m * m * (3.0 - 2.0 * m)
+            blended = m_smooth * gen_img.to(source_image.device) + (1.0 - m_smooth) * source_image
+            return torch.clamp(blended, 0.0, 1.0)
 
         neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
         try:
@@ -378,24 +390,27 @@ class StableDiffusionEngine(nn.Module):
             m = torch.clamp(mask_expanded, 0.0, 1.0)
             m_smooth = m * m * (3.0 - 2.0 * m)
             blended = m_smooth * inpainted_tensor + (1.0 - m_smooth) * source_image.to(self.target_device)
-            return torch.clamp(blended, 0.0, 1.0)
+            return torch.clamp(blended, 0.0, 1.0).to(source_image.device)
 
         except Exception as e:
             if self.use_mock_fallback:
                 logger.warning("Diffusers inpaint failed (%s), using mock fallback.", e)
                 gen_img = self._mock_text2img(prompt=prompt, height=h, width=w, seed=seed)
-                mask_3c = mask.expand(3, h, w).to(source_image.device)
-                inpainted = mask_3c * gen_img.to(source_image.device) + (1.0 - mask_3c) * source_image
-                return torch.clamp(inpainted, 0.0, 1.0)
+                mask_expanded = mask.expand(3, h, w).to(source_image.device)
+                m = torch.clamp(mask_expanded, 0.0, 1.0)
+                m_smooth = m * m * (3.0 - 2.0 * m)
+                blended = m_smooth * gen_img.to(source_image.device) + (1.0 - m_smooth) * source_image
+                return torch.clamp(blended, 0.0, 1.0)
             raise e
 
+    @torch.no_grad()
     def generate_img2img(
         self,
         source_image: torch.Tensor,
         prompt: str = "photorealistic face alteration",
         strength: float = 0.30,
         seed: int = 42,
-        num_inference_steps: int = 25,
+        num_inference_steps: int = 20,
         guidance_scale: float = 6.0,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
@@ -425,7 +440,7 @@ class StableDiffusionEngine(nn.Module):
             ).images[0]
             if (out_img.width, out_img.height) != (w, h):
                 out_img = out_img.resize((w, h), Image.Resampling.LANCZOS)
-            return self._pil_to_tensor(out_img).to(self.target_device)
+            return self._pil_to_tensor(out_img).to(source_image.device)
         except Exception as e:
             if self.use_mock_fallback:
                 logger.warning("Diffusers img2img failed (%s), using mock fallback.", e)

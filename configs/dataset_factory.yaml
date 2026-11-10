@@ -33,7 +33,7 @@ generation:
   image_size:
     - 512
     - 512
-  negative_prompt: "blurry, out of focus, distorted face, bad anatomy, deformed eyes, extra fingers, cartoon, 3d render, doll, low quality, oversaturated, plastic skin, mutation, watermark"
+  negative_prompt: "blurry, distorted face, bad anatomy, deformed eyes, extra fingers, cartoon, 3d render, doll, oversaturated, plastic skin, mutation, cropped forehead, unitooth, out of frame"
 
   inpaint_mask_box:
     - 0.30

@@ -79,6 +79,16 @@ def test_infant_prompt_does_not_contain_adult_gender_words() -> None:
     assert "baby boy" in prompt.lower() or "toddler" in prompt.lower()
 
 
+def test_young_adult_demographics_no_toddler_collision() -> None:
+    """Verify '20-29' age group does not falsely collide with '0-2' toddler substrings."""
+    engine = PromptGrammarEngine(seed=42)
+    demo_20_29 = {"age_group": "20-29", "gender": "female"}
+    prompt = engine.generate_prompt(demographics=demo_20_29, mode="inpaint", seed_offset=4)
+    assert "baby" not in prompt.lower()
+    assert "toddler" not in prompt.lower()
+    assert "woman face" in prompt.lower() or "adult" in prompt.lower()
+
+
 def test_prompt_word_count_within_clip_budget() -> None:
     """Verify all generated prompts across 50 offsets stay <= 45 words (< 70 CLIP tokens)."""
     engine = PromptGrammarEngine(seed=42)
@@ -87,5 +97,56 @@ def test_prompt_word_count_within_clip_budget() -> None:
             p = engine.generate_prompt(mode=mode, seed_offset=i)
             word_count = len(p.split())
             assert word_count <= 45, f"Mode {mode} offset {i} exceeded 45 words ({word_count}): {p}"
+
+
+def test_error_steering_nan_inf_immunity() -> None:
+    """Verify that update_error_weights immunizes against NaN and Inf error metrics without poisoning."""
+    import numpy as np
+
+    engine = PromptGrammarEngine(seed=42)
+    corrupted_stats = {
+        "lighting:direct harsh camera flash": float("nan"),
+        "lighting:soft studio key light": float("inf"),
+        "optics:hasselblad": -0.5,
+        "expression:smile": 1.5,
+    }
+    engine.update_error_weights(corrupted_stats, temperature=1.0)
+    probs = engine.get_slot_probabilities()
+    for slot, slot_probs in probs.items():
+        for tag, prob in slot_probs.items():
+            assert not np.isnan(prob), f"Found NaN prob in slot {slot}, tag {tag}"
+            assert not np.isinf(prob), f"Found Inf prob in slot {slot}, tag {tag}"
+            assert 0.0 <= prob <= 1.0
+
+    # Ensure sampling doesn't crash
+    p = engine.generate_prompt(mode="text2img", seed_offset=1)
+    assert isinstance(p, str) and len(p) > 10
+
+
+def test_error_steering_temperature_boundary() -> None:
+    """Verify extreme temperatures (0.0, negative, nan, inf) do not crash or produce NaNs."""
+    import numpy as np
+
+    engine = PromptGrammarEngine(seed=42)
+    stats = {"lighting:direct harsh camera flash": 0.8}
+    for t in [0.0, -2.0, float("nan"), float("inf"), 1e6]:
+        engine.update_error_weights(stats, temperature=t)
+        probs = engine.get_slot_probabilities()
+        for slot, slot_probs in probs.items():
+            for tag, prob in slot_probs.items():
+                assert not np.isnan(prob)
+                assert not np.isinf(prob)
+
+
+def test_demographic_glasses_none_no_glasses_injection() -> None:
+    """Verify that when demographics explicitly state glasses='None', no glasses tags are injected."""
+    engine = PromptGrammarEngine(seed=42)
+    demographics = {"dataset": "ffhq", "age_group": "20-29", "gender": "male", "glasses": "None"}
+    for mode in ["text2img", "img2img", "inpaint"]:
+        for offset in range(20):
+            p = engine.generate_prompt(demographics=demographics, mode=mode, seed_offset=offset)
+            assert "glasses" not in p.lower(), f"Unexpected glasses in prompt for glasses=None: {p}"
+            assert "sunglasses" not in p.lower(), f"Unexpected sunglasses in prompt for glasses=None: {p}"
+
 
 

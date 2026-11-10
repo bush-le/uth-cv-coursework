@@ -1,0 +1,563 @@
+{
+  "framing_results": [
+    {
+      "seed": 10,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, man face, natural masculine contours, mature adult face, defined jawline, authentic contours, bare face with unobstructed natural hairline and clear temples, dramatic cinematic side lighting, chiaroscuro shadows, sculpted cheekbones, natural freckles across nose bridge and cheeks",
+      "word_count": 44,
+      "gen_time_sec": 14.036894083023071,
+      "face_detected": false,
+      "occupancy": 0.0,
+      "top_margin": 0.0,
+      "bottom_margin": 0.0,
+      "forehead_cropped": false,
+      "chin_clipped": false,
+      "eye_level": 0.0,
+      "laplacian_var": 552.9639045366639,
+      "hf_ratio": 0.5501172693379605,
+      "highlight_clipped_pct": 0.03409449259440104,
+      "shadow_crushed_pct": 0.06224822998046875,
+      "sat_mean": 0.49453769758635874,
+      "sat_p95": 0.8470588235294118,
+      "contrast_lum_std": 0.3181811426267819,
+      "eye_disparity": 1.0,
+      "eye_catchlight": false
+    },
+    {
+      "seed": 42,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, woman face, authentic feminine features, natural skin, college youth portrait, smooth texture, clear natural eyes, wearing thin gold wireframe eyeglasses with subtle lens reflections, diffuse window light, soft gradient shadows, gentle ambient illumination",
+      "word_count": 41,
+      "gen_time_sec": 5.615281105041504,
+      "face_detected": true,
+      "bbox": [
+        70,
+        24,
+        297,
+        297
+      ],
+      "occupancy": 0.3364906311035156,
+      "top_margin": 0.046875,
+      "bottom_margin": 0.373046875,
+      "forehead_cropped": false,
+      "chin_clipped": false,
+      "eye_level": 0.26171875,
+      "laplacian_var": 438.6092382026254,
+      "hf_ratio": 0.5591264654053759,
+      "highlight_clipped_pct": 0.0005823771158854166,
+      "shadow_crushed_pct": 0.04239527384440104,
+      "sat_mean": 0.509138713163488,
+      "sat_p95": 0.8745098039215686,
+      "contrast_lum_std": 0.2800100116044713,
+      "eye_disparity": 1.5259515567634188,
+      "eye_catchlight": true
+    },
+    {
+      "seed": 101,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, woman face, authentic feminine features, natural skin, college youth portrait, smooth texture, clear natural eyes, minimalist silver stud earring with tiny specular highlight, direct harsh camera flash, balanced studio fill, authentic exposure",
+      "word_count": 40,
+      "gen_time_sec": 5.38519287109375,
+      "face_detected": true,
+      "bbox": [
+        145,
+        20,
+        262,
+        262
+      ],
+      "occupancy": 0.2618560791015625,
+      "top_margin": 0.0390625,
+      "bottom_margin": 0.44921875,
+      "forehead_cropped": true,
+      "chin_clipped": false,
+      "eye_level": 0.22900390625,
+      "laplacian_var": 705.1481517777866,
+      "hf_ratio": 0.5965407393544829,
+      "highlight_clipped_pct": 0.011048634847005209,
+      "shadow_crushed_pct": 0.043558756510416664,
+      "sat_mean": 0.473480224609375,
+      "sat_p95": 0.8666666666666667,
+      "contrast_lum_std": 0.2889428938497016,
+      "eye_disparity": 1.6243752396676758,
+      "eye_catchlight": true
+    },
+    {
+      "seed": 202,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, neutral portrait, authentic human face, young adult portrait, fresh skin, vibrant complexion, wearing dark designer sunglasses with glossy lens reflections, cozy candlelit warm glow, low-key illumination, deep soft shadows, candid neutral glance, contemplative look, natural expression",
+      "word_count": 44,
+      "gen_time_sec": 5.388142824172974,
+      "face_detected": false,
+      "occupancy": 0.0,
+      "top_margin": 0.0,
+      "bottom_margin": 0.0,
+      "forehead_cropped": false,
+      "chin_clipped": false,
+      "eye_level": 0.0,
+      "laplacian_var": 811.6868760023353,
+      "hf_ratio": 0.5764561644608458,
+      "highlight_clipped_pct": 0.00016657511393229166,
+      "shadow_crushed_pct": 0.059368133544921875,
+      "sat_mean": 0.0840136210123698,
+      "sat_p95": 0.3333333333333333,
+      "contrast_lum_std": 0.35517757275967804,
+      "eye_disparity": 1.0,
+      "eye_catchlight": false
+    },
+    {
+      "seed": 303,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, neutral portrait, authentic human face, elderly face, natural wrinkles, graceful aging, silver hair, minimalist silver stud earring with tiny specular highlight, subtle colorful rim lighting, studio beauty glow, sculpted contours, natural freckles across nose bridge and cheeks",
+      "word_count": 45,
+      "gen_time_sec": 5.38189435005188,
+      "face_detected": true,
+      "bbox": [
+        66,
+        44,
+        401,
+        401
+      ],
+      "occupancy": 0.6134071350097656,
+      "top_margin": 0.0859375,
+      "bottom_margin": 0.130859375,
+      "forehead_cropped": false,
+      "chin_clipped": false,
+      "eye_level": 0.3818359375,
+      "laplacian_var": 324.7955855876062,
+      "hf_ratio": 0.5982325700969875,
+      "highlight_clipped_pct": 6.4849853515625e-05,
+      "shadow_crushed_pct": 0.020711263020833332,
+      "sat_mean": 0.3096722920735677,
+      "sat_p95": 0.6039215686274509,
+      "contrast_lum_std": 0.21862289241968977,
+      "eye_disparity": 1.4898356398162118,
+      "eye_catchlight": true
+    },
+    {
+      "seed": 404,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, neutral portrait, authentic human face, mature adult face, defined jawline, authentic contours, wearing classic tortoiseshell prescription glasses, distinct stylish frames, warm golden hour sunlight, low sun angle, radiant natural backlight, natural freckles across nose bridge and cheeks",
+      "word_count": 45,
+      "gen_time_sec": 5.405841588973999,
+      "face_detected": true,
+      "bbox": [
+        54,
+        19,
+        416,
+        416
+      ],
+      "occupancy": 0.66015625,
+      "top_margin": 0.037109375,
+      "bottom_margin": 0.150390625,
+      "forehead_cropped": true,
+      "chin_clipped": false,
+      "eye_level": 0.32275390625,
+      "laplacian_var": 657.1559125815838,
+      "hf_ratio": 0.611720806856569,
+      "highlight_clipped_pct": 3.814697265625e-06,
+      "shadow_crushed_pct": 0.033649444580078125,
+      "sat_mean": 0.039503224690755206,
+      "sat_p95": 0.1568627450980392,
+      "contrast_lum_std": 0.21498931255389137,
+      "eye_disparity": 0.999999999851279,
+      "eye_catchlight": true
+    },
+    {
+      "seed": 505,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, woman face, authentic feminine features, natural skin, elderly face, natural wrinkles, graceful aging, silver hair, high knit sweater collar framing the chin and jawline, direct harsh camera flash, balanced studio fill, authentic exposure",
+      "word_count": 41,
+      "gen_time_sec": 5.4146013259887695,
+      "face_detected": false,
+      "occupancy": 0.0,
+      "top_margin": 0.0,
+      "bottom_margin": 0.0,
+      "forehead_cropped": false,
+      "chin_clipped": false,
+      "eye_level": 0.0,
+      "laplacian_var": 446.1221621143486,
+      "hf_ratio": 0.5169539355734011,
+      "highlight_clipped_pct": 0.005097707112630208,
+      "shadow_crushed_pct": 0.0028063456217447915,
+      "sat_mean": 0.016179447548062192,
+      "sat_p95": 0.050980392156862744,
+      "contrast_lum_std": 0.2622908145683377,
+      "eye_disparity": 1.0,
+      "eye_catchlight": false
+    },
+    {
+      "seed": 606,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, man face, natural masculine contours, elderly face, natural wrinkles, graceful aging, silver hair, wearing classic tortoiseshell prescription glasses, distinct stylish frames, soft studio key light, diffuse beauty dish fill, subtle catchlights",
+      "word_count": 39,
+      "gen_time_sec": 5.423786878585815,
+      "face_detected": true,
+      "bbox": [
+        111,
+        18,
+        347,
+        347
+      ],
+      "occupancy": 0.4593238830566406,
+      "top_margin": 0.03515625,
+      "bottom_margin": 0.287109375,
+      "forehead_cropped": true,
+      "chin_clipped": false,
+      "eye_level": 0.27236328125,
+      "laplacian_var": 1117.5744284968678,
+      "hf_ratio": 0.6288614177235518,
+      "highlight_clipped_pct": 0.0022735595703125,
+      "shadow_crushed_pct": 0.016020456949869793,
+      "sat_mean": 0.3152682435278799,
+      "sat_p95": 0.6666666666666666,
+      "contrast_lum_std": 0.28282029936203684,
+      "eye_disparity": 1.0,
+      "eye_catchlight": false
+    },
+    {
+      "seed": 707,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, man face, natural masculine contours, senior portrait, dignified expression, soft age marks, stray strands of hair falling gently across forehead, candid natural hair, direct harsh camera flash, balanced studio fill, authentic exposure",
+      "word_count": 40,
+      "gen_time_sec": 5.410509347915649,
+      "face_detected": true,
+      "bbox": [
+        172,
+        14,
+        228,
+        228
+      ],
+      "occupancy": 0.19830322265625,
+      "top_margin": 0.02734375,
+      "bottom_margin": 0.52734375,
+      "forehead_cropped": true,
+      "chin_clipped": false,
+      "eye_level": 0.197265625,
+      "laplacian_var": 2276.3147171853198,
+      "hf_ratio": 0.682046379199755,
+      "highlight_clipped_pct": 0.0020535786946614585,
+      "shadow_crushed_pct": 0.000194549560546875,
+      "sat_mean": 0.025082173066980698,
+      "sat_p95": 0.07450980392156863,
+      "contrast_lum_std": 0.23191445608736697,
+      "eye_disparity": 0.999999999692213,
+      "eye_catchlight": true
+    },
+    {
+      "seed": 808,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, neutral portrait, authentic human face, mature adult face, defined jawline, authentic contours, bare face with unobstructed natural hairline and clear temples, subtle colorful rim lighting, studio beauty glow, sculpted contours",
+      "word_count": 38,
+      "gen_time_sec": 5.463334321975708,
+      "face_detected": true,
+      "bbox": [
+        35,
+        259,
+        118,
+        118
+      ],
+      "occupancy": 0.0531158447265625,
+      "top_margin": 0.505859375,
+      "bottom_margin": 0.263671875,
+      "forehead_cropped": false,
+      "chin_clipped": false,
+      "eye_level": 0.5865234375,
+      "laplacian_var": 1698.3065614961088,
+      "hf_ratio": 0.6855807499100265,
+      "highlight_clipped_pct": 0.0004666646321614583,
+      "shadow_crushed_pct": 0.009433746337890625,
+      "sat_mean": 0.5129189734365426,
+      "sat_p95": 0.8196078431372549,
+      "contrast_lum_std": 0.2237045458278727,
+      "eye_disparity": 1.0,
+      "eye_catchlight": false
+    },
+    {
+      "seed": 909,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, man face, natural masculine contours, college youth portrait, smooth texture, clear natural eyes, wearing classic tortoiseshell prescription glasses, distinct stylish frames, dramatic cinematic side lighting, chiaroscuro shadows, sculpted cheekbones, fine epidermal texture, visible skin pores, subtle micro-features",
+      "word_count": 45,
+      "gen_time_sec": 5.423874616622925,
+      "face_detected": true,
+      "bbox": [
+        48,
+        94,
+        394,
+        394
+      ],
+      "occupancy": 0.5921783447265625,
+      "top_margin": 0.18359375,
+      "bottom_margin": 0.046875,
+      "forehead_cropped": false,
+      "chin_clipped": true,
+      "eye_level": 0.498046875,
+      "laplacian_var": 675.6261111059575,
+      "hf_ratio": 0.5735520042963088,
+      "highlight_clipped_pct": 0.0003204345703125,
+      "shadow_crushed_pct": 0.06176630655924479,
+      "sat_mean": 0.0647885939654182,
+      "sat_p95": 0.3333333333333333,
+      "contrast_lum_std": 0.27220494374097104,
+      "eye_disparity": 1.2131905059413588,
+      "eye_catchlight": false
+    },
+    {
+      "seed": 1234,
+      "prompt": "head and shoulders portrait, centered, direct eye contact, man face, natural masculine contours, college youth portrait, smooth texture, clear natural eyes, wearing thin gold wireframe eyeglasses with subtle lens reflections, warm golden hour sunlight, low sun angle, radiant natural backlight",
+      "word_count": 40,
+      "gen_time_sec": 5.481375694274902,
+      "face_detected": false,
+      "occupancy": 0.0,
+      "top_margin": 0.0,
+      "bottom_margin": 0.0,
+      "forehead_cropped": false,
+      "chin_clipped": false,
+      "eye_level": 0.0,
+      "laplacian_var": 991.941691491229,
+      "hf_ratio": 0.5914517734670821,
+      "highlight_clipped_pct": 6.103515625e-05,
+      "shadow_crushed_pct": 0.08933512369791667,
+      "sat_mean": 0.07914276123046875,
+      "sat_p95": 0.5019607843137255,
+      "contrast_lum_std": 0.3001441114955188,
+      "eye_disparity": 1.0,
+      "eye_catchlight": false
+    }
+  ],
+  "neg_ablation_results": {
+    "none": {
+      "framing": {
+        "face_detected": true,
+        "bbox": [
+          62,
+          16,
+          357,
+          357
+        ],
+        "occupancy": 0.4861793518066406,
+        "top_margin": 0.03125,
+        "bottom_margin": 0.271484375,
+        "forehead_cropped": true,
+        "chin_clipped": false,
+        "eye_level": 0.275390625
+      },
+      "optics": {
+        "laplacian_var": 371.80791209306335,
+        "hf_ratio": 0.5765717464400792,
+        "highlight_clipped_pct": 6.357828776041667e-06,
+        "shadow_crushed_pct": 0.056925455729166664,
+        "sat_mean": 0.48658228855507046,
+        "sat_p95": 0.9019607843137255,
+        "contrast_lum_std": 0.263534794495591,
+        "eye_disparity": 1.6684027774559407,
+        "eye_catchlight": true
+      }
+    },
+    "calibrated_current": {
+      "framing": {
+        "face_detected": true,
+        "bbox": [
+          70,
+          24,
+          297,
+          297
+        ],
+        "occupancy": 0.3364906311035156,
+        "top_margin": 0.046875,
+        "bottom_margin": 0.373046875,
+        "forehead_cropped": false,
+        "chin_clipped": false,
+        "eye_level": 0.26171875
+      },
+      "optics": {
+        "laplacian_var": 438.6092382026254,
+        "hf_ratio": 0.5591264654053759,
+        "highlight_clipped_pct": 0.0005823771158854166,
+        "shadow_crushed_pct": 0.04239527384440104,
+        "sat_mean": 0.509138713163488,
+        "sat_p95": 0.8745098039215686,
+        "contrast_lum_std": 0.2800100116044713,
+        "eye_disparity": 1.5259515567634188,
+        "eye_catchlight": true
+      }
+    },
+    "calibrated_plus_framing_dental": {
+      "framing": {
+        "face_detected": true,
+        "bbox": [
+          59,
+          25,
+          317,
+          317
+        ],
+        "occupancy": 0.3833351135253906,
+        "top_margin": 0.048828125,
+        "bottom_margin": 0.33203125,
+        "forehead_cropped": false,
+        "chin_clipped": false,
+        "eye_level": 0.28466796875
+      },
+      "optics": {
+        "laplacian_var": 490.23607422782516,
+        "hf_ratio": 0.5810603082150159,
+        "highlight_clipped_pct": 1.2715657552083333e-06,
+        "shadow_crushed_pct": 0.030642191569010418,
+        "sat_mean": 0.4924322988472733,
+        "sat_p95": 0.8352941176470589,
+        "contrast_lum_std": 0.25953615915724343,
+        "eye_disparity": 1.7607248514198504,
+        "eye_catchlight": true
+      }
+    },
+    "over_smoothed": {
+      "framing": {
+        "face_detected": true,
+        "bbox": [
+          65,
+          25,
+          312,
+          312
+        ],
+        "occupancy": 0.371337890625,
+        "top_margin": 0.048828125,
+        "bottom_margin": 0.341796875,
+        "forehead_cropped": false,
+        "chin_clipped": false,
+        "eye_level": 0.27490234375
+      },
+      "optics": {
+        "laplacian_var": 590.5534539691726,
+        "hf_ratio": 0.589835791521627,
+        "highlight_clipped_pct": 2.6702880859375e-05,
+        "shadow_crushed_pct": 0.04084142049153646,
+        "sat_mean": 0.5007726332720588,
+        "sat_p95": 0.8627450980392157,
+        "contrast_lum_std": 0.2787810145120851,
+        "eye_disparity": 1.0666487500492747,
+        "eye_catchlight": true
+      }
+    }
+  },
+  "convergence_results": {
+    "dpm_karras": {
+      "10": {
+        "time_sec": 2.8563168048858643,
+        "mae": 15.229206085205078,
+        "rmse": 25.912389755249023,
+        "psnr": 19.860654257491426
+      },
+      "15": {
+        "time_sec": 4.158301591873169,
+        "mae": 3.84136962890625,
+        "rmse": 8.111045837402344,
+        "psnr": 29.949266483835537
+      },
+      "20": {
+        "time_sec": 5.524410724639893,
+        "mae": 3.574559450149536,
+        "rmse": 7.544503211975098,
+        "psnr": 30.57819064177602
+      },
+      "25": {
+        "time_sec": 6.732820510864258,
+        "mae": 2.014265775680542,
+        "rmse": 3.407801389694214,
+        "psnr": 37.481318069474426
+      },
+      "30": {
+        "time_sec": 8.028048276901245,
+        "mae": 0.9292373657226562,
+        "rmse": 2.0971765518188477,
+        "psnr": 41.69810370136838
+      }
+    },
+    "pndm": {
+      "20": {
+        "time_sec": 5.725403785705566,
+        "mae": 13.225340843200684,
+        "rmse": 24.78251838684082,
+        "psnr": 20.24789486386112
+      },
+      "28": {
+        "time_sec": 7.797304630279541,
+        "mae": 13.213339805603027,
+        "rmse": 24.082855224609375,
+        "psnr": 20.496644107191543
+      },
+      "40": {
+        "time_sec": 10.909630298614502,
+        "mae": 11.516716957092285,
+        "rmse": 23.09124755859375,
+        "psnr": 20.86185565841756
+      }
+    }
+  },
+  "guidance_results": {
+    "4.5": {
+      "laplacian_var": 463.4030258271232,
+      "hf_ratio": 0.5718944705812827,
+      "highlight_clipped_pct": 5.086263020833333e-06,
+      "shadow_crushed_pct": 0.033542633056640625,
+      "sat_mean": 0.5023854274375766,
+      "sat_p95": 0.8509803921568627,
+      "contrast_lum_std": 0.26484312664913956,
+      "eye_disparity": 1.384083044683373,
+      "eye_catchlight": true
+    },
+    "5.5": {
+      "laplacian_var": 444.8399825225206,
+      "hf_ratio": 0.5642127746616007,
+      "highlight_clipped_pct": 0.00017038981119791666,
+      "shadow_crushed_pct": 0.038677215576171875,
+      "sat_mean": 0.5062226837756587,
+      "sat_p95": 0.8666666666666667,
+      "contrast_lum_std": 0.2746139969238549,
+      "eye_disparity": 1.4541522488204688,
+      "eye_catchlight": true
+    },
+    "6.2": {
+      "laplacian_var": 438.6092382026254,
+      "hf_ratio": 0.5591264654053759,
+      "highlight_clipped_pct": 0.0005823771158854166,
+      "shadow_crushed_pct": 0.04239527384440104,
+      "sat_mean": 0.509138713163488,
+      "sat_p95": 0.8745098039215686,
+      "contrast_lum_std": 0.2800100116044713,
+      "eye_disparity": 1.5259515567634188,
+      "eye_catchlight": true
+    },
+    "7.0": {
+      "laplacian_var": 419.69251551163325,
+      "hf_ratio": 0.5514404935820258,
+      "highlight_clipped_pct": 0.0007171630859375,
+      "shadow_crushed_pct": 0.04364903767903646,
+      "sat_mean": 0.5072037042356005,
+      "sat_p95": 0.8705882352941177,
+      "contrast_lum_std": 0.2840331988446771,
+      "eye_disparity": 1.4541522488204688,
+      "eye_catchlight": true
+    },
+    "7.5": {
+      "laplacian_var": 423.3579062370118,
+      "hf_ratio": 0.5489341969858659,
+      "highlight_clipped_pct": 0.00109100341796875,
+      "shadow_crushed_pct": 0.04552586873372396,
+      "sat_mean": 0.5094654606837853,
+      "sat_p95": 0.8745098039215686,
+      "contrast_lum_std": 0.2865264081605995,
+      "eye_disparity": 1.4257072841555563,
+      "eye_catchlight": true
+    },
+    "9.0": {
+      "laplacian_var": 431.1869242412504,
+      "hf_ratio": 0.5451144207524456,
+      "highlight_clipped_pct": 0.00279998779296875,
+      "shadow_crushed_pct": 0.049893697102864586,
+      "sat_mean": 0.5129261690027573,
+      "sat_p95": 0.8862745098039215,
+      "contrast_lum_std": 0.2917934737176431,
+      "eye_disparity": 1.432736455134817,
+      "eye_catchlight": true
+    },
+    "12.0": {
+      "laplacian_var": 396.85362033171987,
+      "hf_ratio": 0.5379626973692874,
+      "highlight_clipped_pct": 0.0027414957682291665,
+      "shadow_crushed_pct": 0.052907307942708336,
+      "sat_mean": 0.5103086583754596,
+      "sat_p95": 0.8862745098039215,
+      "contrast_lum_std": 0.2934181037589642,
+      "eye_disparity": 1.694129503226473,
+      "eye_catchlight": true
+    }
+  }
+}

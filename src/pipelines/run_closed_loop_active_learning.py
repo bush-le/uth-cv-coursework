@@ -275,9 +275,16 @@ def run_active_learning_loop(
             r_ckpt = ckpt_dir / f"active_learning_m{r_cand}_best.pt"
             if r_hard_path.exists() and r_ckpt.exists():
                 logger.info("Found completed Round %d artifacts at %s and %s", r_cand, r_dir, r_ckpt.name)
-                with open(r_hard_path, "r", encoding="utf-8") as hf:
-                    new_hards = [ImageMetadata.from_dict(json.loads(line)) for line in hf if line.strip()]
-                    resume_records.extend(new_hards)
+                bench_folder = "D1_augmented" if r_cand == 1 else ("D2_hard_boosted" if r_cand == 2 else f"D{r_cand}_expanded")
+                bench_train = Path("data/benchmarks") / bench_folder / "train.jsonl"
+                if bench_train.exists():
+                    with open(bench_train, "r", encoding="utf-8") as bf:
+                        resume_records = [ImageMetadata.from_dict(json.loads(line)) for line in bf if line.strip()]
+                else:
+                    with open(r_hard_path, "r", encoding="utf-8") as hf:
+                        all_hards = [ImageMetadata.from_dict(json.loads(line)) for line in hf if line.strip()]
+                    train_h, _ = split_hard_samples(all_hards, test_ratio=0.15, seed=seed + r_cand)
+                    resume_records.extend(train_h)
                 latest_completed = r_cand
                 current_detector_ckpt = r_ckpt
                 r_cand += 1
@@ -369,7 +376,19 @@ def run_active_learning_loop(
                 "attribution": attrib,
             })
 
-        out_summary = {"rounds": rounds_log, "dry_run": True}
+        out_summary = {
+            "num_rounds": num_rounds,
+            "candidates_per_round": candidates_per_round,
+            "rounds": rounds_log,
+            "deltas": {
+                "initial_auc": rounds_log[0]["test_metrics"]["roc_auc"] if rounds_log else 0.0,
+                "final_auc": rounds_log[-1]["test_metrics"]["roc_auc"] if rounds_log else 0.0,
+                "auc_gain": round(
+                    rounds_log[-1]["test_metrics"]["roc_auc"] - rounds_log[0]["test_metrics"]["roc_auc"], 4
+                ) if rounds_log else 0.0,
+            },
+            "dry_run": True,
+        }
         with open(logs_dir / "closed_loop_metrics.json", "w", encoding="utf-8") as f:
             json.dump(out_summary, f, indent=2)
         return out_summary
@@ -412,6 +431,7 @@ def run_active_learning_loop(
             mask_targets=mask_targets,
             device=device,
             seed=seed + r * 100,
+            sample_offset=(r - 1) * candidates_per_round,
         )
 
         # 4. Quality Curation Gate
@@ -436,11 +456,15 @@ def run_active_learning_loop(
 
         # 5. Load Previous Detector M_{r-1} for Inference
         detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
-        if current_detector_ckpt.exists():
-            ckpt = torch.load(current_detector_ckpt, map_location=device)
-            if "model_state_dict" in ckpt:
-                detector.load_state_dict(ckpt["model_state_dict"])
-            logger.info("Loaded detector weights from %s", current_detector_ckpt.name)
+        if not current_detector_ckpt.exists():
+            raise FileNotFoundError(
+                f"Zero-Mock Invariant Violation: Checkpoint {current_detector_ckpt} not found! "
+                f"Refusing to mine hard samples without a verified trained model checkpoint."
+            )
+        ckpt = torch.load(current_detector_ckpt, map_location=device)
+        if "model_state_dict" in ckpt:
+            detector.load_state_dict(ckpt["model_state_dict"])
+        logger.info("Loaded detector weights from %s", current_detector_ckpt.name)
         detector.to(torch.device(device))
         detector.eval()
 
@@ -517,9 +541,13 @@ def run_active_learning_loop(
                 paired_reals = sampled_reals
 
             new_challenge_items = list(h_test) + paired_reals
-            challenge_test_records.extend(new_challenge_items)
-            with open(challenge_manifest_path, "a", encoding="utf-8") as ch_f:
-                for item in new_challenge_items:
+            existing_chal_ids = {m.image_id for m in challenge_test_records}
+            for item in new_challenge_items:
+                if item.image_id not in existing_chal_ids:
+                    challenge_test_records.append(item)
+                    existing_chal_ids.add(item.image_id)
+            with open(challenge_manifest_path, "w", encoding="utf-8") as ch_f:
+                for item in challenge_test_records:
                     ch_f.write(json.dumps(item.to_dict()) + "\n")
             logger.info(
                 "Added %d hard fakes and %d test reals to cumulative challenge test vault (total: %d).",
@@ -573,6 +601,7 @@ def run_active_learning_loop(
             num_epochs=epochs_per_round,
             learning_rate=2e-4,
             hard_sample_loss_weight=2.0,
+            unfreeze_last_n_blocks=1,
             checkpoint_dir=ckpt_dir,
             checkpoint_prefix=f"active_learning_m{r}",
             device=device,

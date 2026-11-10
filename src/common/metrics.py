@@ -1,6 +1,7 @@
 """Evaluation and quality curation metrics for 2D Deepfake Detection and Hard-Sample Mining."""
 
 from typing import Any, List, Optional, Sequence, Tuple, Union
+import threading
 import numpy as np
 import torch
 
@@ -183,7 +184,7 @@ def compute_hard_sample_recall(
         is_hard_sample: Boolean mask indicating mined hard samples of shape (N,).
 
     Returns:
-        Recall on hard fake samples in [0.0, 1.0]. Returns 1.0 if no hard samples present.
+        Recall on hard fake samples in [0.0, 1.0]. Returns float('nan') if no hard samples present.
     """
     preds = np.asarray(predictions).ravel()
     targs = np.asarray(targets).ravel()
@@ -191,7 +192,7 @@ def compute_hard_sample_recall(
 
     target_hard_mask = (targs == 1) & hard_mask
     if not np.any(target_hard_mask):
-        return 1.0
+        return float("nan")
 
     caught = (preds[target_hard_mask] == 1).sum()
     total_hard = target_hard_mask.sum()
@@ -199,17 +200,19 @@ def compute_hard_sample_recall(
 
 
 _HAAR_FACE_CLASSIFIER: Optional[Any] = None
+_HAAR_LOCK = threading.Lock()
 
 
 def get_haar_face_classifier() -> Any:
-    """Return cached singleton instance of cv2.CascadeClassifier to avoid 22ms XML reparsing penalty."""
+    """Return cached thread-safe singleton instance of cv2.CascadeClassifier to avoid 22ms XML reparsing penalty."""
     global _HAAR_FACE_CLASSIFIER
-    if _HAAR_FACE_CLASSIFIER is None:
-        import cv2
+    with _HAAR_LOCK:
+        if _HAAR_FACE_CLASSIFIER is None:
+            import cv2
 
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        _HAAR_FACE_CLASSIFIER = cv2.CascadeClassifier(cascade_path)
-    return _HAAR_FACE_CLASSIFIER
+            cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+            _HAAR_FACE_CLASSIFIER = cv2.CascadeClassifier(cascade_path)
+        return _HAAR_FACE_CLASSIFIER
 
 
 def compute_laplacian_sharpness(
@@ -223,7 +226,7 @@ def compute_laplacian_sharpness(
         bbox_xyxy: Optional bounding box [x1, y1, x2, y2] to isolate face ROI.
 
     Returns:
-        Scalar sharpness variance score (higher indicates crisper image).
+        Scalar sharpness variance score (higher indicates crisper image). Returns 0.0 on degraded crops.
     """
     if not isinstance(image, torch.Tensor):
         image = torch.tensor(image, dtype=torch.float32)
@@ -234,16 +237,20 @@ def compute_laplacian_sharpness(
     # If bbox_xyxy is provided, crop to ROI
     if bbox_xyxy is not None and len(bbox_xyxy) == 4:
         _, h, w = image.shape
-        x1, y1, x2, y2 = [float(v) for v in bbox_xyxy]
+        bx1, by1, bx2, by2 = [float(v) for v in bbox_xyxy]
         # Handle normalized vs pixel coordinates
-        if max(x1, y1, x2, y2) <= 1.0:
-            x1, y1, x2, y2 = x1 * w, y1 * h, x2 * w, y2 * h
+        if max(abs(bx1), abs(by1), abs(bx2), abs(by2)) <= 1.0:
+            bx1, by1, bx2, by2 = bx1 * w, by1 * h, bx2 * w, by2 * h
+        x1, x2 = min(bx1, bx2), max(bx1, bx2)
+        y1, y2 = min(by1, by2), max(by1, by2)
         ix1 = max(0, min(w - 1, int(round(x1))))
         iy1 = max(0, min(h - 1, int(round(y1))))
         ix2 = max(ix1 + 1, min(w, int(round(x2))))
         iy2 = max(iy1 + 1, min(h, int(round(y2))))
-        if ix2 > ix1 and iy2 > iy1:
+        if (ix2 - ix1) >= 2 and (iy2 - iy1) >= 2:
             image = image[:, iy1:iy2, ix1:ix2]
+        else:
+            return 0.0
 
     # Convert to 1-channel grayscale (0.2989 R + 0.5870 G + 0.1140 B)
     if image.shape[0] == 3:
@@ -266,6 +273,8 @@ def compute_laplacian_sharpness(
 
     laplacian = torch.nn.functional.conv2d(gray, kernel, padding=1)
     variance = float(torch.var(laplacian).item()) * 1000.0
+    if np.isnan(variance) or np.isinf(variance):
+        return 0.0
     return variance
 
 
@@ -381,8 +390,9 @@ def verify_facial_geometry(
         h, w = 512, 512
 
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-    face_cascade = cv2.CascadeClassifier(face_cascade_path)
+    face_cascade = get_haar_face_classifier()
+    if face_cascade.empty():
+        return True, []
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
     if len(faces) == 0:
         # Fallback to relaxed detection for tilted faces or dark eyeglasses
@@ -430,12 +440,13 @@ def verify_facial_geometry(
     if (fy + fh) >= int(0.96 * h) and bot_skin_pct > 0.35:
         reasons.append(f"Chin / jaw amputated by bottom canvas border (box_bottom={fy+fh}, skin={bot_skin_pct:.1%})")
 
-    # Highlight blowout check localized strictly to face ROI (ignoring external studio backdrops)
+    # Highlight blowout check localized strictly to face ROI (strict 3-channel blowout check)
     face_rgb = image[fy : fy + fh, fx : fx + fw]
     if face_rgb.size > 0:
-        face_white_clip = float(np.mean(face_rgb >= 252))
-        if face_white_clip > 0.04:
-            reasons.append(f"Severe highlight blowout on face ({face_white_clip:.1%} > 4.0%)")
+        blown_out = np.all(face_rgb >= 252, axis=-1)
+        face_white_clip = float(np.mean(blown_out))
+        if face_white_clip > 0.08:
+            reasons.append(f"Severe highlight blowout on face ({face_white_clip:.1%} > 8.0%)")
 
     # Centering check
     center_x = (fx + fw / 2.0) / float(w)
@@ -443,8 +454,8 @@ def verify_facial_geometry(
     if center_x < 0.15 or center_x > 0.85 or center_y < 0.15 or center_y > 0.85:
         reasons.append(f"Face is severely off-center: ({center_x:.2f}, {center_y:.2f})")
 
-    # Inspect lower face for horizontal inpainting boundary / seam spike
-    lower = gray[fy + int(0.35 * fh) : fy + int(0.85 * fh), fx + int(0.1 * fw) : fx + int(0.9 * fw)]
+    # Inspect lower face for horizontal inpainting boundary / seam spike (focus on mouth/jaw 0.60-0.90 fh, avoiding glasses)
+    lower = gray[fy + int(0.60 * fh) : fy + int(0.90 * fh), fx + int(0.1 * fw) : fx + int(0.9 * fw)]
     if lower.shape[0] >= 10 and lower.shape[1] >= 10:
         sobel_y = np.abs(cv2.Sobel(lower, cv2.CV_64F, 0, 1, ksize=3))
         row_means = np.mean(sobel_y, axis=1)
@@ -540,3 +551,86 @@ class ClipScorer:
             sim = (img_feats * txt_feats).sum(dim=-1).item()
 
         return float(np.clip(sim, -1.0, 1.0))
+
+
+def expected_calibration_error(
+    y_true: np.ndarray | list[int],
+    y_prob: np.ndarray | list[float],
+    n_bins: int = 10,
+) -> float:
+    """Compute Expected Calibration Error (ECE) across M equally spaced probability bins.
+
+    Args:
+        y_true: Binary ground-truth labels {0, 1} of shape (N,).
+        y_prob: Predicted probabilities P(y=1) in [0.0, 1.0] of shape (N,).
+        n_bins: Number of bins (default 10).
+
+    Returns:
+        ECE scalar in [0.0, 1.0].
+    """
+    labels = np.asarray(y_true).ravel()
+    probs = np.asarray(y_prob).ravel()
+    if len(labels) == 0:
+        return 0.0
+
+    bin_boundaries = np.linspace(0.0, 1.0, n_bins + 1)
+    ece = 0.0
+    n = len(labels)
+
+    for i in range(n_bins):
+        bin_lower = bin_boundaries[i]
+        bin_upper = bin_boundaries[i + 1]
+        if i == n_bins - 1:
+            in_bin = (probs >= bin_lower) & (probs <= bin_upper)
+        else:
+            in_bin = (probs >= bin_lower) & (probs < bin_upper)
+
+        bin_size = np.sum(in_bin)
+        if bin_size > 0:
+            bin_acc = float(np.mean(labels[in_bin]))
+            bin_conf = float(np.mean(probs[in_bin]))
+            ece += (bin_size / n) * abs(bin_acc - bin_conf)
+
+    return float(ece)
+
+
+def compute_calibration_curve(
+    y_true: np.ndarray | list[int],
+    y_prob: np.ndarray | list[float],
+    n_bins: int = 10,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Compute calibration curve (reliability diagram data).
+
+    Args:
+        y_true: Binary ground-truth labels {0, 1} of shape (N,).
+        y_prob: Predicted probabilities P(y=1) in [0.0, 1.0] of shape (N,).
+        n_bins: Number of bins (default 10).
+
+    Returns:
+        (bin_accuracies, bin_confidences, bin_counts).
+    """
+    labels = np.asarray(y_true).ravel()
+    probs = np.asarray(y_prob).ravel()
+    bin_boundaries = np.linspace(0.0, 1.0, n_bins + 1)
+    accs = []
+    confs = []
+    counts = []
+
+    for i in range(n_bins):
+        bin_lower = bin_boundaries[i]
+        bin_upper = bin_boundaries[i + 1]
+        if i == n_bins - 1:
+            in_bin = (probs >= bin_lower) & (probs <= bin_upper)
+        else:
+            in_bin = (probs >= bin_lower) & (probs < bin_upper)
+
+        bin_size = int(np.sum(in_bin))
+        counts.append(bin_size)
+        if bin_size > 0:
+            accs.append(float(np.mean(labels[in_bin])))
+            confs.append(float(np.mean(probs[in_bin])))
+        else:
+            accs.append(0.0)
+            confs.append((bin_lower + bin_upper) / 2.0)
+
+    return np.array(accs, dtype=np.float32), np.array(confs, dtype=np.float32), np.array(counts, dtype=np.int64)

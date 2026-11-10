@@ -203,6 +203,22 @@ def package_benchmark_d0(
         paths["d0_test"]: d0_test_records,
     }
 
+    # Vault Protection: Prevent overwriting an existing sealed master test vault with smaller mock/partial sets
+    if paths["master_test"].exists() and len(master_test_records) < 1178:
+        try:
+            with open(paths["master_test"], "r", encoding="utf-8") as f_chk:
+                existing_lines = sum(1 for line in f_chk if line.strip())
+            if existing_lines >= 1178:
+                logger.warning(
+                    "Master Frozen Test Vault (%s) is already sealed with %d samples. Preserving vault against overwrite by %d test records.",
+                    paths["master_test"],
+                    existing_lines,
+                    len(master_test_records),
+                )
+                del manifest_map[paths["master_test"]]
+        except Exception as exc:
+            logger.warning("Could not check master test vault integrity: %s", exc)
+
     for path, meta_list in manifest_map.items():
         with open(path, "w", encoding="utf-8") as f:
             for m in meta_list:
@@ -245,7 +261,7 @@ def run_block1_pipeline(
     logs_dir.mkdir(parents=True, exist_ok=True)
 
     partitions_dir = base_dir / "partitions"
-    benchmarks_dir = base_dir / "benchmarks"
+    benchmarks_dir = (base_dir / "benchmarks_dry_run") if (dry_run and output_base_dir is None) else (base_dir / "benchmarks")
     syn_dir = base_dir / "synthetic"
 
     logger.info("=== Starting Block 1: Master Frozen Test Vault & Baseline M0 Initialization ===")

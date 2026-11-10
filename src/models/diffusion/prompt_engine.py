@@ -116,7 +116,10 @@ class PromptGrammarEngine:
             error_stats: Dictionary mapping 'slot:tag' or tag substrings to observed error rates in [0.0, 1.0].
             temperature: Softmax scaling temperature. Lower values (< 1.0) make error steering sharper.
         """
-        temp = max(0.1, float(temperature))
+        if np.isnan(temperature) or np.isinf(temperature):
+            temp = 1.0
+        else:
+            temp = max(0.1, float(temperature))
 
         for slot, tags in self.taxonomy.items():
             raw_scores = []
@@ -135,18 +138,25 @@ class PromptGrammarEngine:
                     ]
                     matched_err = max(matches) if matches else 0.0
 
+                # Strictly guard against NaN/Inf detector metric outputs
+                if matched_err is None or np.isnan(matched_err) or np.isinf(matched_err):
+                    matched_err = 0.0
+                matched_err = float(np.clip(matched_err, 0.0, 1.0))
+
                 raw_scores.append(matched_err)
 
             scores_arr = np.array(raw_scores, dtype=np.float64) / temp
             # Stable softmax
             exp_scores = np.exp(scores_arr - np.max(scores_arr))
-            softmax_probs = exp_scores / np.sum(exp_scores)
+            sum_exp = float(np.sum(exp_scores))
+            softmax_probs = exp_scores / (sum_exp if sum_exp > 1e-8 else 1.0)
 
             # Blend with uniform exploration floor to guarantee continuous broad coverage
             uniform_prob = 1.0 / len(tags)
             floor = self.exploration_floor
             blended_probs = (1.0 - floor) * softmax_probs + floor * uniform_prob
-            blended_probs = blended_probs / np.sum(blended_probs)
+            sum_blended = float(np.sum(blended_probs))
+            blended_probs = blended_probs / (sum_blended if sum_blended > 1e-8 else 1.0)
 
             # Store updated normalized probabilities
             for tag, prob in zip(tags, blended_probs):
@@ -201,7 +211,7 @@ class PromptGrammarEngine:
             age = str(demographics.get("age_group", "")).lower()
             gender = str(demographics.get("gender", "")).lower()
 
-            if any(k in age for k in ["0-2", "3-6", "infant", "toddler"]):
+            if age in ["0-2", "3-6"] or any(k in age for k in ["infant", "toddler", "baby"]):
                 age_tag = "toddler portrait, delicate soft skin, gentle baby features"
                 if gender == "male":
                     gender_tag = "baby boy"
@@ -209,7 +219,7 @@ class PromptGrammarEngine:
                     gender_tag = "baby girl"
                 else:
                     gender_tag = "toddler child"
-            elif any(k in age for k in ["7-9", "10-14", "child", "youth"]):
+            elif age in ["7-9", "10-14"] or any(k in age for k in ["child", "youth"]):
                 age_tag = "youth portrait, soft natural skin"
                 if gender == "male":
                     gender_tag = "young boy face"
@@ -217,7 +227,7 @@ class PromptGrammarEngine:
                     gender_tag = "young girl face"
                 else:
                     gender_tag = "youth face"
-            elif any(k in age for k in ["50-69", "70-120", "mature", "elderly"]):
+            elif age in ["50-69", "70-120"] or any(k in age for k in ["mature", "elderly"]):
                 age_tag = "elderly face, natural wrinkles, silver hair"
                 if gender == "male":
                     gender_tag = "mature man"
@@ -239,6 +249,8 @@ class PromptGrammarEngine:
                 occlusion_tag = "dark sunglasses with subtle lens glare"
             elif glasses in ("Normal", "Glasses") or demographics.get("eyeglasses") is True:
                 occlusion_tag = "prescription glasses with realistic reflections"
+            elif glasses in ("None", "none", None, False) or demographics.get("eyeglasses") is False:
+                occlusion_tag = ""
             elif mode != "inpaint":
                 occlusion_tag = self._sample_slot_tag("occlusion", rng)
             else:

@@ -419,8 +419,20 @@ def run_image_generation(
             demographics=demographics,
             generation=curr_gen,
         )
-        fake_records.append(meta.to_dict())
+        record_dict = meta.to_dict()
+        fake_records.append(record_dict)
         generated_count += 1
+
+        # Incremental manifest persistence: append record immediately so interruptions never lose indexing
+        with open(out_manifest_path, "a", encoding="utf-8") as mf:
+            mf.write(json.dumps(record_dict) + "\n")
+
+        # Periodic VRAM & RAM hygiene for long-running 10k scaling
+        if generated_count % 100 == 0:
+            import gc
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
     fake_records.sort(key=lambda r: r["image_id"])
     with open(out_manifest_path, "w", encoding="utf-8") as f:

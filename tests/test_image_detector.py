@@ -52,12 +52,51 @@ def test_dinovit_freeze_and_partial_unfreeze() -> None:
 
 
 def test_dinov2_small_freeze_and_partial_unfreeze() -> None:
-    """Verify MetaDinoV2Wrapper partial unfreezing enables gradients on last block."""
+    """Verify MetaDinoV2Wrapper partial unfreezing enables gradients on last block (block 11) and layernorm."""
     model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, freeze_extractor=True, pretrained=False)
     assert all(not p.requires_grad for p in model.extractor.parameters())
     assert all(p.requires_grad for p in model.classifier.parameters())
 
     model.unfreeze_backbone(unfreeze_last_n_blocks=1)
+    # Check that only layer 11 is unfrozen out of 12 encoder layers
+    encoder_layers = model.extractor.backbone.encoder.layer
+    for i in range(11):
+        assert all(not p.requires_grad for p in encoder_layers[i].parameters()), f"Layer {i} should be frozen"
+    assert all(p.requires_grad for p in encoder_layers[11].parameters()), "Layer 11 should be unfrozen"
+    assert all(p.requires_grad for p in model.extractor.backbone.layernorm.parameters()), "Backbone layernorm should be unfrozen"
+
+    # Trainable param count check
+    trainable_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    assert trainable_count == 1_777_153, f"Expected 1,777,153 params, got {trainable_count}"
+
+
+def test_dinov2_state_dict_preserves_mean_std(tmp_path: Path) -> None:
+    """Verify saving checkpoints and loading preserves extractor.mean and extractor.std buffers."""
+    model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    state = {
+        "model_state_dict": model.state_dict(),
+        "epoch": 1,
+    }
+    ckpt_path = tmp_path / "test_detector.pt"
+    torch.save(state, ckpt_path)
+
+    loaded = torch.load(ckpt_path, map_location="cpu")
+    model_reloaded = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    msg = model_reloaded.load_state_dict(loaded["model_state_dict"])
+    assert len(msg.missing_keys) == 0
+    assert len(msg.unexpected_keys) == 0
+    assert torch.allclose(model_reloaded.extractor.mean, model.extractor.mean)
+    assert torch.allclose(model_reloaded.extractor.std, model.extractor.std)
+
+
+def test_loss_weighting_zero_division_guard() -> None:
+    """Verify loss computation does not produce NaN when weights sum to zero."""
+    per_sample_loss = torch.tensor([[0.5], [0.4]])
+    weights = torch.tensor([[0.0], [0.0]])
+    clamped_denom = torch.clamp(torch.sum(weights), min=1e-8)
+    loss = torch.sum(per_sample_loss * weights) / clamped_denom
+    assert not torch.isnan(loss)
+    assert loss.item() == 0.0
 
 
 def test_detector_normalizes_imagenet_buffer() -> None:
