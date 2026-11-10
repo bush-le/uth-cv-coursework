@@ -120,7 +120,31 @@ def extract_error_attribution_from_hard_samples(
     }
 
 
+def verify_partition_disjointness(train_manifest_path: Path, test_manifest_path: Path) -> None:
+    """Assert zero identity leakage between training seed manifest and test vault."""
+    if not train_manifest_path.exists() or not test_manifest_path.exists():
+        return
+
+    with open(train_manifest_path, "r", encoding="utf-8") as f:
+        train_ids = {
+            json.loads(line).get("identity", json.loads(line)["image_id"])
+            for line in f
+            if line.strip()
+        }
+    with open(test_manifest_path, "r", encoding="utf-8") as f:
+        test_ids = {
+            json.loads(line).get("identity", json.loads(line)["image_id"])
+            for line in f
+            if line.strip()
+        }
+
+    leakage = train_ids.intersection(test_ids)
+    if leakage:
+        raise AssertionError(f"FATAL IDENTITY LEAKAGE DETECTED: {len(leakage)} identities overlap: {leakage}")
+
+
 def split_hard_samples(
+
     mined_hard: List[ImageMetadata],
     test_ratio: float = 0.15,
     seed: int = 42,
@@ -366,9 +390,14 @@ def run_active_learning_loop(
             count=mode_quotas.get("sd_inpaint", 20),
         )
 
-        # 3. Dynamic Candidate Generation using Prompt Grammar Engine
-        raw_manifest_path = Path("data/raw/manifest.jsonl")
+        # 3. Dynamic Candidate Generation using Prompt Grammar Engine (Strictly Train-Reals to prevent test contamination)
+        train_reals_path = Path("data/partitions/train_reals.jsonl")
+        test_reals_path = Path("data/partitions/test_reals.jsonl")
+        raw_manifest_path = train_reals_path if train_reals_path.exists() else Path("data/raw/manifest.jsonl")
+        if train_reals_path.exists() and test_reals_path.exists():
+            verify_partition_disjointness(train_reals_path, test_reals_path)
         candidates_raw_path = round_dir / "candidates_raw.jsonl"
+
         candidates_curated_path = round_dir / "candidates_curated.jsonl"
         hard_manifest_path = round_dir / "hard_samples.jsonl"
 
@@ -477,11 +506,27 @@ def run_active_learning_loop(
         # 9. Dual-Benchmark Split: 85% Train / 15% Cumulative Challenge Test
         h_train, h_test = split_hard_samples(mined_hard, test_ratio=0.15, seed=seed + r)
         if h_test:
-            challenge_test_records.extend(h_test)
+            # Pair hard fakes with matching authentic real samples from test partition for mathematically balanced evaluation
+            test_reals_path = Path("data/partitions/test_reals.jsonl")
+            paired_reals: List[ImageMetadata] = []
+            if test_reals_path.exists():
+                with open(test_reals_path, "r", encoding="utf-8") as rf:
+                    all_test_reals = [ImageMetadata.from_dict(json.loads(line)) for line in rf if line.strip()]
+                real_rng = random.Random(seed + r * 77)
+                sampled_reals = real_rng.sample(all_test_reals, min(len(h_test), len(all_test_reals)))
+                paired_reals = sampled_reals
+
+            new_challenge_items = list(h_test) + paired_reals
+            challenge_test_records.extend(new_challenge_items)
             with open(challenge_manifest_path, "a", encoding="utf-8") as ch_f:
-                for ht in h_test:
-                    ch_f.write(json.dumps(ht.to_dict()) + "\n")
-            logger.info("Added %d hard samples to cumulative challenge test vault (total: %d).", len(h_test), len(challenge_test_records))
+                for item in new_challenge_items:
+                    ch_f.write(json.dumps(item.to_dict()) + "\n")
+            logger.info(
+                "Added %d hard fakes and %d test reals to cumulative challenge test vault (total: %d).",
+                len(h_test),
+                len(paired_reals),
+                len(challenge_test_records),
+            )
 
         # Expand Training Dataset: D_r = D_{r-1} U H_r^{train}
         current_train_records = current_train_records + h_train
@@ -513,12 +558,15 @@ def run_active_learning_loop(
             val_metadata=val_records,
             test_metadata=test_records,
             batch_size=16,
-            hard_sample_oversample_factor=2,
+            hard_sample_oversample_factor=1,  # 1 avoids double-dipping with loss weight
             seed=seed,
         )
         round_dm.setup()
 
         round_detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
+        # Constrain fine-tuning to 1 block to stabilize convergence on hard samples
+        round_detector.unfreeze_backbone(unfreeze_last_n_blocks=1)
+
         train_deepfake_image_detector(
             model=round_detector,
             datamodule=round_dm,

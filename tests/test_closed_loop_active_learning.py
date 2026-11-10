@@ -149,3 +149,18 @@ def test_dual_benchmark_dry_run_records_both_metrics(tmp_path):
         assert r_entry["challenge_test_metrics"]["roc_auc"] > 0
 
 
+def test_active_learning_asserts_zero_leakage_with_test_reals(tmp_path: Path) -> None:
+    """Verify active learning detects identity leakage if train and test partitions overlap."""
+    from src.pipelines.run_closed_loop_active_learning import verify_partition_disjointness
+
+    train_file = tmp_path / "train.jsonl"
+    test_file = tmp_path / "test.jsonl"
+
+    train_file.write_text('{"image_id": "real_1", "identity": "id_100"}\n')
+    test_file.write_text('{"image_id": "real_2", "identity": "id_100"}\n')
+
+    with pytest.raises(AssertionError, match="FATAL IDENTITY LEAKAGE"):
+        verify_partition_disjointness(train_file, test_file)
+
+
+
