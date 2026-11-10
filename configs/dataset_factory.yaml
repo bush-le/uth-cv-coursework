@@ -27,13 +27,14 @@ generation:
     - "sd_text2img"
   num_per_real: 1
   max_real_samples: 150
-  steps: 28
+  steps: 20
   guidance_scale: 6.2
   img2img_strength: 0.30
   image_size:
     - 512
     - 512
-  negative_prompt: "extreme macro, extreme close-up, cropped face, cropped forehead, amputated chin, partial face, nose close up, strabismus, crossed eyes, lazy eyes, divergent gaze, drooping eyelid, ptosis, asymmetric eyes, melted iris, waxy, plastic doll, unitooth, conjoined teeth, deformed teeth, multiple faces, phantom face, bad anatomy, deformed, distorted face, blurry, 3d render, cartoon, mirror, frame, border, vignette, circular frame, distorted glasses, severed frames, out of frame"
+  negative_prompt: "blurry, out of focus, distorted face, bad anatomy, deformed eyes, extra fingers, cartoon, 3d render, doll, low quality, oversaturated, plastic skin, mutation, watermark"
+
   inpaint_mask_box:
     - 0.30
     - 0.25

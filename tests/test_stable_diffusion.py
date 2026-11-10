@@ -58,6 +58,18 @@ def test_stable_diffusion_engine_img2img():
     assert not torch.allclose(altered, source_img)
 
 
+def test_calibrated_negative_prompt_within_clip_budget():
+    """Verify calibrated negative prompt string stays within 68 tokens and has key triggers."""
+    from src.models.diffusion.stable_diffusion_engine import CALIBRATED_NEGATIVE_PROMPT
+
+    words = CALIBRATED_NEGATIVE_PROMPT.split()
+    assert len(words) <= 25, f"Negative prompt too long ({len(words)} words): {CALIBRATED_NEGATIVE_PROMPT}"
+    assert "bad anatomy" in CALIBRATED_NEGATIVE_PROMPT
+    assert "distorted face" in CALIBRATED_NEGATIVE_PROMPT
+    assert "blurry" in CALIBRATED_NEGATIVE_PROMPT
+
+
+
 def test_run_image_generation_pipeline(tmp_path):
     """Test CLI batch generation pipeline writing images and JSONL manifest."""
     input_manifest = tmp_path / "real_manifest.jsonl"

@@ -20,60 +20,61 @@ logger = get_logger(__name__)
 
 SLOT_TAXONOMY: Dict[str, List[str]] = {
     "subject_age": [
-        "young adult portrait, fresh skin, vibrant natural complexion",
-        "middle-aged person portrait, subtle laugh lines, mature refined features",
-        "elderly individual face, natural skin wrinkles, graceful aging, silver hair strands",
-        "college-age youth portrait, smooth texture, clear natural eyes",
-        "mature adult face, defined jawline, authentic facial contours",
-        "senior person portrait, dignified expression, soft age marks",
+        "young adult portrait, fresh skin, vibrant complexion",
+        "middle-aged portrait, subtle laugh lines, refined features",
+        "elderly face, natural wrinkles, graceful aging, silver hair",
+        "college youth portrait, smooth texture, clear natural eyes",
+        "mature adult face, defined jawline, authentic contours",
+        "senior portrait, dignified expression, soft age marks",
     ],
     "subject_gender": [
-        "man face, natural masculine facial contours",
+        "man face, natural masculine contours",
         "woman face, authentic feminine features, natural skin",
-        "person portrait, neutral authentic face",
+        "neutral portrait, authentic human face",
     ],
     "optics": [
-        "shot on 85mm f/1.4 prime lens, creamy background bokeh, ultra sharp eye focus",
+        "shot on 85mm f/1.4 prime lens, creamy bokeh, sharp eye focus",
         "shot on 50mm portrait prime, balanced facial proportions, crisp eye details",
         "shot on 35mm film camera, subtle analog film grain, authentic depth",
         "medium format Hasselblad portrait, natural skin pores, realistic micro-contrast",
-        "shot on 85mm portrait prime lens, balanced facial proportions, sharp iris reflections",
-        "classic vintage 85mm portrait lens, warm organic film aesthetic, sharp facial details",
+        "shot on 85mm portrait prime lens, balanced framing, sharp iris reflections",
+        "classic vintage 85mm portrait lens, warm film aesthetic, sharp details",
     ],
     "lighting": [
-        "soft studio key light, diffuse beauty dish fill, subtle catchlights in eyes",
+        "soft studio key light, diffuse beauty dish fill, subtle catchlights",
         "direct harsh camera flash, balanced studio fill, authentic exposure",
         "warm golden hour sunlight, low sun angle, radiant natural backlight",
-        "diffuse north-facing window light, soft gradient shadows, gentle ambient illumination",
-        "dramatic cinematic side lighting, chiascurro shadows, high-contrast cheekbones",
-        "cool overcast daylight, even exposure, true-to-life color rendering",
-        "subtle colorful rim lighting, studio beauty glow, sculpted facial contours",
-        "cozy candlelit warm glow, intimate low-key illumination, deep soft shadows",
+        "diffuse window light, soft gradient shadows, gentle ambient illumination",
+        "dramatic cinematic side lighting, chiaroscuro shadows, sculpted cheekbones",
+        "cool overcast daylight, even exposure, authentic color rendering",
+        "subtle colorful rim lighting, studio beauty glow, sculpted contours",
+        "cozy candlelit warm glow, low-key illumination, deep soft shadows",
     ],
     "expression": [
         "subtle warm smile, natural laughing eyes, relaxed facial muscles",
-        "candid neutral glance, contemplative look, natural resting expression",
+        "candid neutral glance, contemplative look, natural expression",
         "slight confident smirk, focused gaze toward camera, authentic presence",
-        "candid sideways glance, dynamic subtle head tilt, spontaneous capture",
-        "calm serene expression, soft composed lips, direct honest eye contact",
+        "candid sideways glance, subtle head tilt, spontaneous capture",
+        "calm serene expression, soft composed lips, direct eye contact",
     ],
     "occlusion": [
         "wearing thin gold wireframe eyeglasses with subtle lens reflections",
         "wearing classic tortoiseshell prescription glasses, distinct stylish frames",
-        "wearing dark designer sunglasses with glossy reflection of environment",
+        "wearing dark designer sunglasses with glossy lens reflections",
         "stray strands of hair falling gently across forehead, candid natural hair",
         "high knit sweater collar framing the chin and jawline",
         "minimalist silver stud earring with tiny specular highlight",
         "bare face with unobstructed natural hairline and clear temples",
     ],
     "imperfections": [
-        "authentic skin texture, visible fine pores, microscopic skin imperfections",
-        "subtle constellation of natural freckles across the nose bridge and cheeks",
-        "delicate laugh lines around mouth corners, authentic organic expressions",
-        "subtle natural asymmetrical eyebrows, realistic unedited human face",
-        "natural skin pores, fine epidermal texture, subtle organic micro-features",
+        "authentic skin texture, visible fine pores, subtle imperfections",
+        "natural freckles across nose bridge and cheeks",
+        "delicate laugh lines around mouth corners, organic expressions",
+        "subtle natural asymmetrical eyebrows, realistic unedited face",
+        "fine epidermal texture, visible skin pores, subtle micro-features",
     ],
 }
+
 
 
 class PromptGrammarEngine:
@@ -187,9 +188,9 @@ class PromptGrammarEngine:
 
         # 1. Base photographic quality anchor (head-and-shoulders framing prevents both extreme crops and distant mirror scenes)
         if mode == "text2img":
-            base_prefix = "head and shoulders portrait, centered, head and hair fully in frame, direct eye contact"
+            base_prefix = "head and shoulders portrait, centered, direct eye contact"
         else:
-            base_prefix = "head and shoulders portrait, centered face, authentic direct eye contact"
+            base_prefix = "head and shoulders portrait, centered face"
 
         # 2. Subject demographics (strictly respect demographic dict if provided)
         age_tag = ""
@@ -197,29 +198,47 @@ class PromptGrammarEngine:
         occlusion_tag = ""
 
         if demographics:
-            age = demographics.get("age_group")
-            if age in ["0-2", "3-6"]:
-                age_tag = "toddler portrait, soft delicate natural skin, gentle baby features"
-            elif age in ["7-9", "10-14", "young"]:
-                age_tag = "young person portrait, soft natural skin, youthful facial features"
-            elif age in ["50-69", "70-120", "mature"]:
-                age_tag = "elderly individual face, natural skin wrinkles, dignified aging, silver hair"
-            else:
-                age_tag = "adult portrait, authentic facial contours, natural skin"
+            age = str(demographics.get("age_group", "")).lower()
+            gender = str(demographics.get("gender", "")).lower()
 
-            gender = demographics.get("gender")
-            if gender == "male":
-                gender_tag = "man face, natural masculine facial contours"
-            elif gender == "female":
-                gender_tag = "woman face, authentic feminine features, natural skin"
+            if any(k in age for k in ["0-2", "3-6", "infant", "toddler"]):
+                age_tag = "toddler portrait, delicate soft skin, gentle baby features"
+                if gender == "male":
+                    gender_tag = "baby boy"
+                elif gender == "female":
+                    gender_tag = "baby girl"
+                else:
+                    gender_tag = "toddler child"
+            elif any(k in age for k in ["7-9", "10-14", "child", "youth"]):
+                age_tag = "youth portrait, soft natural skin"
+                if gender == "male":
+                    gender_tag = "young boy face"
+                elif gender == "female":
+                    gender_tag = "young girl face"
+                else:
+                    gender_tag = "youth face"
+            elif any(k in age for k in ["50-69", "70-120", "mature", "elderly"]):
+                age_tag = "elderly face, natural wrinkles, silver hair"
+                if gender == "male":
+                    gender_tag = "mature man"
+                elif gender == "female":
+                    gender_tag = "mature woman"
+                else:
+                    gender_tag = "senior person"
             else:
-                gender_tag = self._sample_slot_tag("subject_gender", rng)
+                age_tag = "adult portrait, natural skin"
+                if gender == "male":
+                    gender_tag = "man face, masculine contours"
+                elif gender == "female":
+                    gender_tag = "woman face, feminine features"
+                else:
+                    gender_tag = "person face"
 
             glasses = demographics.get("glasses")
             if glasses == "Dark":
-                occlusion_tag = "wearing dark designer sunglasses with subtle lens glare"
+                occlusion_tag = "dark sunglasses with subtle lens glare"
             elif glasses in ("Normal", "Glasses") or demographics.get("eyeglasses") is True:
-                occlusion_tag = "wearing eyeglasses with realistic frame reflections"
+                occlusion_tag = "prescription glasses with realistic reflections"
             elif mode != "inpaint":
                 occlusion_tag = self._sample_slot_tag("occlusion", rng)
             else:
@@ -239,7 +258,7 @@ class PromptGrammarEngine:
         if mode == "inpaint":
             # For inpainting, focus heavily on seamless local blends and facial detail
             prompt_parts = [
-                "seamless natural facial features, authentic micro skin texture",
+                "seamless natural facial features, authentic skin texture",
                 gender_tag,
                 age_tag,
                 occlusion_tag,
@@ -249,7 +268,7 @@ class PromptGrammarEngine:
         elif mode == "img2img":
             # For img2img, focus on style preservation and realistic skin illumination
             prompt_parts = [
-                "high resolution authentic portrait, natural skin texture, realistic illumination",
+                "high resolution portrait, natural skin texture, realistic illumination",
                 gender_tag,
                 age_tag,
                 occlusion_tag,
@@ -270,15 +289,17 @@ class PromptGrammarEngine:
                 imperfection_tag,
             ]
 
-        # Filter empty strings and assemble full phrases without mid-sentence clipping
+        # Filter empty strings and assemble full phrases under 45 words (< 70 CLIP tokens)
         cleaned_parts = [p.strip() for p in prompt_parts if p.strip()]
         selected_parts = []
         cur_words = 0
         for part in cleaned_parts:
             part_words = len(part.split())
-            if cur_words + part_words <= 64:
+            if cur_words + part_words <= 45:
                 selected_parts.append(part)
                 cur_words += part_words
             else:
-                break
+                continue
         return ", ".join(selected_parts)
+
+

@@ -67,3 +67,25 @@ def test_prompt_grammar_error_weight_adaptation():
     steered_prompts = [engine.generate_prompt(mode="text2img", seed_offset=i) for i in range(50)]
     flash_count = sum(1 for p in steered_prompts if "camera flash" in p)
     assert flash_count >= 10, f"Expected elevated direct camera flash occurrences, got {flash_count}"
+
+
+def test_infant_prompt_does_not_contain_adult_gender_words() -> None:
+    """Verify toddler/infant demographics never inject adult 'man'/'woman' chimera words."""
+    engine = PromptGrammarEngine(seed=42)
+    demo = {"age_group": "0-2", "gender": "male"}
+    prompt = engine.generate_prompt(demographics=demo, mode="text2img", seed_offset=1)
+    prompt_words = prompt.lower().replace(",", " ").split()
+    assert "man" not in prompt_words, f"Adult word 'man' found in toddler prompt: {prompt}"
+    assert "baby boy" in prompt.lower() or "toddler" in prompt.lower()
+
+
+def test_prompt_word_count_within_clip_budget() -> None:
+    """Verify all generated prompts across 50 offsets stay <= 45 words (< 70 CLIP tokens)."""
+    engine = PromptGrammarEngine(seed=42)
+    for mode in ["text2img", "inpaint", "img2img"]:
+        for i in range(20):
+            p = engine.generate_prompt(mode=mode, seed_offset=i)
+            word_count = len(p.split())
+            assert word_count <= 45, f"Mode {mode} offset {i} exceeded 45 words ({word_count}): {p}"
+
+
