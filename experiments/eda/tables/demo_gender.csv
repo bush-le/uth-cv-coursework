@@ -1,0 +1,5 @@
+dataset,gender_norm,count,percentage
+celeba_hq,female,1547,77.35
+celeba_hq,male,453,22.65
+ffhq,female,592,50.68
+ffhq,male,576,49.32

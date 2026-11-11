@@ -1,0 +1,12 @@
+dataset,age_group_raw,count,percentage
+celeba_hq,not_applicable,2000,100.0
+ffhq,20-29,323,27.65
+ffhq,30-39,255,21.83
+ffhq,40-49,161,13.78
+ffhq,50-69,128,10.96
+ffhq,15-19,77,6.59
+ffhq,3-6,74,6.34
+ffhq,7-9,45,3.85
+ffhq,0-2,43,3.68
+ffhq,10-14,42,3.6
+ffhq,70-120,20,1.71

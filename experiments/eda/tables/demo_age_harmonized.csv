@@ -1,0 +1,5 @@
+dataset,young_norm,count,percentage
+celeba_hq,young,1576,78.8
+celeba_hq,non_young,424,21.2
+ffhq,young,859,73.54
+ffhq,non_young,309,26.46

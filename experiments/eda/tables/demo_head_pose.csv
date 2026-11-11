@@ -1,0 +1,4 @@
+dataset,angle,count,mean_deg,std_deg,min_deg,median_deg,max_deg,extreme_pose_gt15_pct
+ffhq,yaw,1168,3.84,16.71,-75.84,3.38,80.24,33.05
+ffhq,pitch,1168,3.47,7.82,-33.93,3.83,27.9,8.13
+ffhq,roll,1168,-0.01,3.59,-17.75,-0.13,33.46,0.43
