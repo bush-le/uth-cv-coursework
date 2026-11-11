@@ -44,6 +44,11 @@ conda-env/
 *.tflite
 *.ckpt
 *.h5
+*.safetensors
+*.bin
+*.joblib
+*.pkl
+*.pickle
 
 # PyTorch hub / Torchvision cache
 .cache/
@@ -70,17 +75,45 @@ outputs/
 multirun/
 *.tfevents.*
 
-# Data layering - Ignore raw/interim/processed heavy files but preserve structure
+# Data layering - Ignore heavy data but preserve structure
 data/raw/*
 !data/raw/.gitkeep
-data/interim/*
-!data/interim/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/synthetic/*
+!data/synthetic/.gitkeep
+data/hard_samples/*
+!data/hard_samples/.gitkeep
+data/benchmarks/*
+!data/benchmarks/.gitkeep
+data/partitions/*
+!data/partitions/.gitkeep
+data/active_learning/*
+!data/active_learning/.gitkeep
+data/iterative_loop/*
+!data/iterative_loop/.gitkeep
+
+# Heavy generated and raw media across data subdirectories
+data/**/*.png
+data/**/*.jpg
+data/**/*.jpeg
+data/**/*.webp
+
+# Scratch and temporary directories
+scratch/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
 
 # Allow sample data and documentation assets
-!data/samples/
+!data/samples/**
 !docs/assets/
+
+# Superpowers execution ledgers
+.superpowers/
 
 # Archives & Large Media
 *.zip

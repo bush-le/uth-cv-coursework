@@ -60,8 +60,9 @@ def train_deepfake_image_detector(
     num_epochs: int = 5,
     learning_rate: float = 2e-4,
     hard_sample_loss_weight: float = 2.0,
-    unfreeze_last_n_blocks: Optional[int] = 2,
+    unfreeze_last_n_blocks: Optional[int] = 1,
     checkpoint_dir: Path = Path("experiments/checkpoints"),
+    checkpoint_prefix: Optional[str] = None,
     device: str = "cpu",
     seed: int = 42,
 ) -> Dict[str, float]:
@@ -88,22 +89,35 @@ def train_deepfake_image_detector(
     model.to(dev)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = AdamW(trainable_params, lr=learning_rate, weight_decay=1e-5)
+    classifier_params = [p for p in model.classifier.parameters() if p.requires_grad]
+    backbone_params = [
+        p for n, p in model.named_parameters() if p.requires_grad and not n.startswith("classifier")
+    ]
+    param_groups = [
+        {"params": classifier_params, "lr": learning_rate},
+    ]
+    if backbone_params:
+        param_groups.append({"params": backbone_params, "lr": min(learning_rate * 0.1, 5e-5)})
+
+    optimizer = AdamW(param_groups, weight_decay=1e-4)
+    trainable_params = classifier_params + backbone_params
     criterion_raw = nn.BCEWithLogitsLoss(reduction="none")
+    scaler = torch.amp.GradScaler("cuda", enabled=(dev.type == "cuda"))
 
     datamodule.setup()
     train_loader = datamodule.train_dataloader()
     val_loader = datamodule.val_dataloader()
 
-    best_auc = 0.0
+    best_auc = -1.0
+    best_loss = float("inf")
     latest_metrics: Dict[str, float] = {}
 
     logger.info(
-        "Starting dinoViT fine-tuning on %s for %d epochs (hard_sample_weight=%.2f)...",
+        "Starting dinoViT fine-tuning on %s for %d epochs (hard_sample_weight=%.2f, amp=%s)...",
         device,
         num_epochs,
         hard_sample_loss_weight,
+        dev.type == "cuda",
     )
 
     for epoch in range(1, num_epochs + 1):
@@ -117,20 +131,29 @@ def train_deepfake_image_detector(
             labels = batch["labels"].to(dev).float().view(-1, 1)
             is_hard = batch.get("is_hard_sample")
 
-            logits = model(images)
-            per_sample_loss = criterion_raw(logits, labels)
+            with torch.amp.autocast(
+                device_type=dev.type,
+                dtype=torch.bfloat16 if dev.type == "cuda" else torch.float32,
+                enabled=(dev.type == "cuda"),
+            ):
+                logits = model(images)
+                per_sample_loss = criterion_raw(logits, labels)
 
-            if is_hard is not None:
-                hard_mask = is_hard.to(dev).float().view(-1, 1)
-                weights = 1.0 + (hard_sample_loss_weight - 1.0) * hard_mask
-                loss = torch.mean(per_sample_loss * weights)
-            else:
-                loss = torch.mean(per_sample_loss)
+                if is_hard is not None:
+                    hard_mask = is_hard.to(dev).float().view(-1, 1)
+                    weights = 1.0 + (hard_sample_loss_weight - 1.0) * hard_mask
+                    loss = torch.sum(per_sample_loss * weights) / torch.clamp(
+                        torch.sum(weights), min=1e-8
+                    )
+                else:
+                    loss = torch.mean(per_sample_loss)
 
-            loss.backward()
 
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(trainable_params, max_norm=1.0)
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
 
             epoch_loss += float(loss.item()) * images.size(0)
             train_samples += images.size(0)
@@ -161,9 +184,14 @@ def train_deepfake_image_detector(
             "best_metric": max(best_auc, val_metrics["roc_auc"]),
             "metrics": val_metrics,
         }
-        is_best = val_metrics["roc_auc"] >= best_auc
+        val_auc = float(val_metrics.get("roc_auc", 0.0))
+        val_loss = float(val_metrics.get("loss", float("inf")))
+        is_best = (val_auc > best_auc + 1e-4) or (
+            abs(val_auc - best_auc) <= 1e-4 and val_loss < best_loss
+        )
         if is_best:
-            best_auc = val_metrics["roc_auc"]
+            best_auc = val_auc
+            best_loss = val_loss
         save_checkpoint(
             state=state,
             is_best=is_best,
@@ -175,6 +203,12 @@ def train_deepfake_image_detector(
         if is_best:
             torch.save(state, checkpoint_dir / "best_model.pt")
             logger.info("New best dinoViT model saved with Val AUC: %.4f", best_auc)
+
+        if checkpoint_prefix:
+            torch.save(state, checkpoint_dir / f"{checkpoint_prefix}_last.pt")
+            if is_best:
+                torch.save(state, checkpoint_dir / f"{checkpoint_prefix}_best.pt")
+                logger.info("Saved %s best checkpoint (Val AUC: %.4f)", checkpoint_prefix, best_auc)
 
     return latest_metrics
 
@@ -190,7 +224,7 @@ def main() -> None:
     parser.add_argument(
         "--hard-manifest", type=str, default="data/processed/hard_samples_manifest.jsonl"
     )
-    parser.add_argument("--backbone", type=str, default="dino_vit")
+    parser.add_argument("--backbone", type=str, default="dinov2_small", help="Backbone (dinov2_small or dino_vit)")
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--hard-weight", type=float, default=2.0)
@@ -221,7 +255,7 @@ def main() -> None:
         hard_sample_oversample_factor=2,
         seed=args.seed,
     )
-    model = DeepfakeImageDetector(backbone=args.backbone, num_classes=1)
+    model = DeepfakeImageDetector(backbone=args.backbone, num_classes=1, pretrained=True)
     train_deepfake_image_detector(
         model=model,
         datamodule=dm,

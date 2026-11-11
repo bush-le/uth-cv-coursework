@@ -51,6 +51,80 @@ def test_dinovit_freeze_and_partial_unfreeze() -> None:
     assert all(p.requires_grad for p in model.extractor.blocks[-1].parameters())
 
 
+def test_dinov2_small_freeze_and_partial_unfreeze() -> None:
+    """Verify MetaDinoV2Wrapper partial unfreezing enables gradients on last block (block 11) and layernorm."""
+    model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, freeze_extractor=True, pretrained=False)
+    assert all(not p.requires_grad for p in model.extractor.parameters())
+    assert all(p.requires_grad for p in model.classifier.parameters())
+
+    model.unfreeze_backbone(unfreeze_last_n_blocks=1)
+    # Check that only layer 11 is unfrozen out of 12 encoder layers
+    encoder_layers = model.extractor.backbone.encoder.layer
+    for i in range(11):
+        assert all(not p.requires_grad for p in encoder_layers[i].parameters()), f"Layer {i} should be frozen"
+    assert all(p.requires_grad for p in encoder_layers[11].parameters()), "Layer 11 should be unfrozen"
+    assert all(p.requires_grad for p in model.extractor.backbone.layernorm.parameters()), "Backbone layernorm should be unfrozen"
+
+    # Trainable param count check
+    trainable_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    assert trainable_count == 1_777_153, f"Expected 1,777,153 params, got {trainable_count}"
+
+
+def test_dinov2_state_dict_preserves_mean_std(tmp_path: Path) -> None:
+    """Verify saving checkpoints and loading preserves extractor.mean and extractor.std buffers."""
+    model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    state = {
+        "model_state_dict": model.state_dict(),
+        "epoch": 1,
+    }
+    ckpt_path = tmp_path / "test_detector.pt"
+    torch.save(state, ckpt_path)
+
+    loaded = torch.load(ckpt_path, map_location="cpu")
+    model_reloaded = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    msg = model_reloaded.load_state_dict(loaded["model_state_dict"])
+    assert len(msg.missing_keys) == 0
+    assert len(msg.unexpected_keys) == 0
+    assert torch.allclose(model_reloaded.extractor.mean, model.extractor.mean)
+    assert torch.allclose(model_reloaded.extractor.std, model.extractor.std)
+
+
+def test_loss_weighting_zero_division_guard() -> None:
+    """Verify loss computation does not produce NaN when weights sum to zero."""
+    per_sample_loss = torch.tensor([[0.5], [0.4]])
+    weights = torch.tensor([[0.0], [0.0]])
+    clamped_denom = torch.clamp(torch.sum(weights), min=1e-8)
+    loss = torch.sum(per_sample_loss * weights) / clamped_denom
+    assert not torch.isnan(loss)
+    assert loss.item() == 0.0
+
+
+def test_detector_normalizes_imagenet_buffer() -> None:
+    """Verify MetaDinoV2Wrapper registers ImageNet normalization buffers to prevent 21% feature drift."""
+    from src.models.detector.image_detector import MetaDinoV2Wrapper
+
+    wrapper = MetaDinoV2Wrapper(pretrained=False)
+    assert hasattr(wrapper, "mean"), "Wrapper must have registered ImageNet mean buffer"
+    assert hasattr(wrapper, "std"), "Wrapper must have registered ImageNet std buffer"
+    assert wrapper.mean.shape == (1, 3, 1, 1)
+    assert wrapper.std.shape == (1, 3, 1, 1)
+    # Check standard ImageNet values [0.485, 0.456, 0.406]
+    assert torch.allclose(wrapper.mean.squeeze(), torch.tensor([0.485, 0.456, 0.406]), atol=1e-3)
+
+
+def test_unfreeze_backbone_zero_blocks_keeps_all_frozen() -> None:
+    """Verify unfreeze_backbone with num_blocks=0 strictly keeps backbone frozen."""
+    model = DeepfakeImageDetector(backbone="dino_vit", num_classes=1, freeze_extractor=True)
+    model.unfreeze_backbone(unfreeze_last_n_blocks=0)
+    assert all(not p.requires_grad for p in model.extractor.parameters()), "Extractor must stay frozen when unfreeze=0"
+
+    model2 = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, freeze_extractor=True, pretrained=False)
+    model2.unfreeze_backbone(unfreeze_last_n_blocks=0)
+    assert all(not p.requires_grad for p in model2.extractor.parameters()), "Extractor must stay frozen when unfreeze=0"
+
+
+
+
 def test_deepfake_image_detector_forward_simple_and_resnet() -> None:
     """Test DeepfakeImageDetector forward pass with simple CNN and ResNet-18 backbones."""
     for bb in ("simple_cnn", "resnet18"):
@@ -58,6 +132,13 @@ def test_deepfake_image_detector_forward_simple_and_resnet() -> None:
         x = torch.rand(2, 3, 64, 64)
         logits = model(x)
         assert logits.shape == (2, 1)
+
+
+def test_dinov2_pretrained_wrapper() -> None:
+    """Verify loading real Meta DINOv2 backbone or factory."""
+    model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
+    assert model.feature_dim == 384
+    assert model.backbone_name == "dinov2_small"
 
 
 def test_mine_hard_samples_reject_vs_bypass(tmp_path: Path) -> None:

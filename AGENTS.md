@@ -37,6 +37,9 @@ When operating in this workspace, you are acting as a **Principal Computer Visio
    - All `.md` files in `docs/` and `.agents/` must be named in UPPERCASE (`UPPER_SNAKE_CASE.md` or `UPPERCASE.md`).
    - Every `.md` file must begin with the standard **7-field header** (Motivation, Purpose, Overview Pipeline, Detailed Plan, References, Created, Last Updated).
    - **No absolute system paths**: Never include absolute system paths (e.g. `/home/user/...` or `C:\...`). Use relative markdown links only (e.g. `[config](configs/config.yaml)`).
+4. **Zero-Mock & Neural Checkpoint Integrity**:
+   - **NEVER** use mock data, noise shapes, or uninitialized random-weight neural heads for production inference, evaluation, or hard-sample mining.
+   - Every mining and evaluation pipeline (`mine_hard_samples.py`, `evaluate.py`) MUST require and verify a real trained checkpoint file (`model_state_dict`). Unverified random inference is strictly forbidden. Detailed protocol in [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](.agents/rules/ZERO_MOCK_DATA_RULE.md).
 
 ---
 

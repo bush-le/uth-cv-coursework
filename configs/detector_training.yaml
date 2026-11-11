@@ -1,0 +1,49 @@
+# ==============================================================================
+# Detector Architecture & Fine-Tuning Configuration (configs/detector_training.yaml)
+# Optimized for DINOv2 ViT-S/14 Active Learning, Gradient Stability & 10k Scaling
+# ==============================================================================
+
+model:
+  name: "deepfake_image_detector"
+  spatial_backbone: "dinov2_small"   # Meta DINOv2 ViT-S/14 (embed_dim=384)
+  pretrained: true
+  num_classes: 1
+  dropout: 0.3
+  image_size: 518                    # DINOv2 native pretraining resolution (37x14=518)
+  patch_size: 14
+
+training_stages:
+  # Stage M0: Master Frozen Baseline Probe
+  m0_baseline:
+    unfreeze_last_n_blocks: 0        # Linear probe (1,153 params) prevents early identity memorization
+    epochs: 5
+    learning_rate: 2.0e-4
+    hard_sample_loss_weight: 1.0
+    hard_sample_oversample_factor: 1
+
+  # Stages M1 & M2: Closed-Loop Active Learning on Mined Hard Samples
+  active_learning:
+    unfreeze_last_n_blocks: 1        # Exactly 1 block (Block 11 + LayerNorm: 1.78M params)
+    epochs: 5
+    learning_rate: 2.0e-4            # Classifier head learning rate
+    backbone_learning_rate: 2.0e-5   # 10x smaller differential learning rate for Layer 11
+    weight_decay: 1.0e-4
+    hard_sample_loss_weight: 2.0     # Focused gradient descent on bypassed fakes
+    hard_sample_oversample_factor: 1 # Strictly 1 to avoid double-dipping skew
+    batch_size: 16
+    device: "cuda"
+    use_amp: true
+    amp_dtype: "bfloat16"            # 8-bit dynamic range; avoids ViT FP16 underflow
+    clip_grad_norm: 1.0
+    loss_epsilon: 1.0e-8             # Safeguard against division by zero in loss normalization
+
+data:
+  target_size: [518, 518]            # Eliminates runtime interpolation in MetaDinoV2Wrapper
+  batch_size: 16
+  num_workers: 2
+  pin_memory: true
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  identity_disjoint: true            # Zero identity leakage between train, val, and test splits
+  seed: 42

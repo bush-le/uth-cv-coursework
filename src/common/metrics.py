@@ -1,7 +1,13 @@
 """Evaluation and quality curation metrics for 2D Deepfake Detection and Hard-Sample Mining."""
 
+from typing import Any, List, Optional, Sequence, Tuple, Union
+import threading
 import numpy as np
 import torch
+
+from src.common.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def compute_iou(
@@ -68,15 +74,46 @@ def compute_accuracy(predictions: np.ndarray | list[int], targets: np.ndarray | 
     return float(np.mean(preds == targs))
 
 
+def compute_precision(
+    predictions: np.ndarray | list[int],
+    targets: np.ndarray | list[int],
+    positive_label: int = 1,
+) -> float:
+    """Compute binary classification precision for target positive label."""
+    preds = np.asarray(predictions).ravel()
+    targs = np.asarray(targets).ravel()
+    tp = int(np.sum((preds == positive_label) & (targs == positive_label)))
+    fp = int(np.sum((preds == positive_label) & (targs != positive_label)))
+    if tp + fp == 0:
+        return 0.0
+    return float(tp / (tp + fp))
+
+
+def compute_recall(
+    predictions: np.ndarray | list[int],
+    targets: np.ndarray | list[int],
+    positive_label: int = 1,
+) -> float:
+    """Compute binary classification recall for target positive label."""
+    preds = np.asarray(predictions).ravel()
+    targs = np.asarray(targets).ravel()
+    tp = int(np.sum((preds == positive_label) & (targs == positive_label)))
+    fn = int(np.sum((preds != positive_label) & (targs == positive_label)))
+    if tp + fn == 0:
+        return 0.0
+    return float(tp / (tp + fn))
+
+
+
 def compute_roc_auc(y_true: np.ndarray | list[int], y_score: np.ndarray | list[float]) -> float:
-    """Compute ROC-AUC via vectorized Wilcoxon-Mann-Whitney rank-sum statistic.
+    """Compute ROC-AUC via vectorized Wilcoxon-Mann-Whitney rank-sum statistic with mid-rank tie breaking.
 
     Args:
         y_true: Ground truth binary labels (0=Real, 1=Fake) of shape (N,).
         y_score: Predicted fake probabilities P(fake) of shape (N,).
 
     Returns:
-        ROC-AUC scalar float in [0.0, 1.0].
+        ROC-AUC scalar float in [0.0, 1.0], or NaN if single-class.
     """
     y_t = np.asarray(y_true).ravel()
     y_s = np.asarray(y_score).ravel()
@@ -87,15 +124,23 @@ def compute_roc_auc(y_true: np.ndarray | list[int], y_score: np.ndarray | list[f
     n_neg = int(np.sum(neg_mask))
 
     if n_pos == 0 or n_neg == 0:
-        return 1.0
+        return float("nan")
 
     order = np.argsort(y_s)
-    ranks = np.empty_like(order, dtype=np.float64)
-    ranks[order] = np.arange(len(y_s), dtype=np.float64) + 1.0
+    sorted_scores = y_s[order]
+    _, inverse_indices, counts = np.unique(sorted_scores, return_inverse=True, return_counts=True)
+    ends = np.cumsum(counts)
+    starts = ends - counts + 1
+    avg_ranks = (starts + ends) / 2.0
+
+    ranks = np.empty_like(y_s, dtype=np.float64)
+    ranks[order] = avg_ranks[inverse_indices]
 
     rank_sum_pos = float(np.sum(ranks[pos_mask]))
     auc = (rank_sum_pos - n_pos * (n_pos + 1.0) / 2.0) / (n_pos * n_neg)
     return float(np.clip(auc, 0.0, 1.0))
+
+
 
 
 def compute_bypass_rate(
@@ -139,7 +184,7 @@ def compute_hard_sample_recall(
         is_hard_sample: Boolean mask indicating mined hard samples of shape (N,).
 
     Returns:
-        Recall on hard fake samples in [0.0, 1.0]. Returns 1.0 if no hard samples present.
+        Recall on hard fake samples in [0.0, 1.0]. Returns float('nan') if no hard samples present.
     """
     preds = np.asarray(predictions).ravel()
     targs = np.asarray(targets).ravel()
@@ -147,27 +192,65 @@ def compute_hard_sample_recall(
 
     target_hard_mask = (targs == 1) & hard_mask
     if not np.any(target_hard_mask):
-        return 1.0
+        return float("nan")
 
     caught = (preds[target_hard_mask] == 1).sum()
     total_hard = target_hard_mask.sum()
     return float(caught / total_hard)
 
 
-def compute_laplacian_sharpness(image: torch.Tensor) -> float:
+_HAAR_FACE_CLASSIFIER: Optional[Any] = None
+_HAAR_LOCK = threading.Lock()
+
+
+def get_haar_face_classifier() -> Any:
+    """Return cached thread-safe singleton instance of cv2.CascadeClassifier to avoid 22ms XML reparsing penalty."""
+    global _HAAR_FACE_CLASSIFIER
+    with _HAAR_LOCK:
+        if _HAAR_FACE_CLASSIFIER is None:
+            import cv2
+
+            cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+            _HAAR_FACE_CLASSIFIER = cv2.CascadeClassifier(cascade_path)
+        return _HAAR_FACE_CLASSIFIER
+
+
+def compute_laplacian_sharpness(
+    image: torch.Tensor,
+    bbox_xyxy: Optional[Sequence[float]] = None,
+) -> float:
     """Compute sharpness metric via variance of the 2D discrete Laplacian operator.
 
     Args:
         image: torch.Tensor of shape (C, H, W) or (B, C, H, W) in [0.0, 1.0].
+        bbox_xyxy: Optional bounding box [x1, y1, x2, y2] to isolate face ROI.
 
     Returns:
-        Scalar sharpness variance score (higher indicates crisper image).
+        Scalar sharpness variance score (higher indicates crisper image). Returns 0.0 on degraded crops.
     """
     if not isinstance(image, torch.Tensor):
         image = torch.tensor(image, dtype=torch.float32)
 
     if image.ndim == 4:
         image = image[0]  # Take first image in batch
+
+    # If bbox_xyxy is provided, crop to ROI
+    if bbox_xyxy is not None and len(bbox_xyxy) == 4:
+        _, h, w = image.shape
+        bx1, by1, bx2, by2 = [float(v) for v in bbox_xyxy]
+        # Handle normalized vs pixel coordinates
+        if max(abs(bx1), abs(by1), abs(bx2), abs(by2)) <= 1.0:
+            bx1, by1, bx2, by2 = bx1 * w, by1 * h, bx2 * w, by2 * h
+        x1, x2 = min(bx1, bx2), max(bx1, bx2)
+        y1, y2 = min(by1, by2), max(by1, by2)
+        ix1 = max(0, min(w - 1, int(round(x1))))
+        iy1 = max(0, min(h - 1, int(round(y1))))
+        ix2 = max(ix1 + 1, min(w, int(round(x2))))
+        iy2 = max(iy1 + 1, min(h, int(round(y2))))
+        if (ix2 - ix1) >= 2 and (iy2 - iy1) >= 2:
+            image = image[:, iy1:iy2, ix1:ix2]
+        else:
+            return 0.0
 
     # Convert to 1-channel grayscale (0.2989 R + 0.5870 G + 0.1140 B)
     if image.shape[0] == 3:
@@ -190,35 +273,364 @@ def compute_laplacian_sharpness(image: torch.Tensor) -> float:
 
     laplacian = torch.nn.functional.conv2d(gray, kernel, padding=1)
     variance = float(torch.var(laplacian).item()) * 1000.0
+    if np.isnan(variance) or np.isinf(variance):
+        return 0.0
     return variance
 
 
-def compute_clip_similarity_proxy(image: torch.Tensor, prompt: str) -> float:
-    """Compute semantic text-image alignment score proxy in range [0.0, 1.0].
+
+def calibrate_threshold(reference_scores: Sequence[float], quantile: float) -> float:
+    """Calibrate a decision threshold as a quantile over a reference distribution.
 
     Args:
-        image: torch.Tensor of shape (C, H, W) in [0.0, 1.0].
-        prompt: Text description string.
+        reference_scores: Sequence of scores from reference distribution.
+        quantile: Desired quantile level in [0.0, 1.0].
 
     Returns:
-        Similarity score float bounded in [0.0, 1.0].
+        Scalar threshold float.
     """
-    if not isinstance(image, torch.Tensor):
-        image = torch.tensor(image, dtype=torch.float32)
+    if len(reference_scores) == 0:
+        raise ValueError("reference_scores cannot be empty for calibration.")
+    if not (0.0 <= quantile <= 1.0):
+        raise ValueError(f"quantile must be in [0.0, 1.0], got {quantile}")
+    arr = np.asarray(reference_scores, dtype=np.float64)
+    return float(np.quantile(arr, quantile))
 
-    if image.ndim == 4:
-        image = image[0]
 
-    # Spatial frequency + color distribution feature proxy (192-dim)
-    pooled = torch.nn.functional.adaptive_avg_pool2d(image, (8, 8)).view(-1)
-    norm = torch.norm(pooled, p=2) + 1e-8
-    img_feat = pooled / norm
+def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "opencv_haar") -> int:
+    """Detect faces in an RGB uint8 image using classical or lightweight detector.
 
-    # Deterministic prompt pseudo-embedding
-    gen = torch.Generator().manual_seed(abs(hash(prompt)) % 100000)
-    prompt_feat = torch.randn(img_feat.shape[0], generator=gen)
-    prompt_feat = prompt_feat / (torch.norm(prompt_feat, p=2) + 1e-8)
+    Args:
+        image_rgb: NumPy array of shape (H, W, 3) in uint8 RGB format or torch.Tensor.
+        backend: Face detector backend ('opencv_haar' or 'none').
 
-    cosine_sim = float(torch.dot(img_feat, prompt_feat).item())
-    # Scale to [0.0, 1.0]
-    return float(np.clip((cosine_sim + 1.0) / 2.0, 0.0, 1.0))
+    Returns:
+        Number of faces detected.
+    """
+    if backend == "none":
+        return 1
+
+    if backend in ("opencv", "opencv_haar"):
+        import cv2
+
+        if isinstance(image_rgb, torch.Tensor):
+            t = image_rgb.detach().cpu()
+            if t.ndim == 3 and t.shape[0] in (1, 3):
+                t = t.permute(1, 2, 0)
+            if t.dtype in (torch.float32, torch.float64):
+                t = (t.clamp(0.0, 1.0) * 255.0).to(torch.uint8)
+            image_rgb = t.numpy()
+
+        face_cascade = get_haar_face_classifier()
+        if face_cascade.empty():
+            logger.warning("Haarcascade file could not be loaded; defaulting to 1 face.")
+            return 1
+
+
+        if not isinstance(image_rgb, np.ndarray) or image_rgb.dtype != np.uint8:
+            image_rgb = np.clip(image_rgb * 255.0 if np.issubdtype(image_rgb.dtype, np.floating) else image_rgb, 0, 255).astype(np.uint8)
+
+        gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
+        faces = face_cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=3,
+            minSize=(40, 40),
+        )
+        if len(faces) == 0:
+            # Relaxed pass for slightly tilted faces or sunglasses
+            faces = face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.05,
+                minNeighbors=2,
+                minSize=(40, 40),
+            )
+        if len(faces) <= 1:
+            return len(faces)
+
+        # Filter out minor background texture false alarms if dominant face exists
+        boxes = sorted([tuple(b) for b in faces], key=lambda b: b[2] * b[3], reverse=True)
+        dominant_area = boxes[0][2] * boxes[0][3]
+        sig_faces = [b for b in boxes if (b[2] * b[3]) >= 0.20 * dominant_area]
+        return len(sig_faces)
+
+    raise ValueError(f"Unknown face detection backend: {backend}")
+
+
+def verify_facial_geometry(
+    image: Union[np.ndarray, torch.Tensor],
+) -> Tuple[bool, List[str]]:
+    """Verify biometric facial geometry and reject anatomical anomalies (e.g. dual mouths, distorted proportions).
+
+    Args:
+        image: Image array (H, W, 3) in uint8 or float, or torch.Tensor (C, H, W).
+
+    Returns:
+        (is_valid, list of rejection reasons).
+    """
+    import cv2
+
+    if isinstance(image, torch.Tensor):
+        t = image.detach().cpu()
+        if t.ndim == 3 and t.shape[0] in (1, 3):
+            t = t.permute(1, 2, 0)
+        if t.dtype in (torch.float32, torch.float64):
+            t = (t.clamp(0.0, 1.0) * 255.0).to(torch.uint8)
+        image = t.numpy()
+
+    if not isinstance(image, np.ndarray) or image.dtype != np.uint8:
+        image = np.clip(
+            image * 255.0 if np.issubdtype(image.dtype, np.floating) else image, 0, 255
+        ).astype(np.uint8)
+
+    reasons: List[str] = []
+    h, w = image.shape[:2]
+    if (h, w) != (512, 512):
+        image = cv2.resize(image, (512, 512))
+        h, w = 512, 512
+
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    face_cascade = get_haar_face_classifier()
+    if face_cascade.empty():
+        return True, []
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
+    if len(faces) == 0:
+        # Fallback to relaxed detection for tilted faces or dark eyeglasses
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2, minSize=(40, 40))
+
+    if len(faces) == 0:
+        return False, ["No face landmark detected"]
+
+    # Filter out spurious Haar noise boxes (e.g. tiny patches on clothing/textures)
+    # when a prominent dominant portrait face exists
+    faces_list = [tuple(b) for b in faces]
+    faces_list.sort(key=lambda b: b[2] * b[3], reverse=True)
+    dominant_box = faces_list[0]
+    dom_area = dominant_box[2] * dominant_box[3]
+    total_area = float(w * h)
+
+    # Significant faces must be at least 20% of the dominant face area and at least 5% of total frame
+    significant_faces = [
+        b for b in faces_list
+        if (b[2] * b[3]) >= 0.20 * dom_area and (b[2] * b[3]) >= 0.05 * total_area
+    ]
+
+    if len(significant_faces) > 1:
+        return False, [f"Multiple faces detected ({len(significant_faces)}), expecting single portrait"]
+
+    fx, fy, fw, fh = dominant_box
+    aspect_ratio = fh / max(1, fw)
+    if aspect_ratio < 0.65 or aspect_ratio > 1.6:
+        reasons.append(f"Abnormal facial aspect ratio: {aspect_ratio:.2f}")
+
+    # Area ratio check (face must occupy 20% to 65% of frame, rejecting miniature mirror faces and extreme crops)
+    face_area_ratio = (fw * fh) / float(w * h)
+    if face_area_ratio < 0.20:
+        reasons.append(f"Face occupies too small area of frame ({face_area_ratio:.2%} < 20%): likely vignette/distant frame")
+    elif face_area_ratio > 0.65:
+        reasons.append(f"Face occupies too large area of frame ({face_area_ratio:.2%} > 65%): extreme crop / runaway zoom")
+
+    # Check if face box itself touches canvas boundaries (amputated forehead or chin by runaway zoom)
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    skin_mask = (hsv[:, :, 0] >= 0) & (hsv[:, :, 0] <= 28) & (hsv[:, :, 1] >= 35) & (hsv[:, :, 2] >= 50)
+    top_skin_pct = float(np.mean(skin_mask[:16, :]))
+    bot_skin_pct = float(np.mean(skin_mask[-16:, :]))
+    if fy <= int(0.04 * h) and top_skin_pct > 0.35:
+        reasons.append(f"Forehead / scalp amputated by top canvas border (box_top={fy}, skin={top_skin_pct:.1%})")
+    if (fy + fh) >= int(0.96 * h) and bot_skin_pct > 0.35:
+        reasons.append(f"Chin / jaw amputated by bottom canvas border (box_bottom={fy+fh}, skin={bot_skin_pct:.1%})")
+
+    # Highlight blowout check localized strictly to face ROI (strict 3-channel blowout check)
+    face_rgb = image[fy : fy + fh, fx : fx + fw]
+    if face_rgb.size > 0:
+        blown_out = np.all(face_rgb >= 252, axis=-1)
+        face_white_clip = float(np.mean(blown_out))
+        if face_white_clip > 0.08:
+            reasons.append(f"Severe highlight blowout on face ({face_white_clip:.1%} > 8.0%)")
+
+    # Centering check
+    center_x = (fx + fw / 2.0) / float(w)
+    center_y = (fy + fh / 2.0) / float(h)
+    if center_x < 0.15 or center_x > 0.85 or center_y < 0.15 or center_y > 0.85:
+        reasons.append(f"Face is severely off-center: ({center_x:.2f}, {center_y:.2f})")
+
+    # Inspect lower face for horizontal inpainting boundary / seam spike (focus on mouth/jaw 0.60-0.90 fh, avoiding glasses)
+    lower = gray[fy + int(0.60 * fh) : fy + int(0.90 * fh), fx + int(0.1 * fw) : fx + int(0.9 * fw)]
+    if lower.shape[0] >= 10 and lower.shape[1] >= 10:
+        sobel_y = np.abs(cv2.Sobel(lower, cv2.CV_64F, 0, 1, ksize=3))
+        row_means = np.mean(sobel_y, axis=1)
+        peak = float(np.max(row_means))
+        median = float(np.median(row_means)) + 1e-5
+        spike = peak / median
+        # Real mouths and teeth have spike ~5.0-6.5 and peak < 20. Artificial horizontal seams have spike > 8.0 AND peak > 20.0
+        if spike > 8.0 and peak > 20.0:
+            reasons.append(f"Severe horizontal boundary discontinuity across face (seam_spike={spike:.2f} > 8.0, peak={peak:.1f})")
+
+    is_valid = len(reasons) == 0
+    return is_valid, reasons
+
+
+def verify_boundary_seam(
+    synthetic: torch.Tensor,
+    source: torch.Tensor,
+    mask: torch.Tensor,
+    max_gradient_diff: float = 35.0,
+) -> Tuple[bool, float]:
+    """Verify that inpainting boundaries blend seamlessly without abrupt seam lines.
+
+    Args:
+        synthetic: Generated image tensor (C, H, W) in [0, 1].
+        source: Source image tensor (C, H, W) in [0, 1].
+        mask: Inpainting mask tensor (1, H, W) in [0, 1].
+        max_gradient_diff: Maximum acceptable boundary gradient difference.
+
+    Returns:
+        (is_seamless, boundary_discontinuity_score).
+    """
+    import cv2
+
+    mask_np = (mask[0].detach().cpu().numpy() * 255.0).astype(np.uint8)
+    kernel = np.ones((5, 5), np.uint8)
+    dilated = cv2.dilate(mask_np, kernel, iterations=1)
+    eroded = cv2.erode(mask_np, kernel, iterations=1)
+    boundary_ring = (dilated > 50) & (eroded < 200)
+
+    if not np.any(boundary_ring):
+        return True, 0.0
+
+    syn_np = (synthetic.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.float32)
+    src_np = (source.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.float32)
+
+    diff = np.abs(syn_np - src_np)
+    boundary_diff = float(np.mean(diff[boundary_ring]))
+    is_seamless = boundary_diff <= max_gradient_diff
+    return is_seamless, boundary_diff
+
+
+class ClipScorer:
+    """Real CLIP semantic image-text similarity evaluator using Hugging Face transformers."""
+
+    def __init__(self, model_id: str = "openai/clip-vit-base-patch32", device: str = "cpu"):
+        self.model_id = model_id
+        self.device = device
+        self._model = None
+        self._processor = None
+
+    def _ensure_loaded(self) -> None:
+        if self._model is None:
+            from transformers import CLIPModel, CLIPProcessor
+
+            self._processor = CLIPProcessor.from_pretrained(self.model_id)
+            self._model = CLIPModel.from_pretrained(self.model_id).to(self.device)
+            self._model.eval()
+
+    def score(self, image: torch.Tensor, prompt: str) -> float:
+        """Compute cosine similarity between image (3, H, W) and prompt text."""
+        self._ensure_loaded()
+        from PIL import Image
+
+        img_tensor = image.detach().cpu().clamp(0.0, 1.0)
+        np_arr = (img_tensor.permute(1, 2, 0).numpy() * 255.0).astype(np.uint8)
+        pil_img = Image.fromarray(np_arr)
+
+        inputs = self._processor(
+            text=[prompt],
+            images=pil_img,
+            return_tensors="pt",
+            padding=True,
+        ).to(self.device)
+
+        with torch.no_grad():
+            img_feats = self._model.get_image_features(pixel_values=inputs["pixel_values"])
+            txt_feats = self._model.get_text_features(
+                input_ids=inputs["input_ids"], attention_mask=inputs.get("attention_mask")
+            )
+
+            img_feats = img_feats / img_feats.norm(dim=-1, keepdim=True)
+            txt_feats = txt_feats / txt_feats.norm(dim=-1, keepdim=True)
+            sim = (img_feats * txt_feats).sum(dim=-1).item()
+
+        return float(np.clip(sim, -1.0, 1.0))
+
+
+def expected_calibration_error(
+    y_true: np.ndarray | list[int],
+    y_prob: np.ndarray | list[float],
+    n_bins: int = 10,
+) -> float:
+    """Compute Expected Calibration Error (ECE) across M equally spaced probability bins.
+
+    Args:
+        y_true: Binary ground-truth labels {0, 1} of shape (N,).
+        y_prob: Predicted probabilities P(y=1) in [0.0, 1.0] of shape (N,).
+        n_bins: Number of bins (default 10).
+
+    Returns:
+        ECE scalar in [0.0, 1.0].
+    """
+    labels = np.asarray(y_true).ravel()
+    probs = np.asarray(y_prob).ravel()
+    if len(labels) == 0:
+        return 0.0
+
+    bin_boundaries = np.linspace(0.0, 1.0, n_bins + 1)
+    ece = 0.0
+    n = len(labels)
+
+    for i in range(n_bins):
+        bin_lower = bin_boundaries[i]
+        bin_upper = bin_boundaries[i + 1]
+        if i == n_bins - 1:
+            in_bin = (probs >= bin_lower) & (probs <= bin_upper)
+        else:
+            in_bin = (probs >= bin_lower) & (probs < bin_upper)
+
+        bin_size = np.sum(in_bin)
+        if bin_size > 0:
+            bin_acc = float(np.mean(labels[in_bin]))
+            bin_conf = float(np.mean(probs[in_bin]))
+            ece += (bin_size / n) * abs(bin_acc - bin_conf)
+
+    return float(ece)
+
+
+def compute_calibration_curve(
+    y_true: np.ndarray | list[int],
+    y_prob: np.ndarray | list[float],
+    n_bins: int = 10,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Compute calibration curve (reliability diagram data).
+
+    Args:
+        y_true: Binary ground-truth labels {0, 1} of shape (N,).
+        y_prob: Predicted probabilities P(y=1) in [0.0, 1.0] of shape (N,).
+        n_bins: Number of bins (default 10).
+
+    Returns:
+        (bin_accuracies, bin_confidences, bin_counts).
+    """
+    labels = np.asarray(y_true).ravel()
+    probs = np.asarray(y_prob).ravel()
+    bin_boundaries = np.linspace(0.0, 1.0, n_bins + 1)
+    accs = []
+    confs = []
+    counts = []
+
+    for i in range(n_bins):
+        bin_lower = bin_boundaries[i]
+        bin_upper = bin_boundaries[i + 1]
+        if i == n_bins - 1:
+            in_bin = (probs >= bin_lower) & (probs <= bin_upper)
+        else:
+            in_bin = (probs >= bin_lower) & (probs < bin_upper)
+
+        bin_size = int(np.sum(in_bin))
+        counts.append(bin_size)
+        if bin_size > 0:
+            accs.append(float(np.mean(labels[in_bin])))
+            confs.append(float(np.mean(probs[in_bin])))
+        else:
+            accs.append(0.0)
+            confs.append((bin_lower + bin_upper) / 2.0)
+
+    return np.array(accs, dtype=np.float32), np.array(confs, dtype=np.float32), np.array(counts, dtype=np.int64)

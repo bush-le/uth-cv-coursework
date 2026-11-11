@@ -1,102 +1,97 @@
 # UTH Computer Vision Coursework — Topic 11 (Nhóm 4)
-**Sinh ảnh khuôn mặt giả bằng Stable Diffusion, tìm mẫu khó (Hard Sample) qua `dinoViT` và huấn luyện lại để chứng minh tác dụng**
+**Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection**
 
-- **Motivation/Background**: Dự án môn học Thị giác Máy tính (Topic 11) của Nhóm 4, thực hiện luồng nghiên cứu khép kín 3 bước: Dùng Stable Diffusion tạo ảnh giả khuôn mặt -> Đưa qua mô hình chuẩn `dinoViT` để tìm Mẫu khó (`Hard Sample`) -> Huấn luyện lại `dinoViT` trên 3 nguồn dữ liệu để chứng minh dữ liệu sinh ra có tác dụng thực tế.
-- **Purpose**: Đóng vai trò tài liệu hướng dẫn tổng quan, cung cấp luồng bài toán đơn giản, cấu trúc dự án và các lệnh chạy nhanh cho giảng viên và sinh viên.
-- **Overview Pipeline**: Bước 1: Tạo & lọc ảnh giả SD -> Bước 2: Chạy qua `dinoViT` tìm Mẫu khó (`Bypass`) -> Bước 3: Huấn luyện lại `dinoViT` trên `Data Baseline + Syn Data + Hard Sample` và đo kết quả.
-- **Detailed Plan**: §1 Ý Tưởng Cốt Lõi (Luồng 3 Bước); §2 Cấu Trúc Thư Mục; §3 Ba Bước Chạy Thực Nghiệm Nhanh; §4 Kiểm Tra Mã Nguồn; §5 Tài Liệu Tham Khảo.
-- **References**: [docs/PURPOSE.md](docs/PURPOSE.md), [docs/OVERVIEW.md](docs/OVERVIEW.md), [docs/reports/presentation_5min_define_and_design.html](docs/reports/presentation_5min_define_and_design.html).
+- **Motivation/Background**: Dự án môn học Thị giác Máy tính (Topic 11) của Nhóm 4, thực hiện theo định hướng **Dataset-First**: Xây dựng bộ dữ liệu khuôn mặt giả chất lượng cao bằng Stable Diffusion -> Khai thác Mẫu Khó (`Hard Samples`) thông qua khoảng cách đa tạp ảnh thật (`Real-Manifold Proximity`) -> Đóng gói bộ dữ liệu benchmark đối chứng ($D_0, D_1, D_2$) -> Thực hiện thực nghiệm Proof of Utility.
+- **Purpose**: Cung cấp tài liệu tổng quan, kiến trúc dự án, hợp đồng dữ liệu và hướng dẫn chạy thực nghiệm cho giảng viên và hội đồng nghiệm thu.
+- **Overview Pipeline**: `data/raw/` -> `src.pipelines.generate_deepfake_images` -> `src.pipelines.curate_image_dataset` -> `src.pipelines.mine_hard_samples` -> `scripts.organize_topic_dataset` -> `data/benchmarks/`.
+- **Detailed Plan**: §1 Ý Tưởng Cốt Lõi (Dataset-First Framing); §2 Cấu Trúc Dự Án; §3 Quy Trình Chạy Pipeline; §4 Bộ Kiểm Thử Chất Lượng; §5 Tài Liệu Tham Khảo.
+- **References**: [docs/PURPOSE.md](docs/PURPOSE.md), [docs/OVERVIEW.md](docs/OVERVIEW.md), `configs/dataset_factory.yaml`, `.agents/rules/ZERO_HARDCODE_RULE.md`.
 - **Created**: 2026-11-02T07:30:00+07:00
-- **Last Updated**: 2026-11-09T13:19:40+07:00
+- **Last Updated**: 2026-11-09T15:15:00+07:00
 
 ---
 
-## 1. Ý Tưởng Cốt Lõi (Problem ➔ Business ➔ Technical)
+## 1. Ý Tưởng Cốt Lõi & Định Hướng Nghiên Cứu (Dataset-First)
 
-### 1.1. Phân Loại Deepfake (What Is Deepfake?)
-- **Deepfake Cũ (Ghép mặt / Face-Swap)**: Cắt khuôn mặt người này dán đè lên người khác, để lại **đường viền cắt dán mờ quanh mặt** hoặc lệch màu da. Các mô hình phát hiện truyền thống chỉ cần dựa vào vết ranh giới này là phát hiện được.
-- **Deepfake Mới (Stable Diffusion)**: Sử dụng mô hình khuếch tán trong không gian tiềm ẩn (`Latent Space`) để vẽ lại mượt mà toàn bộ khuôn mặt hoặc từng chi tiết. Ảnh sinh ra **không còn vết cắt ghép**, ánh sáng tự nhiên, khiến các mô hình phát hiện cũ bị "mù" và đoán nhầm là ảnh thật.
+### 1.1. Bối cảnh bài toán: Deepfake thế hệ mới (Diffusion-Based Synthesis)
+- **Deepfake Cắt Dán (Face-Swap)**: Tạo vết ghép quanh biên mặt hoặc sai lệch ánh sáng cục bộ. Các bộ phân loại truyền thống dễ dàng phát hiện dựa trên artifacts biên.
+- **Deepfake Khuếch Tán (Stable Diffusion)**: Khử nhiễu trực tiếp trong không gian tiềm ẩn (`Latent Space`) tạo nên cấu trúc da, ánh sáng và biên giới mượt mà, gây tê liệt nhiều mô hình phát hiện Deepfake hiện hành.
 
-### 1.2. Stable Diffusion Là Gì & Tạo Dữ Liệu Dạng Nào?
-Stable Diffusion khử nhiễu từ không gian tiềm ẩn, hỗ trợ tạo **3 dạng dữ liệu khuôn mặt bổ trợ**:
-1. **`Text-to-Image (T2I)`**: Sinh khuôn mặt nhân tạo mới hoàn toàn từ mô tả văn bản (Prompt).
-2. **`Facial Inpainting`**: Chỉ chỉnh sửa cục bộ vùng mắt hoặc miệng trên khuôn mặt thật, giữ nguyên viền đầu và tóc. Đây là dạng giả mạo tinh vi nhất.
-3. **`Image-to-Image (Img2Img)`**: Biến đổi diện mạo (tuổi tác, biểu cảm) nhưng giữ nguyên khung 5 điểm mốc hình học của ảnh gốc.
+### 1.2. Ba phương thức sinh dữ liệu bổ trợ (Multimodal Synthesis)
+1. **`Text-to-Image (T2I)`**: Sinh khuôn mặt nhân tạo từ câu lệnh mô tả nhân khẩu học (độ tuổi, giới tính, phụ kiện).
+2. **`Facial Inpainting`**: Can thiệp cục bộ vùng mắt, miệng hoặc vật che trên khuôn mặt thật, bảo tồn tối đa nền gốc.
+3. **`Image-to-Image (Img2Img)`**: Biến đổi phong cách, tuổi tác hoặc biểu cảm nhưng bảo lưu cấu trúc diện mạo gốc.
 
-### 1.3. Bộ 3 Tầng Luận Cứ Chuẩn
-- **Problem (Vấn đề)**: Sự dịch chuyển từ ảnh cắt dán sang ảnh khuếch tán khiến các mô hình phát hiện cũ bị đánh lừa.
-- **Business (Nghiệp vụ & Ứng dụng)**: Đe dọa trực tiếp các cổng định danh điện tử **eKYC ngân hàng**, mở tài khoản từ xa và ví điện tử. Doanh nghiệp cần giải pháp phòng vệ chủ động: tự sinh dữ liệu để huấn luyện trước hàng rào bảo mật.
-- **Technical (Giải pháp kỹ thuật khép kín của Nhóm 4)**: Luồng 3 bước bên dưới:
+### 1.3. Luồng Pipeline Khép Kín Của Đề Tài
 
 ```text
-[Bước 1: Sinh dữ liệu]
-Ảnh mặt thật + Stable Diffusion  ───►  Ảnh giả mới (Synthetic DF Image)
+[Giai đoạn 1: Sinh dữ liệu]
+Ảnh mặt thật + Stable Diffusion  ───►  Ảnh giả mới (Deterministic Seeds & Provenance)
                                                 │
                                                 ▼
-[Bước 2: Thử thách mô hình gốc (Baseline dinoViT)]
-Đưa ảnh giả mới qua mô hình dinoViT gốc:
-  ├── Nếu dinoViT BẮT ĐƯỢC (Reject)  ───►  Ảnh giả thông thường (Synthetic Data)
-  └── Nếu dinoViT BỊ LỪA (Bypass)   ───►  Lấy làm MẪU KHÓ (Hard Sample)
+[Giai đoạn 2: Lọc chất lượng tự động]
+Curation Gate (Độ nét Laplacian hiệu chỉnh động + Face Integrity + Hash Dedup)
                                                 │
                                                 ▼
-[Bước 3: Huấn luyện lại (Fine-Tune) & Chứng minh tác dụng]
-Gộp (Dữ liệu gốc + Ảnh sinh mới + Mẫu khó) ───► Huấn luyện lại dinoViT
-  └── Kết quả: Mô hình mới bắt được các Mẫu khó trước đó ───► CHỨNG MINH DỮ LIỆU CÓ TÁC DỤNG!
+[Giai đoạn 3: Khai thác Mẫu Khó Đối Kháng]
+Khoảng cách đa tạp ảnh thật (Real-Manifold Distance) với ngưỡng Tau (τ) tự động
+                                                │
+                                                ▼
+[Giai đoạn 4: Đóng gói Benchmark]
+Đóng gói 3 tập dữ liệu đối chứng (D0, D1, D2) chuẩn Identity-Disjoint
+                                                │
+                                                ▼
+[Giai đoạn 5: Proof of Utility (Thực nghiệm phụ)]
+Huấn luyện đối chứng D0 -> D1 -> D2 chứng minh hiệu quả tăng cường bảo vệ
 ```
-
-1. **Bước 1 — Tạo ảnh giả bằng Stable Diffusion**: Dùng 3 cách tạo ảnh (`Text-to-Image` tạo mặt mới từ chữ, `Inpainting` sửa vùng mắt/miệng, `Img2Img` biến đổi từ ảnh thật) rồi lọc bỏ ảnh mờ, méo mặt.
-2. **Bước 2 — Tìm mẫu khó bằng mô hình gốc `dinoViT`**: Đưa các ảnh giả vừa tạo vào mô hình phát hiện gốc `dinoViT`:
-   - Ảnh nào bị `dinoViT` phát hiện là giả (**Reject**) $\rightarrow$ xếp vào nhóm ảnh giả thông thường.
-   - Ảnh nào đánh lừa được `dinoViT` khiến nó tưởng là ảnh thật (**Bypass**) $\rightarrow$ gom lại thành nhóm **Mẫu khó (`Hard Sample`)**.
-3. **Bước 3 — Huấn luyện lại và chứng minh tác dụng**: Gộp chung **Dữ liệu gốc (`Data Baseline`) + Ảnh sinh mới (`Syn Data`) + Mẫu khó (`Hard Sample`)** để huấn luyện lại (`Fine-Tune`) mô hình `dinoViT`. Nếu sau khi học xong, mô hình bắt được các mẫu khó từng lọt lưới thì chứng minh được dữ liệu sinh ra thực sự có tác dụng.
 
 ---
 
-## 2. Cấu Trúc Thư Mục
+## 2. Cấu Trúc Thư Mục Chuẩn Hóa
 
 ```text
 uth-cv-coursework/
-├── configs/                        # Các file cấu hình chạy thực nghiệm
-│   ├── config.yaml                 # Cấu hình chung toàn hệ thống
-│   ├── dataset/
-│   │   └── deepfake_image.yaml     # Cấu hình dữ liệu (Gốc + Sinh mới + Mẫu khó)
-│   └── detection/
-│       └── detector_baseline.yaml  # Cấu hình mô hình dinoViT & ngưỡng lọc Bypass
-├── docs/                           # Toàn bộ tài liệu & Slide thuyết trình 5 phút
-│   ├── PURPOSE.md                  # Đề bài & mục tiêu của Nhóm 4
-│   ├── OVERVIEW.md                 # Giải thích tổng quan hệ thống
-│   ├── coursework/                 # Tổng quan lý thuyết & cách chia dữ liệu
-│   ├── experiments/                # Cách so sánh 3 chế độ D0 / D1 / D2
-│   ├── phases/                     # Chi tiết Bước 1, Bước 2, Bước 3
-│   ├── progress/                   # Lộ trình thực hiện M0 -> M7
-│   └── reports/                    # Báo cáo & Bộ 11 Slide HTML thuyết trình
-├── scripts/
-│   └── run_pipeline.sh             # Lệnh chạy nhanh từng bước
-├── src/                            # Mã nguồn chính
-│   ├── common/                     # Các hàm tính điểm (ROC-AUC, Bypass Rate, Hard Recall)
-│   ├── data/                       # Đọc dữ liệu, lọc ảnh lỗi & chia tập không trùng người
-│   ├── models/                     # Mô hình tạo ảnh SD & mô hình phát hiện dinoViT
-│   └── pipelines/                  # Các bước chạy: sinh ảnh -> lọc -> tìm mẫu khó -> train -> đánh giá
-└── tests/                          # Bộ kiểm thử tự động (pytest)
+├── configs/                        # Cấu hình tập trung (Single Source of Truth)
+│   └── dataset_factory.yaml        # Mọi tham số sinh, lọc, khai thác mẫu khó và đóng gói
+├── data/                           # Dữ liệu phân tầng chuẩn Topic 11
+│   ├── raw/                        # Ảnh thật tham chiếu (FFHQ & CelebA-HQ, bất biến)
+│   ├── synthetic/                  # Ảnh giả đã sinh và danh mục lọc chất lượng
+│   ├── hard_samples/               # Mẫu khó sát đa tạp ảnh thật và biên bản audit
+│   └── benchmarks/                 # 3 bộ dữ liệu đối chứng D0, D1, D2
+├── docs/                           # Tài liệu nghiên cứu chi tiết & Slide báo cáo
+│   ├── PURPOSE.md                  # Bản tuyên ngôn mục tiêu đề tài (Dataset-First)
+│   ├── OVERVIEW.md                 # Kiến trúc hệ thống chi tiết
+│   ├── coursework/                 # Phân loại học thuật & quy chuẩn dữ liệu
+│   └── reports/                    # Báo cáo thực nghiệm & slide thuyết trình
+├── scripts/                        # Kịch bản thực thi tự động
+│   ├── organize_topic_dataset.py   # Đóng gói benchmark & xuất thống kê tự sinh
+│   ├── build_visual_gallery.py     # Tạo lưới ảnh đối chứng trực quan
+│   └── create_coursework_notebooks.py # Tự sinh 3 notebook kiểm tra độc lập
+├── src/                            # Mã nguồn chuẩn Clean Architecture
+│   ├── common/                     # Config loader, logger, seed, metrics
+│   ├── data/                       # Datasets, DataModules, Provenance, Splits
+│   ├── models/                     # Stable Diffusion engine, Detectors, Hardness evaluators
+│   └── pipelines/                  # Pipeline sinh ảnh, curation gate, hard-sample miner
+└── tests/                          # Bộ kiểm thử tự động toàn diện (80+ test cases)
 ```
 
 ---
 
-## 3. Các Lệnh Chạy Nhanh
+## 3. Các Lệnh Chạy Thực Nghiệm
+
+Toàn bộ quy trình được vận hành qua cấu hình tập trung `configs/dataset_factory.yaml`:
 
 ```bash
-# 1. Chạy kiểm thử nhanh (< 5 giây)
-make test-smoke
+# 1. Chạy toàn bộ bài kiểm thử tự động
+pytest -v
 
-# 2. Chạy toàn bộ bài kiểm thử
-make test
-
-# 3. Chạy lần lượt 3 bước của đề tài:
-bash scripts/run_pipeline.sh generate configs/config.yaml   # Bước 1a: Sinh ảnh giả bằng SD
-bash scripts/run_pipeline.sh curate configs/config.yaml     # Bước 1b: Lọc bỏ ảnh lỗi
-bash scripts/run_pipeline.sh mine configs/config.yaml       # Bước 2: Đưa qua dinoViT tìm Mẫu khó (Bypass)
-bash scripts/run_pipeline.sh train configs/config.yaml      # Bước 3a: Fine-tune lại dinoViT trên tập gộp
-bash scripts/run_pipeline.sh eval configs/config.yaml       # Bước 3b: Chấm điểm chứng minh tác dụng
+# 2. Quy trình sinh dữ liệu và đóng gói Dataset-First:
+python3 -m src.pipelines.generate_deepfake_images --config configs/dataset_factory.yaml
+python3 -m src.pipelines.curate_image_dataset --config configs/dataset_factory.yaml
+python3 -m src.pipelines.mine_hard_samples --config configs/dataset_factory.yaml
+python3 -m scripts.organize_topic_dataset --config configs/dataset_factory.yaml
+python3 -m scripts.build_visual_gallery --config configs/dataset_factory.yaml
+python3 scripts/create_coursework_notebooks.py
 ```
 
 ## Kaggle image pilot

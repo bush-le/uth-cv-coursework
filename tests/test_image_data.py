@@ -20,6 +20,7 @@ def test_image_metadata_serialization() -> None:
         is_hard_sample=True,
         baseline_score=0.22,
         data_source="hard_sample",
+        demographics={"age_group": "50-69", "gender": "male", "glasses": "Dark"},
     )
     d = meta.to_dict()
     assert d["image_id"] == "face_001"
@@ -28,6 +29,7 @@ def test_image_metadata_serialization() -> None:
     assert d["is_hard_sample"] is True
     assert d["baseline_score"] == pytest.approx(0.22)
     assert d["data_source"] == "hard_sample"
+    assert d["demographics"]["age_group"] == "50-69"
 
     restored = ImageMetadata.from_dict(d)
     assert restored.image_id == meta.image_id
@@ -35,6 +37,7 @@ def test_image_metadata_serialization() -> None:
     assert restored.is_hard_sample is True
     assert restored.baseline_score == pytest.approx(0.22)
     assert restored.data_source == "hard_sample"
+    assert restored.demographics == {"age_group": "50-69", "gender": "male", "glasses": "Dark"}
 
 
 def test_image_sample_contract() -> None:
@@ -110,3 +113,50 @@ def test_deepfake_image_datamodule_batching_and_identity_disjoint() -> None:
     assert batch["images"].shape == (4, 3, 64, 64)
     assert batch["labels"].shape == (4,)
     assert batch["is_hard_sample"].shape == (4,)
+
+
+def test_stratified_identity_disjoint_guarantees_both_classes_in_splits() -> None:
+    """Verify that stratified identity-disjoint splitting places both Real and Fake samples into Val and Test."""
+    # 30 real identities, 6 of which also have synthetic fakes
+    metadata_list = []
+    for i in range(30):
+        metadata_list.append(ImageMetadata(image_id=f"real_{i}", label=0, source_real_id=f"person_{i}"))
+    for i in range(6):
+        metadata_list.append(ImageMetadata(image_id=f"fake_{i}", label=1, source_real_id=f"person_{i}"))
+
+    # Test across multiple seeds (including seed=2 and seed=5 which fail with unstratified split)
+    for seed in [1, 2, 5, 7, 42]:
+        dm = DeepfakeImageDataModule(
+            metadata_list=metadata_list,
+            train_ratio=0.7,
+            val_ratio=0.15,
+            test_ratio=0.15,
+            identity_disjoint=True,
+            seed=seed,
+        )
+        train_m, val_m, test_m = dm._partition_splits()
+
+        # Check identity disjointness
+        train_ids = {m.source_real_id for m in train_m}
+        val_ids = {m.source_real_id for m in val_m}
+        test_ids = {m.source_real_id for m in test_m}
+        assert train_ids.isdisjoint(val_ids)
+        assert train_ids.isdisjoint(test_ids)
+        assert val_ids.isdisjoint(test_ids)
+
+        # Check that both Val and Test splits have BOTH Real (0) and Fake (1) labels
+        val_labels = {m.label for m in val_m}
+        test_labels = {m.label for m in test_m}
+        assert 0 in val_labels, f"Val split at seed={seed} must contain Real samples (label=0)"
+        assert 1 in val_labels, f"Val split at seed={seed} must contain Fake samples (label=1)"
+        assert 0 in test_labels, f"Test split at seed={seed} must contain Real samples (label=0)"
+        assert 1 in test_labels, f"Test split at seed={seed} must contain Fake samples (label=1)"
+
+
+def test_dataset_raises_on_missing_file() -> None:
+    """Zero-Mock Invariant: Dataset must raise FileNotFoundError when loading missing file from disk."""
+    ds = DeepfakeImageDataset([ImageMetadata(image_id="x", label=0, file_path="non_existent_file.png")])
+    with pytest.raises(FileNotFoundError):
+        _ = ds[0]
+
+

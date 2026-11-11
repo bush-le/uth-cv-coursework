@@ -2,6 +2,8 @@
 
 from pathlib import Path
 from typing import Any
+import torch
+
 from src.data.dataset import StandardCVDataset
 from src.data.transforms import get_base_transforms
 
@@ -29,7 +31,7 @@ class CVDataModule:
         self.data_dir = Path(data_dir)
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.pin_memory = pin_memory
+        self.pin_memory = pin_memory and torch.cuda.is_available()
         self.image_size = image_size
 
         self.train_dataset: StandardCVDataset | None = None

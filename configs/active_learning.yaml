@@ -1,0 +1,59 @@
+# ==============================================================================
+# Closed-Loop Active Learning Pipeline Configuration (Topic 11 / Block 2)
+# Single Source of Truth for Adaptive Budgeting, Mining, and Retraining
+# ==============================================================================
+
+seed: 42
+device: "cuda"
+
+paths:
+  train_reals: "data/partitions/train_reals.jsonl"
+  val_manifest: "data/benchmarks/D0_baseline/val.jsonl"
+  test_manifest: "data/benchmarks/D0_baseline/test.jsonl"
+  base_dir: "data/active_learning"
+  checkpoints_dir: "experiments/checkpoints"
+  logs_dir: "experiments/logs"
+  cumulative_challenge_manifest: "data/active_learning/cumulative_challenge_test.jsonl"
+
+loop:
+  num_rounds: 2
+  candidates_per_round: 60
+  resume: true
+
+budget:
+  min_mode_ratio: 0.15
+  exploration_floor: 0.20
+  modes:
+    - "sd_text2img"
+    - "sd_inpaint"
+    - "sd_img2img"
+  regions:
+    - "periocular"
+    - "lips"
+    - "full"
+
+hardness:
+  decision_threshold: 0.50
+  uncertainty_window: 0.10
+  min_hard_samples: 2
+  min_cosine_distance: 0.05
+  temperature_calibration:
+    enabled: true
+    max_iter: 50
+    lr: 0.05
+
+attribution:
+  smoothing_alpha: 1.0
+  smoothing_beta: 1.0
+  prompt_temperature: 0.70
+  prompt_exploration_floor: 0.15
+
+retraining:
+  epochs_per_round: 5
+  batch_size: 16
+  learning_rate: 2.0e-4
+  hard_sample_loss_weight: 2.0
+  unfreeze_last_n_blocks: 1
+
+challenge_split:
+  test_ratio: 0.15

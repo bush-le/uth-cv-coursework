@@ -1,56 +1,75 @@
-# OVERVIEW.md — Tổng Quan Hệ Thống 3 Bước Khép Kín
+# OVERVIEW.md — Tổng Quan Kiến Trúc Dataset Factory & Benchmark
 
-- **Motivation/Background**: Giúp mọi thành viên trong nhóm và người đọc nắm bắt nhanh toàn bộ cách hoạt động của hệ thống chỉ trong vài phút đọc.
-- **Purpose**: Mô tả bức tranh tổng thể nối liền Bước 1 (Sinh ảnh SD), Bước 2 (Tìm mẫu khó qua `dinoViT`) và Bước 3 (Huấn luyện lại để chứng minh tác dụng).
-- **Overview Pipeline**: Đầu vào (Ảnh thật + Prompt) -> Bước 1: Stable Diffusion & Lọc ảnh lỗi -> Bước 2: Chấm bằng `dinoViT` gốc (`Reject` vs. `Bypass`) -> Bước 3: Gộp `Baseline + Syn + Hard Sample` & Fine-Tune `dinoViT`.
-- **Detailed Plan**: §1 Sơ đồ toàn hệ thống; §2 Vai trò của từng mô-đun trong code; §3 Ba chế độ so sánh kết quả (`D0 / D1 / D2`).
-- **References**: [PURPOSE.md](PURPOSE.md), [PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md](phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md), [PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md](phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md).
+- **Motivation/Background**: Cung cấp cái nhìn toàn cảnh về kiến trúc hệ thống tạo bộ dữ liệu tổng hợp khuôn mặt và bộ benchmark đối kháng theo định hướng **Dataset-First**.
+- **Purpose**: Mô tả chi tiết các giai đoạn: Sinh ảnh Stable Diffusion -> Lọc chất lượng Curation Gate -> Khai thác Mẫu Khó Real-Manifold -> Đóng gói Benchmark $D_0, D_1, D_2$ -> Đánh giá Proof of Utility.
+- **Overview Pipeline**: `data/raw/` -> `src/pipelines/generate_deepfake_images.py` -> `src/pipelines/curate_image_dataset.py` -> `src/pipelines/mine_hard_samples.py` -> `scripts/organize_topic_dataset.py` -> `data/benchmarks/` -> `paths.stats_file`.
+- **Detailed Plan**: §1 Sơ đồ kiến trúc toàn hệ thống; §2 Cấu trúc mã nguồn & trách nhiệm từng mô-đun; §3 Ba bộ dữ liệu benchmark đối chứng ($D_0, D_1, D_2$); §4 Báo cáo thống kê tự sinh.
+- **References**: [PURPOSE.md](PURPOSE.md), `configs/dataset_factory.yaml`, `.agents/rules/ZERO_HARDCODE_RULE.md`.
 - **Created**: 2026-11-02T07:30:00+07:00
-- **Last Updated**: 2026-11-08T18:37:00+07:00
+- **Last Updated**: 2026-11-09T15:15:00+07:00
 
 ---
 
-## 1. Sơ Đồ Hoạt Động Của Toàn Hệ Thống
+## 1. Sơ Đồ Kiến Trúc Toàn Hệ Thống
 
 ```mermaid
-flowchart LR
-    A["Ảnh mặt thật + Prompt"] --> B["Bước 1: Stable Diffusion<br/>(T2I / Inpaint / Img2Img)"]
-    B --> C["Lọc bỏ ảnh lỗi<br/>(Curation Gate)"]
-    C --> D["Ảnh giả đạt chuẩn<br/>(Synthetic DF img)"]
-    D --> E["Bước 2: Mô hình gốc<br/>Baseline dinoViT"]
-    E -- "Bắt được (P(fake) >= 0.5)" --> F["Ảnh giả thường<br/>(Rejected / Syn Data)"]
-    E -- "Bị lừa (P(fake) < 0.5)" --> G["Mẫu khó vượt rào<br/>(Bypassed / Hard Sample)"]
-    F --> H["Bước 3: Tập dữ liệu gộp<br/>(Baseline + Syn + Hard Sample)"]
-    G --> H
-    H --> I["Fine-Tune lại dinoViT<br/>(Ưu tiên học Mẫu khó)"]
-    I --> J["Bắt được Mẫu khó!<br/>(Chứng minh có tác dụng)"]
+flowchart TD
+    Raw["Ảnh mặt thật tham chiếu<br/>(FFHQ & CelebA-HQ)"] --> Gen["Giai đoạn 1: Sinh ảnh Stable Diffusion<br/>(Text-to-Image / Inpainting / Img2Img)<br/><i>Per-sample Seed & Provenance</i>"]
+    Gen --> Cur["Giai đoạn 2: Curation Gate<br/>(Laplacian Sharpness, Face Check, Dedup)<br/><i>Ngưỡng động hiệu chỉnh từ ảnh thật</i>"]
+    Cur --> SynValid["Ảnh giả đạt chuẩn chất lượng<br/>(Curated Synthetic Faces)"]
+    SynValid --> Mine["Giai đoạn 3: Khai thác Mẫu Khó<br/>(Real-Manifold Distance & Leave-one-out Tau)"]
+    Raw -.-> Mine
+    Mine --> Hard["Mẫu Khó Đối Kháng<br/>(Hard Samples: sát đa tạp thật)"]
+    SynValid --> Pack["Giai đoạn 4: Đóng Gói Bộ Dữ Liệu & Benchmark<br/>(Identity-Disjoint Splitting)"]
+    Hard --> Pack
+    Raw --> Pack
+    Pack --> D0["D0_baseline<br/>(Mốc cơ sở)"]
+    Pack --> D1["D1_augmented<br/>(Tăng cường thường)"]
+    Pack --> D2["D2_hard_boosted<br/>(Trọng tâm Mẫu Khó)"]
+    Pack --> Stats["paths.stats_file<br/>(Thống kê tự sinh toàn diện)"]
+    D0 -. "Proof of Utility" .-> Eval["Đánh giá so sánh năng lực<br/>Downstream Deepfake Detectors"]
+    D1 -.-> Eval
+    D2 -.-> Eval
 ```
 
 ---
 
-## 2. Hệ Thống Được Chia Thành Các Phần Nào Trong Code?
+## 2. Tổ Chức Mã Nguồn & Trách Nhiệm Mô-đun
 
-1. **Tạo và lọc ảnh giả (`src/models/synthesis/` & `src/data/curation_gate.py`)**:
-   - Tạo ảnh khuôn mặt giả bằng 3 cách của Stable Diffusion.
-   - Kiểm tra tự động để loại bỏ ảnh bị mờ, ảnh không rõ mắt-mũi-miệng hoặc ảnh sai nội dung mô tả.
+1. **Sinh dữ liệu ảnh giả (`src/pipelines/generate_deepfake_images.py` & `src/models/diffusion/`)**:
+   - Vận hành động cơ Stable Diffusion hỗ trợ đầy đủ 3 cơ chế: `Text-to-Image`, `Inpainting`, và `Image-to-Image`.
+   - Sinh seed tất định qua hàm băm `sample_seed(base_seed, image_id, variant)` bằng CRC32 chống trùng lặp.
+   - Ghi nhận đầy đủ nguồn gốc tham số vào `ImageMetadata.generation`.
 
-2. **Mô hình phát hiện `dinoViT` và tìm mẫu khó (`src/models/detector/` & `src/pipelines/mine_hard_samples.py`)**:
-   - Dùng mạng Vision Transformer (`DinoViTBackbone`) chia bức ảnh thành các ô vuông nhỏ (patch) để nhìn tổng thể toàn khuôn mặt và đưa ra xác suất ảnh giả $P(\text{fake}) \in [0, 1]$.
-   - Chạy kiểm tra toàn bộ ảnh giả mới tạo: ảnh nào có điểm $P(\text{fake}) < 0.5$ nghĩa là đánh lừa được mô hình gốc $\rightarrow$ tự động đánh dấu `is_hard_sample = True` và lưu vào file mẫu khó.
+2. **Bộ lọc chất lượng tự động (`src/pipelines/curate_image_dataset.py` & `src/common/metrics.py`)**:
+   - Kiểm tra độ sắc nét ảnh bằng toán tử Laplacian, tự động hiệu chỉnh ngưỡng tối thiểu qua quantile thực nghiệm của tập ảnh thật (`curation.reference_quantile_sharpness`).
+   - Kiểm tra cấu trúc khuôn mặt và loại bỏ ảnh trùng lặp thông qua hàm băm nội dung cryptographic SHA-256 (`file_sha256`).
+   - Xuất biên bản kiểm định chi tiết tới `paths.curation_report`.
 
-3. **Gộp dữ liệu và huấn luyện lại (`src/data/image_datamodule.py` & `src/pipelines/train_image_detector.py`)**:
-   - Gộp 3 nguồn dữ liệu: **Dữ liệu gốc (`baseline`) + Ảnh sinh mới (`synthetic`) + Mẫu khó (`hard_sample`)**.
-   - Giữ tất cả ảnh phát sinh từ cùng một người thật (`source_real_id`) nằm chung một tập (Train hoặc Test) để kết quả kiểm tra hoàn toàn trung thực.
-   - Khi huấn luyện lại `dinoViT`, các **Mẫu khó (`Hard Sample`)** được lặp lại nhiều hơn và tính điểm phạt cao hơn nếu đoán sai, giúp mô hình sửa đúng điểm yếu của mình.
+3. **Khai thác Mẫu Khó khách quan (`src/models/evaluators/hardness.py` & `src/pipelines/mine_hard_samples.py`)**:
+   - Sử dụng mô hình nền tảng thị giác (`hardness.backbone_id`) để chiếu ảnh vào không gian biểu diễn sâu.
+   - Phương pháp `Real-Manifold Proximity`: đo khoảng cách cosine top-$k$ tới tập ảnh thật tham chiếu (đã loại bỏ ảnh nguồn gốc).
+   - Ngưỡng quyết định $\tau$ được tự động tính toán từ phân bố kiểm tra chéo leave-one-out giữa các ảnh thật.
+
+4. **Đóng gói phân vùng danh tính & thống kê (`src/data/splits.py` & `scripts/organize_topic_dataset.py`)**:
+   - Phân chia tập dữ liệu theo cơ chế `identity-disjoint`: tính toán một lần duy nhất cho toàn bộ nhóm danh tính thật và phái sinh.
+   - Cố định tập kiểm thử `test.jsonl` giống hệt nhau giữa cả 3 giai đoạn đối chứng $D_0, D_1, D_2$.
+   - Tự động kết xuất báo cáo thống kê độc lập `paths.stats_file` mà không ghi cứng số liệu.
 
 ---
 
-## 3. Ba Chế Độ Thử Nghiệm Để Chứng Minh Tác Dụng (`D0`, `D1`, `D2`)
+## 3. Ba Bộ Dữ Liệu Benchmark Đối Chứng ($D_0, D_1, D_2$)
 
-Để chứng minh rõ ràng với giảng viên rằng bộ dữ liệu mới và nhóm mẫu khó thực sự có ích, nhóm đặt 3 chế độ huấn luyện lên bàn cân cùng điều kiện:
+Bộ benchmark được cấu hình linh hoạt trong `configs/dataset_factory.yaml` phục vụ đánh giá năng lực phát hiện Deepfake:
 
-| Chế độ | Dữ liệu dùng để huấn luyện `dinoViT` | Mục đích so sánh |
+| Bộ dữ liệu | Nguồn dữ liệu huấn luyện (`train_sources`) | Ý nghĩa khoa học |
 | :--- | :--- | :--- |
-| **`D0` (Gốc)** | Chỉ dùng **Dữ liệu gốc (`Data Baseline`)** | Xem mô hình gốc ban đầu bị bỏ lọt (`Bypass`) bao nhiêu ảnh giả từ Stable Diffusion. |
-| **`D1` (+ Ảnh mới)** | **Dữ liệu gốc + Ảnh sinh mới thông thường (`Syn Data`)** | Xem việc chỉ thêm ảnh tổng hợp bình thường giúp cải thiện được bao nhiêu. |
-| **`D2` (+ Mẫu khó)** | **Dữ liệu gốc + Ảnh sinh mới + Mẫu khó (`Hard Sample`)** | Chứng minh khi học thêm các **Mẫu khó từng vượt rào**, mô hình bắt lại được chúng và đạt điểm cao nhất. |
+| **`D0_baseline`** | Ảnh khuôn mặt cơ sở (`baseline`) | Xác lập điểm số đường cơ sở ban đầu của mô hình khi chưa được tiếp cận dữ liệu phái sinh. |
+| **`D1_augmented`** | Ảnh cơ sở + Toàn bộ ảnh mặt giả (`baseline` + `synthetic`) | Đánh giá mức độ cải thiện khi chỉ tăng cường dữ liệu tổng hợp diện rộng mà không chọn lọc độ khó. |
+| **`D2_hard_boosted`** | Ảnh cơ sở + Ảnh giả + Nhân đôi Mẫu Khó (`baseline` + `synthetic` + `hard_sample`) | Kiểm chứng luận điểm cốt lõi: Tập trung vào các Mẫu Khó giúp mô hình phát hiện Deepfake nhạy bén hơn hẳn. |
+
+---
+
+## 4. Báo Cáo Thống Kê & Minh Bạch Khoa Học
+
+Mọi chỉ số tổng kết về số lượng mẫu, tỷ lệ thông qua bộ lọc curation, tỷ lệ mẫu khó theo chế độ sinh, và phân bố nhân khẩu học được tính toán động và lưu trữ tại `paths.stats_file`. Các notebook phân tích và tài liệu trình bày đều truy xuất thông tin trực tiếp từ tệp này, đảm bảo tính nhất quán và hoàn toàn không phụ thuộc vào các số liệu ghi cứng.

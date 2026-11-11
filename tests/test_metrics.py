@@ -5,13 +5,14 @@ import pytest
 import torch
 
 from src.common.metrics import (
+    calibrate_threshold,
     compute_accuracy,
     compute_bypass_rate,
-    compute_clip_similarity_proxy,
     compute_hard_sample_recall,
     compute_iou,
     compute_laplacian_sharpness,
     compute_roc_auc,
+    detect_faces,
 )
 
 
@@ -29,6 +30,26 @@ def test_compute_roc_auc_ranking() -> None:
 
     auc = compute_roc_auc(targets, probs)
     assert auc == pytest.approx(1.0)
+
+
+def test_compute_roc_auc_with_tied_scores() -> None:
+    """Verify tied probabilities yield unbiased 0.5 ROC-AUC via mid-rank averaging."""
+    targets = np.array([0, 0, 1, 1], dtype=np.int64)
+    # Saturated tied scores
+    probs = np.array([0.5, 0.5, 0.5, 0.5], dtype=np.float32)
+    auc = compute_roc_auc(targets, probs)
+    assert auc == pytest.approx(0.5, abs=1e-5), f"Expected 0.5 for tied scores, got {auc}"
+
+
+def test_compute_roc_auc_single_class_returns_nan() -> None:
+    """Verify single class targets return NaN rather than false 1.0."""
+    import math
+
+    targets = np.array([1, 1, 1, 1], dtype=np.int64)
+    probs = np.array([0.8, 0.9, 0.7, 0.95], dtype=np.float32)
+    auc = compute_roc_auc(targets, probs)
+    assert math.isnan(auc), f"Expected NaN for single-class target, got {auc}"
+
 
 
 def test_compute_bypass_rate() -> None:
@@ -56,5 +77,21 @@ def test_compute_iou_and_curation_metrics() -> None:
     sharpness = compute_laplacian_sharpness(img)
     assert sharpness >= 0.0
 
-    sim = compute_clip_similarity_proxy(img, "portrait of a person")
-    assert 0.0 <= sim <= 1.0
+
+def test_calibrate_threshold_is_quantile() -> None:
+    assert calibrate_threshold([1, 2, 3, 4, 5], 0.0) == 1.0
+    assert calibrate_threshold([1, 2, 3, 4, 5], 1.0) == 5.0
+    assert calibrate_threshold([10, 20, 30, 40, 50], 0.5) == 30.0
+
+    with pytest.raises(ValueError):
+        calibrate_threshold([], 0.5)
+
+    with pytest.raises(ValueError):
+        calibrate_threshold([1, 2], 1.5)
+
+
+def test_face_check_none_backend_skips_and_haar_backend_rejects_blank() -> None:
+    blank = np.zeros((64, 64, 3), dtype=np.uint8)
+    assert detect_faces(blank, backend="opencv_haar") == 0
+    assert detect_faces(blank, backend="none") == 1
+

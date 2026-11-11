@@ -109,6 +109,66 @@ class DinoViTBackbone(nn.Module):
         return F.normalize(cls_out, p=2, dim=-1)
 
 
+class MetaDinoV2Wrapper(nn.Module):
+    """Production Meta DINOv2 feature extractor leveraging pretrained Vision Transformer."""
+
+    def __init__(
+        self,
+        model_name: str = "facebook/dinov2-small",
+        pretrained: bool = True,
+    ) -> None:
+        super().__init__()
+        from transformers import AutoConfig, AutoModel
+
+        # Normalize common short aliases to canonical Hugging Face Hub IDs
+        alias_map = {
+            "dinov2_small": "facebook/dinov2-small",
+            "dinov2-small": "facebook/dinov2-small",
+            "dinov2_base": "facebook/dinov2-base",
+            "dinov2-base": "facebook/dinov2-base",
+            "dinov2_large": "facebook/dinov2-large",
+            "dinov2-large": "facebook/dinov2-large",
+        }
+        model_name = alias_map.get(model_name, model_name)
+
+        self.model_name = model_name
+        self.pretrained = pretrained
+        try:
+            if pretrained:
+                self.backbone = AutoModel.from_pretrained(model_name)
+            else:
+                cfg = AutoConfig.from_pretrained(model_name)
+                self.backbone = AutoModel.from_config(cfg)
+        except Exception as e:
+            logger.warning("Failed to load %s from Hub (%s), using local config.", model_name, e)
+            cfg = AutoConfig.from_pretrained(model_name)
+            self.backbone = AutoModel.from_config(cfg)
+
+        self.embed_dim = self.backbone.config.hidden_size
+        self.register_buffer(
+            "mean", torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32).view(1, 3, 1, 1)
+        )
+        self.register_buffer(
+            "std", torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32).view(1, 3, 1, 1)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Extract normalized [CLS] token embedding of shape (B, embed_dim)."""
+        b, c, h, w = x.shape
+        if h % 14 != 0 or w % 14 != 0:
+            h_new = max(14, (h // 14) * 14)
+            w_new = max(14, (w // 14) * 14)
+            x = F.interpolate(x, size=(h_new, w_new), mode="bilinear", align_corners=False)
+
+        # Normalize with ImageNet mean and std
+        x = (x - self.mean) / self.std
+
+        outputs = self.backbone(pixel_values=x)
+
+        cls_out = outputs.last_hidden_state[:, 0]
+        return F.normalize(cls_out, p=2, dim=-1)
+
+
 class SimpleImageCNN(nn.Module):
     """Lightweight 2D convolutional feature extractor for ablation comparisons."""
 
@@ -151,14 +211,21 @@ class DeepfakeImageDetector(nn.Module):
         num_classes: int = 1,
         dropout: float = 0.3,
         freeze_extractor: bool = False,
+        pretrained: bool = True,
     ) -> None:
         super().__init__()
         self.backbone_name = backbone.lower()
         self.num_classes = num_classes
 
-        if self.backbone_name in ("dino_vit", "dinovit", "dinov2", "dinov2_vitb14", "dino_vit_tiny"):
+        if self.backbone_name in ("dinov2_small", "dinov2", "dinov2_vits14", "facebook/dinov2-small"):
+            self.extractor: nn.Module = MetaDinoV2Wrapper(
+                model_name="facebook/dinov2-small",
+                pretrained=pretrained,
+            )
+            feature_dim = self.extractor.embed_dim
+        elif self.backbone_name in ("dino_vit", "dinovit", "dino_vit_tiny"):
             feature_dim = 192
-            self.extractor: nn.Module = DinoViTBackbone(
+            self.extractor = DinoViTBackbone(
                 patch_size=16,
                 embed_dim=feature_dim,
                 depth=4,
@@ -175,10 +242,9 @@ class DeepfakeImageDetector(nn.Module):
 
         self.feature_dim = feature_dim
         self.classifier = nn.Sequential(
-            nn.Dropout(p=dropout),
-            nn.Linear(feature_dim, 64),
-            nn.GELU(),
-            nn.Linear(64, num_classes),
+            nn.LayerNorm(feature_dim),
+            nn.Dropout(p=dropout) if dropout > 0 else nn.Identity(),
+            nn.Linear(feature_dim, num_classes),
         )
 
         if freeze_extractor:
@@ -200,11 +266,28 @@ class DeepfakeImageDetector(nn.Module):
         """Unfreeze DINO ViT transformer blocks for fine-tuning on hard samples.
 
         Args:
-            unfreeze_last_n_blocks: If provided and extractor is DinoViTBackbone, only unfreezes
-                                    the last N transformer blocks and final LayerNorm. Otherwise
-                                    unfreezes the entire backbone.
+            unfreeze_last_n_blocks: If provided and extractor is DinoViTBackbone or MetaDinoV2Wrapper,
+                                    only unfreezes the last N transformer blocks. If 0, keeps all frozen.
+                                    If None, unfreezes the entire backbone.
         """
+        if unfreeze_last_n_blocks == 0:
+            self.freeze_backbone()
+            return
+
         if (
+            unfreeze_last_n_blocks is not None
+            and isinstance(self.extractor, MetaDinoV2Wrapper)
+            and unfreeze_last_n_blocks > 0
+        ):
+            self.freeze_backbone()
+            layers = self.extractor.backbone.encoder.layer
+            for layer in list(layers)[-unfreeze_last_n_blocks:]:
+                for param in layer.parameters():
+                    param.requires_grad = True
+            if hasattr(self.extractor.backbone, "layernorm"):
+                for param in self.extractor.backbone.layernorm.parameters():
+                    param.requires_grad = True
+        elif (
             unfreeze_last_n_blocks is not None
             and isinstance(self.extractor, DinoViTBackbone)
             and unfreeze_last_n_blocks > 0
@@ -218,6 +301,7 @@ class DeepfakeImageDetector(nn.Module):
         else:
             for param in self.extractor.parameters():
                 param.requires_grad = True
+
 
     def extract_features(self, x: torch.Tensor) -> torch.Tensor:
         """Extract backbone embedding vector of shape (B, feature_dim)."""
