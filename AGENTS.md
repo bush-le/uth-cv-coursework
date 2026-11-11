@@ -6,7 +6,7 @@
 - **Detailed Plan**: §1 Cognitive Alignment & Authority; §2 Non-Negotiable Operational Principles; §3 Computer Vision Domain Invariants; §4 Code Quality & Packaging Standards; §5 Essential Commands; §6 Contract-First Output Format.
 - **References**: `.agents/README.md`, `.agents/rules/`, `.agents/AI_REFERENCE.md`, `docs/PURPOSE.md`.
 - **Created**: 2026-11-02T07:30:00+07:00
-- **Last Updated**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T19:50:00+07:00
 
 ---
 
@@ -40,6 +40,8 @@ When operating in this workspace, you are acting as a **Principal Computer Visio
 4. **Zero-Mock & Neural Checkpoint Integrity**:
    - **NEVER** use mock data, noise shapes, or uninitialized random-weight neural heads for production inference, evaluation, or hard-sample mining.
    - Every mining and evaluation pipeline (`mine_hard_samples.py`, `evaluate.py`) MUST require and verify a real trained checkpoint file (`model_state_dict`). Unverified random inference is strictly forbidden. Detailed protocol in [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](.agents/rules/ZERO_MOCK_DATA_RULE.md).
+5. **Continuous Checkpoint & Backup Invariant**:
+   - Bất cứ khi nào hoàn thành một đơn vị tác vụ và chạy đạt `make test-smoke`, Agent bắt buộc phải thực hiện Git commit nguyên tử ngay lập tức, không để dồn diff lớn nhằm bảo toàn 100% tính vẹn toàn mã nguồn.
 
 ---
 

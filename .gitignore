@@ -94,6 +94,8 @@ data/active_learning/*
 !data/active_learning/.gitkeep
 data/iterative_loop/*
 !data/iterative_loop/.gitkeep
+data/vaults/*
+!data/vaults/.gitkeep
 
 # Preserve all structured manifests and metadata across all data subdirectories
 !data/**/*.jsonl
@@ -102,6 +104,7 @@ data/iterative_loop/*
 !data/**/*.yaml
 !data/**/*.yml
 !data/**/*.md
+data/vaults/*.jsonl
 
 # Heavy generated and raw media across data subdirectories
 data/**/*.png
