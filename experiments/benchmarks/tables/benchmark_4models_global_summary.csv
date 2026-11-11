@@ -1,0 +1,5 @@
+Model,Display Name,Accuracy,Fake Recall (↑),Bypass Rate (↓),Real Specificity (↑),Real FPR (↓),Precision,F1-Score,ROC-AUC (↑),PR-AUC (↑),Brier Score (↓)
+M0_baseline,M₀ (Baseline D₀),50.19%,2.75%,97.25%,97.64%,2.36%,53.74%,5.22%,0.4896,0.4880,0.4861
+M1_active_r1,M₁ (Active Learning R1),47.73%,2.17%,97.83%,93.29%,6.71%,24.42%,3.98%,0.3331,0.3923,0.4960
+M2_coldstart,M₂ (Cold-Start Scratch),48.20%,1.72%,98.28%,94.68%,5.32%,24.37%,3.21%,0.4507,0.4447,0.4916
+M2_refined_warmstart,M₂* (Refined Warm-Start),47.19%,2.48%,97.52%,91.89%,8.11%,23.43%,4.49%,0.3594,0.3970,0.5025

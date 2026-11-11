@@ -1,0 +1,10 @@
+Technology Family,Sample Count,Type,M0 Recall/Spec,M1 Recall/Spec,M2_cold Recall/Spec,M2_refined Recall/Spec,M2_refined Delta vs M1
+AutoEncoders / VAEs,300,Fake GenAI,1.33%,0.33%,0.00%,0.00%,-0.33%
+Diffusion Baselines (DDIM),300,Fake GenAI,2.33%,3.67%,6.33%,6.00%,+2.33%
+Diffusion Transformers (DiT),1200,Fake GenAI,0.25%,1.25%,0.83%,1.50%,+0.25%
+Face Swapping,2700,Fake GenAI,0.41%,0.30%,0.37%,0.41%,+0.11%
+GAN Architectures,1500,Fake GenAI,11.73%,6.53%,4.40%,7.33%,+0.80%
+GAN Inversion & Editing,600,Fake GenAI,10.17%,11.67%,8.17%,12.50%,+0.83%
+Latent Diffusion (SD 2.1),300,Fake GenAI,2.00%,3.33%,3.67%,4.67%,+1.33%
+Real Faces (FFHQ / FF++),10200,Real Face,97.64%,93.29%,94.68%,91.89%,-1.40%
+Reenactment & Talking Head,3300,Fake GenAI,0.36%,0.24%,0.30%,0.21%,-0.03%

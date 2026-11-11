@@ -1,0 +1,35 @@
+Method,Family,Count,M0 Recall,M1 Recall,M2_cold Recall,M2_refined Recall,M2_refined Delta vs M1,Status
+DiT,Diffusion Transformers (DiT),300,0.33%,0.67%,0.67%,0.67%,+0.00%,SIMILAR
+MRAA,Reenactment & Talking Head,300,0.00%,0.00%,0.33%,0.00%,+0.00%,SIMILAR
+RDDM,Diffusion Transformers (DiT),300,0.00%,0.00%,0.00%,0.00%,+0.00%,SIMILAR
+SiT,Diffusion Transformers (DiT),300,0.33%,0.33%,0.67%,0.33%,+0.00%,SIMILAR
+StyleGAN2,GAN Architectures,300,26.67%,9.00%,5.00%,12.00%,+3.00%,IMPROVED
+StyleGAN3,GAN Architectures,300,2.67%,1.00%,8.67%,2.67%,+1.67%,IMPROVED
+StyleGANXL,GAN Architectures,300,0.00%,0.00%,0.00%,0.00%,+0.00%,SIMILAR
+VQGAN,AutoEncoders / VAEs,300,1.33%,0.33%,0.00%,0.00%,-0.33%,SIMILAR
+blendface,Face Swapping,300,0.00%,0.33%,0.00%,0.33%,+0.00%,SIMILAR
+danet,Face Swapping,300,1.67%,1.67%,1.00%,1.00%,-0.67%,DEGRADED
+ddim,Diffusion Baselines (DDIM),300,2.33%,3.67%,6.33%,6.00%,+2.33%,IMPROVED
+e4e,GAN Inversion & Editing,300,20.00%,23.33%,16.33%,25.00%,+1.67%,IMPROVED
+e4s,GAN Inversion & Editing,300,0.33%,0.00%,0.00%,0.00%,+0.00%,SIMILAR
+facedancer,Face Swapping,300,0.67%,0.00%,0.33%,0.67%,+0.67%,IMPROVED
+faceswap,Face Swapping,300,0.33%,0.33%,0.33%,0.33%,+0.00%,SIMILAR
+facevid2vid,Reenactment & Talking Head,300,0.00%,0.33%,0.33%,0.00%,-0.33%,SIMILAR
+fomm,Reenactment & Talking Head,300,0.00%,0.00%,0.00%,0.00%,+0.00%,SIMILAR
+fsgan,Face Swapping,300,0.00%,0.00%,0.00%,0.00%,+0.00%,SIMILAR
+hyperreenact,Reenactment & Talking Head,300,0.33%,0.00%,0.67%,0.00%,+0.00%,SIMILAR
+inswap,Face Swapping,300,0.33%,0.00%,0.33%,0.00%,+0.00%,SIMILAR
+lia,Reenactment & Talking Head,300,0.00%,0.00%,0.00%,0.00%,+0.00%,SIMILAR
+mcnet,Reenactment & Talking Head,300,1.67%,1.33%,0.33%,1.33%,+0.00%,SIMILAR
+mobileswap,Face Swapping,300,0.33%,0.33%,0.33%,0.33%,+0.00%,SIMILAR
+one_shot_free,Reenactment & Talking Head,300,0.33%,0.00%,0.33%,0.00%,+0.00%,SIMILAR
+pirender,Reenactment & Talking Head,300,0.00%,0.00%,0.33%,0.00%,+0.00%,SIMILAR
+pixart,Diffusion Transformers (DiT),300,0.33%,4.00%,2.00%,5.00%,+1.00%,IMPROVED
+sadtalker,Reenactment & Talking Head,300,0.00%,0.00%,0.33%,0.00%,+0.00%,SIMILAR
+sd2.1,Latent Diffusion (SD 2.1),300,2.00%,3.33%,3.67%,4.67%,+1.33%,IMPROVED
+simswap,Face Swapping,300,0.33%,0.00%,0.33%,0.33%,+0.33%,SIMILAR
+stargan,GAN Architectures,300,18.00%,8.33%,1.33%,7.67%,-0.67%,DEGRADED
+styleclip,GAN Architectures,300,11.33%,14.33%,7.00%,14.33%,+0.00%,SIMILAR
+tpsm,Reenactment & Talking Head,300,1.67%,1.00%,0.67%,1.00%,+0.00%,SIMILAR
+uniface,Face Swapping,300,0.00%,0.00%,0.67%,0.67%,+0.67%,IMPROVED
+wav2lip,Reenactment & Talking Head,300,0.00%,0.00%,0.00%,0.00%,+0.00%,SIMILAR
