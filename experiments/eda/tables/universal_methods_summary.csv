@@ -1,40 +1,37 @@
 Method,Family,Count,Percentage,Label,Sources,Avg_Sharpness_Lap,Avg_Brightness,Avg_Contrast
-real,Real Faces (FFHQ / FF++ / CelebA),25042,50.00%,Real (0),ff++_real; ffhq_real; test_data_v3,225.7,108.8,55.5
-sd2.1,Latent Diffusion (SD 2.1),1460,2.92%,Fake (1),test_data_v3,59.2,119.3,42.1
-mobileswap,Face Swapping,1299,2.59%,Fake (1),test_data_v3,53.9,88.6,44.6
-deepfake_faceswap,Face Swapping,1010,2.02%,Fake (1),deep-fake-face-swap,853.7,111.8,64.9
-DiT,Diffusion Transformers (DiT),982,1.96%,Fake (1),test_data_v3,39.4,104.8,42.8
-SiT,Diffusion Transformers (DiT),973,1.94%,Fake (1),test_data_v3,56.0,93.0,45.8
-StyleGAN3,GAN Architectures,973,1.94%,Fake (1),test_data_v3,46.5,88.3,50.4
-StyleGANXL,GAN Architectures,968,1.93%,Fake (1),test_data_v3,21.5,80.7,38.8
-pixart,Diffusion Transformers (DiT),903,1.80%,Fake (1),test_data_v3,2.2,91.2,56.4
-danet,Face Swapping,683,1.36%,Fake (1),test_data_v3,82.8,75.3,45.4
-lia,Reenactment & Talking Head,675,1.35%,Fake (1),test_data_v3,31.0,82.1,49.4
-mcnet,Reenactment & Talking Head,674,1.35%,Fake (1),test_data_v3,129.8,77.0,47.2
-MRAA,Reenactment & Talking Head,674,1.35%,Fake (1),test_data_v3,17.7,97.0,42.5
-pirender,Reenactment & Talking Head,673,1.34%,Fake (1),test_data_v3,30.0,85.3,40.0
-tpsm,Reenactment & Talking Head,670,1.34%,Fake (1),test_data_v3,166.4,84.2,45.8
-one_shot_free,Reenactment & Talking Head,669,1.34%,Fake (1),test_data_v3,24.2,82.3,38.7
-fomm,Reenactment & Talking Head,669,1.34%,Fake (1),test_data_v3,22.0,81.7,39.3
-facedancer,Face Swapping,667,1.33%,Fake (1),test_data_v3,48.1,76.0,44.8
-hyperreenact,Reenactment & Talking Head,665,1.33%,Fake (1),test_data_v3,62.9,87.0,51.1
-blendface,Face Swapping,664,1.33%,Fake (1),test_data_v3,72.5,94.6,53.8
-facevid2vid,Reenactment & Talking Head,662,1.32%,Fake (1),test_data_v3,79.4,65.2,45.1
-faceswap,Face Swapping,658,1.31%,Fake (1),test_data_v3,42.3,87.5,41.9
-simswap,Face Swapping,647,1.29%,Fake (1),test_data_v3,74.2,76.5,51.9
-uniface,Face Swapping,641,1.28%,Fake (1),test_data_v3,88.9,91.8,60.5
-sadtalker,Reenactment & Talking Head,632,1.26%,Fake (1),test_data_v3,34.1,88.7,43.8
-fsgan,Face Swapping,614,1.23%,Fake (1),test_data_v3,46.0,81.9,47.9
-StyleGAN2,GAN Architectures,602,1.20%,Fake (1),test_data_v3,31.1,74.6,41.8
-ddim,Diffusion Baselines (DDIM),593,1.18%,Fake (1),test_data_v3,237.7,136.3,47.1
-VQGAN,AutoEncoders / VAEs,592,1.18%,Fake (1),test_data_v3,23.2,90.9,41.5
-RDDM,Diffusion Transformers (DiT),543,1.08%,Fake (1),test_data_v3,1778.4,103.8,36.1
-wav2lip,Reenactment & Talking Head,528,1.05%,Fake (1),test_data_v3,26.7,67.3,47.0
-stargan,GAN Architectures,455,0.91%,Fake (1),test_data_v3,110.6,98.6,60.3
-styleclip,GAN Architectures,451,0.90%,Fake (1),test_data_v3,67.7,110.1,56.2
-e4e,GAN Inversion & Editing,447,0.89%,Fake (1),test_data_v3,13.6,109.2,46.5
-inswap,Face Swapping,447,0.89%,Fake (1),test_data_v3,40.8,89.5,43.5
-e4s,GAN Inversion & Editing,356,0.71%,Fake (1),test_data_v3,114.2,77.1,45.0
-MidJourney,Commercial GenAI,187,0.37%,Fake (1),test_data_v3,966.8,80.7,60.7
-deepfacelab,Face Swapping,25,0.05%,Fake (1),test_data_v3,49.0,86.4,43.4
-heygen,Commercial GenAI,11,0.02%,Fake (1),test_data_v3,507.6,118.8,51.7
+real,Real Faces (FFHQ / FF++),10500,50.00%,Real (0),ff++_real; ffhq_real; test_data_v3,344.4,108.0,55.3
+simswap,Face Swapping,300,1.43%,Fake (1),test_data_v3,30.0,68.2,47.7
+hyperreenact,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,47.7,94.1,49.0
+danet,Face Swapping,300,1.43%,Fake (1),test_data_v3,95.3,79.3,43.1
+faceswap,Face Swapping,300,1.43%,Fake (1),test_data_v3,53.1,90.2,49.8
+uniface,Face Swapping,300,1.43%,Fake (1),test_data_v3,39.9,92.8,53.8
+blendface,Face Swapping,300,1.43%,Fake (1),test_data_v3,56.2,82.9,51.2
+DiT,Diffusion Transformers (DiT),300,1.43%,Fake (1),test_data_v3,21.6,87.4,45.2
+one_shot_free,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,17.1,77.7,38.7
+fsgan,Face Swapping,300,1.43%,Fake (1),test_data_v3,50.2,80.1,44.7
+StyleGANXL,GAN Architectures,300,1.43%,Fake (1),test_data_v3,20.0,73.9,44.8
+RDDM,Diffusion Transformers (DiT),300,1.43%,Fake (1),test_data_v3,1961.8,116.5,39.1
+StyleGAN3,GAN Architectures,300,1.43%,Fake (1),test_data_v3,21.0,73.8,42.3
+fomm,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,13.4,74.2,37.9
+mcnet,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,128.0,79.5,49.6
+facevid2vid,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,118.0,69.8,43.4
+styleclip,GAN Architectures,300,1.43%,Fake (1),test_data_v3,74.5,96.8,53.6
+pirender,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,26.5,83.9,37.0
+e4e,GAN Inversion & Editing,300,1.43%,Fake (1),test_data_v3,10.7,100.2,46.9
+pixart,Diffusion Transformers (DiT),300,1.43%,Fake (1),test_data_v3,2.3,93.3,58.8
+SiT,Diffusion Transformers (DiT),300,1.43%,Fake (1),test_data_v3,54.0,104.0,49.1
+StyleGAN2,GAN Architectures,300,1.43%,Fake (1),test_data_v3,38.9,74.5,42.5
+sd2.1,Latent Diffusion (SD 2.1),300,1.43%,Fake (1),test_data_v3,40.8,117.6,43.6
+tpsm,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,106.1,89.6,47.8
+mobileswap,Face Swapping,300,1.43%,Fake (1),test_data_v3,76.7,89.8,47.6
+ddim,Diffusion Baselines (DDIM),300,1.43%,Fake (1),test_data_v3,196.3,139.0,46.1
+MRAA,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,19.6,78.9,42.3
+stargan,GAN Architectures,300,1.43%,Fake (1),test_data_v3,106.2,99.1,60.7
+inswap,Face Swapping,300,1.43%,Fake (1),test_data_v3,32.8,89.7,42.1
+wav2lip,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,31.8,73.0,51.2
+sadtalker,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,35.5,77.1,40.6
+deepfake_faceswap,Face Swapping,300,1.43%,Fake (1),deep-fake-face-swap,541.0,105.6,58.5
+lia,Reenactment & Talking Head,300,1.43%,Fake (1),test_data_v3,50.2,82.7,46.0
+e4s,GAN Inversion & Editing,300,1.43%,Fake (1),test_data_v3,82.6,83.2,46.0
+facedancer,Face Swapping,300,1.43%,Fake (1),test_data_v3,48.4,84.3,47.2
+VQGAN,AutoEncoders / VAEs,300,1.43%,Fake (1),test_data_v3,32.2,91.3,45.9

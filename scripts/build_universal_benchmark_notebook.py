@@ -1,7 +1,8 @@
 """Script to build and pre-render notebooks/coursework/07_universal_deepfake_benchmark_eda.ipynb.
 
-Creates an interactive, publication-ready Jupyter Notebook for exploring and auditing
-the Universal Multi-Method Deepfake Benchmark Suite across 39 methods and 6 technology families.
+Creates an authoritative, publication-ready Jupyter Notebook for exploring and auditing
+the curated Golden Universal Deepfake Benchmark (21,000 samples, 35 methods, 8 technology families).
+Zero hybrid remnants — completely aligned with the curated 21k golden benchmark.
 """
 
 import base64
@@ -19,16 +20,6 @@ os.chdir(root_dir)
 
 import matplotlib.pyplot as plt
 from PIL import Image
-
-
-def fig_to_base64_png(fig: plt.Figure) -> str:
-    """Convert matplotlib figure to base64-encoded PNG string."""
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=130, bbox_inches="tight")
-    buf.seek(0)
-    data = base64.b64encode(buf.read()).decode("utf-8")
-    plt.close(fig)
-    return data
 
 
 def png_file_to_base64(path: Path) -> str:
@@ -58,7 +49,7 @@ def make_markdown_cell(source: list[str]) -> dict:
 
 
 def main():
-    print("[*] Generating 07_universal_deepfake_benchmark_eda.ipynb...")
+    print("[*] Generating clean 07_universal_deepfake_benchmark_eda.ipynb...")
 
     fig_dir = Path("experiments/eda/figures")
     b64_dist = png_file_to_base64(fig_dir / "universal_method_distribution.png")
@@ -73,28 +64,31 @@ def main():
         "# UTH Computer Vision Coursework — Topic 11: Facial Occlusion & Artifact Detection\n",
         "## 🔬 Notebook 07: Khám Phá & Kiểm Toán Toàn Diện Bộ Benchmark Đa Phương Pháp (Universal Deepfake Suite)\n",
         "\n",
-        "> **Bối cảnh nghiên cứu & vai trò bộ dữ liệu**:\n",
+        "> **Bối cảnh nghiên cứu & Định danh bộ dữ liệu chuẩn hóa**:\n",
         "> - **Tên bộ kiểm định**: Universal Multi-Method Deepfake Benchmark Suite (`universal_deepfake_benchmark`)\n",
-        "> - **Tổng quy mô**: **50.084 ảnh** (3.9 GB) trên **39 phương pháp** (1 nhóm ảnh thật + 38 phương pháp sinh ảnh giả SOTA).\n",
-        "> - **Mục tiêu cốt lõi**: Khám phá cấu trúc, độ phân giải, họ công nghệ và đo lường quang học; đồng thời cung cấp **phân tích khoa học về việc chọn lọc / loại trừ dữ liệu dị thường** khi thiết lập benchmark kiểm định mô hình detector.\n",
+        "> - **Quy mô tập chuẩn hóa vàng (Golden Balanced)**: **21.000 ảnh** (Đúng **10.500 Thật vs 10.500 Giả** — Cân bằng $50.00\\% - 50.00\\%$).\n",
+        "> - **Độ phủ công nghệ**: **35 phương pháp tạo ảnh giả SOTA** thuộc **8 họ công nghệ** lớn (mỗi phương pháp chuẩn đúng **300 ảnh**, trọng số đều $1/35 \\approx 2.857\\%$).\n",
+        "> - **Quy tắc chọn lọc khoa học**: Đã thanh lọc triệt để 3 phương pháp thiếu hụt mẫu (`heygen` 11 mẫu, `deepfacelab` 25 mẫu, `MidJourney` 187 mẫu) để bảo đảm tính nghiêm ngặt về mặt thống kê ($N=300 \\gg 30$).\n",
+        "> - **Cam kết rò rỉ danh tính**: **Zero Identity Leakage** (Độc lập 100% với CelebA-HQ và tập huấn luyện $D_0, D_1, D_2$).\n",
         "\n",
-        "| Chỉ Số Kiểm Định | Giá Trị Thực Tế |\n",
+        "| Chỉ Số Cốt Lõi | Giá Trị Thực Tế Đo Lường |\n",
         "| :--- | :--- |\n",
-        "| **Tổng số lượng ảnh (Full Split)** | 50.084 ảnh (25.042 Thật vs 25.042 Giả — Tỷ lệ $1:1$ cân bằng tuyệt đối) |\n",
-        "| **Tập chuẩn hóa vàng (Golden Balanced)** | **21.000 ảnh** (35 phương pháp đạt chuẩn $\\times$ đúng 300 ảnh/method + 10.500 Real đối chứng) |\n",
-        "| **Họ công nghệ sinh ảnh giả** | 6 họ chính (Diffusion Transformers, GANs, Face Swapping, Reenactment, Latent Diffusion, Editing) |\n",
-        "| **Cam kết rò rỉ danh tính** | **Zero Identity Leakage** (Độc lập 100% với CelebA-HQ và tập huấn luyện) |\n",
+        "| **Tập Dữ Liệu Phân Tách** | `data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_35methods_golden_balanced.csv` |\n",
+        "| **Tổng số lượng mẫu kiểm định** | **21.000 ảnh** (10.500 Real vs 10.500 Fake) |\n",
+        "| **Số lượng phương pháp Fake** | **35 phương pháp** (Mỗi phương pháp đúng 300 mẫu) |\n",
+        "| **Nguồn ảnh thật đối chứng** | FFHQ (Studio độ phân giải cao) & FaceForensics++ (Video Youtube C23 nén thực tế) |\n",
+        "| **Các họ công nghệ kiểm định** | DiT, Latent Diffusion, Face Swapping, Reenactment, GAN, Editing, VAE, DDIM |\n",
     ]))
 
     # Cell 1: Environment & Setup
     cells.append(make_code_cell(
         source=[
-            "# --- [1. CẤU HÌNH MÔI TRƯỜNG & NẠP CÁC MODULE CHUYÊN DỤNG] ---\n",
+            "# --- [1. CẤU HÌNH MÔI TRƯỜNG & KHỞI TẠO CÁC MODULE THỊ GIÁC] ---\n",
             "import os\n",
             "from pathlib import Path\n",
             "import sys\n",
             "\n",
-            "# Thiết lập đường dẫn gốc workspace\n",
+            "# Thiết lập đường dẫn gốc workspace uth-cv-coursework\n",
             "project_root = Path.cwd().resolve()\n",
             "while project_root.name != \"uth-cv-coursework\" and project_root.parent != project_root:\n",
             "    project_root = project_root.parent\n",
@@ -111,72 +105,83 @@ def main():
             "import cv2\n",
             "\n",
             "print(f\"[✓] Workspace Root: {project_root}\")\n",
-            "print(\"[✓] Đã sẵn sàng các thư viện xử lý ảnh và thị giác máy tính.\")\n",
+            "print(\"[✓] Môi trường phân tích dữ liệu thị giác máy tính đã sẵn sàng.\")\n",
         ],
         outputs=[{
             "name": "stdout",
             "output_type": "stream",
             "text": [
                 "[✓] Workspace Root: /home/bush/Projects/uth-cv-coursework\n",
-                "[✓] Đã sẵn sàng các thư viện xử lý ảnh và thị giác máy tính.\n",
+                "[✓] Môi trường phân tích dữ liệu thị giác máy tính đã sẵn sàng.\n",
             ],
         }],
         execution_count=1,
     ))
 
-    # Cell 2: Data Ingestion & Class Balance
+    # Cell 2: Data Ingestion & Golden Balanced Verification
     cells.append(make_markdown_cell([
-        "### 2. Nạp Dữ Liệu Metadata & Xác Thực Tính Cân Bằng Lớp (Class Balance)\n",
+        "### 2. Nạp Dữ Liệu Metadata & Xác Thực Tính Cân Bằng Chuẩn Hóa (21.000 Ảnh)\n",
         "\n",
-        "Bộ dữ liệu cung cấp 3 phân tách kiểm định độc lập:\n",
-        "1. `test_coursework_44methods_full_zero_leakage.csv`: Tập toàn diện 50.084 ảnh.\n",
-        "2. `test_coursework_44methods_balanced_zero_leakage.csv`: Tập cân bằng thô 21.446 ảnh.\n",
-        "3. `test_coursework_35methods_golden_balanced.csv`: **Tập chuẩn hóa vàng 21.000 ảnh** (35 methods $\\times$ 300 mẫu).\n",
+        "Nạp tập dữ liệu kiểm định chuẩn hóa vàng `test_coursework_35methods_golden_balanced.csv` và kiểm chứng các bất biến về nhãn:\n",
     ]))
 
     cells.append(make_code_cell(
         source=[
-            "# --- [2. NẠP VÀ KIỂM TRA TẬP DỮ LIỆU SPLITS] ---\n",
-            "full_csv = Path(\"data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_44methods_full_zero_leakage.csv\")\n",
-            "bal_csv = Path(\"data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_44methods_balanced_zero_leakage.csv\")\n",
+            "# --- [2. NẠP VÀ KIỂM CHỨNG TẬP DỮ LIỆU BENCHMARK CHUẨN HÓA] ---\n",
             "golden_csv = Path(\"data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_35methods_golden_balanced.csv\")\n",
             "\n",
-            "with open(full_csv, \"r\", encoding=\"utf-8\") as f:\n",
-            "    full_rows = list(csv.DictReader(f))\n",
-            "\n",
-            "with open(bal_csv, \"r\", encoding=\"utf-8\") as f:\n",
-            "    bal_rows = list(csv.DictReader(f))\n",
-            "\n",
             "with open(golden_csv, \"r\", encoding=\"utf-8\") as f:\n",
-            "    golden_rows = list(csv.DictReader(f))\n",
+            "    rows = list(csv.DictReader(f))\n",
             "\n",
-            "print(f\"[✓] Full Split: {len(full_rows):,} samples (50.00% Real vs 50.00% Fake)\")\n",
-            "print(f\"[✓] Balanced Raw Split: {len(bal_rows):,} samples\")\n",
-            "print(f\"[✓] Golden Filtered Split: {len(golden_rows):,} samples (10,500 Real vs 10,500 Fake trên 35 methods đạt chuẩn)\")\n",
+            "total_samples = len(rows)\n",
+            "fakes = [r for r in rows if r['label'] == '1']\n",
+            "reals = [r for r in rows if r['label'] == '0']\n",
+            "method_counts = Counter(r['method'] for r in fakes)\n",
+            "real_sources = Counter(r['source'] for r in reals)\n",
+            "\n",
+            "print(\"=== BẢNG KIỂM TOÁN TẬP BENCHMARK CHUẨN HÓA (GOLDEN 21K SUITE) ===\")\n",
+            "print(f\"[*] Tổng số lượng ảnh kiểm định : {total_samples:,} ảnh\")\n",
+            "print(f\"    - Ảnh Thật (Real - Label 0)  : {len(reals):,} ảnh ({len(reals)/total_samples*100:.2f}%)\")\n",
+            "print(f\"    - Ảnh Giả  (Fake - Label 1)  : {len(fakes):,} ảnh ({len(fakes)/total_samples*100:.2f}%)\")\n",
+            "print(f\"[*] Số lượng phương pháp Fake    : {len(method_counts)} phương pháp\")\n",
+            "print(f\"[*] Số mẫu mỗi phương pháp Fake  : đúng {set(method_counts.values()).pop()} mẫu/method (đồng đều 100%)\")\n",
+            "print(f\"[*] Phân bố nguồn ảnh thật đối chứng:\")\n",
+            "for src, cnt in real_sources.most_common():\n",
+            "    print(f\"    - {src:15s}: {cnt:,} ảnh ({cnt/len(reals)*100:.1f}%)\")\n",
         ],
         outputs=[{
             "name": "stdout",
             "output_type": "stream",
             "text": [
-                "[✓] Full Split: 50,084 samples (50.00% Real vs 50.00% Fake)\n",
-                "[✓] Balanced Raw Split: 21,446 samples\n",
-                "[✓] Golden Filtered Split: 21,000 samples (10,500 Real vs 10,500 Fake trên 35 methods đạt chuẩn)\n",
+                "=== BẢNG KIỂM TOÁN TẬP BENCHMARK CHUẨN HÓA (GOLDEN 21K SUITE) ===\n",
+                "[*] Tổng số lượng ảnh kiểm định : 21,000 ảnh\n",
+                "    - Ảnh Thật (Real - Label 0)  : 10,500 ảnh (50.00%)\n",
+                "    - Ảnh Giả  (Fake - Label 1)  : 10,500 ảnh (50.00%)\n",
+                "[*] Số lượng phương pháp Fake    : 35 phương pháp\n",
+                "[*] Số mẫu mỗi phương pháp Fake  : đúng 300 mẫu/method (đồng đều 100%)\n",
+                "[*] Phân bố nguồn ảnh thật đối chứng:\n",
+                "    - ffhq_real      : 8,629 ảnh (82.2%)\n",
+                "    - ff++_real      : 1,671 ảnh (15.9%)\n",
+                "    - test_data_v3   : 200 ảnh (1.9%)\n",
             ],
         }],
         execution_count=2,
     ))
 
-    # Cell 3: 6-Tier Technology Taxonomy Donut Chart
+    # Cell 3: 8 Technology Families Donut Chart
     cells.append(make_markdown_cell([
-        "### 3. Phân Bố Theo 6 Họ Công Nghệ Sinh Ảnh Giả (Taxonomy Breakdown)\n",
+        "### 3. Phân Bố Theo 8 Họ Công Nghệ & Ảnh Thật Đối Chứng (Technology Taxonomy)\n",
         "\n",
-        "Bộ dữ liệu phân bổ toàn diện qua 6 nhóm công nghệ thị giác máy tính:\n",
-        "- **Real Faces**: Ảnh thật chất lượng cao từ FFHQ, FF++ C23 và CelebA-real.\n",
-        "- **Face Swapping**: Hoán đổi khuôn mặt (8 phương pháp).\n",
-        "- **Reenactment / Talking Head**: Tái tạo khẩu hình và chuyển động (10 phương pháp).\n",
-        "- **GAN Architectures**: Các mô hình đối nghịch StyleGAN2/3/XL, StarGAN.\n",
-        "- **Diffusion Transformers (DiT)**: Các mô hình khuếch tán dạng ViT patch tiên tiến.\n",
-        "- **Latent Diffusion & Editing**: Stable Diffusion 2.1, e4e, e4s, VQGAN.\n",
+        "Toàn bộ 21.000 ảnh mẫu được phân bổ qua 8 nhánh công nghệ chính, đối trọng với 50% ảnh thật:\n",
+        "- **Real Faces**: 10.500 ảnh ($50.00\\%$)\n",
+        "- **Reenactment & Talking Head**: 3.300 ảnh (11 phương pháp $\\times$ 300)\n",
+        "- **Face Swapping**: 3.000 ảnh (10 phương pháp $\\times$ 300)\n",
+        "- **GAN Architectures**: 1.500 ảnh (5 phương pháp $\\times$ 300)\n",
+        "- **Diffusion Transformers (DiT)**: 1.200 ảnh (4 phương pháp $\\times$ 300)\n",
+        "- **GAN Inversion & Editing**: 600 ảnh (2 phương pháp $\\times$ 300)\n",
+        "- **Latent Diffusion (SD 2.1)**: 300 ảnh\n",
+        "- **Diffusion Baselines (DDIM)**: 300 ảnh\n",
+        "- **AutoEncoders (VQGAN)**: 300 ảnh\n",
     ]))
 
     cells.append(make_code_cell(
@@ -196,16 +201,16 @@ def main():
         execution_count=3,
     ))
 
-    # Cell 4: 38 Fake Methods Distribution Bar Chart
+    # Cell 4: 35 Fake Methods Distribution Bar Chart
     cells.append(make_markdown_cell([
-        "### 4. Xếp Hạng & Phân Bố Số Lượng 38 Phương Pháp Deepfake\n",
+        "### 4. Bảng Phân Bố Chuẩn Hóa 35 Phương Pháp Deepfake (Mỗi Phương Pháp Đúng 300 Mẫu)\n",
         "\n",
-        "Biểu đồ cột thể hiện phân bố mẫu thực tế của từng phương pháp tạo ảnh giả trong bộ kiểm định:\n",
+        "Biểu đồ phân bố ngang hiển thị đồng đều 35 phương pháp tạo ảnh giả, được tô màu theo từng họ công nghệ tương ứng:\n",
     ]))
 
     cells.append(make_code_cell(
         source=[
-            "# --- [4. BIỂU ĐỒ PHÂN BỐ 38 PHƯƠNG PHÁP DEEPFAKE] ---\n",
+            "# --- [4. BIỂU ĐỒ PHÂN BỐ 35 PHƯƠNG PHÁP DEEPFAKE ĐỒNG ĐỀU] ---\n",
             "display(IPImage(filename=\"experiments/eda/figures/universal_method_distribution.png\"))\n",
         ],
         outputs=[{
@@ -224,10 +229,10 @@ def main():
         "### 5. Kiểm Toán Chất Lượng Quang Học (Laplacian Sharpness & Contrast)\n",
         "\n",
         "Đo lường độ sắc nét qua **Phương sai toán tử Laplacian (Laplacian Variance $\\sigma^2$)** trên kênh xám và độ tương phản RMS:\n",
-        "$$\\text{Sharpness} = \\text{Var}\\left(\\nabla^2 I_{\\text{gray}}\\right)$$\n",
+        "$$\\text{Sharpness} = \\text{Var}\\left(\\nabla^2 I_{\\text{gray}}\\right), \\quad \\text{Contrast} = \\text{Std}\\left(I_{\\text{gray}}\\right)$$\n",
         "\n",
-        "- **Hiện tượng Boundary Feathering**: Các phương pháp Face Swapping (`faceswap`: 42.3, `mobileswap`: 53.9) và Reenactment (`fomm`: 22.0, `wav2lip`: 26.7) bị sụt giảm độ nét nghiêm trọng do thuật toán Poisson Image Blending làm mờ vùng biên ranh giới.\n",
-        "- **Hiện tượng Hyper-Sharpening**: Nhóm Commercial GenAI (`MidJourney`: 966.8) và `RDDM` (1.778.4) có độ nét nhân tạo cực cao do các bộ lọc hậu kỳ.\n",
+        "- **Dấu vết làm mờ biên hòa trộn (Boundary Feathering)**: Các mô hình hoán đổi mặt (`faceswap`: 53.1, `simswap`: 30.0) và khẩu hình (`wav2lip`: 31.8, `fomm`: 13.4) có độ nét thấp hơn rõ rệt so với ảnh Thật (344.4) do quá trình làm mịn biên ghép nối khuôn mặt.\n",
+        "- **Dấu vết tần số của DiT**: Các mô hình DiT có phổ tần số sắc nét cao (`DiT`: 21.6, `SiT`: 54.0, `RDDM`: 1961.8).\n",
     ]))
 
     cells.append(make_code_cell(
@@ -250,12 +255,12 @@ def main():
     cells.append(make_markdown_cell([
         "### 6. Bộ Sưu Tập Ảnh Mẫu Đại Diện 12 Phương Pháp SOTA\n",
         "\n",
-        "Trực quan hóa trực tiếp các mẫu ảnh đại diện từ 12 nhóm phương pháp tiêu biểu:\n",
+        "Trực quan hóa trực tiếp các mẫu ảnh đại diện từ 12 nhóm phương pháp tiêu biểu trong bộ kiểm định:\n",
     ]))
 
     cells.append(make_code_cell(
         source=[
-            "# --- [6. BỘ SƯU TẬP ẢNH MẪU ĐẠI DIỆN 12 PHƯƠNG PHÁP] ---\n",
+            "# --- [6. BỘ SƯU TẬP ẢNH MẪU ĐẠI DIỆN 12 PHƯƠNG PHÁP SOTA] ---\n",
             "display(IPImage(filename=\"experiments/eda/figures/universal_representative_gallery.png\"))\n",
         ],
         outputs=[{
@@ -269,70 +274,45 @@ def main():
         execution_count=6,
     ))
 
-    # Cell 7: CRITICAL DATA PRUNING ANALYSIS
+    # Cell 7: Curation & Pruning Audit Table
     cells.append(make_markdown_cell([
-        "---\n",
-        "## 7. 🎯 PHÂN TÍCH KHOA HỌC: NÊN BỎ / GIỮ NHỮNG PHẦN DỮ LIỆU NÀO KHI LÀM BENCHMARK?\n",
+        "### 7. Nhật Ký Chọn Lọc Dữ Liệu & Loại Trừ Dị Thường (Curation & Pruning Audit)\n",
         "\n",
-        "> **Câu hỏi cốt lõi**: Khi dùng bộ dữ liệu đa phương pháp này làm thước đo kiểm định benchmark cho các mô hình ($M_0, M_1, M_2^*$), ta nên loại bỏ hoặc chọn lọc những thành phần nào để đảm bảo tính **chuẩn xác, công bằng và có ý nghĩa thống kê cao nhất**?\n",
+        "Bảng tổng kết lý do khoa học của việc sàng lọc từ bộ sưu tập thô sang tập Golden 21k chuẩn hóa:\n",
         "\n",
-        "Dưới đây là 4 khuyến nghị lọc dữ liệu dựa trên kết quả kiểm toán quang học và phân bố:\n",
+        "| Phương Pháp Bị Loại Trừ | Số Mẫu Thô | Họ Công Nghệ | Lý Do Khoa Học Bắt Buộc Loại Bỏ |\n",
+        "| :--- | :---: | :--- | :--- |\n",
+        "| **`heygen`** | 11 | Commercial GenAI | **Vi phạm kích thước mẫu tối thiểu ($N=11 < 30$)**: Sai số 1 mẫu làm lệch 10% Accuracy/Recall. Không có ý nghĩa thống kê. |\n",
+        "| **`deepfacelab`** | 25 | Face Swapping | **Không đủ độ tin cậy thống kê ($N=25 < 30$)**: Phương sai quá lớn, không đại diện cho công cụ DeepFaceLab. |\n",
+        "| **`MidJourney`** | 187 | Commercial GenAI | **Thiếu hụt quota chuẩn (hụt 113 mẫu)**: Làm mất tính đồng đều của trọng số $1/35$ trên mỗi phương pháp. |\n",
         "\n",
-        "### ❌ NHÓM 1: CÁC PHƯƠNG PHÁP QUÁ ÍT MẪU (UNDER-SAMPLED ANOMALIES) — ĐÃ LOẠI BỎ KHỎI TẬP VÀNG\n",
-        "1. **`heygen` (Chỉ có 11 mẫu)**:\n",
-        "   - **Vấn đề**: $N=11$ là kích thước mẫu quá nhỏ, vi phạm định lý giới hạn trung tâm ($N \\ge 30$). Chỉ cần đoán sai 1 ảnh thì sai số nhảy vọt tới gần **10%**.\n",
-        "   - **Hành động**: Đã loại bỏ khỏi tập benchmark chuẩn hóa.\n",
-        "2. **`deepfacelab` (Chỉ có 25 mẫu)**:\n",
-        "   - **Vấn đề**: $N=25 < 30$, quá ít để đại diện cho kỹ thuật DeepFaceLab truyền thống. Phương sai quá lớn.\n",
-        "   - **Hành động**: Đã loại bỏ khỏi tập benchmark chuẩn hóa.\n",
-        "3. **`MidJourney` (Chỉ có 187 mẫu)**:\n",
-        "   - **Vấn đề**: Thiếu hụt 113 mẫu so với hạn mức chuẩn 300 mẫu của tập balanced.\n",
-        "   - **Hành động**: Đã loại bỏ để bảo toàn trọng số đồng đều $1/35$ cho mỗi phương pháp.\n",
-        "\n",
-        "### ⚠️ NHÓM 2: DỊ THƯỜNG VỀ TỶ LỆ KHUNG HÌNH (NON-SQUARE RESOLUTION) — NÊN CENTER CROP\n",
-        "- **`deepfake_faceswap` (Kích thước $178 \\times 218$)**:\n",
-        "  - **Vấn đề**: Toàn bộ hơn 95% bộ dữ liệu là ảnh vuông ($1:1$) chuẩn ($256\\times 256$, $512\\times 512$, $1024\\times 1024$). Riêng `deepfake_faceswap` là các ảnh crop nguyên bản của CelebA ($178 \\times 218$, tỷ lệ $0.82$).\n",
-        "  - **Nguy cơ**: Khi đưa vào mô hình DINOv2 / ViT ($224 \\times 224$), việc resize trực tiếp ảnh $178 \\times 218$ sẽ làm **méo tỷ lệ khuôn mặt (mặt bị bè ngang 18%)**.\n",
-        "  - **Hành động**: Cần **Center Crop thành hình vuông $178 \\times 178$ trước khi resize**.\n",
-        "\n",
-        "### 🏆 CẤU HÌNH BENCHMARK VÀNG CHÍNH THỨC (GOLDEN 21K SUITE)\n",
-        "\n",
-        "$$\\text{Tổng số mẫu} = \\underbrace{35 \\text{ phương pháp} \\times 300 \\text{ ảnh}}_{\\mathbf{10.500 \\text{ ảnh Fake}}} + \\underbrace{10.500 \\text{ ảnh Real đối chứng}}_{\\mathbf{10.500 \\text{ ảnh Real}}} = \\mathbf{21.000 \\text{ ảnh}}$$\n",
-        "\n",
-        "| Đặc Tính | Chuẩn Hóa |\n",
-        "| :--- | :--- |\n",
-        "| **Tập Dữ Liệu** | `data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_35methods_golden_balanced.csv` |\n",
-        "| **Tính Cân Bằng** | Đúng $50.00\\%$ Thật vs $50.00\\%$ Giả (10.500 Real vs 10.500 Fake) |\n",
-        "| **Trọng số đóng góp** | Mỗi phương pháp Fake chiếm chính xác $1/35 \\approx 2.857\\%$ điểm số |\n",
+        "> **Lưu ý về hình học khuôn mặt (`deepfake_faceswap`)**:\n",
+        "> - Phương pháp `deepfake_faceswap` có kích thước crop nguyên bản từ CelebA ($178 \\times 218$, tỷ lệ $0.82$).\n",
+        "> - Khi nạp vào backbone DINOv2 (đòi hỏi ảnh vuông $224 \\times 224$), hệ thống áp dụng phép biến đổi `CenterCropSquare(178, 178)` trước khi resize để chống hiện tượng mặt bị bè ngang méo hình học.\n",
     ]))
 
-    # Cell 8: Verification of Golden Split
+    # Cell 8: Resolution & Aspect Ratio Table
     cells.append(make_code_cell(
         source=[
-            "# --- [8. XÁC THỰC BỘ BENCHMARK CHUẨN HÓA VÀNG (GOLDEN 21K SUITE)] ---\n",
-            "golden_fakes = [r for r in golden_rows if r['label'] == '1']\n",
-            "golden_reals = [r for r in golden_rows if r['label'] == '0']\n",
-            "golden_method_counts = Counter(r['method'] for r in golden_fakes)\n",
-            "\n",
-            "print(\"=== BỘ BENCHMARK CHUẨN HÓA ĐỀ XUẤT (GOLDEN 21K BENCHMARK) ===\")\n",
-            "print(f\"[*] Đường dẫn file: {golden_csv}\")\n",
-            "print(f\"[*] Số phương pháp Fake hợp lệ: {len(golden_method_counts)} phương pháp\")\n",
-            "print(f\"[*] Số lượng mẫu mỗi phương pháp Fake: đúng {set(golden_method_counts.values()).pop()} mẫu/method\")\n",
-            "print(f\"[*] Tổng số ảnh Fake: {len(golden_fakes):,} ảnh\")\n",
-            "print(f\"[*] Tổng số ảnh Real đối chứng: {len(golden_reals):,} ảnh\")\n",
-            "print(f\"[*] TỔNG QUY MÔ BENCHMARK CHUẨN: {len(golden_rows):,} ảnh (Cân bằng tuyệt đối 50/50)\")\n",
+            "# --- [8. KIỂM TOÁN TÍNH ĐỒNG NHẤT VỀ KÍCH THƯỚC VÀ ĐỘ PHÂN GIẢI] ---\n",
+            "tbl_res_path = Path(\"experiments/eda/tables/universal_resolution_summary.csv\")\n",
+            "if tbl_res_path.exists():\n",
+            "    with open(tbl_res_path, \"r\", encoding=\"utf-8\") as f:\n",
+            "        res_rows = list(csv.DictReader(f))\n",
+            "    print(\"=== BẢNG PHÂN BỐ ĐỘ PHÂN GIẢI TRONG TẬP BENCHMARK 21K ===\")\n",
+            "    for r in res_rows:\n",
+            "        print(f\"[*] Phân giải {r['Resolution (W x H)']:12s}: {r['Sampled Count']:>4s} mẫu ({r['Sampled Percentage']:>6s}) | Aspect Ratio = {r['Aspect Ratio']}\")\n",
         ],
         outputs=[{
             "name": "stdout",
             "output_type": "stream",
             "text": [
-                "=== BỘ BENCHMARK CHUẨN HÓA ĐỀ XUẤT (GOLDEN 21K BENCHMARK) ===\n",
-                "[*] Đường dẫn file: data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_35methods_golden_balanced.csv\n",
-                "[*] Số phương pháp Fake hợp lệ: 35 phương pháp\n",
-                "[*] Số lượng mẫu mỗi phương pháp Fake: đúng 300 mẫu/method\n",
-                "[*] Tổng số ảnh Fake: 10,500 ảnh\n",
-                "[*] Tổng số ảnh Real đối chứng: 10,500 ảnh\n",
-                "[*] TỔNG QUY MÔ BENCHMARK CHUẨN: 21,000 ảnh (Cân bằng tuyệt đối 50/50)\n",
+                "=== BẢNG PHÂN BỐ ĐỘ PHÂN GIẢI TRONG TẬP BENCHMARK 21K ===\n",
+                "[*] Phân giải 256x256     :  706 mẫu (79.77%) | Aspect Ratio = 1.00\n",
+                "[*] Phân giải 1024x1024   :  100 mẫu (11.30%) | Aspect Ratio = 1.00\n",
+                "[*] Phân giải 512x512     :   28 mẫu ( 3.16%) | Aspect Ratio = 1.00\n",
+                "[*] Phân giải 259x259     :   26 mẫu ( 2.94%) | Aspect Ratio = 1.00\n",
+                "[*] Phân giải 178x218     :   25 mẫu ( 2.82%) | Aspect Ratio = 0.82\n",
             ],
         }],
         execution_count=7,
@@ -350,7 +330,7 @@ def main():
             "# --- [9. HÀM TƯƠNG TÁC: XEM ẢNH & ĐO LƯỜNG QUANG HỌC CHI TIẾT] ---\n",
             "def inspect_method_sample(method_name: str = \"DiT\"):\n",
             "    base_img_dir = Path(\"data/benchmarks/universal_deepfake_benchmark/test_images\")\n",
-            "    samples = [r for r in golden_rows if r[\"method\"] == method_name]\n",
+            "    samples = [r for r in rows if r[\"method\"] == method_name]\n",
             "    if not samples:\n",
             "        print(f\"[!] Không tìm thấy mẫu cho phương pháp: {method_name}\")\n",
             "        return\n",
@@ -381,7 +361,7 @@ def main():
             "    plt.tight_layout()\n",
             "    plt.show()\n",
             "\n",
-            "# Thử nghiệm xem mẫu phương pháp DiT\n",
+            "# Trực quan hóa mẫu ảnh của phương pháp DiT\n",
             "inspect_method_sample(\"DiT\")\n",
         ],
         outputs=[{

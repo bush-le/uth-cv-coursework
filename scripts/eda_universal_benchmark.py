@@ -1,7 +1,7 @@
 """Comprehensive Exploratory Data Analysis (EDA) on Universal Multi-Method Deepfake Benchmark.
 
-Computes distribution statistics, technological family categorization, resolution breakdown,
-optical quality metrics, and generates publication-grade visualizations and reports.
+Analyzes the curated Golden Balanced Suite (21,000 samples, 35 methods, 8 technology families),
+computes optical metrics, and produces publication-ready visualizations and summary tables.
 """
 
 import csv
@@ -19,30 +19,30 @@ import numpy as np
 from PIL import Image
 
 # -----------------------------------------------------------------------------
-# 1. 6-Tier Deepfake Method Taxonomy
+# 1. 8-Tier Deepfake Method Taxonomy for Curated 35 Methods
 # -----------------------------------------------------------------------------
 
 METHOD_TAXONOMY: Dict[str, str] = {
     # Authentic / Real
-    "real": "Real Faces (FFHQ / FF++ / CelebA)",
-    # Diffusion Transformers & Latent Diffusion
+    "real": "Real Faces (FFHQ / FF++)",
+    # Diffusion Transformers (DiT)
     "DiT": "Diffusion Transformers (DiT)",
     "SiT": "Diffusion Transformers (DiT)",
     "pixart": "Diffusion Transformers (DiT)",
     "RDDM": "Diffusion Transformers (DiT)",
+    # Latent Diffusion
     "sd2.1": "Latent Diffusion (SD 2.1)",
-    # Commercial GenAI
-    "MidJourney": "Commercial GenAI",
-    "heygen": "Commercial GenAI",
-    # GANs & VAEs
+    # GAN Architectures
     "StyleGAN2": "GAN Architectures",
     "StyleGAN3": "GAN Architectures",
     "StyleGANXL": "GAN Architectures",
     "stargan": "GAN Architectures",
     "styleclip": "GAN Architectures",
+    # AutoEncoders / VAEs
     "VQGAN": "AutoEncoders / VAEs",
+    # Diffusion Baselines
     "ddim": "Diffusion Baselines (DDIM)",
-    # Identity Swapping
+    # Face Swapping
     "mobileswap": "Face Swapping",
     "deepfake_faceswap": "Face Swapping",
     "faceswap": "Face Swapping",
@@ -53,7 +53,6 @@ METHOD_TAXONOMY: Dict[str, str] = {
     "danet": "Face Swapping",
     "uniface": "Face Swapping",
     "fsgan": "Face Swapping",
-    "deepfacelab": "Face Swapping",
     # Reenactment & Talking Head
     "sadtalker": "Reenactment & Talking Head",
     "wav2lip": "Reenactment & Talking Head",
@@ -66,20 +65,32 @@ METHOD_TAXONOMY: Dict[str, str] = {
     "facevid2vid": "Reenactment & Talking Head",
     "lia": "Reenactment & Talking Head",
     "mcnet": "Reenactment & Talking Head",
-    # Inversion & Editing
+    # GAN Inversion & Editing
     "e4e": "GAN Inversion & Editing",
     "e4s": "GAN Inversion & Editing",
 }
 
+FAMILY_COLORS = {
+    "Real Faces (FFHQ / FF++)": "#2b5c8f",
+    "Face Swapping": "#e66101",
+    "Reenactment & Talking Head": "#5e3c99",
+    "GAN Architectures": "#0571b0",
+    "Diffusion Transformers (DiT)": "#ca0020",
+    "Latent Diffusion (SD 2.1)": "#f4a582",
+    "GAN Inversion & Editing": "#92c5de",
+    "Diffusion Baselines (DDIM)": "#8073ac",
+    "AutoEncoders / VAEs": "#b2abd2",
+}
+
 
 def run_universal_benchmark_eda(
-    csv_path: Path = Path("data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_44methods_full_zero_leakage.csv"),
+    golden_csv: Path = Path("data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_35methods_golden_balanced.csv"),
     base_img_dir: Path = Path("data/benchmarks/universal_deepfake_benchmark/test_images"),
     output_dir: Path = Path("experiments/eda"),
 ) -> Dict[str, Any]:
-    print("=" * 70)
-    print("🚀 BẮT ĐẦU PHÂN TÍCH KHÁM PHÁ DỮ LIỆU (EDA) TRÊN UNIVERSAL BENCHMARK")
-    print("=" * 70)
+    print("=" * 75)
+    print("🚀 BẮT ĐẦU PHÂN TÍCH KHÁM PHÁ DỮ LIỆU (EDA) TRÊN BỘ BENCHMARK CHUẨN HÓA 21K")
+    print("=" * 75)
 
     fig_dir = output_dir / "figures"
     table_dir = output_dir / "tables"
@@ -87,12 +98,12 @@ def run_universal_benchmark_eda(
     for d in [fig_dir, table_dir, report_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
-    with open(csv_path, "r", encoding="utf-8") as f:
+    with open(golden_csv, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
     total_samples = len(rows)
-    print(f"[*] Nạp thành công {total_samples:,} bản ghi từ {csv_path.name}")
+    print(f"[*] Nạp thành công {total_samples:,} bản ghi chuẩn hóa từ {golden_csv.name}")
 
     method_counts = Counter()
     label_counts = Counter()
@@ -112,16 +123,15 @@ def run_universal_benchmark_eda(
         method_to_sources[m].add(s)
 
     # -------------------------------------------------------------------------
-    # 2. Image Properties & Optical Quality Sampling
+    # 2. Image Optical Quality Sampling (25 samples per method)
     # -------------------------------------------------------------------------
-    print("\n[*] Đang kiểm toán chất lượng quang học & kích thước ảnh trên từng method...")
+    print("\n[*] Đang kiểm toán chất lượng quang học & phân giải trên 35 phương pháp...")
     method_samples = defaultdict(list)
     for r in rows:
         if len(method_samples[r["method"]]) < 25:
             method_samples[r["method"]].append(r)
 
     resolutions = Counter()
-    extensions = Counter()
     aspect_ratios = Counter()
     method_metrics = defaultdict(lambda: {"sharpness": [], "brightness": [], "contrast": []})
     family_metrics = defaultdict(lambda: {"sharpness": [], "brightness": [], "contrast": []})
@@ -134,7 +144,6 @@ def run_universal_benchmark_eda(
             p = base_img_dir / rel
             if not p.exists():
                 continue
-            extensions[p.suffix.lower()] += 1
             try:
                 with Image.open(p) as img:
                     w, h = img.size
@@ -163,9 +172,9 @@ def run_universal_benchmark_eda(
     # -------------------------------------------------------------------------
     # 3. Export Summary CSV Tables
     # -------------------------------------------------------------------------
-    print("\n[*] Đang xuất các bảng thống kê CSV...")
+    print("\n[*] Đang xuất các bảng thống kê CSV chuẩn hóa...")
 
-    # Table 1: Methods Summary
+    # Table 1: Methods Summary (35 Methods + Real)
     tbl_methods_path = table_dir / "universal_methods_summary.csv"
     with open(tbl_methods_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
@@ -206,47 +215,39 @@ def run_universal_benchmark_eda(
             writer.writerow([f"{w}x{h}", cnt, f"{cnt/total_sampled*100:.2f}%", f"{w/h:.2f}"])
     print(f"  [✓] {tbl_res_path.name}")
 
-    # Also keep backwards compatibility aliases
-    for p_src, p_dst in [
-        (tbl_methods_path, table_dir / "50k_methods_summary.csv"),
-        (tbl_families_path, table_dir / "50k_families_summary.csv"),
-        (tbl_res_path, table_dir / "50k_resolution_summary.csv"),
-    ]:
-        if p_src.exists() and not p_dst.exists():
-            os.symlink(p_src.name, p_dst)
-
     # -------------------------------------------------------------------------
-    # 4. Generate Visualizations (Matplotlib)
+    # 4. Generate Clean Visualizations (Matplotlib)
     # -------------------------------------------------------------------------
-    print("\n[*] Đang khởi tạo các đồ thị trực quan hóa chất lượng cao (300 DPI)...")
+    print("\n[*] Đang khởi tạo các đồ thị trực quan hóa chuẩn mực (300 DPI)...")
 
-    # Figure 1: Methods Distribution Bar Chart
-    plt.figure(figsize=(14, 8))
-    top_fake_methods = [m for m, _ in method_counts.most_common() if m != "real"]
-    top_fake_counts = [method_counts[m] for m in top_fake_methods]
-    colors = plt.cm.tab20(np.linspace(0, 1, len(top_fake_methods)))
+    # Figure 1: Methods Distribution Bar Chart (Grouped by Technology Family)
+    fake_methods_sorted = sorted([m for m in method_counts if m != "real"], key=lambda x: (METHOD_TAXONOMY.get(x, ""), x))
+    counts_sorted = [method_counts[m] for m in fake_methods_sorted]
+    colors = [FAMILY_COLORS.get(METHOD_TAXONOMY.get(m, ""), "#777777") for m in fake_methods_sorted]
 
-    bars = plt.barh(top_fake_methods[::-1], top_fake_counts[::-1], color=colors[::-1], edgecolor="black", alpha=0.85)
-    plt.title("Universal Benchmark: Phân Bố 38 Phương Pháp Deepfake Tạo Ảnh Giả", fontsize=15, fontweight="bold", pad=15)
-    plt.xlabel("Số lượng mẫu kiểm thử (Samples)", fontsize=12, labelpad=10)
-    plt.ylabel("Phương pháp Deepfake", fontsize=12)
+    plt.figure(figsize=(14, 10))
+    bars = plt.barh(fake_methods_sorted, counts_sorted, color=colors, edgecolor="black", alpha=0.85)
+    plt.title("Universal Multi-Method Benchmark: Phân Bố Chuẩn Hóa 35 Phương Pháp Deepfake (N=300)", fontsize=14, fontweight="bold", pad=15)
+    plt.xlabel("Số lượng mẫu kiểm thử (Mỗi phương pháp chuẩn đúng 300 mẫu)", fontsize=11, labelpad=10)
+    plt.ylabel("Phương pháp tạo ảnh giả (Phân nhóm theo họ công nghệ)", fontsize=11)
     plt.grid(axis="x", linestyle="--", alpha=0.5)
+    plt.xlim(0, 360)
 
     for bar in bars:
         w = bar.get_width()
-        plt.text(w + 12, bar.get_y() + bar.get_height() / 2, f"{int(w):,}", va="center", ha="left", fontsize=9, fontweight="bold")
+        plt.text(w + 5, bar.get_y() + bar.get_height() / 2, f"{int(w)}", va="center", ha="left", fontsize=9, fontweight="bold")
 
     plt.tight_layout()
     fig1_path = fig_dir / "universal_method_distribution.png"
     plt.savefig(fig1_path, dpi=200)
     plt.close()
-    print(f"  [✓] Đã lưu biểu đồ: {fig1_path.name}")
+    print(f"  [✓] Đã lưu biểu đồ phân bố: {fig1_path.name}")
 
-    # Figure 2: Taxonomy Families Distribution Donut Chart
+    # Figure 2: Taxonomy Families Donut Chart (21,000 Samples)
     plt.figure(figsize=(10, 8))
     fam_names = list(family_counts.keys())
     fam_vals = list(family_counts.values())
-    donut_colors = plt.cm.Set3(np.linspace(0, 1, len(fam_names)))
+    donut_colors = [FAMILY_COLORS.get(f, "#999999") for f in fam_names]
 
     wedges, texts, autotexts = plt.pie(
         fam_vals,
@@ -258,12 +259,12 @@ def run_universal_benchmark_eda(
         wedgeprops=dict(width=0.45, edgecolor="white", linewidth=2),
     )
     plt.setp(autotexts, size=10, weight="bold")
-    plt.title("Universal Benchmark: Phân Bố Theo Họ Công Nghệ Sinh Ảnh Giả", fontsize=14, fontweight="bold")
+    plt.title("Universal Multi-Method Benchmark: Tỷ Lệ 8 Họ Công Nghệ & Đối Chứng Real (21.000 Ảnh)", fontsize=13, fontweight="bold")
     plt.tight_layout()
     fig2_path = fig_dir / "universal_method_families.png"
     plt.savefig(fig2_path, dpi=200)
     plt.close()
-    print(f"  [✓] Đã lưu biểu đồ: {fig2_path.name}")
+    print(f"  [✓] Đã lưu biểu đồ donut: {fig2_path.name}")
 
     # Figure 3: Optical Quality Comparison (Sharpness & Contrast across Families)
     plt.figure(figsize=(12, 6))
@@ -278,21 +279,21 @@ def run_universal_benchmark_eda(
 
     plt.xticks(x, fams, rotation=35, ha="right", fontsize=10)
     plt.ylabel("Giá trị đo lường quang học trung bình", fontsize=11)
-    plt.title("So Sánh Chất Lượng Quang Học Giữa Các Họ Công Nghệ Deepfake", fontsize=14, fontweight="bold")
+    plt.title("So Sánh Chất Lượng Quang Học Giữa Các Họ Công Nghệ Trong Bộ Benchmark 21k", fontsize=13, fontweight="bold")
     plt.legend(frameon=True, facecolor="white", loc="upper right")
     plt.grid(axis="y", linestyle="--", alpha=0.5)
     plt.tight_layout()
     fig3_path = fig_dir / "universal_quality_by_family.png"
     plt.savefig(fig3_path, dpi=200)
     plt.close()
-    print(f"  [✓] Đã lưu biểu đồ: {fig3_path.name}")
+    print(f"  [✓] Đã lưu biểu đồ quang học: {fig3_path.name}")
 
-    # Figure 4: Visual Representative Gallery of 12 Major Methods
+    # Figure 4: Representative Visual Gallery (12 Major Methods)
     plt.figure(figsize=(16, 12))
     key_methods = [
         "real", "DiT", "SiT", "pixart",
         "StyleGAN3", "StyleGANXL", "VQGAN", "mobileswap",
-        "deepfake_faceswap", "facedancer", "sadtalker", "wav2lip"
+        "facedancer", "simswap", "sadtalker", "wav2lip"
     ]
     for idx, km in enumerate(key_methods):
         ax = plt.subplot(3, 4, idx + 1)
@@ -306,79 +307,18 @@ def run_universal_benchmark_eda(
                 ax.text(0.5, 0.5, "Image Error", ha="center", va="center")
         ax.axis("off")
 
-    plt.suptitle("Universal Benchmark: Bộ Sưu Tập Ảnh Mẫu Đại Diện 12 Phương Pháp SOTA", fontsize=16, fontweight="bold", y=0.98)
+    plt.suptitle("Universal Multi-Method Benchmark: Bộ Sưu Tập Ảnh Mẫu Đại Diện 12 Phương Pháp SOTA", fontsize=15, fontweight="bold", y=0.98)
     plt.tight_layout()
     fig4_path = fig_dir / "universal_representative_gallery.png"
     plt.savefig(fig4_path, dpi=200)
     plt.close()
     print(f"  [✓] Đã lưu biểu đồ gallery: {fig4_path.name}")
 
-    # Create backwards compatible symlinks for figures
-    for p_src, p_dst in [
-        (fig1_path, fig_dir / "50k_method_distribution.png"),
-        (fig2_path, fig_dir / "50k_method_families.png"),
-        (fig3_path, fig_dir / "50k_quality_by_family.png"),
-        (fig4_path, fig_dir / "50k_representative_gallery.png"),
-    ]:
-        if p_src.exists() and not p_dst.exists():
-            os.symlink(p_src.name, p_dst)
-
-    # -------------------------------------------------------------------------
-    # 5. Export Comprehensive Markdown Report
-    # -------------------------------------------------------------------------
-    print("\n[*] Đang tổng hợp báo cáo chuyên sâu Markdown...")
-    report_path = report_dir / "EDA_UNIVERSAL_BENCHMARK_REPORT.md"
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write("# BÁO CÁO PHÂN TÍCH KHÁM PHÁ DỮ LIỆU (EDA) UNIVERSAL MULTI-METHOD BENCHMARK\n\n")
-        f.write("- **Tên bộ kiểm định**: Universal Multi-Method Deepfake Test Suite\n")
-        f.write(f"- **Tổng số lượng ảnh toàn diện (Full Suite)**: **{total_samples:,} ảnh**\n")
-        f.write("- **Bộ chuẩn hóa vàng (Golden Balanced Suite)**: **21.000 ảnh (10.500 Real vs 10.500 Fake trên 35 phương pháp đạt chuẩn)**\n")
-        f.write("- **Tỷ lệ nhãn**: **50.00% Thật** vs **50.00% Giả** (Cân bằng tuyệt đối)\n")
-        f.write(f"- **Số lượng phương pháp Deepfake**: **38 phương pháp giả mạo + 1 nhóm ảnh thật**\n")
-        f.write("- **Đặc tính kiểm định mù**: Không rò rỉ dữ liệu (Zero Leakage), không trùng lặp danh tính với tập huấn luyện.\n\n")
-
-        f.write("## 1. Phân Bố Theo Họ Công Nghệ Sinh Ảnh Giả (Taxonomy Breakdown)\n\n")
-        f.write("| Họ Công Nghệ | Số Lượng Mẫu | Tỷ Lệ Trên Toàn Bộ Test Suite | Đặc Trưng Công Nghệ |\n")
-        f.write("| :--- | :---: | :---: | :--- |\n")
-        for fam, cnt in family_counts.most_common():
-            desc = "Ảnh thật đối chứng chất lượng cao (FFHQ, FF++ Youtube C23, CelebA-real)" if "Real" in fam else \
-                   "Mô hình khuếch tán dạng Transformer thế hệ mới (patch-level denoising)" if "Transformer" in fam else \
-                   "Công nghệ hoán đổi danh tính (Identity Replacement) trên khuôn mặt" if "Swapping" in fam else \
-                   "Tái hiện biểu cảm và khẩu hình từ audio/video nguồn" if "Reenactment" in fam else \
-                   "Mạng đối nghịch sinh ảnh kinh điển với phân bố tiềm ẩn liên tục" if "GAN" in fam else \
-                   "Mô hình khuếch tán tiềm ẩn Stable Diffusion thế hệ 2" if "Latent" in fam else \
-                   "Mô hình nén lượng tử hóa không gian tiềm ẩn" if "AutoEncoder" in fam else "Công nghệ chỉnh sửa không gian tiềm ẩn"
-            f.write(f"| **{fam}** | **{cnt:,}** | {cnt/total_samples*100:.2f}% | {desc} |\n")
-
-        f.write("\n## 2. Bảng Xếp Hạng Chi Tiết Toàn Bộ 39 Phương Pháp\n\n")
-        f.write("| STT | Phương Pháp | Nhóm Công Nghệ | Nhãn | Số Lượng | Tỷ Lệ | Độ Nét Laplacian | Nguồn Dữ Liệu |\n")
-        f.write("| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n")
-        for idx, (m, cnt) in enumerate(method_counts.most_common(), 1):
-            fam = METHOD_TAXONOMY.get(m, "Other")
-            lbl = "Real (0)" if m == "real" else "Fake (1)"
-            sharp = np.mean(method_metrics[m]["sharpness"]) if method_metrics[m]["sharpness"] else float("nan")
-            srcs = ", ".join(sorted(method_to_sources[m]))
-            f.write(f"| {idx} | `{m}` | {fam} | {lbl} | {cnt:,} | {cnt/total_samples*100:.2f}% | {sharp:.1f} | `{srcs}` |\n")
-
-        f.write("\n## 3. Đặc Tính Kích Thước & Phân Giải Ảnh\n\n")
-        f.write("| Độ Phân Giải (Width x Height) | Tỷ Lệ Chiếm Phân Bố | Tỷ Lệ Khung Hình | Đánh Giá Tính Đồng Nhất |\n")
-        f.write("| :---: | :---: | :---: | :--- |\n")
-        for (w, h), cnt in resolutions.most_common(5):
-            pct = cnt / sum(resolutions.values()) * 100
-            f.write(f"| **{w} x {h}** | **{pct:.1f}%** | 1:1 (Vuông) | Chuẩn hóa hoàn hảo cho các backbone DINOv2 / ViT (224x224 hoặc 256x256). |\n")
-
-        f.write("\n## 4. Các Phát Hiện Khoa Học Đột Phá Từ EDA\n\n")
-        f.write("1. **Độ sắc nét tự nhiên phân tách rõ rệt**: Ảnh thật có Laplacian Variance trung bình đạt **225.7**, trong khi hầu hết các ảnh Face Swapping và DiT dao động từ **24.4 đến 77.1** do hiện tượng làm mịn biên hòa trộn (Boundary Feathering) và nội suy tiềm ẩn.\n")
-        f.write("2. **Sự đa dạng cực cao của các phương pháp tạo ảnh**: Bộ test bao quát 6 họ công nghệ lớn với 38 kỹ thuật tạo ảnh giả hiện đại nhất thế giới.\n")
-        f.write("3. **Bộ chuẩn hóa vàng (Golden Balanced Split)**: Khuyến nghị sử dụng tập 21.000 ảnh (35 phương pháp đạt chuẩn x 300 mẫu) để đánh giá không thiên lệch.\n")
-
-    print(f"\n[✓] BÁO CÁO TOÀN DIỆN ĐÃ ĐƯỢC XUẤT RA: {report_path}")
-    print("=" * 70)
+    print("\n[✓] HOÀN TẤT PHÂN TÍCH VÀ XUẤT CÁC TÀI LIỆU QUANG HỌC!")
     return {
         "total_samples": total_samples,
         "methods_count": len(method_counts),
         "labels": dict(label_counts),
-        "sources": dict(source_counts),
         "families": dict(family_counts),
     }
 
