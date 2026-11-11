@@ -15,6 +15,24 @@ from src.common.logger import get_logger
 
 logger = get_logger(__name__)
 
+DEFAULT_SD = "stable-diffusion-v1-5/stable-diffusion-v1-5"
+
+
+def validate_rgb(image: torch.Tensor) -> None:
+    """Require finite RGB floating (3,H,W) in [0,1], on any device."""
+    if image.ndim != 3 or image.shape[0] != 3 or not image.is_floating_point():
+        raise ValueError("Expected RGB floating tensor (3,H,W).")
+    if not torch.isfinite(image).all() or image.min() < 0 or image.max() > 1:
+        raise ValueError("RGB values must be finite and in [0,1].")
+
+
+def tensor_to_pil(image: torch.Tensor) -> Image.Image:
+    """Convert RGB float (3,H,W) [0,1] on any device to PIL RGB (W,H)."""
+    validate_rgb(image)
+    array = image.detach().cpu().permute(1, 2, 0).numpy()
+    return Image.fromarray(np.rint(array * 255).astype(np.uint8))
+
+
 CALIBRATED_NEGATIVE_PROMPT = (
     "blurry, distorted face, bad anatomy, deformed eyes, extra fingers, cartoon, "
     "3d render, doll, oversaturated, plastic skin, mutation, cropped forehead, unitooth, out of frame"
@@ -147,16 +165,25 @@ class StableDiffusionEngine(nn.Module):
 
     def __init__(
         self,
-        model_name: str = "runwayml/stable-diffusion-v1-5",
+        model_name: str = DEFAULT_SD,
         inpaint_model_name: Optional[str] = "stable-diffusion-v1-5/stable-diffusion-inpainting",
         device: Optional[Union[str, torch.device]] = None,
         torch_dtype: Optional[torch.dtype] = None,
         use_mock_fallback: bool = False,
         default_negative_prompt: str = DEFAULT_NEGATIVE_PROMPT,
+        *,
+        revision: Optional[str] = None,
+        inpaint_revision: Optional[str] = None,
+        num_inference_steps: int = 25,
+        guidance_scale: float = 7.5,
+        negative_prompt: Optional[str] = None,
+        cpu_offload: bool = False,
+        local_files_only: bool = False,
+        **kwargs: Any,
     ) -> None:
         super().__init__()
         self.model_name = model_name
-        self.inpaint_model_name = inpaint_model_name
+        self.inpaint_model_name = inpaint_model_name or model_name
         self.target_device = (
             torch.device(device) if device is not None else get_optimal_device()
         )
@@ -165,9 +192,18 @@ class StableDiffusionEngine(nn.Module):
         )
         self.use_mock_fallback = use_mock_fallback
         self.default_negative_prompt = default_negative_prompt
+        self.revision = revision
+        self.inpaint_revision = inpaint_revision
+        self.num_inference_steps = num_inference_steps
+        self.guidance_scale = guidance_scale
+        self.negative_prompt = negative_prompt if negative_prompt is not None else default_negative_prompt
+        self.cpu_offload = cpu_offload
+        self.local_files_only = local_files_only
 
         self._active_mode: Optional[str] = None
         self._active_pipeline: Optional[Any] = None
+        self._pipe: Optional[Any] = None
+        self._mode: Optional[str] = None
         logger.info(
             "Initialized StableDiffusionEngine (model=%s, inpaint_model=%s, device=%s, dtype=%s, fallback=%s)",
             self.model_name,
@@ -176,6 +212,50 @@ class StableDiffusionEngine(nn.Module):
             self.torch_dtype,
             self.use_mock_fallback,
         )
+
+    @property
+    def is_mock(self) -> bool:
+        """Only the explicit mock_sd identifier selects test fixtures."""
+        return self.model_name == "mock_sd"
+
+    def close(self) -> None:
+        """Release the pipeline between contiguous mode batches."""
+        self._pipe, self._mode = None, None
+        self._active_pipeline, self._active_mode = None, None
+        gc.collect()
+        if self.target_device.type == "cuda" and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    def _load_pipeline(self, mode: str) -> Any:
+        """Load native Diffusers classes; propagate download/inference errors."""
+        return self._switch_mode(mode)
+
+    def _infer(self, mode: str, prompt: str, seed: int, **kwargs: Any) -> torch.Tensor:
+        """Denoise and return finite CPU float32 RGB (3, H, W) in [0, 1]."""
+        pipe = self._load_pipeline(mode)
+        neg_prompt = kwargs.pop("negative_prompt", self.negative_prompt)
+        steps = kwargs.pop("num_inference_steps", self.num_inference_steps)
+        guidance = kwargs.pop("guidance_scale", self.guidance_scale)
+        generator = torch.Generator(device="cpu").manual_seed(seed)
+
+        result = pipe(
+            prompt=prompt,
+            negative_prompt=neg_prompt,
+            num_inference_steps=steps,
+            guidance_scale=guidance,
+            generator=generator,
+            **kwargs,
+        )
+        flags = getattr(result, "nsfw_content_detected", None)
+        if flags is not None and any(flags):
+            raise RuntimeError(
+                "Safety checker rejected generation; review prompt and inputs."
+            )
+        image = result.images[0]
+        array = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
+        tensor = torch.from_numpy(array).permute(2, 0, 1).contiguous()
+        validate_rgb(tensor)
+        return tensor
 
     def _mock_text2img(self, prompt: str, height: int, width: int, seed: int = 42) -> torch.Tensor:
         """Deterministic mock text-to-image synthesis producing structured portrait patterns."""
@@ -315,33 +395,31 @@ class StableDiffusionEngine(nn.Module):
         height: int = 512,
         width: int = 512,
         seed: int = 42,
-        num_inference_steps: int = 20,
-        guidance_scale: float = 6.2,
+        num_inference_steps: Optional[int] = None,
+        guidance_scale: Optional[float] = None,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
         """Synthesize image from scratch conditioned on text prompt."""
+        if height < 8 or width < 8 or height % 8 or width % 8:
+            raise ValueError("Height and width must be positive multiples of eight.")
         if self.model_name.startswith("mock"):
             return self._mock_text2img(prompt, height, width, seed=seed)
 
-        neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
-        try:
-            pipe = self.get_text2img_pipeline()
+        neg = negative_prompt if negative_prompt is not None else self.negative_prompt
+        steps = num_inference_steps if num_inference_steps is not None else self.num_inference_steps
+        guidance = guidance_scale if guidance_scale is not None else self.guidance_scale
 
-            gen = torch.Generator(device=self.target_device).manual_seed(seed)
-            diff_h = max(NATIVE_SD_SIZE, height)
-            diff_w = max(NATIVE_SD_SIZE, width)
-            out_img = pipe(
-                prompt=prompt,
+        try:
+            return self._infer(
+                "text2img",
+                prompt,
+                seed,
+                height=height,
+                width=width,
+                num_inference_steps=steps,
+                guidance_scale=guidance,
                 negative_prompt=neg,
-                height=diff_h,
-                width=diff_w,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                generator=gen,
-            ).images[0]
-            if (out_img.width, out_img.height) != (width, height):
-                out_img = out_img.resize((width, height), Image.Resampling.LANCZOS)
-            return self._pil_to_tensor(out_img).to(self.target_device)
+            )
         except Exception as e:
             if self.use_mock_fallback:
                 logger.warning("Diffusers text2img failed (%s), using mock fallback.", e)
@@ -355,11 +433,22 @@ class StableDiffusionEngine(nn.Module):
         mask: torch.Tensor,
         prompt: str = "realistic facial feature",
         seed: int = 42,
-        num_inference_steps: int = 20,
-        guidance_scale: float = 6.2,
+        num_inference_steps: Optional[int] = None,
+        guidance_scale: Optional[float] = None,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
         """Modify specific facial region defined by mask while strictly preserving background."""
+        validate_rgb(source_image)
+        if mask.shape != (1, *source_image.shape[1:]):
+            raise ValueError("Mask must be (1,H,W) matching source.")
+        if (
+            not torch.isfinite(mask).all()
+            or mask.min() < 0
+            or mask.max() > 1
+            or not mask.any()
+        ):
+            raise ValueError("Mask must be nonempty, finite and in [0,1].")
+
         c, h, w = source_image.shape
         if self.model_name.startswith("mock"):
             gen_img = self._mock_text2img(prompt=prompt, height=h, width=w, seed=seed)
@@ -369,38 +458,32 @@ class StableDiffusionEngine(nn.Module):
             blended = m_smooth * gen_img.to(source_image.device) + (1.0 - m_smooth) * source_image
             return torch.clamp(blended, 0.0, 1.0)
 
-        neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
-        try:
-            pipe = self.get_inpaint_pipeline()
-            diff_h = max(NATIVE_SD_SIZE, h)
-            diff_w = max(NATIVE_SD_SIZE, w)
-            pil_source = self._tensor_to_pil(source_image).resize((diff_w, diff_h), Image.Resampling.LANCZOS)
-            pil_mask = self._mask_to_pil(mask).resize((diff_w, diff_h), Image.Resampling.BILINEAR)
-            # Binarize mask for 9-channel inpainting UNet to prevent boundary blurring and halos
-            pil_mask_binary = pil_mask.point(lambda p: 255 if p > 128 else 0)
+        neg = negative_prompt if negative_prompt is not None else self.negative_prompt
+        steps = num_inference_steps if num_inference_steps is not None else self.num_inference_steps
+        guidance = guidance_scale if guidance_scale is not None else self.guidance_scale
 
-            gen = torch.Generator(device=self.target_device).manual_seed(seed)
-            out_img = pipe(
-                prompt=prompt,
-                negative_prompt=neg,
+        pil_source = tensor_to_pil(source_image)
+        mask_np = np.rint(mask.detach().cpu().squeeze(0).numpy() * 255).astype(np.uint8)
+        pil_mask = Image.fromarray(mask_np, mode="L")
+        pil_mask_binary = pil_mask.point(lambda p: 255 if p > 128 else 0)
+
+        try:
+            inpainted_tensor = self._infer(
+                "inpaint",
+                prompt,
+                seed,
                 image=pil_source,
                 mask_image=pil_mask_binary,
-                height=diff_h,
-                width=diff_w,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                generator=gen,
-            ).images[0]
-            if (out_img.width, out_img.height) != (w, h):
-                out_img = out_img.resize((w, h), Image.Resampling.LANCZOS)
-            inpainted_tensor = self._pil_to_tensor(out_img).to(self.target_device)
-            mask_expanded = mask.expand_as(source_image).to(self.target_device)
-            # Tight 2-pixel smoothstep blending: 3*m^2 - 2*m^3
+                height=h,
+                width=w,
+                num_inference_steps=steps,
+                guidance_scale=guidance,
+                negative_prompt=neg,
+            ).to(source_image.device)
+            mask_expanded = mask.expand_as(source_image).to(source_image.device)
             m = torch.clamp(mask_expanded, 0.0, 1.0)
-            m_smooth = m * m * (3.0 - 2.0 * m)
-            blended = m_smooth * inpainted_tensor + (1.0 - m_smooth) * source_image.to(self.target_device)
-            return torch.clamp(blended, 0.0, 1.0).to(source_image.device)
-
+            blended = m * inpainted_tensor + (1.0 - m) * source_image
+            return torch.clamp(blended, 0.0, 1.0)
         except Exception as e:
             if self.use_mock_fallback:
                 logger.warning("Diffusers inpaint failed (%s), using mock fallback.", e)
@@ -417,39 +500,38 @@ class StableDiffusionEngine(nn.Module):
         self,
         source_image: torch.Tensor,
         prompt: str = "photorealistic face alteration",
-        strength: float = 0.30,
+        strength: float = 0.55,
         seed: int = 42,
-        num_inference_steps: int = 20,
-        guidance_scale: float = 6.0,
+        num_inference_steps: Optional[int] = None,
+        guidance_scale: Optional[float] = None,
         negative_prompt: Optional[str] = None,
     ) -> torch.Tensor:
         """Alter existing facial image conditioned on prompt and strength."""
+        validate_rgb(source_image)
+        steps = num_inference_steps if num_inference_steps is not None else self.num_inference_steps
+        if not 0 < strength <= 1 or int(steps * strength) < 1:
+            raise ValueError("strength must be in (0,1] with at least one denoising step.")
+
         c, h, w = source_image.shape
         if self.model_name.startswith("mock"):
             gen_img = self._mock_text2img(prompt=prompt, height=h, width=w, seed=seed)
             blend = (1.0 - strength) * source_image + strength * gen_img.to(source_image.device)
             return torch.clamp(blend, 0.0, 1.0)
 
-        neg = negative_prompt if negative_prompt is not None else self.default_negative_prompt
+        neg = negative_prompt if negative_prompt is not None else self.negative_prompt
+        guidance = guidance_scale if guidance_scale is not None else self.guidance_scale
+        pil_source = tensor_to_pil(source_image)
         try:
-            pipe = self.get_img2img_pipeline()
-
-            diff_h = max(NATIVE_SD_SIZE, h)
-            diff_w = max(NATIVE_SD_SIZE, w)
-            pil_source = self._tensor_to_pil(source_image).resize((diff_w, diff_h), Image.Resampling.LANCZOS)
-            gen = torch.Generator(device=self.target_device).manual_seed(seed)
-            out_img = pipe(
-                prompt=prompt,
-                negative_prompt=neg,
+            return self._infer(
+                "img2img",
+                prompt,
+                seed,
                 image=pil_source,
                 strength=strength,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                generator=gen,
-            ).images[0]
-            if (out_img.width, out_img.height) != (w, h):
-                out_img = out_img.resize((w, h), Image.Resampling.LANCZOS)
-            return self._pil_to_tensor(out_img).to(source_image.device)
+                num_inference_steps=steps,
+                guidance_scale=guidance,
+                negative_prompt=neg,
+            ).to(source_image.device)
         except Exception as e:
             if self.use_mock_fallback:
                 logger.warning("Diffusers img2img failed (%s), using mock fallback.", e)
