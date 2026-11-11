@@ -1,0 +1,285 @@
+schema_version: 1
+description: Reference inventory only; entries are not proof of runnable integration.
+entries:
+- id: base_01
+  group: base
+  name: SD 1.4
+  weights_or_repo:
+  - CompVis/stable-diffusion-v1-4
+  mechanism: T2I / img2img
+  task: Sinh, biến đổi ảnh
+  compatible_base: Hệ SD 1.x
+  source: https://huggingface.co/CompVis/stable-diffusion-v1-4
+- id: base_02
+  group: base
+  name: SD 1.5
+  weights_or_repo:
+  - v1-5-pruned-emaonly.safetensors
+  mechanism: T2I / img2img
+  task: Sinh, biến đổi ảnh
+  compatible_base: Hệ SD 1.5
+  source: https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5/tree/main
+- id: base_03
+  group: base
+  name: SDXL Base
+  weights_or_repo:
+  - stabilityai/stable-diffusion-xl-base-1.0
+  mechanism: T2I / img2img
+  task: Sinh, biến đổi ảnh
+  compatible_base: Hệ SDXL
+  source: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
+- id: base_04
+  group: base
+  name: SD 1.5 Inpainting
+  weights_or_repo:
+  - stable-diffusion-v1-5/stable-diffusion-inpainting
+  mechanism: Inpainting
+  task: Sửa vùng ảnh có mask
+  compatible_base: Hệ SD 1.5
+  source: https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-inpainting
+- id: base_05
+  group: base
+  name: SDXL Inpainting
+  weights_or_repo:
+  - diffusers/stable-diffusion-xl-1.0-inpainting-0.1
+  mechanism: Inpainting
+  task: Sửa vùng ảnh có mask
+  compatible_base: Hệ SDXL
+  source: https://huggingface.co/diffusers/stable-diffusion-xl-1.0-inpainting-0.1
+- id: base_06
+  group: base
+  name: SD 3.5 Medium
+  weights_or_repo:
+  - stabilityai/stable-diffusion-3.5-medium
+  mechanism: T2I
+  task: Sinh ảnh từ prompt
+  compatible_base: Hệ SD 3.5
+  source: https://huggingface.co/stabilityai/stable-diffusion-3.5-medium
+- id: base_07
+  group: base
+  name: SD 3.5 Large / Large Turbo
+  weights_or_repo:
+  - stabilityai/stable-diffusion-3.5-large
+  - stabilityai/stable-diffusion-3.5-large-turbo
+  mechanism: T2I
+  task: Sinh ảnh; Turbo ít bước
+  compatible_base: Hệ SD 3.5
+  source: https://stability.ai/core-models
+- id: base_08
+  group: base
+  name: SDXL Turbo
+  weights_or_repo:
+  - stabilityai/sdxl-turbo
+  mechanism: T2I / img2img
+  task: Sinh, biến đổi ảnh ít bước
+  compatible_base: SDXL distilled
+  source: https://huggingface.co/stabilityai/sdxl-turbo
+- id: base_09
+  group: base
+  name: SDXL-Lightning
+  weights_or_repo:
+  - ByteDance/SDXL-Lightning
+  mechanism: T2I¹
+  task: Sinh ảnh ít bước
+  compatible_base: SDXL tương thích
+  source: https://huggingface.co/ByteDance/SDXL-Lightning
+- id: checkpoint_01
+  group: checkpoint
+  name: Realistic Vision v5.1
+  weights_or_repo:
+  - SG161222/Realistic_Vision_V5.1_noVAE
+  mechanism: T2I / img2img
+  task: Sinh ảnh chân thực
+  compatible_base: SD 1.5
+  source: https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE
+- id: checkpoint_02
+  group: checkpoint
+  name: DreamShaper 8
+  weights_or_repo:
+  - Lykon/dreamshaper-8
+  mechanism: T2I / img2img
+  task: Sinh ảnh nhiều phong cách
+  compatible_base: SD 1.5
+  source: https://huggingface.co/Lykon/dreamshaper-8
+- id: checkpoint_03
+  group: checkpoint
+  name: RealVisXL v5.0
+  weights_or_repo:
+  - SG161222/RealVisXL_V5.0
+  mechanism: T2I / img2img
+  task: Sinh ảnh chân thực
+  compatible_base: SDXL; cần pipeline XL
+  source: https://huggingface.co/SG161222/RealVisXL_V5.0
+- id: checkpoint_04
+  group: checkpoint
+  name: Juggernaut XL v9
+  weights_or_repo:
+  - RunDiffusion/Juggernaut-XL-v9
+  mechanism: T2I / img2img
+  task: Sinh ảnh chụp / chân dung
+  compatible_base: SDXL; cần pipeline XL
+  source: https://huggingface.co/RunDiffusion/Juggernaut-XL-v9
+- id: checkpoint_05
+  group: checkpoint
+  name: DreamShaper XL Lightning
+  weights_or_repo:
+  - Lykon/dreamshaper-xl-lightning
+  mechanism: T2I / img2img¹
+  task: Sinh ảnh ít bước
+  compatible_base: SDXL; đúng sampler / steps
+  source: https://huggingface.co/Lykon/dreamshaper-xl-lightning
+- id: checkpoint_06
+  group: checkpoint
+  name: epiCRealism
+  weights_or_repo:
+  - emilianJR/epiCRealism
+  mechanism: T2I / img2img
+  task: Sinh ảnh chân thực
+  compatible_base: SD 1.x / pipeline SD
+  source: https://huggingface.co/emilianJR/epiCRealism
+- id: checkpoint_07
+  group: checkpoint
+  name: Absolute Reality 1.81 / 1.6525
+  weights_or_repo:
+  - Lykon/absolute-reality-1.81
+  - Lykon/absolute-reality-1.6525
+  mechanism: T2I / img2img
+  task: Sinh ảnh chân thực
+  compatible_base: SD 1.5
+  source: https://huggingface.co/Lykon/absolute-reality-1.81
+- id: method_01
+  group: method
+  name: ControlNet
+  weights_or_repo:
+  - lllyasviel/ControlNet
+  mechanism: Điều kiện hình học¹
+  task: Điều khiển pose / depth / edges
+  compatible_base: SD 1.5; XL dùng weights riêng
+  source: https://github.com/lllyasviel/ControlNet
+- id: method_02
+  group: method
+  name: IP-Adapter
+  weights_or_repo:
+  - h94/IP-Adapter
+  mechanism: Điều kiện ảnh¹
+  task: Sinh ảnh theo tham chiếu
+  compatible_base: SD 1.5 / XL, đúng phiên bản
+  source: https://huggingface.co/h94/IP-Adapter
+- id: method_03
+  group: method
+  name: IP-Adapter FaceID / PlusV2
+  weights_or_repo:
+  - ip-adapter-faceid_sd15.bin
+  - ip-adapter-faceid-plusv2_sdxl.bin
+  mechanism: Điều kiện danh tính¹
+  task: Sinh ảnh giữ danh tính
+  compatible_base: SD 1.5 / XL, đúng file
+  source: https://huggingface.co/h94/IP-Adapter-FaceID/tree/main
+- id: method_04
+  group: method
+  name: InstantID
+  weights_or_repo:
+  - ip-adapter.bin + ControlNetModel/
+  mechanism: T2I + ID / landmarks
+  task: Giữ danh tính, tư thế
+  compatible_base: SDXL
+  source: https://huggingface.co/InstantX/InstantID/tree/main
+- id: method_05
+  group: method
+  name: PhotoMaker v1
+  weights_or_repo:
+  - photomaker-v1.bin
+  mechanism: T2I + ảnh ID
+  task: Sinh chân dung cá nhân hóa
+  compatible_base: SDXL
+  source: https://huggingface.co/TencentARC/PhotoMaker/tree/main
+- id: method_06
+  group: method
+  name: Face-Adapter
+  weights_or_repo:
+  - FaceAdapter/FaceAdapter
+  mechanism: Điều kiện ID / hình học
+  task: Đổi mặt / tái hiện biểu cảm
+  compatible_base: SD theo pipeline repo²
+  source: https://github.com/FaceAdapter/Face-Adapter
+- id: method_07
+  group: method
+  name: REFace
+  weights_or_repo:
+  - Sanoojan/REFace
+  mechanism: Inpainting có điều kiện
+  task: Đổi mặt A → ảnh B
+  compatible_base: SD 1.4 đã chỉnh sửa²
+  source: https://github.com/Sanoojan/REFace
+- id: method_08
+  group: method
+  name: Arc2Face
+  weights_or_repo:
+  - FoivosPar/Arc2Face
+  mechanism: Điều kiện ArcFace ID
+  task: Sinh ảnh giữ danh tính
+  compatible_base: SD 1.5 đã fine-tune
+  source: https://huggingface.co/FoivosPar/Arc2Face
+- id: method_09
+  group: method
+  name: PuLID v1 / v1.1
+  weights_or_repo:
+  - guozinan/PuLID
+  mechanism: T2I + điều kiện ID
+  task: Sinh ảnh giữ danh tính
+  compatible_base: SDXL; không phải bản FLUX
+  source: https://huggingface.co/guozinan/PuLID
+- id: method_10
+  group: method
+  name: FastComposer
+  weights_or_repo:
+  - pytorch_model.bin · mit-han-lab/fastcomposer
+  mechanism: T2I + ảnh tham chiếu
+  task: Sinh ảnh một / nhiều người
+  compatible_base: SD theo pipeline repo
+  source: https://huggingface.co/mit-han-lab/fastcomposer
+- id: method_11
+  group: method
+  name: FlashFace
+  weights_or_repo:
+  - flashface.ckpt · shilongz/FlashFace-SD1.5
+  mechanism: T2I + ảnh tham chiếu
+  task: Sinh ảnh giữ danh tính
+  compatible_base: SD 1.5 đã fine-tune
+  source: https://huggingface.co/shilongz/FlashFace-SD1.5
+- id: method_12
+  group: method
+  name: ConsistentID
+  weights_or_repo:
+  - ConsistentID-v1.bin · JackAILab/ConsistentID
+  mechanism: T2I / inpaint + điều kiện ID
+  task: Sinh, sửa ảnh giữ danh tính
+  compatible_base: SD 1.5; XL dùng weights riêng
+  source: https://github.com/JackAILab/ConsistentID
+- id: framework_01
+  group: framework
+  name: Diffusers
+  weights_or_repo:
+  - huggingface/diffusers
+  mechanism: Theo pipeline
+  task: Lập trình sinh / chỉnh sửa ảnh
+  compatible_base: SD 1.x / XL / 3.x tùy pipeline
+  source: https://github.com/huggingface/diffusers
+- id: framework_02
+  group: framework
+  name: ComfyUI
+  weights_or_repo:
+  - Comfy-Org/ComfyUI
+  mechanism: Theo workflow
+  task: Dựng luồng bằng nodes
+  compatible_base: Theo model và nodes
+  source: https://github.com/Comfy-Org/ComfyUI
+- id: framework_03
+  group: framework
+  name: AUTOMATIC1111 WebUI
+  weights_or_repo:
+  - AUTOMATIC1111/stable-diffusion-webui
+  mechanism: T2I / img2img / inpaint
+  task: Giao diện sinh / sửa ảnh
+  compatible_base: SD 1.x / 2.x / XL tùy phiên bản
+  source: https://github.com/AUTOMATIC1111/stable-diffusion-webui

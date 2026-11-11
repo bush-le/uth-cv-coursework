@@ -93,3 +93,7 @@ python3 -m scripts.organize_topic_dataset --config configs/dataset_factory.yaml
 python3 -m scripts.build_visual_gallery --config configs/dataset_factory.yaml
 python3 scripts/create_coursework_notebooks.py
 ```
+
+## Kaggle image pilot
+
+[Notebook](notebooks/coursework/celeba-hq-df.ipynb) · [Guide](docs/reports/KAGGLE_SD_IMAGE_DEMO.md) · [HTML report](docs/reports/KAGGLE_SD_IMAGE_DEMO.html). Real T2I / img2img / inpainting; detector evaluation remains separate.

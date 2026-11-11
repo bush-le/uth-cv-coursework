@@ -1,0 +1,34 @@
+# Standalone config consumed by src.pipelines.sd_image_demo, not a Hydra group.
+model_name: SG161222/Realistic_Vision_V5.1_noVAE
+device: cuda
+require_cuda: true
+pin_hub_revisions: true
+run_dir: experiments/runs/sd_image_demo
+data:
+  drive_folder_id: 1Uj8nGCi2qzuUwUrjAQaWHVSu7MAbdaZL
+  input_manifest: data/raw/demo_manifest.jsonl
+  download_root: data/raw/sd_demo
+  root: .
+  limit: 3
+engine:
+  inpaint_model_name: stable-diffusion-v1-5/stable-diffusion-inpainting
+  revision: null
+  inpaint_revision: null
+  num_inference_steps: 30
+  guidance_scale: 7.5
+  negative_prompt: blurry, deformed, distorted face, poor anatomy, text, watermark
+  cpu_offload: false
+  local_files_only: false
+generation:
+  height: 512
+  width: 512
+  variants_per_mode: 1
+  modes: [text2img]
+  seed: 42
+  strength: 0.55
+  # Pilot ellipse in an already aligned crop: x1,y1,x2,y2. Review every mask.
+  mask_box_xyxy_normalized: [0.30, 0.58, 0.70, 0.80]
+  prompts:
+    text2img: a photorealistic headshot portrait of an adult person, studio lighting, natural skin
+    img2img: a photorealistic headshot portrait of an adult person, warm studio lighting, natural skin
+    inpaint: a natural smiling mouth, realistic lips and skin texture

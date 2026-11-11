@@ -1,0 +1,111 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kaggle SD image demo</title><style>body{font:16px/1.65 Segoe UI,Arial;background:#f6f6f1;color:#17242e;margin:0}main{max-width:1100px;padding:30px;margin:auto}h1,h2,h3{line-height:1.3}h2{margin-top:32px;color:#2456bb}pre{overflow:auto;background:#fff;padding:18px;border:1px solid #ddd}code{font-size:13px}a{color:#2456bb}svg{width:100%;height:auto}li{margin-bottom:7px}table{border-collapse:collapse}td,th{padding:10px;border:1px solid #ddd}</style><main><svg role="img" aria-label="SD image demo pipeline" viewBox="0 0 1100 150" xmlns="http://www.w3.org/2000/svg"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10" fill="#2456bb"/></marker></defs><rect x="12" y="30" width="240" height="75" rx="8" fill="#edf2fc" stroke="#2456bb"/><text x="132" y="74" text-anchor="middle" font-family="Arial" font-size="18" fill="#17242e">Drive / local</text><path d="M256 67H282" stroke="#2456bb" stroke-width="2" marker-end="url(#arr)"/><rect x="289" y="30" width="240" height="75" rx="8" fill="#edf2fc" stroke="#2456bb"/><text x="409" y="74" text-anchor="middle" font-family="Arial" font-size="18" fill="#17242e">3 sources + masks</text><path d="M533 67H559" stroke="#2456bb" stroke-width="2" marker-end="url(#arr)"/><rect x="566" y="30" width="240" height="75" rx="8" fill="#edf2fc" stroke="#2456bb"/><text x="686" y="74" text-anchor="middle" font-family="Arial" font-size="18" fill="#17242e">3 native SD modes</text><path d="M810 67H836" stroke="#2456bb" stroke-width="2" marker-end="url(#arr)"/><rect x="843" y="30" width="240" height="75" rx="8" fill="#edf2fc" stroke="#2456bb"/><text x="963" y="74" text-anchor="middle" font-family="Arial" font-size="18" fill="#17242e">Artifacts + gallery</text></svg><h1>KAGGLE SD IMAGE DEMO — T2I, IMG2IMG &amp; INPAINTING</h1>
+<ul>
+<li><strong>Motivation/Background</strong>: Chạy thử Phase 1 thật trên ảnh của nhóm, loại bỏ đường sinh ảnh ngẫu nhiên và fallback mock trong baseline.</li>
+<li><strong>Purpose</strong>: Hướng dẫn demo pretrained trên Kaggle, ghi rõ bằng chứng đã kiểm tra và phần chưa triển khai.</li>
+<li><strong>Overview Pipeline</strong>: Drive/local sources → chọn 3 ảnh → xem mask → ba native Diffusers pipelines → PNG + manifest + technical QA + gallery.</li>
+<li><strong>Detailed Plan</strong>: Chuẩn bị môi trường, dữ liệu, inference, kiểm tra artifacts, giới hạn và bước tiếp theo.</li>
+<li><strong>References</strong>: <a href="../PURPOSE.md">DEFINE</a>, <a href="../phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md">Phase 1</a>, <a href="../../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb">notebook</a>, <a href="../../configs/generation/kaggle_image_demo.yaml">config</a>.</li>
+<li><strong>Created</strong>: 2026-11-09T13:24:35+07:00</li>
+<li><strong>Last Updated</strong>: 2026-11-09T13:24:35+07:00</li>
+</ul>
+<hr />
+<h2>1. Phạm vi đã chốt</h2>
+<p>Demo <strong>ảnh</strong>, pretrained <strong>T2I, img2img, inpainting</strong>, chạy GPU trên Kaggle. Không so sánh các adapter danh tính trong lần đầu này. Không train generator. Không gọi bộ phân loại chưa huấn luyện là baseline dinoViT.</p>
+<p>Nhánh triển khai: <code>demo/sd-image-kaggle</code>, xuất phát từ image baseline <code>55617d5</code>. Các file logic nằm trong <code>src/</code>, config trong <code>configs/generation/</code>, notebook chỉ gọi modules hoặc script.</p>
+<pre class="mermaid">flowchart LR
+    A[Drive / dữ liệu local] --&gt; B[3 ảnh thật + manifest]
+    B --&gt; C[Xem nguồn và mask]
+    C --&gt; D[T2I / img2img / native inpaint]
+    D --&gt; E[PNG + job sidecars + manifest]
+    E --&gt; F[Technical QA + gallery]
+    F -. sau khi đủ điều kiện .-&gt; G[Full curation + detector + hard-sample mining]
+</pre>
+<p>Sơ đồ vector của luồng này có trong <a href="KAGGLE_SD_IMAGE_DEMO.html">bản HTML</a>.</p>
+<h2>2. Chạy trên Kaggle</h2>
+<ol>
+<li>Tạo Kaggle Notebook Python, bật <strong>GPU</strong> và <strong>Internet</strong>.</li>
+<li>Upload gói <code>SD_IMAGE_DEMO_KAGGLE.zip</code> được bàn giao thành một <strong>Kaggle Dataset riêng tư</strong>, rồi attach Dataset vào notebook. Gói này chỉ chứa code/config/docs/notebook, không chứa weights hay ảnh thật.</li>
+<li>Import <a href="../../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb">SD_IMAGE_DEMO_KAGGLE.ipynb</a>.</li>
+<li>Chạy phần môi trường và chuẩn bị dữ liệu. Notebook giải nén source rồi chỉ cài <a href="../../requirements/notebook.txt">requirements/notebook.txt</a> vào kernel; <a href="../../src/pipelines/sd_demo_launcher.py">launcher</a> cài/chạy model trong venv worker, giữ torch/torchvision CUDA. Nếu đã chạy cell cũ cài generation.txt vào kernel, lưu outputs và tạo session Kaggle mới; restart kernel không hoàn tác pip. Không còn ép protobuf xuống dưới 6.</li>
+<li>Xem contact sheet nguồn/mask. Mask trắng là vùng sửa. Nếu lệch vùng miệng, sửa <code>mask_box_xyxy_normalized</code> hoặc thêm <code>mask_path</code> cho từng ảnh vào manifest trước khi inference.</li>
+<li>Chạy inference, xem gallery và tải ZIP artifacts ở cell cuối. Thời gian thật và GPU peak memory được ghi sau chạy; chưa có số đo tốc độ Kaggle trong báo cáo này.</li>
+</ol>
+<p>Các lệnh tương đương, chạy từ root repo:</p>
+<pre><code class="language-bash">python -m pip install -r requirements/notebook.txt
+python -m src.pipelines.prepare_image_demo --config configs/generation/kaggle_image_demo.yaml
+python -m src.pipelines.sd_demo_launcher --config configs/generation/kaggle_image_demo.yaml
+# Runner hiện có cũng gọi đúng config demo:
+bash scripts/run_pipeline.sh generate configs/generation/kaggle_image_demo.yaml
+</code></pre>
+<p>Config demo là YAML độc lập, không phải Hydra master <code>configs/config.yaml</code>. Các lệnh <code>mine</code>, <code>train</code>, <code>eval</code> cũ không tự được chạy bởi demo này.</p>
+<h2>3. Đầu vào và cấu hình</h2>
+<ul>
+<li>Nguồn người dùng: <a href="https://drive.google.com/drive/folders/1Uj8nGCi2qzuUwUrjAQaWHVSu7MAbdaZL">thư mục Drive raw</a>. Manifest đọc được gồm <strong>4.000 bản ghi, đều label=0</strong>, ảnh FFHQ/CelebA-HQ. Chỉ tải manifest nhỏ và <strong>3 ảnh FFHQ có nhóm tuổi người lớn theo metadata</strong>.</li>
+<li>Ba ảnh đã tải kiểm tra đường dữ liệu: <code>ffhq_00002</code>, <code>ffhq_00009</code>, <code>ffhq_00017</code>. Đây là mẫu tiện lợi từ public listing, không đại diện toàn bộ dataset; metadata tuổi không phải kết quả xác minh tuổi.</li>
+<li>Không thấy checkpoint detector ở cấp root listing. Không suy luận rằng detector tồn tại hoặc tương thích khi chỉ có ảnh thật và metadata. Muốn nối Phase 2 phải có kiến trúc, preprocessing, class mapping và checkpoint bộ phân loại phù hợp.</li>
+<li>SD mặc định: <code>stable-diffusion-v1-5/stable-diffusion-v1-5</code> cho T2I/img2img; <code>stable-diffusion-v1-5/stable-diffusion-inpainting</code> cho inpainting. Chưa chuyển sang Realistic Vision hoặc adapter nào. Có thể đổi config sau pilot.</li>
+<li>Mặc định <strong>512×512, 30 bước, CFG 7.5, strength 0.55, seed 42</strong>, một biến thể mỗi chế độ/ảnh, dự kiến <strong>9 output</strong> khi tất cả job hoàn tất.</li>
+<li>RGB float32 <code>(3,H,W)</code> trong <code>[0,1]</code>; mask <code>(1,H,W)</code> trong <code>[0,1]</code>, <code>1=edit</code>. Inference CUDA dùng fp16, CPU dùng fp32. Checkpoint revision được resolve thành Hub SHA trước chạy và lưu trong config.</li>
+<li>Ảnh FFHQ đã là crop khuôn mặt. Demo EXIF-correct rồi resize; không chạy lại landmark alignment. Mask mặc định là ellipse ROI thủ công theo tọa độ tương đối, <strong>không phải mask đã được detector xác nhận</strong>.</li>
+</ul>
+<p>Nếu Drive bị giới hạn/quota hoặc public listing không đủ ảnh: attach bản dữ liệu local vào Kaggle, giữ JSONL có <code>image_id</code>, <code>label=0</code>, <code>file_path</code>, chỉnh <code>data.input_manifest</code> và <code>data.root</code> trong YAML, rồi bỏ qua bước tải Drive. Đường dẫn có thể tương đối với root dữ liệu hoặc thư mục manifest.</p>
+<h2>4. Kết quả sau một lần chạy</h2>
+<p>Thư mục runtime mặc định: <code>experiments/runs/sd_image_demo/</code>, được Git bỏ qua.</p>
+<ul>
+<li><code>input_preview.png</code>: ảnh nguồn và mask để kiểm tra trước inference.</li>
+<li><code>generated_manifest.jsonl</code>: chỉ các job đã hoàn tất, có provenance, checkpoint/revision, seed, hash, nhãn, chế độ và trạng thái QA.</li>
+<li><code>images/</code>: output PNG, source/mask snapshots và JSON sidecar với <code>running / completed / failed</code>.</li>
+<li><code>resolved_config.json</code>, <code>environment.json</code>: cấu hình thực dùng, packages, phần cứng và revision source nếu có Git.</li>
+<li><code>technical_qa.json</code>: decode, kích thước và <strong>Laplacian variance thật trên ảnh uint8</strong>. <code>manual_qa=pending</code>, landmarks/CLIP chưa chấm.</li>
+<li><code>gallery.html</code>: bản xem ảnh tự chứa ảnh nhúng, xem được sau khi tải riêng HTML.</li>
+<li><code>summary.json</code>: tổng output, thời gian toàn run và GPU peak allocated bytes; <code>detector_evaluated=false</code>, <code>full_curation_evaluated=false</code>.</li>
+</ul>
+<p>Summary tách <code>newly_generated</code> và <code>resumed</code>; wall time của lần resume không phải tốc độ inference.</p>
+<p>Resume kiểm tra job hash và SHA256 output trước khi bỏ qua job. Đổi nguồn, mask, seed/config hoặc revision tạo job khác. Run chưa hoàn tất giữ artifacts trước lỗi và ném lỗi ra ngoài. Không chạy đồng thời hai tiến trình ghi chung run directory.</p>
+<p><code>source_real_id=null</code> cho T2I vì ảnh gốc <strong>không phải điều kiện danh tính</strong>. <code>anchor_source_id</code> chỉ phục vụ bố trí pilot. Mọi sample là <code>demo_only</code>; chưa phải split train/validation/test, chưa bảo đảm identity-disjoint để nghiên cứu detector.</p>
+<h2>5. Sửa gì và kiểm chứng đến đâu</h2>
+<ul>
+<li>Img2img gọi <code>StableDiffusionImg2ImgPipeline</code>, không pha ảnh nguồn với ảnh T2I độc lập.</li>
+<li>Inpainting gọi <code>StableDiffusionInpaintPipeline</code>, đưa ảnh và mask vào denoising; composite cuối chỉ để giữ nguyên vùng ngoài mask. Không gọi thao tác ghép T2I là inpainting.</li>
+<li>Model được load lazily theo mode batch, chỉ một pipeline resident, giải phóng khi đổi mode. First-job timing bao gồm load; chưa phải latency steady-state.</li>
+<li>Model lỗi tải hoặc inference sẽ fail rõ. Mock chỉ dùng nếu gọi trực tiếp bằng <code>model_name="mock_sd"</code>, bị cấm trong runner demo thật. Safety checker của model đầy đủ được giữ nguyên; sample bị reject không ghi ảnh đen thành dữ liệu hợp lệ.</li>
+<li>Dữ liệu Drive: đã download/verify ba ảnh và manifest. Không commit ảnh hoặc weights vào Git.</li>
+<li>Unit/regression: kiểm tra real routing, source thật, settings, mask, không fallback, safety rejection, provenance và hash resume.</li>
+<li>Integration CPU: đã chạy ba native pipelines với fixture công khai <code>hf-internal-testing/tiny-stable-diffusion-torch</code>, output <code>(3,64,64)</code>. <strong>Model tiny kiểm tra wiring, không kiểm chứng chất lượng khuôn mặt, safety hoặc hiệu năng của checkpoint đầy đủ.</strong> Fixture này không có safety checker trong cấu hình gốc. Một fixture tiny khác có mismatch kích thước safety encoder, nên không dùng để suy diễn chất lượng SD.</li>
+<li><strong>Chưa chạy Kaggle GPU / SD checkpoint đầy đủ trong phiên này.</strong> Cần chạy notebook, kiểm tra ảnh và lưu artifacts trước khi công bố demo GPU thành công.</li>
+</ul>
+<h2>6. Phần tiếp theo của flow chưa thuộc demo này</h2>
+<p>Full curation cần detector mặt/landmarks và CLIP thật đã hiệu chỉnh ngưỡng. Code curation cũ còn proxy CLIP và pass-through manifest, vì vậy demo không gọi nó rồi tuyên bố đã qua cổng lọc ba tầng.</p>
+<p>Phase 2 cần checkpoint detector đã học thật/giả và đúng preprocessing. Một backbone pretrained DINO không tự là detector deepfake. Lớp <code>DinoViTBackbone</code> hiện tại của baseline cũng không tự tải weights DINO chính thức.</p>
+<p>Phase 3 chỉ dùng dữ liệu train để fine-tune. Mẫu dùng huấn luyện không được dùng lại làm bằng chứng cải thiện trên test. Khai phá khó, chọn ngưỡng và chấm cuối cần tách tập theo nhóm danh tính/nguồn; không đếm lại mẫu khó như một bản ghi mới nếu đã nằm trong synthetic manifest.</p>
+<h2>References &amp; Technical Documentation</h2>
+<h3>Official API Docs</h3>
+<ul>
+<li><a href="https://huggingface.co/docs/diffusers/v0.35.1/en/api/pipelines/stable_diffusion/img2img">Diffusers 0.35.1 img2img</a>.</li>
+<li><a href="https://huggingface.co/docs/diffusers/v0.35.1/en/api/pipelines/stable_diffusion/inpaint">Diffusers 0.35.1 inpainting</a>.</li>
+<li><a href="https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5">SD 1.5</a>, <a href="https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-inpainting">inpainting checkpoint</a>.</li>
+</ul>
+<h3>Technical Standards</h3>
+<ul>
+<li><a href="https://jsonlines.org/">JSON Lines</a>: manifest UTF-8.</li>
+<li><a href="https://pillow.readthedocs.io/en/stable/reference/ImageOps.html">Pillow ImageOps</a>: EXIF orientation/RGB.</li>
+</ul>
+<h3>CV Conventions</h3>
+<ul>
+<li>RGB CHW float32, mask trắng là vùng sửa; pilot mask không phải segmentation/landmarks.</li>
+<li><a href="https://github.com/NVlabs/ffhq-dataset">FFHQ dataset</a>: kiểm tra quyền dùng dữ liệu và từng nguồn ảnh; không suy rộng quyền thương mại từ link tải công khai.</li>
+</ul>
+<h3>Internal Architecture Links</h3>
+<ul>
+<li><a href="../../src/models/diffusion/stable_diffusion_engine.py">Engine</a>, <a href="../../src/pipelines/generate_deepfake_images.py">generation</a>, <a href="../../src/pipelines/prepare_image_demo.py">Drive prep</a>, <a href="../../src/pipelines/sd_image_demo.py">demo runner</a>.</li>
+<li><a href="../../src/data/sd_demo_data.py">Input I/O</a>, <a href="../../tests/test_sd_image_demo.py">regression tests</a>, <a href="../PURPOSE.md">project scope</a>.</li>
+</ul>
+<h2>Verification record</h2>
+<ul>
+<li><code>python -m pytest tests -m smoke -q</code>: 10 smoke tests passed.</li>
+<li><code>python -m pytest tests -q</code>: 51 tests passed.</li>
+<li>Ruff on modified Python modules/tests: passed.</li>
+<li>Isolated generation environment: <code>pip check</code> reported no broken requirements.</li>
+<li>CPU end-to-end integration with the tiny fixture: 3 real Drive sources, 9 outputs, <code>mock_outputs=0</code>. This does not validate full SD image quality or Kaggle GPU performance.</li>
+<li>Gallery: all embedded images decoded in headless Edge. Report: inline SVG and mobile width checked.</li>
+</ul></main></html>

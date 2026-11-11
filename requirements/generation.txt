@@ -1,0 +1,13 @@
+# Inference worker requirements. Install inside a venv, not the Kaggle kernel.
+# Notebook controller uses requirements/notebook.txt instead.
+diffusers==0.35.1
+transformers==4.56.2
+accelerate==1.10.1
+huggingface-hub==0.36.0
+safetensors==0.6.2
+gdown==5.2.0
+beautifulsoup4>=4.12,<5
+PyYAML>=6.0.1,<7
+Pillow>=10,<13
+sentencepiece>=0.2,<0.3
+protobuf>=3.20

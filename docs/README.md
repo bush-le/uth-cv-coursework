@@ -6,7 +6,7 @@
 - **Detailed Plan**: §1 Tài liệu chính; §2 Chi tiết 3 bước; §3 Lý thuyết & thực nghiệm; §4 Báo cáo & bộ 11 Slide.
 - **References**: [PURPOSE.md](PURPOSE.md), [OVERVIEW.md](OVERVIEW.md), [SYSTEM_DEFINE_AND_DESIGN_REPORT.md](reports/SYSTEM_DEFINE_AND_DESIGN_REPORT.md).
 - **Created**: 2026-11-02T07:30:00+07:00
-- **Last Updated**: 2026-11-08T18:36:00+07:00
+- **Last Updated**: 2026-11-09T13:19:40+07:00
 
 ---
 
@@ -43,3 +43,14 @@
 - **[reports/PART_02_SYSTEM_ARCHITECTURE.md](reports/PART_02_SYSTEM_ARCHITECTURE.md)**: Báo cáo Phần 2 — Thiết kế hệ thống 3 bước.
 - **[reports/SYSTEM_DEFINE_AND_DESIGN_REPORT.md](reports/SYSTEM_DEFINE_AND_DESIGN_REPORT.md)**: Báo cáo tổng hợp hoàn chỉnh.
 - **[reports/PRESENTATION_DEFENSE_QA_CHEAT_SHEET.md](reports/PRESENTATION_DEFENSE_QA_CHEAT_SHEET.md)**: Bộ câu hỏi và câu trả lời ngắn gọn khi bảo vệ trước giảng viên.
+
+## Kaggle image pilot
+
+- [Guide](reports/KAGGLE_SD_IMAGE_DEMO.md) / [HTML](reports/KAGGLE_SD_IMAGE_DEMO.html)
+- [Notebook](../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb)
+
+## Kaggle full-catalog image benchmark
+
+- [Guide](reports/KAGGLE_SD_ALL_BENCHMARK.md) / [HTML](reports/KAGGLE_SD_ALL_BENCHMARK.html)
+- [Notebook: queue and resume](../notebooks/SD_ALL_BENCHMARK_KAGGLE.ipynb)
+- 32 generation configurations; full GPU catalog validation pending.
