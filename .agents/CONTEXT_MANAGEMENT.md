@@ -1,5 +1,15 @@
 # CONTEXT MANAGEMENT - QUẢN LÝ NGỮ CẢNH LLM
 
+- **Motivation/Background**: Long-horizon coding tasks suffer from context drift and window exhaustion if memory is unmanaged.
+- **Purpose**: Establish protocols for context compaction, memory offloading to documentation, and Second Brain navigation.
+- **Overview Pipeline**: Working Memory Ingestion -> Periodic Compaction -> Artifact Offloading -> Epistemic Retrieval.
+- **Detailed Plan**: §1 Context Hierarchy; §2 Markdown Memory Anchoring; §3 Subagent Handoff Patterns; §4 State Restoration.
+- **References**: `README.md`, `PROGRESS_TRACKING.md`, `../docs/README.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Quản lý Ngữ cảnh là nền tảng quyết định độ chính xác của AI Agent. Đảm bảo LLM luôn làm việc đúng phạm vi, không đoán mò và không tạo thông tin giả.
 
 ---

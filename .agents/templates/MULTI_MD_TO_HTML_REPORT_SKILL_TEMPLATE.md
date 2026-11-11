@@ -8,9 +8,10 @@
   3. *Executive Narrative Structuring*: Organize findings into a 7-stage narrative (Executive KPIs -> Architecture Topology -> Compute/Memory Footprint -> Standardized Workload Runtime -> Quantitative Benchmarks -> Qualitative Diffs -> Strategic Roadmap).
   4. *CSS Token & Component Engine*: Apply a dual-theme design system with explicit light-mode overrides to eliminate hardcoded dark residue.
   5. *Automated Compilation*: Run a parameterized Python script (`build_executive_report.py`) with built-in HTML tree validation.
+- **Detailed Plan**: §1 Universal Architectural & UX Design Principles; §2 Standardized 7-Stage Executive Narrative; §3 Complete Executable Builder Blueprint; §4 Verification & Compliance Checklist.
 - **References**: `.agents/templates/EXPERIMENT_TEMPLATE.md`, `.agents/templates/PHASE_DOC_TEMPLATE.md`.
 - **Created**: 2026-09-19T11:58:00+07:00
-- **Last Updated**: 2026-09-19T12:35:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
 
 ---
 

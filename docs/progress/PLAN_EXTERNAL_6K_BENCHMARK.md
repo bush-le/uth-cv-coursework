@@ -1,5 +1,15 @@
 # External 6k Legacy Synthetic Benchmark Implementation Plan
 
+- **Motivation/Background**: Out-of-distribution evaluation against 6,000 blind synthetic images is essential to verify zero-shot generalizability beyond the training distribution.
+- **Purpose**: Implementation plan for extracting, preparing, evaluating, and visualizing the 6,000 external RealisticVision v5.1 benchmark.
+- **Overview Pipeline**: Zip extraction -> Manifest rebasing -> GPU batch inference across M0/M1/M2/M2* -> Metric logging -> Visual dashboard generation.
+- **Detailed Plan**: Task 1 Dataset Extraction & Rebasing; Task 2 Dedicated Benchmark Pipeline; Task 3 Metric Schema & Contract Verification; Task 4 Visualizer Integration; Task 5 Coursework Integration & Verification.
+- **References**: `../../docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md`, `../../configs/dataset_factory.yaml`.
+- **Created**: 2026-11-10T14:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Extract the 6,000 external synthetic face images from `synthetic_face_dataset_6k.zip`, benchmark detector models ($M_0, M_1, M_2$) for out-of-distribution Fake Recall and Bypass Rate, log the structured metrics, and integrate rich visual comparisons into Notebook 04.

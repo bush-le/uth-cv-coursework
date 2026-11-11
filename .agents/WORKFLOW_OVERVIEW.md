@@ -1,5 +1,15 @@
 # WORKFLOW OVERVIEW - TỔNG QUAN TOÀN BỘ QUY TRÌNH HỆ THỐNG
 
+- **Motivation/Background**: High-level overview of the entire repository workflow, connecting human developers, agents, tools, and documentation.
+- **Purpose**: Provide a macro view of the Second Brain ecosystem and engineering operational mechanics.
+- **Overview Pipeline**: Repository Orientation -> Second Brain Navigation -> Tool Execution -> Milestone Verification.
+- **Detailed Plan**: §1 Ecosystem Map; §2 Core Workflows; §3 Quality Assurance Gates; §4 Governance Maintenance.
+- **References**: `README.md`, `AI_FIRST_LIFECYCLE.md`, `../GEMINI.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Toàn cảnh luồng thực thi khép kín từ Requirement đến Complete. Kết hợp Quản trị LLM và Kỹ thuật Phần mềm chuẩn công nghiệp.
 
 ---

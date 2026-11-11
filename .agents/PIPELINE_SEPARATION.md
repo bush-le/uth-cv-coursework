@@ -1,5 +1,15 @@
 # PIPELINE SEPARATION - NGUYÊN TẮC PHÂN TÁCH PIPELINE ĐỘC LẬP
 
+- **Motivation/Background**: Monolithic code inside Jupyter Notebooks causes silent state corruption, non-reproducibility, and testing failures.
+- **Purpose**: Enforce the absolute architectural separation between modular library logic (`src/`), executable pipelines (`src/pipelines/`, `scripts/`), and visualization notebooks (`notebooks/`).
+- **Overview Pipeline**: Logic Modularization (`src/`) -> Script Pipeline Execution -> Visual Inspection in Notebooks (`notebooks/`).
+- **Detailed Plan**: §1 Script vs Notebook Boundary; §2 Prohibited Patterns; §3 Notebook Client Paradigm; §4 Enforcement Mechanisms.
+- **References**: `../GEMINI.md`, `rules/NOTEBOOK_INSPECTION_RULE.md`, `rules/SCRIPT_TRAINING_RULE.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Hệ thống bắt buộc chia tách thành các pipeline độc lập. Không nhồi nhét toàn bộ logic vào một prompt hoặc một file duy nhất.
 
 ---

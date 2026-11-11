@@ -1,14 +1,12 @@
 # [Reference Title] — Reference Guide Template
 
-| Field | Value |
-| :--- | :--- |
-| **Document Type** | Reference Guide Template |
-| **Status** | Active Template |
-| **Owner** | AI Agent & Engineering Team |
-| **Scope** | Global Repository / Reusable Knowledge |
-| **Created** | 2026-09-06T21:05:00+07:00 |
-| **Last Updated** | 2026-09-06T21:05:00+07:00 |
-| **Reference** | [docs/references/README.md](../../docs/references/README.md) |
+- **Motivation/Background**: Reusable knowledge, tool configurations, and architectural guides must follow a uniform, structured format across the repository.
+- **Purpose**: Serve as a canonical template for creating reference guides in the project.
+- **Overview Pipeline**: Ingestion of reference context -> Structuring core concepts -> Documenting implementation guidelines -> Reference verification.
+- **Detailed Plan**: §1 Context & Purpose; §2 Core Concepts & Architectural Rules; §3 Technical Specifications & Code Patterns; §4 Operational Recipes & Edge Cases.
+- **References**: `../rules/MD_CONVENTION.md`, `CREATE_FOLDER_STRUCTURE_TEMPLATE.md`.
+- **Created**: 2026-09-06T21:05:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
 
 ---
 

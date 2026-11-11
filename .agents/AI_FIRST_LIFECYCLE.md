@@ -1,5 +1,15 @@
 # AI-FIRST LIFECYCLE - VÒNG ĐỜI KỸ THUẬT AI-FIRST TOÀN DIỆN
 
+- **Motivation/Background**: Complex CV/Deepfake systems require an end-to-end disciplined lifecycle from problem framing to deployment.
+- **Purpose**: Specify the 9 macro engineering phases governing project evolution.
+- **Overview Pipeline**: Phase 1 Problem Definition -> Phase 2 Dataset Factory -> Phase 3 Baseline Model -> Phase 4 Deep Architecture -> Phase 5 Hard Mining -> Phase 6 Active Learning -> Phase 7 OOD Benchmark -> Phase 8 Production Packaging -> Phase 9 Defense Presentation.
+- **Detailed Plan**: §1 Macro Lifecycle Map; §2 Phase-by-Phase Deliverables & Gates; §3 Milestone Checkpoints; §4 Governance Rules.
+- **References**: `README.md`, `WORKFLOW_OVERVIEW.md`, `PROGRESS_TRACKING.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 AI hỗ trợ từ phân tích bài toán, sau đó lần lượt triển khai dữ liệu, mô hình và tích hợp hệ thống qua 9 giai đoạn kỹ thuật.
 
 ---

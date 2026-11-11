@@ -1,5 +1,15 @@
 # AI REFERENCE - BỘ QUY CHUẨN THAM CHIẾU BẮT BUỘC CHO AI AGENT
 
+- **Motivation/Background**: AI agents require an unambiguous, consolidated reference manual for domain invariants and technical formulas.
+- **Purpose**: Provide the authoritative domain dictionary, mathematical formulas, and tensor contracts for Computer Vision and Deepfake Defense.
+- **Overview Pipeline**: Domain Invariants Ingestion -> Tensor Contracts -> Metrics Formulation -> Architectural Reference.
+- **Detailed Plan**: §1 5 CV Domain Invariants; §2 Mathematical Formulas (AUC, EER, Contrastive Loss); §3 Architecture Specifications (DINOv2, SD 1.5); §4 Common Gotchas.
+- **References**: `../GEMINI.md`, `rules/ZERO_MOCK_DATA_RULE.md`, `rules/COLOR_SPACE_RULE.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 AI Agent phải tuyệt đối tuân thủ toàn bộ quy chuẩn trong tài liệu này. Bất kỳ sai lệch nào sẽ bị từ chối ở bước Codebase Audit.
 
 ---

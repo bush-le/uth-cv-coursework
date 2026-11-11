@@ -1,5 +1,15 @@
 # AI AGENT WORKFLOW SYSTEM - THE COGNITIVE OPERATING BLUEPRINT
 
+- **Motivation/Background**: Establishes the cognitive operating system, architectural constraints, and lifecycle workflows for AI agents operating in the repository.
+- **Purpose**: Serve as the root orientation and Second Brain guide for autonomous and paired AI agents.
+- **Overview Pipeline**: Cognitive Protocol Ingestion -> Context Anchoring -> Task Routing -> Contract Output -> Verification.
+- **Detailed Plan**: §1 Agent Cognitive Protocol; §2 Second Brain Directory Architecture; §3 9-Phase Macro Engineering Lifecycle; §4 7-Step Micro Pair Programming Loop; §5 Immutable Rules & Quality Gates.
+- **References**: `../GEMINI.md`, `rules/`, `templates/`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Hệ thống quy trình kỹ thuật chuẩn hóa, vòng đời phát triển và quy chuẩn chất lượng cao nhất cho AI Agent & Kỹ sư trong các dự án Thị giác Máy tính (Computer Vision) & MLOps.
 
 Thư mục này đóng vai trò là **Bộ não Thứ hai (Second Brain)** của Kỹ sư. Mỗi khi bắt đầu một dự án mới, chỉ cần đưa thư mục `.agents/` vào repository và yêu cầu: *"Đọc thư mục .agents/ và bắt đầu làm việc"*. Agent sẽ lập tức tiếp nhận 100% tư duy thiết kế, ranh giới Clean Architecture, chu trình phát triển 9 giai đoạn và các luật bất biến kỹ thuật để triển khai chính xác tuyệt đối mọi yêu cầu.

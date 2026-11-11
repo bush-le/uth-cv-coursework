@@ -1,5 +1,15 @@
 # TROUBLESHOOTING - QUY TRÌNH XỬ LÝ SỰ CỐ & PHÂN TÍCH NGUYÊN NHÂN GỐC RỄ
 
+- **Motivation/Background**: Machine learning development involves subtle numerical instabilities, CUDA errors, and shape mismatches.
+- **Purpose**: Provide a fast-lookup diagnostic manual for common failure modes and deterministic remedies.
+- **Overview Pipeline**: Symptom Recognition -> Root Cause Isolation -> Minimal Test Reproduction -> Verified Remedy.
+- **Detailed Plan**: §1 CUDA & Memory Out-of-Memory; §2 Shape & Color Space Mismatches; §3 Training Loss NaN/Divergence; §4 Git Sandbox Issues.
+- **References**: `AI_REFERENCE.md`, `rules/COLOR_SPACE_RULE.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Quy trình chuẩn hóa xử lý lỗi runtime, crash và sai lệch số học trong Computer Vision & MLOps. Nghiêm cấm sửa mò (trial-and-error) hoặc dùng try-except để che giấu lỗi.
 
 ---

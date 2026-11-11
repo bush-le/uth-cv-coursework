@@ -1,5 +1,15 @@
 # TESTING STRATEGY - CHIẾN LƯỢC KIỂM THỬ HAI CHẾ ĐỘ
 
+- **Motivation/Background**: Deep learning codebases without fast, deterministic testing degrade rapidly through silent regression.
+- **Purpose**: Define the testing pyramid, smoke test gate (< 5s), numerical tolerance thresholds, and mock isolation.
+- **Overview Pipeline**: Unit Tests -> Smoke Tests (< 5s) -> Integration Pipelines -> Checkpoint Verification.
+- **Detailed Plan**: §1 Testing Pyramid; §2 Fast Smoke Test Gate; §3 Tensor Shape & Numerical Assertions; §4 CI/CD Makefile Targets.
+- **References**: `../GEMINI.md`, `rules/TEST_BEFORE_CODE_RULE.md`, `rules/ZERO_MOCK_DATA_RULE.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Áp dụng Chiến lược Kiểm thử 2 Chế độ: Smoke Test nhanh (< 5s) trước, Normal Test đầy đủ sau.
 
 ---

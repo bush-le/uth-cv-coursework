@@ -1,5 +1,15 @@
 # BEHAVIORAL LAYER - ĐIỀU KHIỂN HÀNH VI QUA PROMPTING SCHEMA
 
+- **Motivation/Background**: Autonomous agents must maintain rigorous engineering discipline, zero-assumption mindset, and fail-fast behavior.
+- **Purpose**: Define behavioral invariants, persona traits, and operational guardrails for AI coding assistants.
+- **Overview Pipeline**: Persona Alignment -> Operational Axioms -> Conflict Resolution -> Output Structuring.
+- **Detailed Plan**: §1 Cognitive Persona; §2 Zero-Guesswork Protocol; §3 Fail-Fast Invariant; §4 Quality Assurance Standards.
+- **References**: `README.md`, `AGENT_INTERACTION_LOOP.md`, `../GEMINI.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Toàn bộ hành vi AI được điều khiển qua các file Markdown có cấu trúc đồng nhất thay vì câu lệnh tùy hứng.
 
 ---

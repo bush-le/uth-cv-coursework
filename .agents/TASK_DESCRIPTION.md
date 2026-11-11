@@ -1,5 +1,15 @@
 # TASK DESCRIPTION - QUY TRÌNH MÔ TẢ CÔNG VIỆC CHI TIẾT
 
+- **Motivation/Background**: Vague task definitions lead to scope creep, mismatched assumptions, and broken tests.
+- **Purpose**: Specify the standard schema for task descriptions, input/output contracts, and acceptance criteria.
+- **Overview Pipeline**: Scope Identification -> Tensor Contract Definition -> Granular Plan -> DoD Checklist.
+- **Detailed Plan**: §1 Task Description Schema; §2 Contract-First Requirements; §3 Acceptance Verification; §4 Examples.
+- **References**: `AGENT_INTERACTION_LOOP.md`, `rules/CONTRACT_FIRST_RULE.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Mọi tác vụ phải được mô tả chi tiết theo cấu trúc phân cấp: **Plan → Pipeline → Detailed Execution Plan** trước khi viết bất kỳ dòng code nào.
 
 ---

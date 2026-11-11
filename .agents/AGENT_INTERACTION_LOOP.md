@@ -1,5 +1,15 @@
 # AGENT INTERACTION LOOP - CHU TRÌNH TƯƠNG TÁC VI MÔ 7 BƯỚC
 
+- **Motivation/Background**: Defines the micro-level step-by-step collaboration loop between the Human Engineer and the AI Agent.
+- **Purpose**: Ensure deterministic, test-driven, contract-first pair programming without hallucinations or regressions.
+- **Overview Pipeline**: Task Intake -> Contract Formulation -> Failing Test -> Minimal Vectorized Code -> Smoke Verification -> Atomic Commit.
+- **Detailed Plan**: §1 The 7-Step Micro Pair Loop; §2 Failure Recovery Protocol; §3 DoD Checklist; §4 Communication Best Practices.
+- **References**: `README.md`, `AI_FIRST_LIFECYCLE.md`, `rules/TEST_BEFORE_CODE_RULE.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Nhịp điệu làm việc giữa Kỹ sư và AI Agent cho mỗi tác vụ lập trình cụ thể:
 
 `Describe → Generate → Review → Run → Test → Refactor → Commit`

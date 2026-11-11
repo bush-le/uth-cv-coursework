@@ -1,5 +1,15 @@
 # CODEBASE AUDIT - QUY TRÌNH KIỂM TOÁN MÃ NGUỒN SINH RA
 
+- **Motivation/Background**: Continuous verification of architectural boundaries and code hygiene prevents technical debt accumulation.
+- **Purpose**: Guide comprehensive codebase inspection, boundary auditing, and structural refactoring.
+- **Overview Pipeline**: Static AST Analysis -> Rule Verification -> Clean Architecture Auditing -> Automated Remediation.
+- **Detailed Plan**: §1 Audit Dimensions; §2 Architectural Separation Check; §3 Zero-Hardcode & Zero-Mock Verification; §4 Reporting Format.
+- **References**: `rules/ZERO_HARDCODE_RULE.md`, `rules/ZERO_MOCK_DATA_RULE.md`, `PIPELINE_SEPARATION.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Code do AI sinh ra không bao giờ được commit trực tiếp. Kỹ sư phải thực hiện Codebase Audit qua 3 tầng thẩm định nghiêm ngặt.
 
 ---

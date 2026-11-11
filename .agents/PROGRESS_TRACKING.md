@@ -1,5 +1,15 @@
 # PROGRESS TRACKING - THEO DÕI TIẾN ĐỘ & TRẠNG THÁI CÔNG VIỆC
 
+- **Motivation/Background**: Transparent, verifiable task progress is required to maintain momentum across extended development sessions.
+- **Purpose**: Define standards for task breakdown, progress ledgers, milestone tracking, and phase sign-offs.
+- **Overview Pipeline**: Roadmap Ingestion -> Task Ledger Logging -> Smoke Verification -> Milestone Sign-off.
+- **Detailed Plan**: §1 Task Tracking Taxonomy; §2 Progress Ledger Formatting; §3 Definition of Done; §4 Rollback Protocol.
+- **References**: `AI_FIRST_LIFECYCLE.md`, `../docs/progress/TASK_PROGRESS.md`, `../docs/progress/PROJECT_ROADMAP.md`.
+- **Created**: 2026-11-02T07:30:00+07:00
+- **Last Updated**: 2026-11-11T23:25:00+07:00
+
+---
+
 Mọi tác vụ phải được gắn trạng thái rõ ràng theo chuẩn Kanban để AI không lặp lại công việc đã làm hoặc bỏ sót bước quan trọng.
 
 ---
