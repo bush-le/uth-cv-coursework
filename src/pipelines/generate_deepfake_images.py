@@ -3,7 +3,7 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from PIL import Image
 import torch
@@ -175,11 +175,9 @@ def run_image_generation(
     fake_records = []
 
     if not in_manifest_path.exists():
-        logger.warning("Input manifest %s not found, generating minimal sample.", in_manifest_path)
-        real_items = [{"image_id": "real_sample_01", "label": 0}]
-    else:
-        with open(in_manifest_path, "r", encoding="utf-8") as f:
-            real_items = [json.loads(line) for line in f if line.strip()]
+        raise FileNotFoundError(f"Input manifest not found: {in_manifest_path}")
+    with open(in_manifest_path, "r", encoding="utf-8") as f:
+        real_items = [json.loads(line) for line in f if line.strip()]
 
     if max_samples_val is not None and max_samples_val > 0:
         real_items = real_items[:max_samples_val]
