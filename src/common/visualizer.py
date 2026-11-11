@@ -2266,6 +2266,7 @@ def plot_dinov2_architecture_and_parameters(
 ) -> Any:
     """Plot DINOv2 ViT-S/14 architecture flowchart and selective freezing parameter breakdown."""
     import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
 
     fig, axes = plt.subplots(1, 2, figsize=(15, 6))
     fig.patch.set_facecolor("#ffffff")
