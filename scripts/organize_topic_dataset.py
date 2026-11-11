@@ -7,9 +7,17 @@ and auto-generates dataset analytics.
 
 import argparse
 import json
+import os
 from pathlib import Path
 import shutil
+import sys
 from typing import Any, Dict, List, Optional
+
+# Automatic root resolution
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+os.chdir(_ROOT)
 
 from src.common.config import cfg_get, load_config, resolve
 from src.common.logger import get_logger

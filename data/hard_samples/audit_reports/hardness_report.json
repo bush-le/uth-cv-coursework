@@ -1,0 +1,36 @@
+{
+  "title": "Comprehensive Adversarial Hard-Sample Vault Audit Report",
+  "total_hard_samples": 740,
+  "allocation": {
+    "round_1_mined": 553,
+    "round_2_mined": 187,
+    "retraining_buffer_D2": 629,
+    "cumulative_challenge_test_vault": 213
+  },
+  "breakdown_by_manipulation_type": {
+    "sd_inpaint": 578,
+    "sd_img2img": 136,
+    "sd_text2img": 26
+  },
+  "breakdown_by_gender": {
+    "male": 340,
+    "female": 400
+  },
+  "breakdown_by_age_group": {
+    "0-2": 18,
+    "30-39": 144,
+    "3-6": 96,
+    "20-29": 235,
+    "40-49": 95,
+    "50-69": 66,
+    "10-14": 32,
+    "70-120": 13,
+    "15-19": 31,
+    "7-9": 10
+  },
+  "confidence_statistics": {
+    "mean_fake_prob": 0.2698706756756757,
+    "min_fake_prob": 0.0221,
+    "max_fake_prob": 0.5973
+  }
+}

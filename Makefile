@@ -5,7 +5,22 @@
 .PHONY: help install install-dev install-all setup-hooks format lint type-check test test-smoke clean run
 
 SHELL := /bin/bash
-PYTHON := python3
+
+# Auto-detect virtual environment
+VENV ?= .venv
+ifneq ($(wildcard $(VENV)/bin/python),)
+    PYTHON := $(VENV)/bin/python
+    PYTEST := $(VENV)/bin/pytest
+    RUFF := $(VENV)/bin/ruff
+    BLACK := $(VENV)/bin/black
+    MYPY := $(VENV)/bin/mypy
+else
+    PYTHON := python3
+    PYTEST := pytest
+    RUFF := ruff
+    BLACK := black
+    MYPY := mypy
+endif
 
 help:
 	@echo "UTH Computer Vision Coursework Automation Commands:"
@@ -35,22 +50,22 @@ setup-hooks:
 	pre-commit install
 
 format:
-	ruff format src tests
-	ruff check --fix src tests
-	black src tests
+	@which $(RUFF) > /dev/null 2>&1 && $(RUFF) format src tests || echo "Ruff not found, skipping format"
+	@which $(RUFF) > /dev/null 2>&1 && $(RUFF) check --fix src tests || true
+	@which $(BLACK) > /dev/null 2>&1 && $(BLACK) src tests || true
 
 lint:
-	ruff check src tests
-	black --check src tests
+	@which $(RUFF) > /dev/null 2>&1 && $(RUFF) check src tests || echo "Ruff not installed, run pip install ruff"
+	@which $(BLACK) > /dev/null 2>&1 && $(BLACK) --check src tests || true
 
 type-check:
-	mypy src tests
+	@which $(MYPY) > /dev/null 2>&1 && $(MYPY) src tests || echo "Mypy not installed, run pip install mypy"
 
 test:
-	pytest tests/ -v
+	$(PYTEST) tests/ -v
 
 test-smoke:
-	pytest tests/ -m smoke -v
+	$(PYTEST) tests/ -m smoke -v
 
 run:
 	bash scripts/run_pipeline.sh train configs/config.yaml

@@ -8,6 +8,15 @@ Coordinates:
 - Replay Buffer accumulation: D0 subset of D1 subset of D2 (Prevents catastrophic forgetting)
 """
 
+import os
+from pathlib import Path
+import sys
+
+# Automatic root resolution for direct script execution
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import argparse
 from copy import deepcopy
 import json

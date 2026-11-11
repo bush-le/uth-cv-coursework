@@ -634,3 +634,114 @@ def compute_calibration_curve(
             confs.append((bin_lower + bin_upper) / 2.0)
 
     return np.array(accs, dtype=np.float32), np.array(confs, dtype=np.float32), np.array(counts, dtype=np.int64)
+
+
+def simulate_cascaded_defense(
+    m1_probs: np.ndarray | list[float],
+    m2_probs: np.ndarray | list[float],
+    labels: np.ndarray | list[int] | None = None,
+    tau1: float = 0.30,
+    tau2: float = 0.50,
+) -> dict[str, float]:
+    """Simulate a two-stage cascaded deepfake defense pipeline.
+
+    Stage 1: M1 acts as high-throughput perimeter sensor (threshold tau1).
+             If p1 < tau1, sample is immediately passed as REAL (bypassed).
+             If p1 >= tau1, sample is flagged as SUSPICIOUS and routed to Stage 2.
+    Stage 2: M2 acts as forensic adversarial verifier (threshold tau2).
+             If p2 >= tau2, sample is confirmed as FAKE (detected).
+             If p2 < tau2, sample is cleared as REAL.
+
+    Args:
+        m1_probs: Predicted probabilities from Model M1, shape (N,).
+        m2_probs: Predicted probabilities from Model M2, shape (N,).
+        labels: Optional ground-truth binary labels (1=fake, 0=real), shape (N,).
+        tau1: Screening threshold for Stage 1 (default: 0.30).
+        tau2: Verification threshold for Stage 2 (default: 0.50).
+
+    Returns:
+        Dictionary of simulated defense metrics:
+        - total_samples: Total number of evaluated samples.
+        - stage1_intercept_rate: Fraction of samples routed to Stage 2.
+        - stage2_filtered_rate: Fraction of routed samples cleared by Stage 2.
+        - overall_flagged_fake: Total samples declared fake by the cascade.
+        - cascade_detection_rate: Fraction of total samples flagged as fake.
+        - overall_recall: Recall on fake samples (if labels provided).
+        - overall_precision: Precision on fake samples (if labels provided).
+        - overall_accuracy: Overall accuracy (if labels provided).
+        - overall_bypass_rate: Bypass rate on fake samples (if labels provided).
+        - false_positive_rate: False positive rate on real samples (if labels provided).
+    """
+    p1 = np.asarray(m1_probs, dtype=np.float32)
+    p2 = np.asarray(m2_probs, dtype=np.float32)
+    n = len(p1)
+    if n == 0:
+        return {
+            "total_samples": 0.0,
+            "stage1_intercept_rate": 0.0,
+            "stage2_filtered_rate": 0.0,
+            "overall_flagged_fake": 0.0,
+            "cascade_detection_rate": 0.0,
+        }
+
+    # Stage 1: M1 screening
+    stage1_flagged = p1 >= tau1
+    num_routed = int(np.sum(stage1_flagged))
+
+    # Stage 2: M2 verification on routed samples
+    final_pred = np.zeros(n, dtype=bool)
+    if num_routed > 0:
+        final_pred[stage1_flagged] = p2[stage1_flagged] >= tau2
+
+    num_flagged = int(np.sum(final_pred))
+    intercept_rate = float(num_routed / n)
+    cleared_count = num_routed - num_flagged
+    cleared_rate = float(cleared_count / num_routed) if num_routed > 0 else 0.0
+    detection_rate = float(num_flagged / n)
+
+    results: dict[str, float] = {
+        "total_samples": float(n),
+        "stage1_intercept_rate": intercept_rate,
+        "stage2_filtered_rate": cleared_rate,
+        "overall_flagged_fake": float(num_flagged),
+        "cascade_detection_rate": detection_rate,
+    }
+
+    if labels is not None:
+        y_true = np.asarray(labels, dtype=np.int64)
+        positives = y_true == 1
+        negatives = y_true == 0
+        num_pos = int(np.sum(positives))
+        num_neg = int(np.sum(negatives))
+
+        # Overall Accuracy
+        acc = float(np.mean(final_pred == positives))
+        results["overall_accuracy"] = acc
+
+        # Recall & Bypass Rate on Fake samples
+        if num_pos > 0:
+            true_positives = int(np.sum(final_pred & positives))
+            recall = float(true_positives / num_pos)
+            results["overall_recall"] = recall
+            results["overall_bypass_rate"] = 1.0 - recall
+        else:
+            results["overall_recall"] = 0.0
+            results["overall_bypass_rate"] = 0.0
+
+        # Precision on Fake samples
+        if num_flagged > 0:
+            precision = float(np.sum(final_pred & positives) / num_flagged)
+            results["overall_precision"] = precision
+        else:
+            results["overall_precision"] = 1.0 if num_pos == 0 else 0.0
+
+        # False Positive Rate on Real samples
+        if num_neg > 0:
+            false_positives = int(np.sum(final_pred & negatives))
+            fpr = float(false_positives / num_neg)
+            results["false_positive_rate"] = fpr
+        else:
+            results["false_positive_rate"] = 0.0
+
+    return results
+

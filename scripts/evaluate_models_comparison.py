@@ -1,9 +1,25 @@
+import os
+from pathlib import Path
+import sys
+
+# Automatic root resolution for direct script execution
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 #!/usr/bin/env python3
 """Unified evaluation of M0, M1, and M2 detectors on both Master Frozen Test Vault and Cumulative Challenge Test Vault."""
 
 import json
+import os
+import sys
 from pathlib import Path
 from typing import Dict, Any
+
+root_dir = Path(__file__).resolve().parents[1]
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+os.chdir(root_dir)
 
 import torch
 from src.common.logger import get_logger

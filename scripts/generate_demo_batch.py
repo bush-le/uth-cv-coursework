@@ -3,6 +3,15 @@
 and detailed biometric/optical audit for thorough manual and automated inspection.
 """
 
+import os
+from pathlib import Path
+import sys
+
+# Automatic root resolution for direct script execution
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import json
 from pathlib import Path
 import shutil

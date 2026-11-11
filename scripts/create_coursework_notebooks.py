@@ -1,5 +1,14 @@
 """Script to generate clean coursework Jupyter Notebooks with proper markdown formatting."""
 
+import os
+from pathlib import Path
+import sys
+
+# Automatic root resolution for direct script execution
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union

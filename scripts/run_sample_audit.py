@@ -1,6 +1,15 @@
 """Script to generate a 30-sample multi-modal deepfake audit batch (10 T2I, 10 I2I, 10 Inpaint),
 curate them with the hardened Curation Gate, and perform exhaustive biometric scan."""
 
+import os
+from pathlib import Path
+import sys
+
+# Automatic root resolution for direct script execution
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import json
 from pathlib import Path
 from typing import Any, Dict, List

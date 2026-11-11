@@ -5,6 +5,15 @@ Dynamically allocates candidate generation budgets across synthesis modalities
 detector error feedback, while strictly shielding demographic diversity.
 """
 
+import os
+from pathlib import Path
+import sys
+
+# Automatic root resolution for direct script execution
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 from typing import Any, Dict, List, Optional
 import numpy as np
 

@@ -1,5 +1,14 @@
 """Pipeline entrypoint: Phase 1 batch generation of synthetic deepfake facial images via Stable Diffusion."""
 
+import os
+from pathlib import Path
+import sys
+
+# Automatic root resolution for direct script execution
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import argparse
 import json
 from pathlib import Path

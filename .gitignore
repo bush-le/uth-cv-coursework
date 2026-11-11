@@ -82,8 +82,14 @@ data/processed/*
 !data/processed/.gitkeep
 data/synthetic/*
 !data/synthetic/.gitkeep
-data/hard_samples/*
-!data/hard_samples/.gitkeep
+!data/synthetic/curated_manifest.jsonl
+!data/synthetic/fake_manifest.jsonl
+data/hard_samples/images/*
+!data/hard_samples/images/.gitkeep
+!data/hard_samples/hard_samples_manifest.jsonl
+!data/hard_samples/audit_reports/
+!data/hard_samples/audit_reports/**
+!data/hard_samples/README.md
 data/benchmarks/*
 !data/benchmarks/.gitkeep
 data/partitions/*

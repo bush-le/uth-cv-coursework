@@ -9,9 +9,17 @@ Extracts hard synthetic samples:
 import argparse
 from dataclasses import asdict, dataclass
 import json
+import os
 from pathlib import Path
 import shutil
+import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+# Automatic root resolution for direct script execution
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import numpy as np
 import torch
 import torch.nn as nn
