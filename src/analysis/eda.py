@@ -25,7 +25,10 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import matplotlib.pyplot as plt
 from itertools import combinations
 import numpy as np
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError:
+    pd = None  # type: ignore
 from PIL import Image, UnidentifiedImageError
 from tqdm import tqdm
 
