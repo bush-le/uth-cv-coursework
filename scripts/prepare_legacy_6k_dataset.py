@@ -12,6 +12,7 @@ if str(_ROOT) not in sys.path:
 
 import json
 from pathlib import Path
+from typing import Optional
 import zipfile
 
 from src.common.logger import get_logger
@@ -20,7 +21,7 @@ logger = get_logger(__name__)
 
 
 def prepare_legacy_6k(
-    zip_path: Path = Path("/home/bush/Downloads/synthetic_face_dataset_6k.zip"),
+    zip_path: Optional[Path] = None,
     dest_dir: Path = Path("data/external_benchmarks/synthetic_face_dataset_6k"),
 ) -> int:
     """Extract and rebase manifest for the external 6k synthetic dataset.
@@ -32,6 +33,12 @@ def prepare_legacy_6k(
     Returns:
         Number of verified images.
     """
+    if zip_path is None:
+        candidate_zip = Path.home() / "Downloads/synthetic_face_dataset_6k.zip"
+        if candidate_zip.exists():
+            zip_path = candidate_zip
+        else:
+            zip_path = Path("data/external_benchmarks/synthetic_face_dataset_6k.zip")
     if not zip_path.exists():
         raise FileNotFoundError(f"Source zip not found at: {zip_path}")
 

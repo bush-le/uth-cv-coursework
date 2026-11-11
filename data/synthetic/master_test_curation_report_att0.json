@@ -1,0 +1,589 @@
+{"image_id": "fake_ffhq_00016_0", "is_valid": true, "sharpness_score": 6.034037563949823, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00016_1", "is_valid": true, "sharpness_score": 5.7814884930849075, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00016_2", "is_valid": true, "sharpness_score": 5.867819767445326, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00016_3", "is_valid": true, "sharpness_score": 6.049292162060738, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00031_0", "is_valid": true, "sharpness_score": 18.27848143875599, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00031_1", "is_valid": true, "sharpness_score": 19.762646406888962, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00031_2", "is_valid": true, "sharpness_score": 18.775081261992455, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00031_3", "is_valid": true, "sharpness_score": 19.03124712407589, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00033_0", "is_valid": false, "sharpness_score": 29.794519767165184, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (10.39% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00033_1", "is_valid": false, "sharpness_score": 11.531389318406582, "clip_score": null, "face_detected": true, "rejection_reasons": ["Multiple faces detected (2), expecting single portrait"]}
+{"image_id": "fake_ffhq_00033_2", "is_valid": false, "sharpness_score": 5.192094016820192, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.03% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.12, 0.23)"]}
+{"image_id": "fake_ffhq_00033_3", "is_valid": true, "sharpness_score": 10.28358843177557, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00046_0", "is_valid": true, "sharpness_score": 7.088919170200825, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00046_1", "is_valid": true, "sharpness_score": 7.255136966705322, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00046_2", "is_valid": true, "sharpness_score": 7.021637633442879, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00046_3", "is_valid": true, "sharpness_score": 6.769764237105846, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00053_0", "is_valid": true, "sharpness_score": 6.692323833703995, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00053_1", "is_valid": true, "sharpness_score": 7.437798660248518, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00053_2", "is_valid": true, "sharpness_score": 6.39130175113678, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00053_3", "is_valid": true, "sharpness_score": 6.641231942921877, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00057_0", "is_valid": true, "sharpness_score": 13.448340818285942, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00057_1", "is_valid": true, "sharpness_score": 34.833770245313644, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00057_2", "is_valid": true, "sharpness_score": 14.415391720831394, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00057_3", "is_valid": false, "sharpness_score": 24.277038872241974, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (15.26% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00059_0", "is_valid": true, "sharpness_score": 12.654134072363377, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00059_1", "is_valid": true, "sharpness_score": 12.922021560370922, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00059_2", "is_valid": true, "sharpness_score": 12.837348505854607, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00059_3", "is_valid": true, "sharpness_score": 14.296873472630978, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00070_0", "is_valid": true, "sharpness_score": 9.809155017137527, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00070_1", "is_valid": true, "sharpness_score": 9.79982316493988, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00070_2", "is_valid": true, "sharpness_score": 9.816376492381096, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00070_3", "is_valid": true, "sharpness_score": 9.80332214385271, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00090_0", "is_valid": false, "sharpness_score": 9.114190004765987, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (18.13% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00090_1", "is_valid": true, "sharpness_score": 11.504258960485458, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00090_2", "is_valid": true, "sharpness_score": 5.123300012201071, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00090_3", "is_valid": false, "sharpness_score": 5.877213552594185, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (3.02% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00093_0", "is_valid": true, "sharpness_score": 8.840836584568024, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00093_1", "is_valid": true, "sharpness_score": 8.242715150117874, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00093_2", "is_valid": true, "sharpness_score": 8.210894651710987, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00093_3", "is_valid": true, "sharpness_score": 8.304126560688019, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00107_0", "is_valid": true, "sharpness_score": 18.41164380311966, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00107_1", "is_valid": false, "sharpness_score": 18.29218678176403, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00107_2", "is_valid": true, "sharpness_score": 18.365509808063507, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00107_3", "is_valid": false, "sharpness_score": 18.373774364590645, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (5.49% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00115_0", "is_valid": false, "sharpness_score": 12.026529759168625, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00115_1", "is_valid": true, "sharpness_score": 23.21559749543667, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00115_2", "is_valid": false, "sharpness_score": 24.611689150333405, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (4.29% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00115_3", "is_valid": true, "sharpness_score": 26.979146525263786, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00117_0", "is_valid": true, "sharpness_score": 13.658716343343258, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00117_1", "is_valid": true, "sharpness_score": 14.27825354039669, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00117_2", "is_valid": true, "sharpness_score": 13.139340095221996, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00117_3", "is_valid": true, "sharpness_score": 14.633016660809517, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00119_0", "is_valid": true, "sharpness_score": 10.412126779556274, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00119_1", "is_valid": true, "sharpness_score": 10.120075196027756, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00119_2", "is_valid": true, "sharpness_score": 10.576116852462292, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00119_3", "is_valid": true, "sharpness_score": 10.396023280918598, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00123_0", "is_valid": false, "sharpness_score": 41.504330933094025, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00123_1", "is_valid": true, "sharpness_score": 28.309457004070282, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00123_2", "is_valid": true, "sharpness_score": 18.728235736489296, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00123_3", "is_valid": false, "sharpness_score": 25.93604288995266, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00126_0", "is_valid": true, "sharpness_score": 5.12618338689208, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00126_1", "is_valid": true, "sharpness_score": 4.950350150465965, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00126_2", "is_valid": true, "sharpness_score": 5.166452378034592, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00126_3", "is_valid": true, "sharpness_score": 5.104683805257082, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00158_0", "is_valid": true, "sharpness_score": 5.6083546951413155, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00158_1", "is_valid": true, "sharpness_score": 5.7550766505301, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00158_2", "is_valid": true, "sharpness_score": 5.683999974280596, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00158_3", "is_valid": true, "sharpness_score": 5.562545731663704, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00159_0", "is_valid": false, "sharpness_score": 7.433873135596514, "clip_score": null, "face_detected": true, "rejection_reasons": ["Forehead / scalp amputated by top canvas border (box_top=15, skin=36.3%)"]}
+{"image_id": "fake_ffhq_00159_1", "is_valid": false, "sharpness_score": 9.610062465071678, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (16.03% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00159_2", "is_valid": true, "sharpness_score": 3.8354762364178896, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00159_3", "is_valid": true, "sharpness_score": 10.974440723657608, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00184_0", "is_valid": true, "sharpness_score": 8.550630882382393, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00184_1", "is_valid": true, "sharpness_score": 8.567878045141697, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00184_2", "is_valid": true, "sharpness_score": 9.032788686454296, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00184_3", "is_valid": true, "sharpness_score": 8.74728336930275, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00191_0", "is_valid": true, "sharpness_score": 6.411822512745857, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00191_1", "is_valid": true, "sharpness_score": 6.407910026609898, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00191_2", "is_valid": true, "sharpness_score": 6.402070168405771, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00191_3", "is_valid": true, "sharpness_score": 6.381588522344828, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00197_0", "is_valid": false, "sharpness_score": 12.400709092617035, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (0.88% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.91, 0.53)"]}
+{"image_id": "fake_ffhq_00197_1", "is_valid": false, "sharpness_score": 5.306712351739407, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00197_2", "is_valid": true, "sharpness_score": 7.777065504342318, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00197_3", "is_valid": false, "sharpness_score": 10.647191666066647, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (18.46% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00209_0", "is_valid": true, "sharpness_score": 11.339583434164524, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00209_1", "is_valid": true, "sharpness_score": 11.030848138034344, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00209_2", "is_valid": true, "sharpness_score": 11.716417036950588, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00209_3", "is_valid": true, "sharpness_score": 11.00115291774273, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00215_0", "is_valid": true, "sharpness_score": 6.882643327116966, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00215_1", "is_valid": true, "sharpness_score": 7.231906522065401, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00215_2", "is_valid": true, "sharpness_score": 6.823389325290918, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00215_3", "is_valid": true, "sharpness_score": 7.059150375425816, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00220_0", "is_valid": true, "sharpness_score": 16.57215692102909, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00220_1", "is_valid": false, "sharpness_score": 11.263844557106495, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (16.03% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00220_2", "is_valid": true, "sharpness_score": 4.997702781111002, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00220_3", "is_valid": true, "sharpness_score": 4.30769519880414, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00224_0", "is_valid": true, "sharpness_score": 5.221029743552208, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00224_1", "is_valid": true, "sharpness_score": 5.026116967201233, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00224_2", "is_valid": true, "sharpness_score": 5.2556851878762245, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00224_3", "is_valid": true, "sharpness_score": 5.342007149010897, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00235_0", "is_valid": true, "sharpness_score": 4.463223274797201, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00235_1", "is_valid": true, "sharpness_score": 3.172262804582715, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00235_2", "is_valid": true, "sharpness_score": 3.7374498788267374, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00235_3", "is_valid": true, "sharpness_score": 4.255224950611591, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00239_0", "is_valid": true, "sharpness_score": 15.178246423602104, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00239_1", "is_valid": false, "sharpness_score": 18.519379198551178, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (69.55% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00239_2", "is_valid": true, "sharpness_score": 25.670381262898445, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00239_3", "is_valid": false, "sharpness_score": 59.002868831157684, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (4.21% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00260_0", "is_valid": true, "sharpness_score": 3.83804552257061, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00260_1", "is_valid": true, "sharpness_score": 3.93705815076828, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00260_2", "is_valid": true, "sharpness_score": 4.023429471999407, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00260_3", "is_valid": true, "sharpness_score": 4.034751560539007, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00279_0", "is_valid": true, "sharpness_score": 9.908758103847504, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00279_1", "is_valid": true, "sharpness_score": 12.440641410648823, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00279_2", "is_valid": true, "sharpness_score": 14.363720081746578, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00279_3", "is_valid": false, "sharpness_score": 11.266928166151047, "clip_score": null, "face_detected": true, "rejection_reasons": ["Severe highlight blowout on face (8.6% > 8.0%)"]}
+{"image_id": "fake_ffhq_00282_0", "is_valid": true, "sharpness_score": 5.60278445482254, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00282_1", "is_valid": false, "sharpness_score": 9.521758183836937, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (2.09% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.45, 0.12)"]}
+{"image_id": "fake_ffhq_00282_2", "is_valid": false, "sharpness_score": 39.58063945174217, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.15% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.47, 0.08)"]}
+{"image_id": "fake_ffhq_00282_3", "is_valid": false, "sharpness_score": 9.681076742708683, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00286_0", "is_valid": true, "sharpness_score": 6.9006262347102165, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00286_1", "is_valid": true, "sharpness_score": 6.723047234117985, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00286_2", "is_valid": true, "sharpness_score": 6.6503603011369705, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00286_3", "is_valid": true, "sharpness_score": 6.665375549346209, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00296_0", "is_valid": true, "sharpness_score": 4.279854707419872, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00296_1", "is_valid": true, "sharpness_score": 4.1436972096562386, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00296_2", "is_valid": true, "sharpness_score": 4.254730883985758, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00296_3", "is_valid": true, "sharpness_score": 4.131029825657606, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00301_0", "is_valid": false, "sharpness_score": 15.24555403739214, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (11.55% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00301_1", "is_valid": true, "sharpness_score": 8.74751154333353, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00301_2", "is_valid": false, "sharpness_score": 6.450096610933542, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00301_3", "is_valid": false, "sharpness_score": 12.941055931150913, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (2.38% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00312_0", "is_valid": true, "sharpness_score": 9.063568897545338, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00312_1", "is_valid": true, "sharpness_score": 8.503064513206482, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00312_2", "is_valid": true, "sharpness_score": 9.304146282374859, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00312_3", "is_valid": true, "sharpness_score": 9.053095243871212, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00313_0", "is_valid": true, "sharpness_score": 7.432290818542242, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00313_1", "is_valid": true, "sharpness_score": 7.401288487017155, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00313_2", "is_valid": true, "sharpness_score": 7.54817109555006, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00313_3", "is_valid": true, "sharpness_score": 7.405814249068499, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00317_0", "is_valid": false, "sharpness_score": 6.9083864800632, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (12.09% < 20%): likely vignette/distant frame", "Forehead / scalp amputated by top canvas border (box_top=15, skin=55.8%)"]}
+{"image_id": "fake_ffhq_00317_1", "is_valid": false, "sharpness_score": 7.494720630347729, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (4.53% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00317_2", "is_valid": true, "sharpness_score": 12.67396192997694, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00317_3", "is_valid": false, "sharpness_score": 18.057310953736305, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.47% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00324_0", "is_valid": true, "sharpness_score": 4.838636610656977, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00324_1", "is_valid": true, "sharpness_score": 4.784524906426668, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00324_2", "is_valid": true, "sharpness_score": 4.850539844483137, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00324_3", "is_valid": true, "sharpness_score": 5.088220350444317, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00325_0", "is_valid": true, "sharpness_score": 2.98051699064672, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00325_1", "is_valid": true, "sharpness_score": 2.8641480021178722, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00325_2", "is_valid": true, "sharpness_score": 2.898222068324685, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00325_3", "is_valid": true, "sharpness_score": 2.9423730447888374, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00343_0", "is_valid": true, "sharpness_score": 8.424188010394573, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00343_1", "is_valid": true, "sharpness_score": 6.3008577562868595, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00343_2", "is_valid": true, "sharpness_score": 48.03336411714554, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00343_3", "is_valid": false, "sharpness_score": 10.083146393299103, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (17.47% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00344_0", "is_valid": true, "sharpness_score": 4.599845036864281, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00344_1", "is_valid": true, "sharpness_score": 4.816076252609491, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00344_2", "is_valid": true, "sharpness_score": 4.815524443984032, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00344_3", "is_valid": true, "sharpness_score": 4.632267635315657, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00347_0", "is_valid": true, "sharpness_score": 4.89090709015727, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00347_1", "is_valid": true, "sharpness_score": 7.383465766906738, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00347_2", "is_valid": true, "sharpness_score": 5.7383812963962555, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00347_3", "is_valid": false, "sharpness_score": 6.03434955701232, "clip_score": null, "face_detected": true, "rejection_reasons": ["Multiple faces detected (2), expecting single portrait"]}
+{"image_id": "fake_ffhq_00360_0", "is_valid": true, "sharpness_score": 52.038613706827164, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00360_1", "is_valid": false, "sharpness_score": 14.316659420728683, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (2.44% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00360_2", "is_valid": true, "sharpness_score": 10.10078750550747, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00360_3", "is_valid": false, "sharpness_score": 19.737176597118378, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00362_0", "is_valid": true, "sharpness_score": 9.561851620674133, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00362_1", "is_valid": true, "sharpness_score": 9.609854780137539, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00362_2", "is_valid": true, "sharpness_score": 9.56813432276249, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00362_3", "is_valid": true, "sharpness_score": 9.831476956605911, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00381_0", "is_valid": true, "sharpness_score": 8.295373991131783, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00381_1", "is_valid": true, "sharpness_score": 8.155318908393383, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00381_2", "is_valid": true, "sharpness_score": 9.38307959586382, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00381_3", "is_valid": true, "sharpness_score": 7.9895565286278725, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00383_0", "is_valid": true, "sharpness_score": 4.878237843513489, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00383_1", "is_valid": true, "sharpness_score": 10.467360727488995, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00383_2", "is_valid": true, "sharpness_score": 4.348211456090212, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00383_3", "is_valid": false, "sharpness_score": 23.07797223329544, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (14.51% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00385_0", "is_valid": false, "sharpness_score": 7.180307991802692, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00385_1", "is_valid": false, "sharpness_score": 7.439137436449528, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00385_2", "is_valid": false, "sharpness_score": 7.377969101071358, "clip_score": null, "face_detected": true, "rejection_reasons": ["No face landmark detected"]}
+{"image_id": "fake_ffhq_00385_3", "is_valid": false, "sharpness_score": 7.439564913511276, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.24% < 20%): likely vignette/distant frame", "Severe highlight blowout on face (18.0% > 8.0%)"]}
+{"image_id": "fake_ffhq_00387_0", "is_valid": true, "sharpness_score": 8.108753710985184, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00387_1", "is_valid": true, "sharpness_score": 7.3341079987585545, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00387_2", "is_valid": true, "sharpness_score": 8.088450878858566, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00387_3", "is_valid": true, "sharpness_score": 7.675674743950367, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00394_0", "is_valid": false, "sharpness_score": 40.01671448349953, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (3.74% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.10, 0.77)"]}
+{"image_id": "fake_ffhq_00394_1", "is_valid": true, "sharpness_score": 15.570549294352531, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00394_2", "is_valid": false, "sharpness_score": 12.898361310362816, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (10.64% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00394_3", "is_valid": true, "sharpness_score": 7.749193347990513, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00397_0", "is_valid": true, "sharpness_score": 7.844451814889908, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00397_1", "is_valid": true, "sharpness_score": 7.78229022398591, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00397_2", "is_valid": true, "sharpness_score": 7.606049533933401, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00397_3", "is_valid": true, "sharpness_score": 6.934931501746178, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00407_0", "is_valid": true, "sharpness_score": 7.0536090061068535, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00407_1", "is_valid": true, "sharpness_score": 7.108092308044434, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00407_2", "is_valid": true, "sharpness_score": 7.281997706741095, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00407_3", "is_valid": true, "sharpness_score": 7.095864973962307, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00430_0", "is_valid": false, "sharpness_score": 38.573600351810455, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.71% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00430_1", "is_valid": true, "sharpness_score": 8.208822458982468, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00430_2", "is_valid": false, "sharpness_score": 37.05492988228798, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.24% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.08, 0.09)"]}
+{"image_id": "fake_ffhq_00430_3", "is_valid": false, "sharpness_score": 8.096865378320217, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.71% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00451_0", "is_valid": true, "sharpness_score": 6.303825881332159, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00451_1", "is_valid": true, "sharpness_score": 6.40243012458086, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00451_2", "is_valid": true, "sharpness_score": 6.269591860473156, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00451_3", "is_valid": true, "sharpness_score": 6.315441802144051, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00452_0", "is_valid": true, "sharpness_score": 9.686034172773361, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00452_1", "is_valid": true, "sharpness_score": 8.949938230216503, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00452_2", "is_valid": true, "sharpness_score": 6.463116034865379, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00452_3", "is_valid": true, "sharpness_score": 9.47644840925932, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00465_0", "is_valid": false, "sharpness_score": 5.122112110257149, "clip_score": null, "face_detected": true, "rejection_reasons": ["Forehead / scalp amputated by top canvas border (box_top=7, skin=71.2%)"]}
+{"image_id": "fake_ffhq_00465_1", "is_valid": false, "sharpness_score": 10.28132438659668, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (9.28% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00465_2", "is_valid": false, "sharpness_score": 30.272632837295532, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (9.52% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00465_3", "is_valid": false, "sharpness_score": 14.706404879689217, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (2.44% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.12, 0.63)"]}
+{"image_id": "fake_ffhq_00466_0", "is_valid": true, "sharpness_score": 7.648000959306955, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00466_1", "is_valid": true, "sharpness_score": 7.8498851507902145, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00466_2", "is_valid": true, "sharpness_score": 7.788268383592367, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00466_3", "is_valid": true, "sharpness_score": 7.50404316931963, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00473_0", "is_valid": false, "sharpness_score": 15.123454853892326, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00473_1", "is_valid": true, "sharpness_score": 15.151766128838062, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00473_2", "is_valid": false, "sharpness_score": 15.204031020402908, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00473_3", "is_valid": true, "sharpness_score": 14.622547663748264, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00474_0", "is_valid": true, "sharpness_score": 8.553205989301205, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00474_1", "is_valid": false, "sharpness_score": 42.54329204559326, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (9.64% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00474_2", "is_valid": true, "sharpness_score": 12.344468384981155, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00474_3", "is_valid": false, "sharpness_score": 9.749991819262505, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00480_0", "is_valid": true, "sharpness_score": 18.61545629799366, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00480_1", "is_valid": true, "sharpness_score": 18.635928630828857, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00480_2", "is_valid": true, "sharpness_score": 18.39388720691204, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00480_3", "is_valid": true, "sharpness_score": 18.434280529618263, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00484_0", "is_valid": true, "sharpness_score": 6.149167660623789, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00484_1", "is_valid": true, "sharpness_score": 7.001638412475586, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00484_2", "is_valid": true, "sharpness_score": 7.620403543114662, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00484_3", "is_valid": true, "sharpness_score": 6.67695002630353, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00495_0", "is_valid": true, "sharpness_score": 12.01231312006712, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00495_1", "is_valid": true, "sharpness_score": 17.8355872631073, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00495_2", "is_valid": false, "sharpness_score": 14.90789745002985, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (8.93% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00495_3", "is_valid": true, "sharpness_score": 17.57577247917652, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00498_0", "is_valid": true, "sharpness_score": 7.094767410308123, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00498_1", "is_valid": true, "sharpness_score": 6.924554705619812, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00498_2", "is_valid": true, "sharpness_score": 6.979648023843765, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00498_3", "is_valid": true, "sharpness_score": 6.974979769438505, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00514_0", "is_valid": true, "sharpness_score": 7.969606667757034, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00514_1", "is_valid": true, "sharpness_score": 9.4668073579669, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00514_2", "is_valid": true, "sharpness_score": 9.249339811503887, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00514_3", "is_valid": true, "sharpness_score": 8.591108955442905, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00517_0", "is_valid": false, "sharpness_score": 10.407236404716969, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (66.17% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00517_1", "is_valid": true, "sharpness_score": 9.112941101193428, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00517_2", "is_valid": true, "sharpness_score": 21.670008078217506, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00517_3", "is_valid": true, "sharpness_score": 8.101611398160458, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00519_0", "is_valid": true, "sharpness_score": 6.525400560349226, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00519_1", "is_valid": true, "sharpness_score": 6.44764443859458, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00519_2", "is_valid": true, "sharpness_score": 6.6107166931033134, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00519_3", "is_valid": true, "sharpness_score": 6.419267971068621, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00548_0", "is_valid": true, "sharpness_score": 8.91090277582407, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00548_1", "is_valid": false, "sharpness_score": 4.578482825309038, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (65.70% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00548_2", "is_valid": true, "sharpness_score": 4.645467270165682, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00548_3", "is_valid": false, "sharpness_score": 4.574885591864586, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (65.70% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00549_0", "is_valid": false, "sharpness_score": 19.336175173521042, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (5.87% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00549_1", "is_valid": false, "sharpness_score": 37.25411370396614, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (18.97% < 20%): likely vignette/distant frame", "Forehead / scalp amputated by top canvas border (box_top=0, skin=61.3%)"]}
+{"image_id": "fake_ffhq_00549_2", "is_valid": true, "sharpness_score": 13.50412517786026, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00549_3", "is_valid": false, "sharpness_score": 12.32101395726204, "clip_score": null, "face_detected": true, "rejection_reasons": ["Forehead / scalp amputated by top canvas border (box_top=15, skin=88.0%)"]}
+{"image_id": "fake_ffhq_00559_0", "is_valid": true, "sharpness_score": 7.229489739984274, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00559_1", "is_valid": true, "sharpness_score": 7.046218495815992, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00559_2", "is_valid": true, "sharpness_score": 7.135837804526091, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00559_3", "is_valid": true, "sharpness_score": 6.869122851639986, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00560_0", "is_valid": true, "sharpness_score": 12.370581738650799, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00560_1", "is_valid": true, "sharpness_score": 12.096949853003025, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00560_2", "is_valid": true, "sharpness_score": 11.984129436314106, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00560_3", "is_valid": true, "sharpness_score": 12.337671592831612, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00562_0", "is_valid": false, "sharpness_score": 18.852820619940758, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.03% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00562_1", "is_valid": false, "sharpness_score": 15.15649352222681, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (6.35% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00562_2", "is_valid": false, "sharpness_score": 12.595988810062408, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (14.36% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00562_3", "is_valid": true, "sharpness_score": 19.554655998945236, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00563_0", "is_valid": true, "sharpness_score": 5.987854208797216, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00563_1", "is_valid": true, "sharpness_score": 5.190548952668905, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00563_2", "is_valid": true, "sharpness_score": 5.80932991579175, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00563_3", "is_valid": true, "sharpness_score": 5.741856060922146, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00564_0", "is_valid": true, "sharpness_score": 11.199483647942543, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00564_1", "is_valid": true, "sharpness_score": 9.037819691002369, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00564_2", "is_valid": true, "sharpness_score": 10.36002952605486, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00564_3", "is_valid": true, "sharpness_score": 9.005175903439522, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00565_0", "is_valid": true, "sharpness_score": 17.184462398290634, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00565_1", "is_valid": true, "sharpness_score": 44.34209316968918, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00565_2", "is_valid": true, "sharpness_score": 16.065550968050957, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00565_3", "is_valid": false, "sharpness_score": 25.776583701372147, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (8.36% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00582_0", "is_valid": true, "sharpness_score": 6.654145196080208, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00582_1", "is_valid": true, "sharpness_score": 6.63690036162734, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00582_2", "is_valid": true, "sharpness_score": 6.605539470911026, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00582_3", "is_valid": true, "sharpness_score": 6.4756060019135475, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00585_0", "is_valid": true, "sharpness_score": 7.992826402187347, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00585_1", "is_valid": true, "sharpness_score": 7.825145497918129, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00585_2", "is_valid": true, "sharpness_score": 7.6411026529967785, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00585_3", "is_valid": true, "sharpness_score": 7.7384416945278645, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00591_0", "is_valid": true, "sharpness_score": 30.506357550621033, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00591_1", "is_valid": false, "sharpness_score": 18.97713728249073, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.56% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00591_2", "is_valid": true, "sharpness_score": 21.41229622066021, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00591_3", "is_valid": false, "sharpness_score": 27.890220284461975, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (72.52% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00596_0", "is_valid": true, "sharpness_score": 40.44196382164955, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00596_1", "is_valid": true, "sharpness_score": 35.100750625133514, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00596_2", "is_valid": true, "sharpness_score": 37.1285155415535, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00596_3", "is_valid": true, "sharpness_score": 37.65513747930527, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00611_0", "is_valid": true, "sharpness_score": 5.477189552038908, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00611_1", "is_valid": true, "sharpness_score": 5.47250360250473, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00611_2", "is_valid": true, "sharpness_score": 5.475706420838833, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00611_3", "is_valid": true, "sharpness_score": 5.451502278447151, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00625_0", "is_valid": true, "sharpness_score": 8.647065609693527, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00625_1", "is_valid": false, "sharpness_score": 8.961401879787445, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (65.38% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00625_2", "is_valid": true, "sharpness_score": 17.67328381538391, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00625_3", "is_valid": false, "sharpness_score": 20.509589463472366, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00640_0", "is_valid": true, "sharpness_score": 4.491313826292753, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00640_1", "is_valid": true, "sharpness_score": 4.693324211984873, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00640_2", "is_valid": true, "sharpness_score": 4.519803449511528, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00640_3", "is_valid": true, "sharpness_score": 4.545517731457949, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00646_0", "is_valid": true, "sharpness_score": 4.974828567355871, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00646_1", "is_valid": true, "sharpness_score": 3.6280846688896418, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00646_2", "is_valid": true, "sharpness_score": 3.8982003461569548, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00646_3", "is_valid": false, "sharpness_score": 5.1751877181231976, "clip_score": null, "face_detected": true, "rejection_reasons": ["Multiple faces detected (2), expecting single portrait"]}
+{"image_id": "fake_ffhq_00668_0", "is_valid": true, "sharpness_score": 20.121324807405472, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00668_1", "is_valid": false, "sharpness_score": 46.66299745440483, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (9.40% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00668_2", "is_valid": true, "sharpness_score": 18.849177286028862, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00668_3", "is_valid": false, "sharpness_score": 19.74264159798622, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (6.75% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00670_0", "is_valid": true, "sharpness_score": 3.361600684002042, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00670_1", "is_valid": false, "sharpness_score": 3.29669495113194, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.51% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00670_2", "is_valid": true, "sharpness_score": 3.365378826856613, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00670_3", "is_valid": true, "sharpness_score": 3.3279915805906057, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00680_0", "is_valid": true, "sharpness_score": 3.4173917956650257, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00680_1", "is_valid": true, "sharpness_score": 3.6506932228803635, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00680_2", "is_valid": true, "sharpness_score": 3.641145769506693, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00680_3", "is_valid": true, "sharpness_score": 5.083953030407429, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00688_0", "is_valid": true, "sharpness_score": 17.860321328043938, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00688_1", "is_valid": true, "sharpness_score": 12.978000566363335, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00688_2", "is_valid": true, "sharpness_score": 8.426334708929062, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00688_3", "is_valid": true, "sharpness_score": 10.076104663312435, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00689_0", "is_valid": true, "sharpness_score": 6.500784773379564, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00689_1", "is_valid": true, "sharpness_score": 6.380948703736067, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00689_2", "is_valid": true, "sharpness_score": 6.372716277837753, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00689_3", "is_valid": true, "sharpness_score": 6.125031970441341, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00694_0", "is_valid": true, "sharpness_score": 10.297873057425022, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00694_1", "is_valid": true, "sharpness_score": 9.334748610854149, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00694_2", "is_valid": true, "sharpness_score": 9.547384455800056, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00694_3", "is_valid": true, "sharpness_score": 9.968537837266922, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00703_0", "is_valid": true, "sharpness_score": 7.45010981336236, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00703_1", "is_valid": true, "sharpness_score": 80.17996698617935, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00703_2", "is_valid": false, "sharpness_score": 5.153770092874765, "clip_score": null, "face_detected": true, "rejection_reasons": ["Forehead / scalp amputated by top canvas border (box_top=8, skin=58.0%)"]}
+{"image_id": "fake_ffhq_00703_3", "is_valid": false, "sharpness_score": 7.788671646267176, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (6.75% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00708_0", "is_valid": true, "sharpness_score": 3.5041114315390587, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00708_1", "is_valid": true, "sharpness_score": 3.506762208417058, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00708_2", "is_valid": true, "sharpness_score": 3.3669997937977314, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00708_3", "is_valid": true, "sharpness_score": 3.5308776423335075, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00710_0", "is_valid": true, "sharpness_score": 4.415641073137522, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00710_1", "is_valid": true, "sharpness_score": 4.525349475443363, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00710_2", "is_valid": true, "sharpness_score": 4.375088028609753, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00710_3", "is_valid": true, "sharpness_score": 4.581065848469734, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00712_0", "is_valid": true, "sharpness_score": 5.478247068822384, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00712_1", "is_valid": true, "sharpness_score": 10.580316185951233, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00712_2", "is_valid": false, "sharpness_score": 12.8718800842762, "clip_score": null, "face_detected": true, "rejection_reasons": ["Chin / jaw amputated by bottom canvas border (box_bottom=502, skin=94.6%)"]}
+{"image_id": "fake_ffhq_00712_3", "is_valid": true, "sharpness_score": 7.600372191518545, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00724_0", "is_valid": false, "sharpness_score": 11.161956936120987, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00724_1", "is_valid": false, "sharpness_score": 11.459482833743095, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00724_2", "is_valid": false, "sharpness_score": 11.632264591753483, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00724_3", "is_valid": false, "sharpness_score": 10.491504333913326, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00725_0", "is_valid": true, "sharpness_score": 5.018279887735844, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00725_1", "is_valid": true, "sharpness_score": 5.013133864849806, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00725_2", "is_valid": true, "sharpness_score": 5.026671104133129, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00725_3", "is_valid": true, "sharpness_score": 5.038167349994183, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00743_0", "is_valid": false, "sharpness_score": 6.749304477125406, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (15.72% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00743_1", "is_valid": false, "sharpness_score": 11.15685049444437, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.71% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.68, 0.92)"]}
+{"image_id": "fake_ffhq_00743_2", "is_valid": false, "sharpness_score": 18.879380077123642, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (15.26% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00743_3", "is_valid": false, "sharpness_score": 12.85509206354618, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00748_0", "is_valid": true, "sharpness_score": 7.574328221380711, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00748_1", "is_valid": true, "sharpness_score": 7.393119391053915, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00748_2", "is_valid": true, "sharpness_score": 7.379886228591204, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00748_3", "is_valid": true, "sharpness_score": 7.400461006909609, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00767_0", "is_valid": true, "sharpness_score": 7.2394064627587795, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00767_1", "is_valid": true, "sharpness_score": 6.102856248617172, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00767_2", "is_valid": true, "sharpness_score": 6.726377177983522, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00767_3", "is_valid": true, "sharpness_score": 6.803677417337894, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00768_0", "is_valid": true, "sharpness_score": 11.26303430646658, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00768_1", "is_valid": false, "sharpness_score": 24.751730263233185, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00768_2", "is_valid": true, "sharpness_score": 10.685306042432785, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00768_3", "is_valid": false, "sharpness_score": 15.86865447461605, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00777_0", "is_valid": true, "sharpness_score": 15.209631994366646, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00777_1", "is_valid": true, "sharpness_score": 16.109950840473175, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00777_2", "is_valid": true, "sharpness_score": 15.206906944513321, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00777_3", "is_valid": true, "sharpness_score": 16.148723661899567, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00783_0", "is_valid": true, "sharpness_score": 7.373242173343897, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00783_1", "is_valid": true, "sharpness_score": 7.45689170435071, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00783_2", "is_valid": true, "sharpness_score": 7.343309000134468, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00783_3", "is_valid": true, "sharpness_score": 7.046699058264494, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00802_0", "is_valid": true, "sharpness_score": 45.64451798796654, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00802_1", "is_valid": false, "sharpness_score": 21.376362070441246, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (74.86% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00802_2", "is_valid": true, "sharpness_score": 8.68461187928915, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00802_3", "is_valid": true, "sharpness_score": 11.29588857293129, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00819_0", "is_valid": true, "sharpness_score": 8.118108846247196, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00819_1", "is_valid": true, "sharpness_score": 8.45123827457428, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00819_2", "is_valid": true, "sharpness_score": 8.15599225461483, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00819_3", "is_valid": true, "sharpness_score": 8.232790045440197, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00820_0", "is_valid": true, "sharpness_score": 6.208652164787054, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00820_1", "is_valid": true, "sharpness_score": 5.879447795450687, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00820_2", "is_valid": true, "sharpness_score": 7.254700642079115, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00820_3", "is_valid": true, "sharpness_score": 6.36454951018095, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00821_0", "is_valid": true, "sharpness_score": 9.498370811343193, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00821_1", "is_valid": true, "sharpness_score": 23.035189136862755, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00821_2", "is_valid": false, "sharpness_score": 7.897251285612583, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00821_3", "is_valid": true, "sharpness_score": 11.882930994033813, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00824_0", "is_valid": true, "sharpness_score": 11.882363818585873, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00824_1", "is_valid": true, "sharpness_score": 13.138600625097752, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00824_2", "is_valid": true, "sharpness_score": 13.106280006468296, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00824_3", "is_valid": true, "sharpness_score": 12.237854301929474, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00832_0", "is_valid": true, "sharpness_score": 13.935375027358532, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00832_1", "is_valid": true, "sharpness_score": 10.558562353253365, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00832_2", "is_valid": false, "sharpness_score": 11.465712450444698, "clip_score": null, "face_detected": true, "rejection_reasons": ["Multiple faces detected (2), expecting single portrait"]}
+{"image_id": "fake_ffhq_00832_3", "is_valid": true, "sharpness_score": 12.769976630806923, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00852_0", "is_valid": false, "sharpness_score": 18.46892572939396, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (5.31% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00852_1", "is_valid": false, "sharpness_score": 20.53663320839405, "clip_score": null, "face_detected": true, "rejection_reasons": ["Forehead / scalp amputated by top canvas border (box_top=7, skin=48.7%)"]}
+{"image_id": "fake_ffhq_00852_2", "is_valid": true, "sharpness_score": 8.823936805129051, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00852_3", "is_valid": false, "sharpness_score": 13.021523132920265, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00875_0", "is_valid": true, "sharpness_score": 5.488079506903887, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00875_1", "is_valid": true, "sharpness_score": 5.326387006789446, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00875_2", "is_valid": true, "sharpness_score": 5.420450121164322, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00875_3", "is_valid": true, "sharpness_score": 5.740450229495764, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00881_0", "is_valid": true, "sharpness_score": 7.566810119897127, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00881_1", "is_valid": true, "sharpness_score": 7.694061845541, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00881_2", "is_valid": true, "sharpness_score": 7.715306710451841, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00881_3", "is_valid": true, "sharpness_score": 7.518820930272341, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00890_0", "is_valid": false, "sharpness_score": 7.89731927216053, "clip_score": null, "face_detected": true, "rejection_reasons": ["Multiple faces detected (2), expecting single portrait"]}
+{"image_id": "fake_ffhq_00890_1", "is_valid": false, "sharpness_score": 22.17826433479786, "clip_score": null, "face_detected": true, "rejection_reasons": ["Multiple faces detected (2), expecting single portrait"]}
+{"image_id": "fake_ffhq_00890_2", "is_valid": false, "sharpness_score": 16.3500364869833, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (19.14% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00890_3", "is_valid": true, "sharpness_score": 6.529324688017368, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00900_0", "is_valid": true, "sharpness_score": 21.370183676481247, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00900_1", "is_valid": true, "sharpness_score": 19.813532009720802, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00900_2", "is_valid": true, "sharpness_score": 19.794270396232605, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00900_3", "is_valid": true, "sharpness_score": 21.21921442449093, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00901_0", "is_valid": true, "sharpness_score": 14.52989224344492, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00901_1", "is_valid": true, "sharpness_score": 6.140272133052349, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00901_2", "is_valid": true, "sharpness_score": 12.245995923876762, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00901_3", "is_valid": true, "sharpness_score": 10.320242494344711, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00903_0", "is_valid": true, "sharpness_score": 14.218347147107124, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00903_1", "is_valid": true, "sharpness_score": 17.262253910303116, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00903_2", "is_valid": true, "sharpness_score": 11.756030842661858, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00903_3", "is_valid": true, "sharpness_score": 13.40448297560215, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00910_0", "is_valid": true, "sharpness_score": 5.622324533760548, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00910_1", "is_valid": true, "sharpness_score": 6.270294543355703, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00910_2", "is_valid": true, "sharpness_score": 5.780388135462999, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00910_3", "is_valid": true, "sharpness_score": 5.633972585201263, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00911_0", "is_valid": true, "sharpness_score": 9.84286144375801, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00911_1", "is_valid": true, "sharpness_score": 9.721525013446808, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00911_2", "is_valid": true, "sharpness_score": 9.923150762915611, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00911_3", "is_valid": true, "sharpness_score": 10.580119676887989, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00918_0", "is_valid": true, "sharpness_score": 11.946400627493858, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00918_1", "is_valid": false, "sharpness_score": 18.205592408776283, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (83.55% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00918_2", "is_valid": false, "sharpness_score": 38.667429238557816, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.28% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00918_3", "is_valid": false, "sharpness_score": 14.900210313498974, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (4.45% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00936_0", "is_valid": true, "sharpness_score": 7.04521406441927, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00936_1", "is_valid": true, "sharpness_score": 7.233911193907261, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00936_2", "is_valid": true, "sharpness_score": 7.4275583028793335, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00936_3", "is_valid": true, "sharpness_score": 7.355924695730209, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00950_0", "is_valid": true, "sharpness_score": 4.538471810519695, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00950_1", "is_valid": true, "sharpness_score": 4.692441783845425, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00950_2", "is_valid": true, "sharpness_score": 4.498652182519436, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00950_3", "is_valid": true, "sharpness_score": 4.6425629407167435, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00972_0", "is_valid": false, "sharpness_score": 6.143768783658743, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (65.70% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_00972_1", "is_valid": true, "sharpness_score": 6.83505879715085, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00972_2", "is_valid": true, "sharpness_score": 6.968102417886257, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00972_3", "is_valid": true, "sharpness_score": 8.749322034418583, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00992_0", "is_valid": true, "sharpness_score": 7.313355803489685, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00992_1", "is_valid": true, "sharpness_score": 7.169810589402914, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00992_2", "is_valid": true, "sharpness_score": 6.93458179011941, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00992_3", "is_valid": true, "sharpness_score": 7.559771183878183, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00997_0", "is_valid": true, "sharpness_score": 7.99139216542244, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00997_1", "is_valid": true, "sharpness_score": 7.6751708984375, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00997_2", "is_valid": true, "sharpness_score": 7.638377137482166, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00997_3", "is_valid": true, "sharpness_score": 7.702121045440435, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00998_0", "is_valid": false, "sharpness_score": 11.112513951957226, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_00998_1", "is_valid": false, "sharpness_score": 52.88269743323326, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (7.26% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00998_2", "is_valid": false, "sharpness_score": 7.433639839291573, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (6.35% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_00998_3", "is_valid": false, "sharpness_score": 19.287124276161194, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (18.13% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01003_0", "is_valid": true, "sharpness_score": 3.368648234754801, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01003_1", "is_valid": true, "sharpness_score": 3.479476785287261, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01003_2", "is_valid": true, "sharpness_score": 3.3509829081594944, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01003_3", "is_valid": true, "sharpness_score": 3.483028383925557, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01006_0", "is_valid": true, "sharpness_score": 5.449197255074978, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01006_1", "is_valid": true, "sharpness_score": 5.303604528307915, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01006_2", "is_valid": true, "sharpness_score": 5.393676459789276, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01006_3", "is_valid": true, "sharpness_score": 5.298401229083538, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01012_0", "is_valid": false, "sharpness_score": 22.579457610845566, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.20% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01012_1", "is_valid": false, "sharpness_score": 12.258017435669899, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (14.65% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01012_2", "is_valid": false, "sharpness_score": 12.150159105658531, "clip_score": null, "face_detected": true, "rejection_reasons": ["Forehead / scalp amputated by top canvas border (box_top=14, skin=46.9%)"]}
+{"image_id": "fake_ffhq_01012_3", "is_valid": true, "sharpness_score": 9.341205470263958, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01018_0", "is_valid": true, "sharpness_score": 4.083952400833368, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01018_1", "is_valid": true, "sharpness_score": 3.8314310368150473, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01018_2", "is_valid": true, "sharpness_score": 4.005198832601309, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01018_3", "is_valid": true, "sharpness_score": 3.918409813195467, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01027_0", "is_valid": true, "sharpness_score": 4.3234252370893955, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01027_1", "is_valid": true, "sharpness_score": 4.586411640048027, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01027_2", "is_valid": true, "sharpness_score": 4.616729915142059, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01027_3", "is_valid": true, "sharpness_score": 4.526904318481684, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01030_0", "is_valid": false, "sharpness_score": 17.78874173760414, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (11.68% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01030_1", "is_valid": true, "sharpness_score": 16.664328053593636, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01030_2", "is_valid": false, "sharpness_score": 5.653641652315855, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (6.45% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.85, 0.49)"]}
+{"image_id": "fake_ffhq_01030_3", "is_valid": false, "sharpness_score": 7.0975180715322495, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (68.26% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_01033_0", "is_valid": true, "sharpness_score": 10.658953338861465, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01033_1", "is_valid": true, "sharpness_score": 10.916669853031635, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01033_2", "is_valid": true, "sharpness_score": 10.023596696555614, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01033_3", "is_valid": true, "sharpness_score": 10.657893493771553, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01038_0", "is_valid": true, "sharpness_score": 15.65270870923996, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01038_1", "is_valid": true, "sharpness_score": 15.648910775780678, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01038_2", "is_valid": true, "sharpness_score": 14.406095258891582, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01038_3", "is_valid": true, "sharpness_score": 13.647270388901234, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01039_0", "is_valid": false, "sharpness_score": 13.700716197490692, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (73.52% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_01039_1", "is_valid": true, "sharpness_score": 14.227630570530891, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01039_2", "is_valid": true, "sharpness_score": 14.313102699816227, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01039_3", "is_valid": true, "sharpness_score": 11.482593603432178, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01040_0", "is_valid": true, "sharpness_score": 24.98095855116844, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01040_1", "is_valid": true, "sharpness_score": 23.60221929848194, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01040_2", "is_valid": true, "sharpness_score": 25.398166850209236, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01040_3", "is_valid": true, "sharpness_score": 22.679464891552925, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01045_0", "is_valid": true, "sharpness_score": 35.31410172581673, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01045_1", "is_valid": true, "sharpness_score": 37.66247257590294, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01045_2", "is_valid": true, "sharpness_score": 37.807926535606384, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01045_3", "is_valid": true, "sharpness_score": 34.56409275531769, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01051_0", "is_valid": true, "sharpness_score": 9.163660928606987, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01051_1", "is_valid": true, "sharpness_score": 5.473804660141468, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01051_2", "is_valid": true, "sharpness_score": 12.636124156415462, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01051_3", "is_valid": true, "sharpness_score": 30.013786628842354, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01056_0", "is_valid": true, "sharpness_score": 9.037213400006294, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01056_1", "is_valid": true, "sharpness_score": 8.96136462688446, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01056_2", "is_valid": true, "sharpness_score": 8.048532530665398, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01056_3", "is_valid": true, "sharpness_score": 8.624935522675514, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01063_0", "is_valid": false, "sharpness_score": 5.932061932981014, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.76% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01063_1", "is_valid": false, "sharpness_score": 5.942007526755333, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.42% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01063_2", "is_valid": true, "sharpness_score": 5.854737479239702, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01063_3", "is_valid": false, "sharpness_score": 5.9423903003335, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_01064_0", "is_valid": false, "sharpness_score": 17.54710078239441, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (1.03% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.14, 0.86)"]}
+{"image_id": "fake_ffhq_01064_1", "is_valid": true, "sharpness_score": 9.639760479331017, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01064_2", "is_valid": false, "sharpness_score": 7.4537950567901134, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_01064_3", "is_valid": false, "sharpness_score": 11.601876467466354, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too large area of frame (69.23% > 65%): extreme crop / runaway zoom"]}
+{"image_id": "fake_ffhq_01065_0", "is_valid": true, "sharpness_score": 8.684545755386353, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01065_1", "is_valid": true, "sharpness_score": 8.405988104641438, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01065_2", "is_valid": true, "sharpness_score": 8.609314449131489, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01065_3", "is_valid": true, "sharpness_score": 9.351370856165886, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01082_0", "is_valid": true, "sharpness_score": 9.031436406075954, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01082_1", "is_valid": true, "sharpness_score": 6.957208272069693, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01082_2", "is_valid": true, "sharpness_score": 7.356884423643351, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01082_3", "is_valid": true, "sharpness_score": 7.85303208976984, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01085_0", "is_valid": true, "sharpness_score": 11.425047181546688, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01085_1", "is_valid": false, "sharpness_score": 19.43746581673622, "clip_score": null, "face_detected": true, "rejection_reasons": ["Forehead / scalp amputated by top canvas border (box_top=11, skin=50.6%)"]}
+{"image_id": "fake_ffhq_01085_2", "is_valid": true, "sharpness_score": 12.63538096100092, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01085_3", "is_valid": false, "sharpness_score": 41.64089635014534, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (4.13% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01090_0", "is_valid": true, "sharpness_score": 14.152011834084988, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01090_1", "is_valid": true, "sharpness_score": 13.006605207920074, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01090_2", "is_valid": true, "sharpness_score": 13.414742425084114, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01090_3", "is_valid": true, "sharpness_score": 14.315430074930191, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01092_0", "is_valid": true, "sharpness_score": 9.38187725841999, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01092_1", "is_valid": true, "sharpness_score": 8.530541323125362, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01092_2", "is_valid": true, "sharpness_score": 7.392711006104946, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01094_0", "is_valid": true, "sharpness_score": 28.385743498802185, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01094_1", "is_valid": true, "sharpness_score": 63.289575278759, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01094_2", "is_valid": false, "sharpness_score": 5.824695806950331, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_01097_0", "is_valid": true, "sharpness_score": 6.87531428411603, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01097_1", "is_valid": true, "sharpness_score": 7.213349919766188, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01097_2", "is_valid": true, "sharpness_score": 6.505114957690239, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01099_0", "is_valid": true, "sharpness_score": 13.969249092042446, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01099_1", "is_valid": true, "sharpness_score": 14.039487577974796, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01099_2", "is_valid": true, "sharpness_score": 13.96565604954958, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01102_0", "is_valid": false, "sharpness_score": 10.057550854980946, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (13.34% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01102_1", "is_valid": false, "sharpness_score": 4.8080142587423325, "clip_score": null, "face_detected": true, "rejection_reasons": ["Forehead / scalp amputated by top canvas border (box_top=13, skin=67.1%)"]}
+{"image_id": "fake_ffhq_01102_2", "is_valid": false, "sharpness_score": 11.854159645736217, "clip_score": null, "face_detected": true, "rejection_reasons": ["Multiple faces detected (2), expecting single portrait"]}
+{"image_id": "fake_ffhq_01107_0", "is_valid": false, "sharpness_score": 4.620908293873072, "clip_score": null, "face_detected": true, "rejection_reasons": ["Multiple faces detected (2), expecting single portrait"]}
+{"image_id": "fake_ffhq_01107_1", "is_valid": false, "sharpness_score": 4.725490231066942, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (3.59% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01107_2", "is_valid": true, "sharpness_score": 4.509798716753721, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01112_0", "is_valid": true, "sharpness_score": 8.371342904865742, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01112_1", "is_valid": true, "sharpness_score": 9.182186797261238, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01112_2", "is_valid": true, "sharpness_score": 8.317407220602036, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01124_0", "is_valid": true, "sharpness_score": 34.258630126714706, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01124_1", "is_valid": true, "sharpness_score": 14.428661204874516, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01124_2", "is_valid": true, "sharpness_score": 16.077209264039993, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01128_0", "is_valid": true, "sharpness_score": 3.7399502471089363, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01128_1", "is_valid": true, "sharpness_score": 3.700801869854331, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01128_2", "is_valid": true, "sharpness_score": 3.759864252060652, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01129_0", "is_valid": true, "sharpness_score": 17.147121950984, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01129_1", "is_valid": true, "sharpness_score": 17.649617046117783, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01129_2", "is_valid": true, "sharpness_score": 19.435860216617584, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_01130_0", "is_valid": false, "sharpness_score": 7.312001660466194, "clip_score": null, "face_detected": false, "rejection_reasons": ["No valid face landmark detected"]}
+{"image_id": "fake_ffhq_01130_1", "is_valid": false, "sharpness_score": 7.174645084887743, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (10.26% < 20%): likely vignette/distant frame"]}
+{"image_id": "fake_ffhq_01130_2", "is_valid": true, "sharpness_score": 10.533783584833145, "clip_score": null, "face_detected": true, "rejection_reasons": []}

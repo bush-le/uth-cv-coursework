@@ -49,6 +49,8 @@ conda-env/
 *.joblib
 *.pkl
 *.pickle
+*.npz
+*.npy
 
 # PyTorch hub / Torchvision cache
 .cache/
@@ -82,14 +84,8 @@ data/processed/*
 !data/processed/.gitkeep
 data/synthetic/*
 !data/synthetic/.gitkeep
-!data/synthetic/curated_manifest.jsonl
-!data/synthetic/fake_manifest.jsonl
 data/hard_samples/images/*
 !data/hard_samples/images/.gitkeep
-!data/hard_samples/hard_samples_manifest.jsonl
-!data/hard_samples/audit_reports/
-!data/hard_samples/audit_reports/**
-!data/hard_samples/README.md
 data/benchmarks/*
 !data/benchmarks/.gitkeep
 data/partitions/*
@@ -98,6 +94,14 @@ data/active_learning/*
 !data/active_learning/.gitkeep
 data/iterative_loop/*
 !data/iterative_loop/.gitkeep
+
+# Preserve all structured manifests and metadata across all data subdirectories
+!data/**/*.jsonl
+!data/**/*.json
+!data/**/*.csv
+!data/**/*.yaml
+!data/**/*.yml
+!data/**/*.md
 
 # Heavy generated and raw media across data subdirectories
 data/**/*.png

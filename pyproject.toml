@@ -22,7 +22,40 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
-dependencies = []
+dependencies = [
+    "numpy>=1.24.0",
+    "opencv-python-headless>=4.8.0",
+    "Pillow>=10.0.0",
+    "matplotlib>=3.7.0",
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+    "PyYAML>=6.0.1",
+    "pydantic>=2.0.0",
+    "tqdm>=4.66.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+deeplearning = [
+    "albumentations>=1.4.0",
+    "timm>=1.0.0",
+    "torchmetrics>=1.3.0",
+    "scipy>=1.11.0",
+    "scikit-learn>=1.3.0",
+    "diffusers>=0.30.0",
+    "transformers>=4.40.0",
+    "accelerate>=0.30.0",
+    "safetensors>=0.4.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.3.0",
+    "black>=24.0.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -91,16 +124,4 @@ line_length = 88
 multi_line_output = 3
 known_first_party = ["src"]
 
-# ------------------------------------------------------------------------------
-# Pytest Configuration
-# ------------------------------------------------------------------------------
-[tool.pytest.ini_options]
-minversion = "7.0"
-addopts = "-ra -q --strict-markers"
-testpaths = ["tests"]
-pythonpath = ["."]
-markers = [
-    "smoke: Quick sanity smoke tests (< 5 seconds execution)",
-    "slow: Comprehensive or compute-heavy training tests",
-    "gpu: Tests requiring CUDA-capable GPU",
-]
+

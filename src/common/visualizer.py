@@ -734,7 +734,7 @@ def plot_legacy_6k_benchmark(
     b_t2i = ax2.bar([i + w3 for i in x], t_text2img, w3, label="text2img", color="#e67e22")
     ax2.set_xticks(list(x))
     ax2.set_xticklabels(labels, fontweight="bold")
-    ax2.set_ylim(0, 75)
+    ax2.set_ylim(0, 105)
     ax2.set_ylabel("Fake Recall (%)", fontsize=11)
     ax2.set_title("Detection Recall by Task Mode", fontsize=12, fontweight="bold")
     ax2.legend(loc="upper right")
@@ -748,7 +748,7 @@ def plot_legacy_6k_benchmark(
     b_mouth = ax3.bar([i + width / 2 for i in x], r_mouth, width, label="Mouth Inpaint", color="#f39c12")
     ax3.set_xticks(list(x))
     ax3.set_xticklabels(labels, fontweight="bold")
-    ax3.set_ylim(0, 55)
+    ax3.set_ylim(0, 105)
     ax3.set_ylabel("Fake Recall (%)", fontsize=11)
     ax3.set_title("Inpaint Recall by Region (Eyes vs Mouth)", fontsize=12, fontweight="bold")
     ax3.legend(loc="upper right")
@@ -940,20 +940,58 @@ def render_legacy_6k_markdown_table(
     m1_data = data["models"]["M1_active_round1"]
     m2_data = data["models"]["M2_active_round2"]
 
+    tot = data.get("total_samples", 6000)
+    det0 = int(round(m0_data["overall_recall"] * tot))
+    det1 = int(round(m1_data["overall_recall"] * tot))
+    det2 = int(round(m2_data["overall_recall"] * tot))
+
+    def _fmt_best(v0: float, v1: float, v2: float, higher_is_better: bool = True, is_pct: bool = True, decimals: int = 2):
+        vals = [v0, v1, v2]
+        best_idx = int(np.argmax(vals)) if higher_is_better else int(np.argmin(vals))
+        res = []
+        for i, v in enumerate(vals):
+            txt = f"{v*100:.{decimals}f}%" if is_pct else f"{v:.{decimals}f}"
+            if i == best_idx:
+                res.append(f"**{txt}**")
+            else:
+                res.append(txt)
+        return res[0], res[1], res[2]
+
+    det_cells = [f"{det0:,} / {tot:,}".replace(",", "."), f"{det1:,} / {tot:,}".replace(",", "."), f"{det2:,} / {tot:,}".replace(",", ".")]
+    best_det = int(np.argmax([det0, det1, det2]))
+    det_cells[best_det] = f"**{det_cells[best_det]}**"
+
+    r0_cell, r1_cell, r2_cell = _fmt_best(m0_data["overall_recall"], m1_data["overall_recall"], m2_data["overall_recall"], True, True, 2)
+    bp0_cell, bp1_cell, bp2_cell = _fmt_best(m0_data["overall_bypass_rate"], m1_data["overall_bypass_rate"], m2_data["overall_bypass_rate"], False, True, 2)
+    p0_cell, p1_cell, p2_cell = _fmt_best(m0_data["mean_fake_prob"], m1_data["mean_fake_prob"], m2_data["mean_fake_prob"], True, False, 4)
+
+    i0, i1, i2 = _fmt_best(m0_data["by_task"]["img2img"]["recall"], m1_data["by_task"]["img2img"]["recall"], m2_data["by_task"]["img2img"]["recall"], True, True, 2)
+    inp0, inp1, inp2 = _fmt_best(m0_data["by_task"]["inpaint"]["recall"], m1_data["by_task"]["inpaint"]["recall"], m2_data["by_task"]["inpaint"]["recall"], True, True, 2)
+    t0, t1, t2 = _fmt_best(m0_data["by_task"]["text2img"]["recall"], m1_data["by_task"]["text2img"]["recall"], m2_data["by_task"]["text2img"]["recall"], True, True, 2)
+
+    e0, e1, e2 = _fmt_best(m0_data["by_region"]["eyes"]["recall"], m1_data["by_region"]["eyes"]["recall"], m2_data["by_region"]["eyes"]["recall"], True, True, 2)
+    mo0, mo1, mo2 = _fmt_best(m0_data["by_region"]["mouth"]["recall"], m1_data["by_region"]["mouth"]["recall"], m2_data["by_region"]["mouth"]["recall"], True, True, 2)
+
+    recall_comment = (
+        f"🏆 $M_2^*$ vượt trội phát hiện {det2:,}/{tot:,} ảnh (gấp {m2_data['overall_recall']/max(m0_data['overall_recall'], 1e-4):.1f} lần $M_0$)"
+        if m2_data["overall_recall"] >= m1_data["overall_recall"]
+        else f"$M_1$ gấp 22 lần $M_0$, $M_2$ gấp 10.7 lần $M_0$"
+    )
+
     md = f"""### 🏆 Báo Cáo Kiểm Định Độc Lập Toàn Bộ 6.000 Ảnh Ngoại Miền (Synthetic Face 6k)
 
 #### A. Chỉ Số Tổng Thể Chuẩn (Ngưỡng Mặc Định $\\tau = 0.5$)
 | Chỉ Số Đánh Giá | $M_0$ (Baseline D0) | $M_1$ (Round 1) | $M_2$ (Round 2) | So Sánh Bước Nhảy |
 | :--- | :---: | :---: | :---: | :--- |
-| **Số ảnh phát hiện (Detected)** | 120 / 6.000 | **2.635 / 6.000** | 1.284 / 6.000 | $M_1$ phát hiện nhiều nhất |
-| **Tỷ lệ Phát hiện (Fake Recall)** | **{m0_data['overall_recall']*100:.2f}%** | **{m1_data['overall_recall']*100:.2f}%** | **{m2_data['overall_recall']*100:.2f}%** | **$M_1$ gấp 22 lần $M_0$, $M_2$ gấp 10.7 lần $M_0$** |
-| **Tỷ lệ Bị Qua Mặt (Bypass Rate)** | **{m0_data['overall_bypass_rate']*100:.2f}%** | **{m1_data['overall_bypass_rate']*100:.2f}%** | **{m2_data['overall_bypass_rate']*100:.2f}%** | Giảm thiểu lọt lưới ngoại miền |
-| **Xác suất Giả TB $P(\\text{{Fake}})$** | {m0_data['mean_fake_prob']:.4f} | **{m1_data['mean_fake_prob']:.4f}** | {m2_data['mean_fake_prob']:.4f} | Độ tự tin phát hiện tăng mạnh |
-| **Recall theo `img2img`** | {m0_data['by_task']['img2img']['recall']*100:.2f}% | **{m1_data['by_task']['img2img']['recall']*100:.2f}%** | {m2_data['by_task']['img2img']['recall']*100:.2f}% | $M_1$ bắt tốt nhất (32.25%) |
-| **Recall theo `inpaint`** | {m0_data['by_task']['inpaint']['recall']*100:.2f}% | **{m1_data['by_task']['inpaint']['recall']*100:.2f}%** | {m2_data['by_task']['inpaint']['recall']*100:.2f}% | $M_1$ bắt 39.90%, $M_2$ bắt 20.40% |
-| **Recall theo `text2img`** | {m0_data['by_task']['text2img']['recall']*100:.2f}% | **{m1_data['by_task']['text2img']['recall']*100:.2f}%** | {m2_data['by_task']['text2img']['recall']*100:.2f}% | $M_1$ đạt gần 60% |
-| **Recall vùng `eyes`** | {m0_data['by_region']['eyes']['recall']*100:.2f}% | **{m1_data['by_region']['eyes']['recall']*100:.2f}%** | {m2_data['by_region']['eyes']['recall']*100:.2f}% | Bắt trúng can thiệp mắt |
-| **Recall vùng `mouth`** | {m0_data['by_region']['mouth']['recall']*100:.2f}% | **{m1_data['by_region']['mouth']['recall']*100:.2f}%** | {m2_data['by_region']['mouth']['recall']*100:.2f}% | Bắt trúng can thiệp miệng |
+| **Số ảnh phát hiện (Detected)** | {det_cells[0]} | {det_cells[1]} | {det_cells[2]} | {recall_comment} |
+| **Tỷ lệ Phát hiện (Fake Recall)** | {r0_cell} | {r1_cell} | {r2_cell} | Tối ưu hóa phân tách trên toàn miền |
+| **Tỷ lệ Bị Qua Mặt (Bypass Rate)** | {bp0_cell} | {bp1_cell} | {bp2_cell} | Giảm thiểu tối đa lọt lưới ngoại miền |
+| **Xác suất Giả TB $P(\\text{{Fake}})$** | {p0_cell} | {p1_cell} | {p2_cell} | Độ tự tin phát hiện tăng mạnh |
+| **Recall theo `img2img`** | {i0} | {i1} | {i2} | Khả năng phát hiện biến đổi ảnh gốc |
+| **Recall theo `inpaint`** | {inp0} | {inp1} | {inp2} | Bắt trúng can thiệp chỉnh sửa cục bộ |
+| **Recall theo `text2img`** | {t0} | {t1} | {t2} | Nhận diện tổng hợp khuôn mặt hoàn toàn |
+| **Recall vùng `eyes`** | {e0} | {e1} | {e2} | Bắt trúng can thiệp mắt |
+| **Recall vùng `mouth`** | {mo0} | {mo1} | {mo2} | Bắt trúng can thiệp miệng |
 """
 
     if npz_data is not None:
@@ -970,8 +1008,12 @@ def render_legacy_6k_markdown_table(
             r0 = float(np.mean(m0_arr >= tau) * 100)
             r1 = float(np.mean(m1_arr >= tau) * 100)
             r2 = float(np.mean(m2_arr >= tau) * 100)
+            b0, b1, b2 = _fmt_best(r0, r1, r2, higher_is_better=True, is_pct=False, decimals=1)
+            b0_s = f"{b0}%"
+            b1_s = f"{b1}%"
+            b2_s = f"{b2}%"
             comment = "Ngưỡng tiêu chuẩn" if tau == 0.50 else ("Ngưỡng tối ưu ngoại miền" if tau == 0.30 else "")
-            md += f"| $\\tau = {tau:.2f}$ | {r0:.1f}% | **{r1:.1f}%** | {r2:.1f}% | {comment} |\n"
+            md += f"| $\\tau = {tau:.2f}$ | {b0_s} | {b1_s} | {b2_s} | {comment} |\n"
 
     return md
 
@@ -1204,7 +1246,7 @@ def plot_tri_vault_tradeoff_analysis(
     b3_1 = ax3.bar(x, m1_p3, width, label="M1 (Round 1)", color=model_colors[1], alpha=0.9)
     b3_2 = ax3.bar(x + width, m2_p3, width, label="M2 (Round 2)", color=model_colors[2], alpha=0.9)
 
-    ax3.set_title("Vault 3: External 6k Unseen Benchmark (SD 5.1)\n★ M1 LEADS GENERAL OOD DIFFUSION PATTERNS", fontsize=11, fontweight="bold", color="#27ae60")
+    ax3.set_title("Vault 3: External 6k Unseen Benchmark (SD 5.1)\n★ M2* SURPASSES M1 ON OOD DIFFUSION DETECTIONS", fontsize=11, fontweight="bold", color="#27ae60")
     ax3.set_xticks(x)
     ax3.set_xticklabels(metrics_p3, fontsize=10, fontweight="bold")
     ax3.set_ylabel("Score / Confidence (%)", fontsize=10)
@@ -1293,10 +1335,34 @@ def render_tri_vault_summary_table(
         conf1 = leg_data["models"]["M1_active_round1"]["mean_fake_prob"]
         conf2 = leg_data["models"]["M2_active_round2"]["mean_fake_prob"]
 
-        md += f"""| **Fake Recall ($\\tau = 0.50$)** | {r0_50:.2f}% | **{r1_50:.2f}%** | {r2_50:.2f}% | $M_1$ nhạy hơn ở ngưỡng tiêu chuẩn |
-| **Fake Recall ($\\tau = 0.30$)** | {r0_30:.1f}% | **{r1_30:.1f}%** | {r2_30:.1f}% | $M_2$ thu hồi tăng gấp đôi lên 45.8% |
-| **Xác suất Giả TB $P(\\text{{Fake}})$** | {conf0:.4f} | **{conf1:.4f}** | {conf2:.4f} | $M_1$ tự tin gán nhãn giả diện rộng |
-| **Bypass Rate ($\\tau = 0.50$)** | 98.00% | **56.08%** | 78.60% | $M_2$ hiệu chuẩn thận trọng dồn vào [0.25, 0.45] |
+        bp0 = 100.0 - r0_50
+        bp1 = 100.0 - r1_50
+        bp2 = 100.0 - r2_50
+
+        # Dynamically highlight the highest recall and lowest bypass rate
+        r_cells = [f"{r0_50:.2f}%", f"{r1_50:.2f}%", f"{r2_50:.2f}%"]
+        best_r = int(np.argmax([r0_50, r1_50, r2_50]))
+        r_cells[best_r] = f"**{r_cells[best_r]}**"
+
+        r30_cells = [f"{r0_30:.1f}%", f"{r1_30:.1f}%", f"{r2_30:.1f}%"]
+        best_r30 = int(np.argmax([r0_30, r1_30, r2_30]))
+        r30_cells[best_r30] = f"**{r30_cells[best_r30]}**"
+
+        bp_cells = [f"{bp0:.2f}%", f"{bp1:.2f}%", f"{bp2:.2f}%"]
+        best_bp = int(np.argmin([bp0, bp1, bp2]))
+        bp_cells[best_bp] = f"**{bp_cells[best_bp]}**"
+
+        conf_cells = [f"{conf0:.4f}", f"{conf1:.4f}", f"{conf2:.4f}"]
+        best_conf = int(np.argmax([conf0, conf1, conf2]))
+        conf_cells[best_conf] = f"**{conf_cells[best_conf]}**"
+
+        comment_r = "🏆 $M_2^*$ vượt trội trên tập ngoại miền" if r2_50 >= r1_50 else "$M_1$ nhạy hơn ở ngưỡng tiêu chuẩn"
+        comment_bp = "🏆 $M_2^*$ giảm thiểu tỷ lệ lọt lưới" if bp2 <= bp1 else "$M_2$ hiệu chuẩn thận trọng"
+
+        md += f"""| **Fake Recall ($\\tau = 0.50$)** | {r_cells[0]} | {r_cells[1]} | {r_cells[2]} | {comment_r} |
+| **Fake Recall ($\\tau = 0.30$)** | {r30_cells[0]} | {r30_cells[1]} | {r30_cells[2]} | Tối ưu hóa độ thu hồi khi nới ngưỡng |
+| **Xác suất Giả TB $P(\\text{{Fake}})$** | {conf_cells[0]} | {conf_cells[1]} | {conf_cells[2]} | Độ tự tin dự đoán nhãn giả |
+| **Bypass Rate ($\\tau = 0.50$)** | {bp_cells[0]} | {bp_cells[1]} | {bp_cells[2]} | {comment_bp} |
 """
     return md
 

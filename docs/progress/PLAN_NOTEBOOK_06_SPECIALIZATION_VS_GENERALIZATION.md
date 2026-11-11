@@ -18,7 +18,7 @@
 
 **Tech Stack:** Python 3.10+, PyTorch, NumPy, Matplotlib, JSON, Jupyter Notebook, pytest.
 
-**Spec:** [`docs/phases/PHASE_NOTEBOOK_06_SPECIALIZATION_VS_GENERALIZATION.md`](file:///home/bush/Projects/uth-cv-coursework/docs/phases/PHASE_NOTEBOOK_06_SPECIALIZATION_VS_GENERALIZATION.md)
+**Spec:** [`docs/phases/PHASE_NOTEBOOK_06_SPECIALIZATION_VS_GENERALIZATION.md`](docs/phases/PHASE_NOTEBOOK_06_SPECIALIZATION_VS_GENERALIZATION.md)
 
 ## Global Constraints
 - Clean modular code in `src/`: no raw monolithic logic inside notebooks (`GEMINI.md`).

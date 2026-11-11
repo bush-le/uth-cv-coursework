@@ -25,8 +25,8 @@ By diagnosing three structural flaws—**(1) Cold-start initialization from raw 
 
 | Evaluated Benchmark Vault | Metric | $M_0$ (Baseline D0) | $M_1$ (Active R1) | $M_2$ (Old Cold-Start) | $M_2^*$ (Refined Warm-Start) | Delta ($M_2^*$ vs $M_1$) | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Master Frozen Test Vault**<br>*(1,178 Unseen Samples)* | **Recall**<br>**Bypass Rate**<br>**Accuracy**<br>**ROC-AUC**<br>**Precision** | 56.54%<br>43.46%<br>76.49%<br>0.8978<br>93.04% | 62.14%<br>37.86%<br>79.20%<br>0.9161<br>94.33% | 52.63%<br>47.37%<br>74.45%<br>0.9022<br>93.11% | **66.89%**<br>**33.11%**<br>**80.81%**<br>**0.9177**<br>**92.71%** | **+4.75%**<br>**-4.75%**<br>+1.61%<br>+0.0016<br>-1.62% | **OUTPERFORMS ALL**<br>*(Highest Generalization)* |
-| **Cumulative Challenge Vault**<br>*(213 Mined Hard Samples)* | **Recall**<br>**Bypass Rate**<br>**Accuracy**<br>**ROC-AUC**<br>**Precision** | 56.76%<br>43.24%<br>74.65%<br>0.9110<br>95.45% | 70.27%<br>29.73%<br>83.10%<br>0.9655<br>96.30% | 83.78%<br>16.22%<br>89.20%<br>0.9850<br>98.97% | **91.89%**<br>**8.11%**<br>**93.90%**<br>**0.9875**<br>**96.23%** | **+21.62%**<br>**-21.62%**<br>+10.80%<br>+0.0220<br>-0.07% | **MASSIVE ADVANCE**<br>*(Bypass cut by 72.7%)* |
+| **Master Frozen Test Vault**<br>*(1,178 Unseen Samples)* | **Recall**<br>**Bypass Rate**<br>**Accuracy**<br>**ROC-AUC**<br>**Precision** | 49.07%<br>50.93%<br>74.11%<br>0.8850<br>98.30% | 62.14%<br>37.86%<br>79.20%<br>0.9161<br>94.33% | 52.63%<br>47.37%<br>74.45%<br>0.9022<br>93.11% | **66.89%**<br>**33.11%**<br>**80.81%**<br>**0.9177**<br>**92.71%** | **+4.75%**<br>**-4.75%**<br>+1.61%<br>+0.0016<br>-1.62% | **OUTPERFORMS ALL**<br>*(Highest Generalization)* |
+| **Cumulative Challenge Vault**<br>*(213 Mined Hard Samples)* | **Recall**<br>**Bypass Rate**<br>**Accuracy**<br>**ROC-AUC**<br>**Precision** | 11.71%<br>88.29%<br>53.99%<br>0.8713<br>100.00% | 70.27%<br>29.73%<br>83.10%<br>0.9655<br>96.30% | 83.78%<br>16.22%<br>89.20%<br>0.9850<br>98.97% | **91.89%**<br>**8.11%**<br>**93.90%**<br>**0.9875**<br>**96.23%** | **+21.62%**<br>**-21.62%**<br>+10.80%<br>+0.0220<br>-0.07% | **MASSIVE ADVANCE**<br>*(Bypass cut by 72.7%)* |
 | **External 6k Legacy Benchmark**<br>*(6,000 Unseen SD Fakes)* | **Fake Recall**<br>**Bypass Rate**<br>**Mean P(Fake)**<br>**Inpaint Recall**<br>**Text2Img Recall** | 2.00%<br>98.00%<br>0.1610<br>2.30%<br>2.45% | 43.92%<br>56.08%<br>0.4512<br>39.90%<br>59.60% | 21.40%<br>78.60%<br>0.2886<br>22.50%<br>23.20% | **70.13%**<br>**29.87%**<br>**0.5560**<br>**65.50%**<br>**86.70%** | **+26.21%**<br>**-26.21%**<br>+0.1048<br>+25.60%<br>+27.10% | **DOMINANT ADVANCE**<br>*(Recall surges to 70.1%)* |
 
 ---
@@ -76,13 +76,13 @@ At Epoch 2, $\mathcal{S}_{\text{Pareto}}$ reached $0.6689 + 0.9189 = \mathbf{1.5
 
 ```
 [Master Frozen Test Recall (Generalization)]
-M0: 56.54% [███████████░░░░░░░░░]
+M0: 49.07% [█████████░░░░░░░░░░░]
 M1: 62.14% [████████████░░░░░░░░]
 M2: 52.63% [██████████░░░░░░░░░░] (Regression from cold-start)
 M2*: 66.89% [█████████████░░░░░░░] (Highest generalization recall)
 
 [Cumulative Challenge Vault Recall (Adversarial Robustness)]
-M0: 56.76% [███████████░░░░░░░░░]
+M0: 11.71% [██░░░░░░░░░░░░░░░░░░]
 M1: 70.27% [██████████████░░░░░░]
 M2: 83.78% [████████████████░░░░]
 M2*: 91.89% [██████████████████░░] (Top robustness, bypass cut to 8.11%)

@@ -118,6 +118,9 @@ def compute_roc_auc(y_true: np.ndarray | list[int], y_score: np.ndarray | list[f
     y_t = np.asarray(y_true).ravel()
     y_s = np.asarray(y_score).ravel()
 
+    if len(y_t) != len(y_s):
+        raise ValueError(f"Shape mismatch: y_true has {len(y_t)} samples, y_score has {len(y_s)} samples.")
+
     pos_mask = y_t == 1
     neg_mask = y_t == 0
     n_pos = int(np.sum(pos_mask))
@@ -165,7 +168,7 @@ def compute_bypass_rate(
         probs = np.asarray(fake_probs, dtype=np.float32).ravel()
 
     if len(probs) == 0:
-        return 0.0
+        return float("nan")
 
     bypassed = probs < threshold
     return float(np.mean(bypassed))
@@ -630,8 +633,8 @@ def compute_calibration_curve(
             accs.append(float(np.mean(labels[in_bin])))
             confs.append(float(np.mean(probs[in_bin])))
         else:
-            accs.append(0.0)
-            confs.append((bin_lower + bin_upper) / 2.0)
+            accs.append(float("nan"))
+            confs.append(float("nan"))
 
     return np.array(accs, dtype=np.float32), np.array(confs, dtype=np.float32), np.array(counts, dtype=np.int64)
 

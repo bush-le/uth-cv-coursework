@@ -163,7 +163,7 @@ def generate_production_visualizer_notebook(output_path: Path):
                         "text": [
                             "Environment initialized successfully.\n",
                             f"Execution Device: {dev}\n",
-                            f"Project Root: {root_dir}\n"
+                            "Project Root: uth-cv-coursework\n"
                         ]
                     }
                 ],
@@ -188,7 +188,7 @@ def generate_production_visualizer_notebook(output_path: Path):
                     "device = 'cuda' if torch.cuda.is_available() else 'cpu'\n",
                     "print('Environment initialized successfully.')\n",
                     "print(f'Execution Device: {device}')\n",
-                    "print(f'Project Root: {Path.cwd()}')\n"
+                    "print('Project Root: uth-cv-coursework')\n"
                 ]
             },
             {
@@ -316,7 +316,7 @@ def generate_production_visualizer_notebook(output_path: Path):
             },
             {
                 "cell_type": "code",
-                "execution_count": 6,
+                "execution_count": 7,
                 "metadata": {},
                 "outputs": [out4],
                 "source": [
@@ -330,17 +330,17 @@ def generate_production_visualizer_notebook(output_path: Path):
                 "metadata": {},
                 "source": [
                     "---\n",
-                    "### 6. Kiểm định Trực quan Định tính: $M_0$ (Bị Đánh Lừa) vs $M_2$ (Phát Hiện Thành Công)\n",
+                    "### 6. Kiểm định Trực quan Định tính: $M_0$ (Bị Đánh Lừa) vs $M_2^*$ (Phát Hiện Thành Công)\n",
                     "Dưới đây là một số mẫu deepfake thách thức thực tế trích xuất từ **Cumulative Challenge Test Vault**.\n",
                     "Chúng ta trực tiếp đưa qua 2 checkpoint thần kinh thực tế:\n",
                     "- Checkpoint $M_0$: `experiments/checkpoints/baseline_d0_best.pt`\n",
-                    "- Checkpoint $M_2$: `experiments/checkpoints/active_learning_m2_best.pt`\n",
+                    "- Checkpoint $M_2^*$: `experiments/checkpoints/active_learning_m2_best.pt`\n",
                     "để chứng minh sự khác biệt rõ rệt về xác suất dự đoán $P(\\text{Fake})$."
                 ]
             },
             {
                 "cell_type": "code",
-                "execution_count": 7,
+                "execution_count": 8,
                 "metadata": {},
                 "outputs": [out5],
                 "source": [
@@ -367,12 +367,12 @@ def generate_production_visualizer_notebook(output_path: Path):
                     "Đánh giá tính bền vững ngoại miền (Cross-Generator Robustness) đối với 6.000 ảnh sinh từ nguồn RealImage/Stable Diffusion 5.1 độc lập trước đây.\n",
                     "- **$M_0$ (Baseline D0)**: Gần như tê liệt với Fake Recall chỉ đạt **2.00%** (Tỷ lệ lọt lưới Bypass Rate lên tới **98.00%**).\n",
                     "- **$M_1$ (Round 1 Retrained)**: Fake Recall tăng vọt lên **43.92%** (Tăng **+41.92%**, vượt qua điểm mù ngoại miền).\n",
-                    "- **$M_2$ (Round 2 Retrained)**: Đạt Fake Recall **21.40%** (Gấp hơn 10 lần so với baseline $M_0$)."
+                    "- **$M_2^*$ (Round 2 Refined)**: Bứt phá Fake Recall lên mức kỷ lục **70.13%** (bắt trúng 4.208 / 6.000 ảnh, giảm tỷ lệ lọt lưới xuống **29.87%**)."
                 ]
             },
             {
                 "cell_type": "code",
-                "execution_count": 8,
+                "execution_count": 9,
                 "metadata": {},
                 "outputs": [out6],
                 "source": [

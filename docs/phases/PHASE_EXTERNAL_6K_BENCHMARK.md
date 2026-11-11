@@ -16,7 +16,7 @@
 Validate the cross-generator adversarial robustness of our DINOv2 deepfake detector models ($M_0$ Baseline, $M_1$ Round 1, $M_2$ Round 2) against an external, independent synthetic dataset of 6,000 images generated via Stable Diffusion / RealImage 5.1.
 
 ### 1.2 Goals
-- Extract `/home/bush/Downloads/synthetic_face_dataset_6k.zip` into an isolated workspace directory: `data/external_benchmarks/synthetic_face_dataset_6k/`.
+- Extract `synthetic_face_dataset_6k.zip` into an isolated workspace directory: `data/external_benchmarks/synthetic_face_dataset_6k/`.
 - Rebase file paths in `fake_manifest.jsonl` to ensure 100% path resolvability.
 - Evaluate $M_0$, $M_1$, and $M_2$ across all 6,000 fake images using standard evaluation transforms `(224, 224)` on GPU.
 - Compute quantitative fake detection metrics:

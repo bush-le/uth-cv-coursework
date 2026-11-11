@@ -62,53 +62,8 @@ class HardSampleMiningReport:
         return asdict(self)
 
 
-def crop_face_tensor(
-    image: torch.Tensor,
-    bbox: Optional[Tuple[float, float, float, float]] = None,
-    target_size: Tuple[int, int] = (224, 224),
-) -> torch.Tensor:
-    """Crop the facial region from an image tensor and resize to target_size.
-
-    Args:
-        image: Tensor of shape (C, H, W) in [0, 1].
-        bbox: Optional normalized (ymin, xmin, ymax, xmax) coordinates.
-        target_size: Desired (height, width) of output face crop.
-
-    Returns:
-        Cropped and resized face tensor of shape (C, target_size[0], target_size[1]).
-    """
-    import cv2
-    import numpy as np
-    import torch.nn.functional as F
-
-    c, h, w = image.shape
-    if bbox is None:
-        np_img = (image.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
-        gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        cascade = cv2.CascadeClassifier(cascade_path)
-        faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30))
-        if len(faces) > 0:
-            fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
-            bbox = (float(fy / h), float(fx / w), float((fy + fh) / h), float((fx + fw) / w))
-        else:
-            bbox = (0.15, 0.15, 0.85, 0.85)
-
-    ymin, xmin, ymax, xmax = bbox
-    face_h = ymax - ymin
-    face_w = xmax - xmin
-    ymin = max(0.0, ymin - 0.10 * face_h)
-    ymax = min(1.0, ymax + 0.10 * face_h)
-    xmin = max(0.0, xmin - 0.10 * face_w)
-    xmax = min(1.0, xmax + 0.10 * face_w)
-
-    py_min, py_max = int(ymin * h), max(int(ymin * h) + 1, int(ymax * h))
-    px_min, px_max = int(xmin * w), max(int(xmin * w) + 1, int(xmax * w))
-
-    face_crop = image[:, py_min:py_max, px_min:px_max]
-    face_crop_batched = face_crop.unsqueeze(0)
-    resized = F.interpolate(face_crop_batched, size=target_size, mode="bilinear", align_corners=False)
-    return resized.squeeze(0)
+# Re-export from data transforms for backward compatibility
+from src.data.transforms import crop_face_tensor
 
 
 def filter_by_embedding_diversity(
@@ -541,42 +496,6 @@ def mine_hard_samples(
         bypass_rate * 100.0,
     )
     return report
-
-
-def mine_hard_samples_by_feature_similarity(
-    extractor: nn.Module,
-    synthetic_metadata: List[ImageMetadata],
-    real_metadata: Optional[List[ImageMetadata]] = None,
-    cache: Optional[Dict[str, torch.Tensor]] = None,
-    similarity_threshold: float = 0.85,
-    batch_size: int = 16,
-    device: Union[str, torch.device] = "cpu",
-    annotated_manifest_path: Optional[Path] = None,
-    hard_manifest_path: Optional[Path] = None,
-) -> HardSampleMiningReport:
-    """Legacy compatibility wrapper for feature similarity mining using real manifold scoring."""
-    real_meta = real_metadata or []
-    rep = mine_hard_samples_real_manifold(
-        extractor=extractor,
-        synthetic_metadata=synthetic_metadata,
-        real_metadata=real_meta,
-        cache=cache,
-        tau=similarity_threshold,
-        k_neighbors=1,
-        batch_size=batch_size,
-        device=device,
-        annotated_manifest_path=annotated_manifest_path,
-        hard_manifest_path=hard_manifest_path,
-    )
-    return HardSampleMiningReport(
-        total_synthetic=rep.total,
-        rejected_count=rep.total - rep.hard_count,
-        bypassed_hard_count=rep.hard_count,
-        bypass_rate=rep.hard_rate,
-        mean_fake_prob=rep.tau,
-        threshold=similarity_threshold,
-        hard_sample_ids=rep.hard_ids,
-    )
 
 
 def main() -> None:

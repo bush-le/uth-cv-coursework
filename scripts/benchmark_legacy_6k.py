@@ -28,9 +28,9 @@ from PIL import Image
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
 
 from src.common.logger import get_logger
-from src.data.transforms import get_base_transforms
 from src.models.detector.image_detector import DeepfakeImageDetector
 
 logger = get_logger(__name__)
@@ -165,7 +165,7 @@ def main():
                 records.append(json.loads(line.strip()))
 
     logger.info("Loaded %d records from %s", len(records), manifest_path)
-    transform = get_base_transforms(image_size=(224, 224), is_training=False)
+    transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
     dataset = Legacy6kDataset(records, transform=transform)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=2)
 

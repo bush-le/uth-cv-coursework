@@ -70,6 +70,7 @@ benchmarks:
     - name: "D0_baseline"
       train_sources:
         - "baseline"
+        - "synthetic"
       oversample_hard: 1
     - name: "D1_augmented"
       train_sources:

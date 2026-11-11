@@ -224,7 +224,7 @@ def calculate_roc_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
 - User `bush` has a quota of 5.5 GB on `tmpfs` (`/tmp`).
 - Exported in automation scripts:
   ```bash
-  export TMPDIR="/home/bush/Projects/uth-cv-coursework/.cache/tmp"
+  export TMPDIR="$(pwd)/.cache/tmp"
   mkdir -p "$TMPDIR"
   ```
 - Pytest pinned with `--basetemp=.cache/pytest`.

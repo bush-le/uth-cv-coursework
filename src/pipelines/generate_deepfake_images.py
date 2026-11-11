@@ -178,6 +178,7 @@ def run_image_generation(
     engine = StableDiffusionEngine(
         model_name=model_name_val,
         inpaint_model_name=inpaint_model_val,
+        device=device,
         use_mock_fallback=use_mock_fallback,
     )
     generated_count = 0
@@ -219,7 +220,7 @@ def run_image_generation(
             item_idx = (t_idx + sample_offset) % len(real_items)
             k = ((t_idx + sample_offset) // len(real_items))
             item = real_items[item_idx]
-            real_id = item["image_id"]
+            real_id = item.get("source_real_id") or item["image_id"]
             demographics = item.get("demographics")
             fake_id = f"fake_{real_id}_{k}"
             if mode_val == "all":
@@ -244,7 +245,7 @@ def run_image_generation(
             })
     else:
         for item_idx, item in enumerate(real_items):
-            real_id = item["image_id"]
+            real_id = item.get("source_real_id") or item["image_id"]
             demographics = item.get("demographics")
             for k in range(num_per_real_val):
                 actual_k = k + sample_offset
@@ -298,7 +299,9 @@ def run_image_generation(
 
         if prompt_engine:
             mode_str = "img2img" if mode_idx == 0 else ("inpaint" if mode_idx == 1 else "text2img")
-            prompt_used = prompt_engine.generate_prompt(demographics, mode=mode_str, seed_offset=task["item_idx"])
+            prompt_used = prompt_engine.generate_prompt(
+                demographics, mode=mode_str, seed_offset=task["item_idx"] * 100 + task["k"]
+            )
         else:
             prompt_used = _build_demographic_prompt(demographics, base_p)
         sub_dir = out_dir_path / sub_folder
@@ -382,7 +385,7 @@ def run_image_generation(
                 guidance_scale=guidance_scale_val,
             )
         elif mode_idx == 1:
-            raw_bbox = item.get("bbox")
+            raw_bbox = item.get("bbox") or cfg.get("generation", {}).get("inpaint_mask_box")
             if mask_targets and inpaint_counter < len(mask_targets):
                 region_choice = mask_targets[inpaint_counter]
             else:

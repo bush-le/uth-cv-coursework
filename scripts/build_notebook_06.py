@@ -197,14 +197,14 @@ def main():
             "leg_path = Path('experiments/logs/legacy_6k_benchmark_results.json')\n",
             "npz_path = Path('experiments/logs/legacy_6k_predictions.npz')\n",
             "\n",
-            "print(f'✅ Workspace Root: {root_dir}')\n",
+            "print('✅ Workspace Root: uth-cv-coursework')\n",
             "print(f'✅ Khởi tạo 3 kho kiểm định: Challenge={chal_path.exists()} | Legacy 6k={leg_path.exists()} | NPZ={npz_path.exists()}')\n",
         ],
         outputs=[{
             "output_type": "stream",
             "name": "stdout",
             "text": [
-                f"✅ Workspace Root: {Path.cwd()}\n",
+                "✅ Workspace Root: uth-cv-coursework\n",
                 "✅ Khởi tạo 3 kho kiểm định: Challenge=True | Legacy 6k=True | NPZ=True\n",
             ],
         }],

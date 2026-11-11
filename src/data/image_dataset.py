@@ -48,7 +48,7 @@ class DeepfakeImageDataset(Dataset):
         with Image.open(path) as img:
             img_rgb = img.convert("RGB")
             if self.target_size is not None:
-                img_rgb = img_rgb.resize(self.target_size, Image.Resampling.LANCZOS)
+                img_rgb = img_rgb.resize((self.target_size[1], self.target_size[0]), Image.Resampling.LANCZOS)
             np_img = np.array(img_rgb, dtype=np.float32) / 255.0
             return torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
 
@@ -57,14 +57,15 @@ class DeepfakeImageDataset(Dataset):
 
         # Use cache if available (keyed by image_id or file_path)
         if metadata.image_id in self.cache:
-            img = self.cache[metadata.image_id]
+            img = self.cache[metadata.image_id].clone()
         elif metadata.file_path in self.cache:
-            img = self.cache[metadata.file_path]
+            img = self.cache[metadata.file_path].clone()
         elif metadata.file_path:
             img = self._load_image_from_disk(metadata.file_path)
         else:
-            h, w = self.target_size if self.target_size else (512, 512)
-            img = torch.zeros(3, h, w, dtype=torch.float32)
+            raise ValueError(
+                f"ImageMetadata {metadata.image_id} has no file_path and is not present in cache."
+            )
 
         if self.transform is not None:
             img = self.transform(img)

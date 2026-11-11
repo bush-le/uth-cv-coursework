@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Extract the 6,000 external synthetic face images from `/home/bush/Downloads/synthetic_face_dataset_6k.zip`, benchmark detector models ($M_0, M_1, M_2$) for out-of-distribution Fake Recall and Bypass Rate, log the structured metrics, and integrate rich visual comparisons into Notebook 04.
+**Goal:** Extract the 6,000 external synthetic face images from `synthetic_face_dataset_6k.zip`, benchmark detector models ($M_0, M_1, M_2$) for out-of-distribution Fake Recall and Bypass Rate, log the structured metrics, and integrate rich visual comparisons into Notebook 04.
 
 **Architecture:** Standalone benchmark architecture under `data/external_benchmarks/`, keeping the production 10,000 dataset isolated. Dedicated evaluation script `scripts/benchmark_legacy_6k.py` running GPU batch inference across models, persisting results to `experiments/logs/legacy_6k_benchmark_results.json`, visualized via `src.common.visualizer` and embedded into `04_active_learning_production_visualizer.ipynb`.
 
 **Tech Stack:** PyTorch, torchvision, PIL, Matplotlib, JSONL, pytest.
 
-**Spec:** [`docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md`](file:///home/bush/Projects/uth-cv-coursework/docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md)
+**Spec:** [`docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md`](docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md)
 
 ## Global Constraints
 - Strictly isolate `data/external_benchmarks/` from the production 10,000 dataset in `data/partitions/` and `data/benchmarks/`.
@@ -33,7 +33,7 @@
 - Create: `scripts/prepare_legacy_6k_dataset.py`
 
 **Steps:**
-- [x] Write `scripts/prepare_legacy_6k_dataset.py` to extract `/home/bush/Downloads/synthetic_face_dataset_6k.zip` to `data/external_benchmarks/synthetic_face_dataset_6k/`.
+- [x] Write `scripts/prepare_legacy_6k_dataset.py` to extract `synthetic_face_dataset_6k.zip` to `data/external_benchmarks/synthetic_face_dataset_6k/`.
 - [x] Rebase paths in `fake_manifest.jsonl` from `data/synthetic/...` to `data/external_benchmarks/synthetic_face_dataset_6k/...`.
 - [x] Run script and verify 6,000 image files and manifest records exist on disk.
 

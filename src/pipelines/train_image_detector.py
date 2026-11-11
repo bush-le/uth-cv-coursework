@@ -228,10 +228,10 @@ def main() -> None:
     )
     parser.add_argument("--baseline-manifest", type=str, default="data/raw/manifest.jsonl")
     parser.add_argument(
-        "--synthetic-manifest", type=str, default="data/processed/curated_manifest.jsonl"
+        "--synthetic-manifest", type=str, default="data/synthetic/curated_manifest.jsonl"
     )
     parser.add_argument(
-        "--hard-manifest", type=str, default="data/processed/hard_samples_manifest.jsonl"
+        "--hard-manifest", type=str, default="data/hard_samples/hard_samples_manifest.jsonl"
     )
     parser.add_argument("--backbone", type=str, default="dinov2_small", help="Backbone (dinov2_small or dino_vit)")
     parser.add_argument("--epochs", type=int, default=5)
@@ -247,16 +247,9 @@ def main() -> None:
         hard_sample_manifest=Path(args.hard_manifest),
     )
     if not meta_list:
-        meta_list = [
-            ImageMetadata(
-                image_id=f"sample_{i}",
-                label=i % 2,
-                manipulation_type="real" if i % 2 == 0 else "sd_inpaint",
-                is_hard_sample=(i % 4 == 1),
-                data_source="hard_sample" if (i % 4 == 1) else "baseline",
-            )
-            for i in range(16)
-        ]
+        raise FileNotFoundError(
+            "No training metadata loaded. Verify that manifests exist and are non-empty."
+        )
 
     dm = DeepfakeImageDataModule(
         metadata_list=meta_list,

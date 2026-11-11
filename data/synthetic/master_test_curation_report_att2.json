@@ -1,0 +1,3 @@
+{"image_id": "fake_ffhq_00710_10", "is_valid": true, "sharpness_score": 4.457123577594757, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00712_10", "is_valid": true, "sharpness_score": 8.769350126385689, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00724_10", "is_valid": true, "sharpness_score": 7.066674996167421, "clip_score": null, "face_detected": true, "rejection_reasons": []}

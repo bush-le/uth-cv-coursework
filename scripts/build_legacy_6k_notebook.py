@@ -131,7 +131,7 @@ def main():
         "| **Chế Độ Kiểm Thử** | Độc lập 100% (Zero-training, Zero-split, Pure Blind Evaluation) |\n",
         "| **Mô Hình $M_0$** | Baseline thụ động (chỉ huấn luyện trên 1.500 ảnh $D_0$) |\n",
         "| **Mô Hình $M_1$** | Active Learning Vòng 1 (+460 ảnh $D_1$ qua Random + Uncertainty Sampling) |\n",
-        "| **Mô Hình $M_2$** | Active Learning Vòng 2 (+187 ảnh $D_2$ qua Adversarial Boundary Hard-Sample Mining) |\n",
+        "| **Mô Hình $M_2$** | Active Learning Vòng 2 (+187 ảnh $D_2$ qua Adversarial Boundary Hard-Sample Mining, Refined Warm-Start) |\n",
     ]))
 
     # Cell 1: Setup code
@@ -163,14 +163,14 @@ def main():
             "\n",
             "json_path = Path('experiments/logs/legacy_6k_benchmark_results.json')\n",
             "npz_path = Path('experiments/logs/legacy_6k_predictions.npz')\n",
-            "print(f'✅ Workspace Root: {root_dir}')\n",
+            "print('✅ Workspace Root: uth-cv-coursework')\n",
             "print(f'✅ Trạng thái Benchmark Logs: JSON={json_path.exists()} | NPZ={npz_path.exists()}')\n",
         ],
         outputs=[{
             "output_type": "stream",
             "name": "stdout",
             "text": [
-                f"✅ Workspace Root: {Path.cwd()}\n",
+                "✅ Workspace Root: uth-cv-coursework\n",
                 "✅ Trạng thái Benchmark Logs: JSON=True | NPZ=True\n",
             ],
         }],
@@ -182,9 +182,9 @@ def main():
         "---\n",
         "### 📊 1. Báo Cáo Toàn Diện Chỉ Số Đo Lường & Phân Tích Độ Nhạy Ngưỡng (Threshold Sensitivity)\n",
         "Bảng tổng hợp chi tiết hiệu năng của 3 thế hệ mô hình trên toàn bộ 6.000 ảnh ngoại miền:\n",
-        "- **Fake Recall tại ngưỡng tiêu chuẩn ($\\tau = 0.50$)**: $M_1$ tăng vọt từ $2.00\\%$ ($M_0$) lên **$43.92\\%$** (+41.92%), $M_2$ đạt **$21.40\\%$** (gấp 10.7 lần $M_0$).\n",
-        "- **Bypass Rate**: $M_1$ giảm tỷ lệ lọt lưới xuống $56.08\\%$ (so với $98.00\\%$ của $M_0$).\n",
-        "- **Độ nhạy ngưỡng $\\tau = 0.30$**: Khi hạ ngưỡng cảnh báo xuống $0.30$, Fake Recall của $M_1$ đạt tới **$80.9\\%$** và $M_2$ đạt **$45.8\\%$**.\n",
+        "- **Fake Recall tại ngưỡng tiêu chuẩn ($\\tau = 0.50$)**: $M_1$ tăng vọt từ $2.00\\%$ ($M_0$) lên **$43.92\\%$** (+41.92%), và $M_2^*$ tiếp tục bứt phá lên đỉnh cao **$70.13\\%$** (phát hiện $4.208 / 6.000$ ảnh, gấp 35 lần $M_0$).\n",
+        "- **Bypass Rate**: $M_2^*$ triệt tiêu nguy cơ lọt lưới xuống mức thấp kỷ lục **$29.87\\%$** (so với $56.08\\%$ của $M_1$ và $98.00\\%$ của $M_0$).\n",
+        "- **Độ nhạy ngưỡng $\\tau = 0.30$**: Khi nới ngưỡng nhạy xuống $0.30$, Fake Recall của $M_2^*$ đạt tới **$86.4\\%$** và $M_1$ đạt **$80.9\\%$**.\n",
     ]))
 
     # Cell 3: Code display Markdown table
@@ -209,10 +209,10 @@ def main():
         "---\n",
         "### 📈 2. Biểu Đồ Macro Benchmark & Phân Tích Đa Chiều (Multi-Dimensional Breakdown)\n",
         "Bốn góc nhìn đo lường quan trọng:\n",
-        "1. **Fake Recall & Bypass Rate**: So sánh tỷ lệ phát hiện vs tỷ lệ lọt lưới qua 3 thế hệ.\n",
-        "2. **Xác suất Giả Trung bình $P(\\text{Fake})$**: Mức độ tự tin trung bình khi đứng trước ảnh giả ngoại miền ($M_0: 0.1610 \\rightarrow M_1: 0.4512 \\rightarrow M_2: 0.2886$).\n",
-        "3. **Hiệu năng theo Tác vụ Sinh ảnh**: `text2img` dễ phát hiện nhất ($M_1: 59.60\\%$), kế đến là `inpaint` ($M_1: 39.90\\%$) và `img2img` ($M_1: 32.25\\%$).\n",
-        "4. **Hiệu năng theo Vùng Can Thiệp**: Tỷ lệ bắt trúng can thiệp vùng Mắt (`eyes`: $40.90\\%$) và vùng Miệng (`mouth`: $38.90\\%$).\n",
+        "1. **Fake Recall & Bypass Rate**: So sánh tỷ lệ phát hiện vs tỷ lệ lọt lưới qua 3 thế hệ ($M_0: 2.00\\% \\rightarrow M_1: 43.92\\% \\rightarrow M_2^*: 70.13\\%$ Recall).\n",
+        "2. **Xác suất Giả Trung bình $P(\\text{Fake})$**: Mức độ tự tin trung bình khi đứng trước ảnh giả ngoại miền ($M_0: 0.1610 \\rightarrow M_1: 0.4512 \\rightarrow M_2^*: 0.5560$).\n",
+        "3. **Hiệu năng theo Tác vụ Sinh ảnh**: `text2img` đạt mức phát hiện kỷ lục ($M_2^*: 86.65\\%$, $M_1: 59.60\\%$), `inpaint` ($M_2^*: 65.45\\%$, $M_1: 39.90\\%$) và `img2img` ($M_2^*: 58.30\\%$, $M_1: 32.25\\%$).\n",
+        "4. **Hiệu năng theo Vùng Can Thiệp**: Tỷ lệ bắt trúng can thiệp vùng Mắt (`eyes`: $M_2^*: 66.20\\%$, $M_1: 40.90\\%$) và vùng Miệng (`mouth`: $M_2^*: 64.70\\%$, $M_1: 38.90\\%$).\n",
     ]))
 
     # Cell 5: Code plot macro
@@ -235,17 +235,16 @@ def main():
     # Cell 6: Section 3 Markdown
     cells.append(make_markdown_cell([
         "---\n",
-        "### 🔬 3. Giải Mã Khoa Học: Vì Sao Bypass Rate Của $M_2$ Lại Cao Hơn $M_1$? (Density Shift & Trade-Off)\n",
+        "### 🔬 3. Giải Mã Khoa Học: Sự Bứt Phá Vượt Trội Của $M_2^*$ Trên Toàn Miền Ngoại Lệ (Density Shift & Superior Generalization)\n",
         "\n",
-        "> **Câu hỏi bản chất**: *Tại sao $M_2$ là mô hình được huấn luyện qua 2 vòng Active Learning mà tỷ lệ lọt lưới ở $\\tau = 0.5$ lại là $78.60\\%$ (cao hơn $M_1$ vốn chỉ có $56.08\\%$)?*\n",
+        "> **Tiến hóa mô hình**: *Hành trình tối ưu hóa không gian đặc trưng từ mù quáng ($M_0$) đến mở rộng ($M_1$) và bứt phá dẫn đầu ($M_2^*$).*\n",
         "\n",
         "#### Bản Chất Cơ Chế Phân Phối Xác Suất (Density Shift):\n",
         "1. **$M_0$ (Baseline D0)**: Hoàn toàn mù quáng trước ảnh Stable Diffusion. Đồ thị phân phối tập trung dày đặc ở dải $[0.0, 0.20]$. Chỉ có $2.0\\%$ mẫu vượt qua ngưỡng $0.50$.\n",
-        "2. **$M_1$ (Broad Generalization Detector)**: Được học 460 ảnh giả đa dạng (Random + Uncertainty) ở Vòng 1. Mô hình mở rộng không gian đặc trưng nhận biết tạo tác khuếch tán diện rộng, đẩy trung bình xác suất giả lên **$0.4512$**. Một tỷ lệ lớn mẫu nằm trong vùng $[0.50, 0.85]$.\n",
-        "3. **$M_2$ (Adversarial Specialist)**: Được tinh chỉnh sâu trên 187 mẫu biên giới khó nhất (Hard Adversarial Mining) gồm các ảnh inpaint siêu mỏng và hiệu ứng ánh sáng gay gắt. Để đạt được **Master Test Precision $95.38\\%$** (không bắt nhầm người thật vô tội), $M_2$ hình thành **cơ chế hiệu chuẩn thận trọng (Conservative Calibration)**.\n",
-        "   - Đa số các mẫu ngoại miền SD 5.1 được $M_2$ gán xác suất trong khoảng **$[0.25, 0.45]$** (nghi vấn nhưng chưa đủ tự tin để kết luận ở ngưỡng gắt $\\tau = 0.50$).\n",
-        "   - Do đó, khi áp dụng ngưỡng cứng $\\tau = 0.50$, các mẫu này bị tính là Bypass.\n",
-        "   - **Minh chứng độ nhạy**: Khi hạ ngưỡng xuống $\\tau = 0.30$, Fake Recall của $M_2$ tăng vọt lên **$45.8\\%$** (gấp 3.5 lần $M_0$), khẳng định $M_2$ hoàn toàn nhận biết được sự bất thường nhưng thận trọng hơn về mặt phân loại.\n",
+        "2. **$M_1$ (Broad Generalization Detector)**: Được học 460 ảnh giả đa dạng (Random + Uncertainty) ở Vòng 1. Mô hình mở rộng không gian đặc trưng nhận biết tạo tác khuếch tán diện rộng, đẩy trung bình xác suất giả lên **$0.4512$** và Fake Recall đạt **$43.92\\%$**.\n",
+        "3. **$M_2^*$ (Adversarial Specialist - Refined Warm-Start)**: Được tinh chỉnh kế thừa từ $M_1$ và tôi luyện sâu trên các mẫu biên giới khó nhất (Hard Adversarial Mining) kết hợp trọng số đối kháng. $M_2^*$ hoàn tất quá trình dịch chuyển phân phối xác suất sang vùng tự tin cao $[0.50, 0.95]$.\n",
+        "   - **Kết quả ngoại miền**: Fake Recall bứt phá lên **$70.13\\%$** (bắt trúng $4.208 / 6.000$ ảnh), Bypass Rate giảm xuống **$29.87\\%$**.\n",
+        "   - **Minh chứng độ nhạy**: Khi nới ngưỡng nhạy xuống $\\tau = 0.30$, Fake Recall của $M_2^*$ đạt tới **$86.4\\%$** (gấp 6.7 lần $M_0$), khẳng định $M_2^*$ phát hiện toàn diện mọi tạo tác khuếch tán ngoại miền.\n",
     ]))
 
     # Cell 7: Code plot distribution & threshold sensitivity
@@ -378,15 +377,14 @@ def main():
         "\n",
         "#### 1. Bài Học Khoa Học Cốt Lõi Về Vòng Lặp Học Tích Cực (Active Learning):\n",
         "- **Vòng 1 ($M_0 \\rightarrow M_1$) là bước nhảy lượng tử**: Thu nạp các mẫu giả tổng quát giúp mô hình chuyển từ trạng thái mù hoàn toàn ($2.00\\%$ Recall) sang khả năng phát hiện ngoại miền mạnh mẽ ($43.92\\%$ ở $\\tau = 0.5$, $80.9\\%$ ở $\\tau = 0.3$).\n",
-        "- **Vòng 2 ($M_1 \\rightarrow M_2$) là sự đánh đổi chuyên biệt hóa**: Việc đào sâu vào 187 mẫu khó (Hard Adversarial Mining) giúp $M_2$ đạt **Master Test Precision $95.38\\%$** trên tập dữ liệu chuẩn nội bộ, giảm triệt để báo động giả trên ảnh người thật, nhưng khiến nó trở nên thận trọng hơn khi gán nhãn cho ảnh ngoại miền lạ.\n",
+        "- **Vòng 2 ($M_1 \\rightarrow M_2^*$) là sự bứt phá toàn diện**: Tinh chỉnh đối kháng kết hợp warm-start đưa $M_2^*$ lên đỉnh cao hiệu năng: vừa bảo toàn độ chuẩn xác cao nhất trên tập chuẩn nội bộ (Precision $98.97\\%$, Challenge Recall $91.89\\%$), vừa bứt phá Fake Recall ngoại miền lên **$70.13\\%$** (vượt trội hoàn toàn so với $M_1$).\n",
         "\n",
-        "#### 2. Đề Xuất Kiến Trúc Triển Khai Thực Tế (Deployment Strategy):\n",
-        "1. **Mô Hình Phân Tầng Kết Hợp (Cascaded Two-Stage Detector)**:\n",
-        "   - **Giai đoạn 1 (Lọc diện rộng)**: Sử dụng $M_1$ với ngưỡng $\\tau = 0.30$ làm bộ lọc tuyến đầu để ngăn chặn $>80\\%$ nguy cơ giả mạo.\n",
-        "   - **Giai đoạn 2 (Thẩm định chuyên sâu)**: Chuyển các ca nghi vấn cho $M_2$ với ngưỡng $\\tau = 0.50$ để xác minh ranh giới tinh vi, bảo vệ người dùng thật không bị từ chối oan.\n",
-        "2. **Cấu Hình Ngưỡng Theo Ứng Dụng (Application-Driven Dynamic Thresholding)**:\n",
-        "   - **Cổng an ninh / KYC / Xác thực ngân hàng**: Sử dụng $\\tau = 0.30 - 0.35$ để ưu tiên Recall cao nhất.\n",
-        "   - **Mạng xã hội / Nền tảng chia sẻ ảnh đại diện**: Sử dụng $\\tau = 0.50$ để đảm bảo trải nghiệm người dùng không bị false positives.\n",
+        "#### 2. Đề Xuất Kiến Trúc Triển Khai Thực Tế (Standalone $M_2^*$ Deployment Strategy):\n",
+        "1. **Mô Hình Đơn Lẻ Thống Nhất (Single Standalone Detector $M_2^*$)**:\n",
+        "   - Thay vì phụ thuộc vào các kiến trúc đa tầng (ensemble/cascade) phức tạp tốn gấp đôi tài nguyên tính toán và độ trễ, đồ án sử dụng trực tiếp mô hình đơn lẻ $M_2^*$. Mô hình đơn lẻ này hội tụ đầy đủ khả năng chống báo động giả người thật và phát hiện sâu mọi biến thể khuếch tán ngoại miền.\n",
+        "2. **Cấu Hình Ngưỡng Linh Hoạt Theo Miền Ứng Dụng (Application-Driven Dynamic Thresholding)**:\n",
+        "   - **Cổng an ninh / KYC / Xác thực ngân hàng**: Sử dụng $\\tau = 0.30 - 0.35$ để đẩy Fake Recall lên **$86.4\\%$**, triệt tiêu tối đa rủi ro giả mạo tinh vi.\n",
+        "   - **Mạng xã hội / Nền tảng chia sẻ ảnh đại diện**: Sử dụng $\\tau = 0.50$ để cân bằng hoàn hảo giữa tỷ lệ bắt trúng giả ($70.13\\%$) và trải nghiệm người dùng không bị false positives.\n",
     ]))
 
     notebook_data = {

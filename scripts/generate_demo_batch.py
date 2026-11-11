@@ -15,7 +15,7 @@ if str(_ROOT) not in sys.path:
 import json
 from pathlib import Path
 import shutil
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -72,12 +72,14 @@ def create_contact_sheet(
 
 def assemble_demo_batch(
     output_dir: Path = Path("data/synthetic/demo_batch_30"),
-    artifact_dir: Path = Path("/home/bush/.gemini/antigravity-cli/brain/415fddd1-e0aa-42fe-93b5-f20d13e6c96b"),
+    artifact_dir: Optional[Path] = None,
     target_per_mode: int = 10,
     device: str = "cuda",
     seed: int = 42,
     fresh: bool = True,
 ) -> Dict[str, Any]:
+    if artifact_dir is None:
+        artifact_dir = Path("experiments/predictions")
     output_dir.mkdir(parents=True, exist_ok=True)
     images_dir = output_dir / "images"
     if fresh and images_dir.exists():

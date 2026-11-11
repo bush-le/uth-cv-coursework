@@ -56,7 +56,7 @@ def generate_dynamic_face_mask(
         bw, bh = abs(bx2 - bx1), abs(by2 - by1)
         max_coord = max(bx1, by1, bx2, by2)
         ref_w = 1024.0 if max_coord > max(w, h) else float(w)
-        ref_h = 1024.0 if max_coord > max(h, h) else float(h)
+        ref_h = 1024.0 if max_coord > max(w, h) else float(h)
         if bw >= 0.90 * ref_w and bh >= 0.90 * ref_h:
             needs_detection = True
         else:
@@ -82,8 +82,11 @@ def generate_dynamic_face_mask(
                 bbox = (0.18, 0.22, 0.75, 0.78)
         except Exception:
             bbox = (0.18, 0.22, 0.75, 0.78)
+        ymin, xmin, ymax, xmax = bbox
+    else:
+        # Standardize external Pascal VOC [xmin, ymin, xmax, ymax]
+        xmin, ymin, xmax, ymax = bbox
 
-    ymin, xmin, ymax, xmax = bbox
     face_h = ymax - ymin
     face_w = xmax - xmin
 
@@ -94,11 +97,17 @@ def generate_dynamic_face_mask(
         m_xmin = max(0.0, min(1.0, xmin - 0.05 * face_w))
         m_xmax = max(0.0, min(1.0, xmax + 0.05 * face_w))
     elif target_region == "lips":
-        # Target mouth / lips region (lower face)
-        m_ymin = max(0.0, min(1.0, ymin + 0.55 * face_h))
-        m_ymax = max(0.0, min(1.0, ymax + 0.18 * face_h))
+        # Target mouth / lips region (strictly lower face without neck)
+        m_ymin = max(0.0, min(1.0, ymin + 0.60 * face_h))
+        m_ymax = max(0.0, min(1.0, ymin + 0.88 * face_h))
         m_xmin = max(0.0, min(1.0, xmin + 0.10 * face_w))
         m_xmax = max(0.0, min(1.0, xmax - 0.10 * face_w))
+    elif target_region == "nose":
+        # Target central nasal bridge and tip
+        m_ymin = max(0.0, min(1.0, ymin + 0.35 * face_h))
+        m_ymax = max(0.0, min(1.0, ymin + 0.68 * face_h))
+        m_xmin = max(0.0, min(1.0, xmin + 0.15 * face_w))
+        m_xmax = max(0.0, min(1.0, xmax - 0.15 * face_w))
     else:
         # Full face: expand downwards by 18% of face height to fully cover mouth, jaw, and chin
         m_ymin = max(0.0, min(1.0, ymin))
@@ -126,7 +135,7 @@ def generate_dynamic_face_mask(
     ksize = blur_radius * 2 + 1
     blurred = cv2.GaussianBlur(mask_np, (ksize, ksize), sigmaX=blur_radius / 2.0)
     norm_mask = blurred.astype(np.float32) / 255.0
-    if norm_mask.sum() == 0:
+    if norm_mask.sum() < 10.0:
         cv2.ellipse(mask_np, (w // 2, h // 2), (w // 4, h // 3), 0, 0, 360, 255, -1)
         blurred = cv2.GaussianBlur(mask_np, (ksize, ksize), sigmaX=blur_radius / 2.0)
         norm_mask = blurred.astype(np.float32) / 255.0
@@ -142,7 +151,7 @@ class StableDiffusionEngine(nn.Module):
         inpaint_model_name: Optional[str] = "stable-diffusion-v1-5/stable-diffusion-inpainting",
         device: Optional[Union[str, torch.device]] = None,
         torch_dtype: Optional[torch.dtype] = None,
-        use_mock_fallback: bool = True,
+        use_mock_fallback: bool = False,
         default_negative_prompt: str = DEFAULT_NEGATIVE_PROMPT,
     ) -> None:
         super().__init__()

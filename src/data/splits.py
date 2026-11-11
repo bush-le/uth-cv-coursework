@@ -19,10 +19,11 @@ logger = get_logger(__name__)
 
 def get_group_key(meta: ImageMetadata) -> str:
     """Extract identity grouping key ensuring parent real faces and synthetic variants share group."""
+    if meta.demographics and meta.demographics.get("identity_id"):
+        ident = meta.demographics["identity_id"]
+        return f"celeba_id_{ident}" if str(ident).isdigit() else str(ident)
     if meta.source_real_id:
         return str(meta.source_real_id)
-    if meta.demographics and meta.demographics.get("identity_id"):
-        return str(meta.demographics["identity_id"])
     return str(meta.image_id)
 
 
@@ -51,7 +52,7 @@ def assign_identity_splits(
     real_only_keys: List[str] = []
 
     for k, metas in groups.items():
-        if any(m.label == 1 or m.source_real_id is not None for m in metas):
+        if any(m.label == 1 for m in metas):
             paired_keys.append(k)
         else:
             real_only_keys.append(k)
@@ -70,6 +71,7 @@ def assign_identity_splits(
     total_r = train_r + val_r + test_r
     train_r = train_r / total_r
     val_r = val_r / total_r
+    test_r = test_r / total_r
 
     assignment: Dict[str, str] = {}
 
@@ -81,7 +83,7 @@ def assign_identity_splits(
         n_val = int(round(n * val_r))
 
         # Ensure non-empty test if requested and enough samples exist
-        if n >= 3:
+        if test_r > 0 and val_r > 0 and n >= 3:
             if n_train >= n:
                 n_train = n - 2
             if n_train + n_val >= n:
@@ -90,6 +92,9 @@ def assign_identity_splits(
                 n_train = 1
             if n_val < 1:
                 n_val = 1
+        elif test_r <= 1e-6:
+            # 2-way split: allocate remaining to val
+            n_val = n - n_train
 
         for k in k_list[:n_train]:
             assignment[k] = "train"
@@ -210,7 +215,7 @@ def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
     curated_path = Path(paths_cfg.get("curated_manifest", "data/synthetic/curated_manifest.jsonl"))
     hard_path = Path(paths_cfg.get("hard_manifest", "data/hard_samples/hard_samples_manifest.jsonl"))
     report_path = Path(paths_cfg.get("curation_report", "data/synthetic/curation_report.jsonl"))
-    stats_file = Path(paths_cfg.get("stats_file", "data/dataset_stats.json"))
+    stats_file = Path(paths_cfg.get("stats_file", "data/dataset_statistics.json"))
 
     def _read_manifest(p: Path) -> List[Dict[str, Any]]:
         if not p.is_file():

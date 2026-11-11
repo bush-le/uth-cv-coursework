@@ -154,7 +154,7 @@ def build_notebook_01(output_path: Path):
                         "output_type": "stream",
                         "text": [
                             "Environment initialized successfully.\n",
-                            f"Project Root: {_ROOT}\n"
+                            "Project Root: uth-cv-coursework\n"
                         ]
                     }
                 ],
@@ -172,7 +172,7 @@ def build_notebook_01(output_path: Path):
                     "from src.data.splits import normalize_demographics\n",
                     "\n",
                     "print('Environment initialized successfully.')\n",
-                    "print(f'Project Root: {Path.cwd()}')\n"
+                    "print('Project Root: uth-cv-coursework')\n"
                 ]
             },
             {
@@ -390,7 +390,7 @@ def build_notebook_02(output_path: Path):
                         "output_type": "stream",
                         "text": [
                             "Environment initialized successfully.\n",
-                            f"Project Root: {_ROOT}\n"
+                            "Project Root: uth-cv-coursework\n"
                         ]
                     }
                 ],
@@ -408,7 +408,7 @@ def build_notebook_02(output_path: Path):
                     "from src.pipelines.curate_image_dataset import ImageCurationGate\n",
                     "\n",
                     "print('Environment initialized successfully.')\n",
-                    "print(f'Project Root: {Path.cwd()}')\n"
+                    "print('Project Root: uth-cv-coursework')\n"
                 ]
             },
             {
@@ -583,7 +583,7 @@ def build_notebook_03(output_path: Path):
                         "output_type": "stream",
                         "text": [
                             "Environment initialized successfully.\n",
-                            f"Project Root: {_ROOT}\n"
+                            "Project Root: uth-cv-coursework\n"
                         ]
                     }
                 ],
@@ -597,7 +597,7 @@ def build_notebook_03(output_path: Path):
                     "from src.common.config import load_config\n",
                     "\n",
                     "print('Environment initialized successfully.')\n",
-                    "print(f'Project Root: {Path.cwd()}')\n"
+                    "print('Project Root: uth-cv-coursework')\n"
                 ]
             },
             {

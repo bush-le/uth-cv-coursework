@@ -203,9 +203,9 @@ def train_single_stage(
         dm = DeepfakeImageDataModule(
             metadata_list=meta_list,
             batch_size=batch_size,
-            train_ratio=0.85,
+            train_ratio=0.70,
             val_ratio=0.15,
-            test_ratio=0.0,
+            test_ratio=0.15,
             hard_sample_oversample_factor=hard_sample_oversample_factor,
             identity_disjoint=True,
             seed=seed,
@@ -232,9 +232,9 @@ def train_single_stage(
         dm = DeepfakeImageDataModule(
             metadata_list=meta_list,
             batch_size=batch_size,
-            train_ratio=0.85,
+            train_ratio=0.70,
             val_ratio=0.15,
-            test_ratio=0.0,
+            test_ratio=0.15,
             hard_sample_oversample_factor=hard_sample_oversample_factor,
             identity_disjoint=True,
             seed=seed,
@@ -315,22 +315,40 @@ def train_pipeline(
     if stage_choice in ["D0", "D1", "D2"]:
         hw = 2.0 if stage_choice == "D2" else 1.0
         hof = 2 if stage_choice == "D2" else 1
+        unfreeze = 0 if stage_choice == "D0" else (1 if stage_choice == "D1" else 2)
         meta_list = build_stage_dataset(stage_choice, baseline_path, syn_path, hard_path, max_real_samples)
         metrics = train_single_stage(
-            stage_choice, meta_list, epochs, batch_size, lr, device, backbone, pretrained, seed, hw, hof
+            stage_choice,
+            meta_list,
+            epochs,
+            batch_size,
+            lr,
+            device,
+            backbone,
+            pretrained,
+            seed,
+            hw,
+            hof,
+            unfreeze_last_n_blocks=unfreeze,
         )
         return metrics
 
     # Comparative benchmark across D0, D1, D2
     logger.info("Running comparative benchmark across D0 (Baseline) -> D1 (+Synthetic) -> D2 (+Hard Samples)...")
     d0_meta = build_stage_dataset("D0", baseline_path, syn_path, hard_path, max_real_samples)
-    d0_metrics = train_single_stage("D0", d0_meta, epochs, batch_size, lr, device, backbone, pretrained, seed, 1.0, 1)
+    d0_metrics = train_single_stage(
+        "D0", d0_meta, epochs, batch_size, lr, device, backbone, pretrained, seed, 1.0, 1, unfreeze_last_n_blocks=0
+    )
 
     d1_meta = build_stage_dataset("D1", baseline_path, syn_path, hard_path, max_real_samples)
-    d1_metrics = train_single_stage("D1", d1_meta, epochs, batch_size, lr, device, backbone, pretrained, seed, 1.0, 1)
+    d1_metrics = train_single_stage(
+        "D1", d1_meta, epochs, batch_size, lr, device, backbone, pretrained, seed, 1.0, 1, unfreeze_last_n_blocks=1
+    )
 
     d2_meta = build_stage_dataset("D2", baseline_path, syn_path, hard_path, max_real_samples)
-    d2_metrics = train_single_stage("D2", d2_meta, epochs, batch_size, lr, device, backbone, pretrained, seed, 2.0, 2)
+    d2_metrics = train_single_stage(
+        "D2", d2_meta, epochs, batch_size, lr, device, backbone, pretrained, seed, 2.0, 2, unfreeze_last_n_blocks=2
+    )
 
     comparison = {
         "D0_baseline": d0_metrics,

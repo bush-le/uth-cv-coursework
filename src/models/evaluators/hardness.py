@@ -75,7 +75,7 @@ def embed_images(
         for batch in loader:
             imgs = batch["images"].to(dev)
             if crop_faces:
-                from src.pipelines.mine_hard_samples import crop_face_tensor
+                from src.data.transforms import crop_face_tensor
                 cropped_list = [crop_face_tensor(img, bbox=None) for img in imgs]
                 imgs = torch.stack(cropped_list, dim=0).to(dev)
             emb = extractor(imgs)

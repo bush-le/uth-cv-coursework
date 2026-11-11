@@ -1,0 +1,4 @@
+{"image_id": "fake_ffhq_00001_8", "is_valid": false, "sharpness_score": 7.013493683189154, "clip_score": null, "face_detected": true, "rejection_reasons": ["Face occupies too small area of frame (3.74% < 20%): likely vignette/distant frame", "Face is severely off-center: (0.15, 0.72)"]}
+{"image_id": "fake_ffhq_00006_8", "is_valid": true, "sharpness_score": 4.518700297921896, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00880_7", "is_valid": true, "sharpness_score": 1.6999120125547051, "clip_score": null, "face_detected": true, "rejection_reasons": []}
+{"image_id": "fake_ffhq_00898_7", "is_valid": true, "sharpness_score": 7.910802960395813, "clip_score": null, "face_detected": true, "rejection_reasons": []}
