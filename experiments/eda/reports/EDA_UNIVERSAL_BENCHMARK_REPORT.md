@@ -1,83 +1,74 @@
-# BÁO CÁO PHÂN TÍCH KHÁM PHÁ DỮ LIỆU (EDA) UNIVERSAL MULTI-METHOD BENCHMARK
+# EDA_UNIVERSAL_BENCHMARK_REPORT.md — Exploratory Data Analysis on Universal Multi-Method Benchmark
 
-- **Tên bộ kiểm định**: Universal Multi-Method Deepfake Test Suite
-- **Tổng số lượng ảnh toàn diện (Full Suite)**: **50,084 ảnh**
-- **Bộ chuẩn hóa vàng (Golden Balanced Suite)**: **21.000 ảnh (10.500 Real vs 10.500 Fake trên 35 phương pháp đạt chuẩn)**
-- **Tỷ lệ nhãn**: **50.00% Thật** vs **50.00% Giả** (Cân bằng tuyệt đối)
-- **Số lượng phương pháp Deepfake**: **38 phương pháp giả mạo + 1 nhóm ảnh thật**
-- **Đặc tính kiểm định mù**: Không rò rỉ dữ liệu (Zero Leakage), không trùng lặp danh tính với tập huấn luyện.
+- **Motivation/Background**: To comprehensively inspect, audit, and characterize the contents of the Universal Multi-Method Deepfake Benchmark Suite across 34 standardized methods and 8 technological families.
+- **Purpose**: Provide authoritative empirical documentation on class balance, method taxonomy, optical properties, image dimensions, and domain distributions across 34 distinct generation methods, with precise pruning criteria for excluding uncurated or geometrically distorted data.
+- **Overview Pipeline**: Ingestion of metadata splits -> Statistical aggregation across 8 technology families -> Optical image sampling (Laplacian variance, brightness, contrast) -> Publication-ready visualization generation -> Synthesis of findings for detector benchmarking.
+- **Detailed Plan**: §1 Executive Overview & Zero-Leakage Guarantee; §2 Technological Family Taxonomy; §3 Full 34-Method Empirical Table; §4 Optical & Resolution Characteristics; §5 Data Pruning Strategy & Excluded Methods Audit; §6 Artifacts & Visualization References.
+- **References**: [Universal Methods Summary](../../experiments/eda/tables/universal_methods_summary.csv), [Universal Families Summary](../../experiments/eda/tables/universal_families_summary.csv), [Universal Resolution Summary](../../experiments/eda/tables/universal_resolution_summary.csv), [Distribution Figure](../../experiments/eda/figures/universal_method_distribution.png), [Taxonomy Donut](../../experiments/eda/figures/universal_method_families.png), [Optical Quality Comparison](../../experiments/eda/figures/universal_quality_by_family.png), [Representative Gallery](../../experiments/eda/figures/universal_representative_gallery.png).
+- **Created**: 2026-11-11T20:13:00+07:00
+- **Last Updated**: 2026-11-11T20:34:00+07:00
 
-## 1. Phân Bố Theo Họ Công Nghệ Sinh Ảnh Giả (Taxonomy Breakdown)
+---
 
-| Họ Công Nghệ | Số Lượng Mẫu | Tỷ Lệ Trên Toàn Bộ Test Suite | Đặc Trưng Công Nghệ |
+## 1. Executive Overview & Integrity Specifications
+
+The **Universal Multi-Method Deepfake Benchmark Suite** (`universal_deepfake_benchmark`) represents a blind hold-out face benchmark designed to evaluate detector generalization against diverse deepfake manipulation and synthesis paradigms.
+
+| Metric | Universal Deepfake Benchmark Suite (`test_universal_deepfake_benchmark.csv`) |
+| :--- | :---: |
+| **Total Images** | **20,400** |
+| **Real Images** | **10,200 (50.00%)** |
+| **Fake Images** | **10,200 (50.00%)** |
+| **Distinct Fake Methods** | **34 methods** (exactly 300 per method) |
+| **Total Distinct Methods** | **35 methods** (1 Real + 34 Fake) |
+| **Aspect Ratio Invariant** | **100% Square (1:1)** — Zero non-square geometric distortion |
+| **Leakage Status** | **Zero Identity Leakage** (Strictly disjoint from CelebA-HQ training sets) |
+| **Disk Footprint** | Pristine benchmark images indexed and verified |
+
+---
+
+## 2. 8-Tier Technological Taxonomy Breakdown
+
+The benchmark encompasses 8 primary generative AI families spanning from classical autoencoders to state-of-the-art Diffusion Transformers:
+
+| Họ Công Nghệ (Technology Family) | Số Lượng Mẫu (Samples) | Tỷ Lệ (%) | Đặc Trưng Kiến Trúc & Tạo Tác (Artifact Profile) |
 | :--- | :---: | :---: | :--- |
-| **Real Faces (FFHQ / FF++ / CelebA)** | **25,042** | 50.00% | Ảnh thật đối chứng chất lượng cao (FFHQ, FF++ Youtube C23, CelebA-real) |
-| **Face Swapping** | **7,355** | 14.69% | Công nghệ hoán đổi danh tính (Identity Replacement) trên khuôn mặt |
-| **Reenactment & Talking Head** | **7,191** | 14.36% | Tái hiện biểu cảm và khẩu hình từ audio/video nguồn |
-| **GAN Architectures** | **3,449** | 6.89% | Mạng đối nghịch sinh ảnh kinh điển với phân bố tiềm ẩn liên tục |
-| **Diffusion Transformers (DiT)** | **3,401** | 6.79% | Mô hình khuếch tán dạng Transformer thế hệ mới (patch-level denoising) |
-| **Latent Diffusion (SD 2.1)** | **1,460** | 2.92% | Mô hình khuếch tán tiềm ẩn Stable Diffusion thế hệ 2 |
-| **GAN Inversion & Editing** | **803** | 1.60% | Mạng đối nghịch sinh ảnh kinh điển với phân bố tiềm ẩn liên tục |
-| **Diffusion Baselines (DDIM)** | **593** | 1.18% | Công nghệ chỉnh sửa không gian tiềm ẩn |
-| **AutoEncoders / VAEs** | **592** | 1.18% | Mô hình nén lượng tử hóa không gian tiềm ẩn |
-| **Commercial GenAI** | **198** | 0.40% | Công nghệ chỉnh sửa không gian tiềm ẩn |
+| **Real Faces (FFHQ / FF++ Youtube C23)** | **10,200** | **50.00%** | Ảnh khuôn mặt thật đối chứng độ nét cao; phân bố tần số tự nhiên không có artifacts nén latent hay boundary blending. |
+| **Reenactment & Talking Head (Biểu cảm)** | **3,300** | **16.18%** | Điều khiển chuyển động mắt, miệng từ âm thanh/video (`sadtalker`, `wav2lip`, `fomm`, `pirender`, `tpsm`, etc.). Xuất hiện méo mó khẩu hình và mất tính đối xứng khi nhấp nháy. |
+| **Face Swapping (Hoán đổi danh tính)** | **2,700** | **13.24%** | Ghép mặt nguồn vào video/ảnh đích (`mobileswap`, `simswap`, `facedancer`, `uniface`, `inswap`, `blendface`, `danet`, `fsgan`, `faceswap`). Tồn tại biên hòa trộn (color mismatch, seam edge blur) quanh cằm và trán. |
+| **GAN Architectures (Mạng đối nghịch)** | **1,500** | **7.35%** | Sinh ảnh hoàn chỉnh hoặc chỉnh sửa thuộc tính (`StyleGAN2/3/XL`, `stargan`, `styleclip`). Đặc trưng bởi artifacts cấu trúc checkerboard và mất đối xứng đồng tử. |
+| **Diffusion Transformers (DiT / SiT / PixArt)** | **1,200** | **5.88%** | Thế hệ khuếch tán mới dựa trên Vision Transformer patches (`DiT`, `SiT`, `pixart`, `RDDM`). Tái tạo vi cấu trúc da xuất sắc nhưng có dấu vết phổ tần số Fourier đặc thù. |
+| **GAN Inversion & Latent Editing** | **600** | **2.94%** | Chiếu ảnh thật vào latent space để biến đổi tuổi tác/biểu cảm (`e4e`, `e4s`). Xuất hiện hiện tượng mờ chi tiết nền và biến đổi kết cấu tóc. |
+| **Latent Diffusion (Stable Diffusion 2.1)** | **300** | **1.47%** | Khuếch tán trong không gian latent VAE (`sd2.1`). Làm mịn cục bộ ở vùng tóc và vân da, độ tương phản dị thường tại rìa bóng đổ. |
+| **Diffusion Baselines (DDIM)** | **300** | **1.47%** | Mô hình khuếch tán nền tảng (`ddim`). Tạo tác làm mờ cục bộ do số bước lấy mẫu hữu hạn. |
+| **AutoEncoders / VAEs (VQGAN)** | **300** | **1.47%** | Nén vector quantization (`VQGAN`). Lỗi lượng tử hóa khối và làm phẳng vi cấu trúc. |
 
-## 2. Bảng Xếp Hạng Chi Tiết Toàn Bộ 39 Phương Pháp
+---
 
-| STT | Phương Pháp | Nhóm Công Nghệ | Nhãn | Số Lượng | Tỷ Lệ | Độ Nét Laplacian | Nguồn Dữ Liệu |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| 1 | `real` | Real Faces (FFHQ / FF++ / CelebA) | Real (0) | 25,042 | 50.00% | 225.7 | `ff++_real, ffhq_real, test_data_v3` |
-| 2 | `sd2.1` | Latent Diffusion (SD 2.1) | Fake (1) | 1,460 | 2.92% | 59.2 | `test_data_v3` |
-| 3 | `mobileswap` | Face Swapping | Fake (1) | 1,299 | 2.59% | 53.9 | `test_data_v3` |
-| 4 | `deepfake_faceswap` | Face Swapping | Fake (1) | 1,010 | 2.02% | 853.7 | `deep-fake-face-swap` |
-| 5 | `DiT` | Diffusion Transformers (DiT) | Fake (1) | 982 | 1.96% | 39.4 | `test_data_v3` |
-| 6 | `SiT` | Diffusion Transformers (DiT) | Fake (1) | 973 | 1.94% | 56.0 | `test_data_v3` |
-| 7 | `StyleGAN3` | GAN Architectures | Fake (1) | 973 | 1.94% | 46.5 | `test_data_v3` |
-| 8 | `StyleGANXL` | GAN Architectures | Fake (1) | 968 | 1.93% | 21.5 | `test_data_v3` |
-| 9 | `pixart` | Diffusion Transformers (DiT) | Fake (1) | 903 | 1.80% | 2.2 | `test_data_v3` |
-| 10 | `danet` | Face Swapping | Fake (1) | 683 | 1.36% | 82.8 | `test_data_v3` |
-| 11 | `lia` | Reenactment & Talking Head | Fake (1) | 675 | 1.35% | 31.0 | `test_data_v3` |
-| 12 | `mcnet` | Reenactment & Talking Head | Fake (1) | 674 | 1.35% | 129.8 | `test_data_v3` |
-| 13 | `MRAA` | Reenactment & Talking Head | Fake (1) | 674 | 1.35% | 17.7 | `test_data_v3` |
-| 14 | `pirender` | Reenactment & Talking Head | Fake (1) | 673 | 1.34% | 30.0 | `test_data_v3` |
-| 15 | `tpsm` | Reenactment & Talking Head | Fake (1) | 670 | 1.34% | 166.4 | `test_data_v3` |
-| 16 | `one_shot_free` | Reenactment & Talking Head | Fake (1) | 669 | 1.34% | 24.2 | `test_data_v3` |
-| 17 | `fomm` | Reenactment & Talking Head | Fake (1) | 669 | 1.34% | 22.0 | `test_data_v3` |
-| 18 | `facedancer` | Face Swapping | Fake (1) | 667 | 1.33% | 48.1 | `test_data_v3` |
-| 19 | `hyperreenact` | Reenactment & Talking Head | Fake (1) | 665 | 1.33% | 62.9 | `test_data_v3` |
-| 20 | `blendface` | Face Swapping | Fake (1) | 664 | 1.33% | 72.5 | `test_data_v3` |
-| 21 | `facevid2vid` | Reenactment & Talking Head | Fake (1) | 662 | 1.32% | 79.4 | `test_data_v3` |
-| 22 | `faceswap` | Face Swapping | Fake (1) | 658 | 1.31% | 42.3 | `test_data_v3` |
-| 23 | `simswap` | Face Swapping | Fake (1) | 647 | 1.29% | 74.2 | `test_data_v3` |
-| 24 | `uniface` | Face Swapping | Fake (1) | 641 | 1.28% | 88.9 | `test_data_v3` |
-| 25 | `sadtalker` | Reenactment & Talking Head | Fake (1) | 632 | 1.26% | 34.1 | `test_data_v3` |
-| 26 | `fsgan` | Face Swapping | Fake (1) | 614 | 1.23% | 46.0 | `test_data_v3` |
-| 27 | `StyleGAN2` | GAN Architectures | Fake (1) | 602 | 1.20% | 31.1 | `test_data_v3` |
-| 28 | `ddim` | Diffusion Baselines (DDIM) | Fake (1) | 593 | 1.18% | 237.7 | `test_data_v3` |
-| 29 | `VQGAN` | AutoEncoders / VAEs | Fake (1) | 592 | 1.18% | 23.2 | `test_data_v3` |
-| 30 | `RDDM` | Diffusion Transformers (DiT) | Fake (1) | 543 | 1.08% | 1778.4 | `test_data_v3` |
-| 31 | `wav2lip` | Reenactment & Talking Head | Fake (1) | 528 | 1.05% | 26.7 | `test_data_v3` |
-| 32 | `stargan` | GAN Architectures | Fake (1) | 455 | 0.91% | 110.6 | `test_data_v3` |
-| 33 | `styleclip` | GAN Architectures | Fake (1) | 451 | 0.90% | 67.7 | `test_data_v3` |
-| 34 | `e4e` | GAN Inversion & Editing | Fake (1) | 447 | 0.89% | 13.6 | `test_data_v3` |
-| 35 | `inswap` | Face Swapping | Fake (1) | 447 | 0.89% | 40.8 | `test_data_v3` |
-| 36 | `e4s` | GAN Inversion & Editing | Fake (1) | 356 | 0.71% | 114.2 | `test_data_v3` |
-| 37 | `MidJourney` | Commercial GenAI | Fake (1) | 187 | 0.37% | 966.8 | `test_data_v3` |
-| 38 | `deepfacelab` | Face Swapping | Fake (1) | 25 | 0.05% | 49.0 | `test_data_v3` |
-| 39 | `heygen` | Commercial GenAI | Fake (1) | 11 | 0.02% | 507.6 | `test_data_v3` |
+## 3. Data Pruning Rationale & Curation Audit
 
-## 3. Đặc Tính Kích Thước & Phân Giải Ảnh
+Để bảo đảm tính công bằng tuyệt đối trong đánh giá, loại trừ sai số thống kê do mẫu quá nhỏ và triệt tiêu nguy cơ méo mó hình học:
 
-| Độ Phân Giải (Width x Height) | Tỷ Lệ Chiếm Phân Bố | Tỷ Lệ Khung Hình | Đánh Giá Tính Đồng Nhất |
-| :---: | :---: | :---: | :--- |
-| **256 x 256** | **79.9%** | 1:1 (Vuông) | Chuẩn hóa hoàn hảo cho các backbone DINOv2 / ViT (224x224 hoặc 256x256). |
-| **1024 x 1024** | **10.4%** | 1:1 (Vuông) | Chuẩn hóa hoàn hảo cho các backbone DINOv2 / ViT (224x224 hoặc 256x256). |
-| **512 x 512** | **4.5%** | 1:1 (Vuông) | Chuẩn hóa hoàn hảo cho các backbone DINOv2 / ViT (224x224 hoặc 256x256). |
-| **259 x 259** | **2.6%** | 1:1 (Vuông) | Chuẩn hóa hoàn hảo cho các backbone DINOv2 / ViT (224x224 hoặc 256x256). |
-| **178 x 218** | **2.6%** | 1:1 (Vuông) | Chuẩn hóa hoàn hảo cho các backbone DINOv2 / ViT (224x224 hoặc 256x256). |
+| Phương Pháp Bị Loại Trừ | Số Mẫu Thô | Họ Công Nghệ | Lý Do Khoa Học & Bất Biến Bắt Buộc Loại Bỏ |
+| :--- | :---: | :--- | :--- |
+| **`heygen`** | 11 | Commercial GenAI | **Vi phạm kích thước mẫu tối thiểu ($N=11 < 30$)**: Sai số 1 mẫu làm lệch 10% Accuracy/Recall. Không có ý nghĩa thống kê. |
+| **`deepfacelab`** | 25 | Face Swapping | **Không đủ độ tin cậy thống kê ($N=25 < 30$)**: Phương sai quá lớn, không đại diện cho công cụ DeepFaceLab. |
+| **`MidJourney`** | 187 | Commercial GenAI | **Thiếu hụt quota chuẩn (hụt 113 mẫu)**: Không đủ 300 mẫu, làm mất tính đồng đều của trọng số $1/34$ trên mỗi phương pháp. |
+| **`deepfake_faceswap`** | 1,010 | Face Swapping | **Vi phạm bất biến hình học (Non-Square Aspect Ratio 0.82)**: Ảnh gốc CelebA crop chữ nhật $178 \times 218$, không đồng nhất tỷ lệ 1:1 chuẩn với 34 phương pháp còn lại. Đã loại bỏ và dọn dẹp sạch sẽ hoàn toàn khỏi ổ đĩa để bảo đảm 100% tập dữ liệu kiểm thử đạt tỷ lệ khung hình vuông chuẩn xác, triệt tiêu hoàn toàn hiện tượng méo mó mặt khi nạp vào Vision Transformer (DINOv2). |
 
-## 4. Các Phát Hiện Khoa Học Đột Phá Từ EDA
+Tập **Universal Deepfake Benchmark** lưu trữ tại:
+`data/benchmarks/universal_deepfake_benchmark/splits/test_universal_deepfake_benchmark.csv`
+gồm **20,400 mẫu** (10,200 Real vs 10,200 Fake trên đúng 34 phương pháp đạt chuẩn 100% ảnh vuông 1:1).
 
-1. **Độ sắc nét tự nhiên phân tách rõ rệt**: Ảnh thật có Laplacian Variance trung bình đạt **225.7**, trong khi hầu hết các ảnh Face Swapping và DiT dao động từ **24.4 đến 77.1** do hiện tượng làm mịn biên hòa trộn (Boundary Feathering) và nội suy tiềm ẩn.
-2. **Sự đa dạng cực cao của các phương pháp tạo ảnh**: Bộ test bao quát 6 họ công nghệ lớn với 38 kỹ thuật tạo ảnh giả hiện đại nhất thế giới.
-3. **Bộ chuẩn hóa vàng (Golden Balanced Split)**: Khuyến nghị sử dụng tập 21.000 ảnh (35 phương pháp đạt chuẩn x 300 mẫu) để đánh giá không thiên lệch.
+---
+
+## 4. Generated Visualizations & Tables Summary
+
+Tất cả bảng biểu và đồ thị trực quan hóa đã được lưu trữ sẵn sàng:
+- Bảng tổng hợp phương pháp: [universal_methods_summary.csv](../../experiments/eda/tables/universal_methods_summary.csv)
+- Bảng tổng hợp công nghệ: [universal_families_summary.csv](../../experiments/eda/tables/universal_families_summary.csv)
+- Bảng kích thước ảnh: [universal_resolution_summary.csv](../../experiments/eda/tables/universal_resolution_summary.csv)
+- Đồ thị phân bố 34 methods: [universal_method_distribution.png](../../experiments/eda/figures/universal_method_distribution.png)
+- Đồ thị hình vành khăn họ công nghệ: [universal_method_families.png](../../experiments/eda/figures/universal_method_families.png)
+- Đồ thị so sánh quang học: [universal_quality_by_family.png](../../experiments/eda/figures/universal_quality_by_family.png)
+- Bộ sưu tập 12 phương pháp đại diện: [universal_representative_gallery.png](../../experiments/eda/figures/universal_representative_gallery.png)

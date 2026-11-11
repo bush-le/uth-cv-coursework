@@ -1,10 +1,10 @@
 Taxonomy Family,Total Samples,Percentage,Avg_Sharpness_Lap,Avg_Brightness,Avg_Contrast
-Real Faces (FFHQ / FF++),10500,50.00%,344.4,108.0,55.3
-Reenactment & Talking Head,3300,15.71%,54.0,80.0,43.9
-Face Swapping,3000,14.29%,102.4,86.3,48.6
-GAN Architectures,1500,7.14%,52.1,83.6,48.8
-Diffusion Transformers (DiT),1200,5.71%,509.9,100.3,48.0
-GAN Inversion & Editing,600,2.86%,46.6,91.7,46.4
-Latent Diffusion (SD 2.1),300,1.43%,40.8,117.6,43.6
-Diffusion Baselines (DDIM),300,1.43%,196.3,139.0,46.1
-AutoEncoders / VAEs,300,1.43%,32.2,91.3,45.9
+Real Faces (FFHQ / FF++),10200,50.00%,393.0,108.8,55.0
+Reenactment & Talking Head,3300,16.18%,59.4,78.9,44.5
+Face Swapping,2700,13.24%,61.6,80.8,46.2
+GAN Architectures,1500,7.35%,59.6,95.8,48.9
+Diffusion Transformers (DiT),1200,5.88%,445.2,88.3,44.5
+GAN Inversion & Editing,600,2.94%,60.4,90.2,48.3
+Diffusion Baselines (DDIM),300,1.47%,195.6,130.6,50.1
+Latent Diffusion (SD 2.1),300,1.47%,69.5,124.0,47.5
+AutoEncoders / VAEs,300,1.47%,26.1,88.3,45.1

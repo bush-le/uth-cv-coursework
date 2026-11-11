@@ -1,7 +1,8 @@
 """Comprehensive Exploratory Data Analysis (EDA) on Universal Multi-Method Deepfake Benchmark.
 
-Analyzes the curated Golden Balanced Suite (21,000 samples, 35 methods, 8 technology families),
-computes optical metrics, and produces publication-ready visualizations and summary tables.
+Analyzes the clean, standardized Universal Deepfake Benchmark (20,400 samples, 34 methods, 8 technology families),
+computes optical metrics, and produces publication-grade visualizations and summary tables.
+All samples are verified square (1:1 aspect ratio), with zero under-powered or irregular methods.
 """
 
 import csv
@@ -19,7 +20,7 @@ import numpy as np
 from PIL import Image
 
 # -----------------------------------------------------------------------------
-# 1. 8-Tier Deepfake Method Taxonomy for Curated 35 Methods
+# 1. 8-Tier Deepfake Method Taxonomy for 34 Clean Methods
 # -----------------------------------------------------------------------------
 
 METHOD_TAXONOMY: Dict[str, str] = {
@@ -42,9 +43,8 @@ METHOD_TAXONOMY: Dict[str, str] = {
     "VQGAN": "AutoEncoders / VAEs",
     # Diffusion Baselines
     "ddim": "Diffusion Baselines (DDIM)",
-    # Face Swapping
+    # Face Swapping (All clean square 1:1)
     "mobileswap": "Face Swapping",
-    "deepfake_faceswap": "Face Swapping",
     "faceswap": "Face Swapping",
     "simswap": "Face Swapping",
     "facedancer": "Face Swapping",
@@ -84,12 +84,12 @@ FAMILY_COLORS = {
 
 
 def run_universal_benchmark_eda(
-    golden_csv: Path = Path("data/benchmarks/universal_deepfake_benchmark/splits/test_coursework_35methods_golden_balanced.csv"),
+    benchmark_csv: Path = Path("data/benchmarks/universal_deepfake_benchmark/splits/test_universal_deepfake_benchmark.csv"),
     base_img_dir: Path = Path("data/benchmarks/universal_deepfake_benchmark/test_images"),
     output_dir: Path = Path("experiments/eda"),
 ) -> Dict[str, Any]:
     print("=" * 75)
-    print("🚀 BẮT ĐẦU PHÂN TÍCH KHÁM PHÁ DỮ LIỆU (EDA) TRÊN BỘ BENCHMARK CHUẨN HÓA 21K")
+    print("🚀 BẮT ĐẦU PHÂN TÍCH KHÁM PHÁ DỮ LIỆU (EDA) TRÊN BỘ BENCHMARK CHUẨN HÓA 20.400 ẢNH")
     print("=" * 75)
 
     fig_dir = output_dir / "figures"
@@ -98,12 +98,12 @@ def run_universal_benchmark_eda(
     for d in [fig_dir, table_dir, report_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
-    with open(golden_csv, "r", encoding="utf-8") as f:
+    with open(benchmark_csv, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
     total_samples = len(rows)
-    print(f"[*] Nạp thành công {total_samples:,} bản ghi chuẩn hóa từ {golden_csv.name}")
+    print(f"[*] Nạp thành công {total_samples:,} bản ghi chuẩn hóa từ {benchmark_csv.name}")
 
     method_counts = Counter()
     label_counts = Counter()
@@ -125,7 +125,7 @@ def run_universal_benchmark_eda(
     # -------------------------------------------------------------------------
     # 2. Image Optical Quality Sampling (25 samples per method)
     # -------------------------------------------------------------------------
-    print("\n[*] Đang kiểm toán chất lượng quang học & phân giải trên 35 phương pháp...")
+    print("\n[*] Đang kiểm toán chất lượng quang học & phân giải trên 34 phương pháp...")
     method_samples = defaultdict(list)
     for r in rows:
         if len(method_samples[r["method"]]) < 25:
@@ -174,7 +174,7 @@ def run_universal_benchmark_eda(
     # -------------------------------------------------------------------------
     print("\n[*] Đang xuất các bảng thống kê CSV chuẩn hóa...")
 
-    # Table 1: Methods Summary (35 Methods + Real)
+    # Table 1: Methods Summary (34 Methods + Real)
     tbl_methods_path = table_dir / "universal_methods_summary.csv"
     with open(tbl_methods_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
@@ -227,7 +227,7 @@ def run_universal_benchmark_eda(
 
     plt.figure(figsize=(14, 10))
     bars = plt.barh(fake_methods_sorted, counts_sorted, color=colors, edgecolor="black", alpha=0.85)
-    plt.title("Universal Multi-Method Benchmark: Phân Bố Chuẩn Hóa 35 Phương Pháp Deepfake (N=300)", fontsize=14, fontweight="bold", pad=15)
+    plt.title("Universal Multi-Method Benchmark: Phân Bố Chuẩn Hóa 34 Phương Pháp Deepfake (N=300)", fontsize=14, fontweight="bold", pad=15)
     plt.xlabel("Số lượng mẫu kiểm thử (Mỗi phương pháp chuẩn đúng 300 mẫu)", fontsize=11, labelpad=10)
     plt.ylabel("Phương pháp tạo ảnh giả (Phân nhóm theo họ công nghệ)", fontsize=11)
     plt.grid(axis="x", linestyle="--", alpha=0.5)
@@ -243,7 +243,7 @@ def run_universal_benchmark_eda(
     plt.close()
     print(f"  [✓] Đã lưu biểu đồ phân bố: {fig1_path.name}")
 
-    # Figure 2: Taxonomy Families Donut Chart (21,000 Samples)
+    # Figure 2: Taxonomy Families Donut Chart (20,400 Samples)
     plt.figure(figsize=(10, 8))
     fam_names = list(family_counts.keys())
     fam_vals = list(family_counts.values())
@@ -259,7 +259,7 @@ def run_universal_benchmark_eda(
         wedgeprops=dict(width=0.45, edgecolor="white", linewidth=2),
     )
     plt.setp(autotexts, size=10, weight="bold")
-    plt.title("Universal Multi-Method Benchmark: Tỷ Lệ 8 Họ Công Nghệ & Đối Chứng Real (21.000 Ảnh)", fontsize=13, fontweight="bold")
+    plt.title("Universal Multi-Method Benchmark: Tỷ Lệ 8 Họ Công Nghệ & Đối Chứng Real (20.400 Ảnh)", fontsize=13, fontweight="bold")
     plt.tight_layout()
     fig2_path = fig_dir / "universal_method_families.png"
     plt.savefig(fig2_path, dpi=200)
@@ -279,7 +279,7 @@ def run_universal_benchmark_eda(
 
     plt.xticks(x, fams, rotation=35, ha="right", fontsize=10)
     plt.ylabel("Giá trị đo lường quang học trung bình", fontsize=11)
-    plt.title("So Sánh Chất Lượng Quang Học Giữa Các Họ Công Nghệ Trong Bộ Benchmark 21k", fontsize=13, fontweight="bold")
+    plt.title("So Sánh Chất Lượng Quang Học Giữa Các Họ Công Nghệ Trong Bộ Benchmark 20.400 Ảnh", fontsize=13, fontweight="bold")
     plt.legend(frameon=True, facecolor="white", loc="upper right")
     plt.grid(axis="y", linestyle="--", alpha=0.5)
     plt.tight_layout()
