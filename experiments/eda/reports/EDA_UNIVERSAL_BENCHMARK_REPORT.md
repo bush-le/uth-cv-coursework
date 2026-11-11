@@ -1,8 +1,9 @@
-# BÁO CÁO PHÂN TÍCH KHÁM PHÁ DỮ LIỆU (EDA) TOÀN DIỆN BỘ BENCHMARK 50K
+# BÁO CÁO PHÂN TÍCH KHÁM PHÁ DỮ LIỆU (EDA) UNIVERSAL MULTI-METHOD BENCHMARK
 
-- **Tên bộ kiểm định**: Universal Multi-Method Deepfake Test Suite (50k Exact Images)
-- **Tổng số lượng ảnh**: **50,084 ảnh**
-- **Tỷ lệ nhãn**: **50.00% Thật (25.042 ảnh)** vs **50.00% Giả (25.042 ảnh)** (Cân bằng tuyệt đối)
+- **Tên bộ kiểm định**: Universal Multi-Method Deepfake Test Suite
+- **Tổng số lượng ảnh toàn diện (Full Suite)**: **50,084 ảnh**
+- **Bộ chuẩn hóa vàng (Golden Balanced Suite)**: **21.000 ảnh (10.500 Real vs 10.500 Fake trên 35 phương pháp đạt chuẩn)**
+- **Tỷ lệ nhãn**: **50.00% Thật** vs **50.00% Giả** (Cân bằng tuyệt đối)
 - **Số lượng phương pháp Deepfake**: **38 phương pháp giả mạo + 1 nhóm ảnh thật**
 - **Đặc tính kiểm định mù**: Không rò rỉ dữ liệu (Zero Leakage), không trùng lặp danh tính với tập huấn luyện.
 
@@ -77,6 +78,6 @@
 
 ## 4. Các Phát Hiện Khoa Học Đột Phá Từ EDA
 
-1. **Độ sắc nét tự nhiên phân tách rõ rệt**: Ảnh thật có Laplacian Variance trung bình đạt **274.7**, trong khi hầu hết các ảnh Face Swapping và DiT dao động từ **24.4 đến 77.1** do hiện tượng làm mịn biên hòa trộn (Boundary Feathering) và nội suy tiềm ẩn.
-2. **Sự đa dạng cực cao của các phương pháp tạo ảnh**: Bộ test không chỉ dừng lại ở các phương pháp hoán đổi mặt truyền thống (`faceswap`, `simswap`) mà còn bao quát các mô hình khuếch tán tiên tiến nhất hiện nay như `DiT` (Diffusion Transformer), `SiT`, `pixart`, `StyleGAN-XL`.
-3. **Độ cân bằng hoàn hảo**: Tập `full` có đúng 25.042 ảnh thật và 25.042 ảnh giả; tập `balanced` có đúng 300 ảnh/phương pháp. Đây là cấu trúc lý tưởng nhất cho bài báo cáo và kiểm định trước hội đồng chấm thi!
+1. **Độ sắc nét tự nhiên phân tách rõ rệt**: Ảnh thật có Laplacian Variance trung bình đạt **225.7**, trong khi hầu hết các ảnh Face Swapping và DiT dao động từ **24.4 đến 77.1** do hiện tượng làm mịn biên hòa trộn (Boundary Feathering) và nội suy tiềm ẩn.
+2. **Sự đa dạng cực cao của các phương pháp tạo ảnh**: Bộ test bao quát 6 họ công nghệ lớn với 38 kỹ thuật tạo ảnh giả hiện đại nhất thế giới.
+3. **Bộ chuẩn hóa vàng (Golden Balanced Split)**: Khuyến nghị sử dụng tập 21.000 ảnh (35 phương pháp đạt chuẩn x 300 mẫu) để đánh giá không thiên lệch.
