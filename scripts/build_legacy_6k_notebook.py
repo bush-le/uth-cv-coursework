@@ -26,6 +26,8 @@ from src.common.visualizer import (
     plot_legacy_6k_gallery_inspection,
     plot_legacy_sample_inspection,
     render_legacy_6k_markdown_table,
+    plot_legacy_6k_scorecard,
+    plot_legacy_6k_breakdown_scorecard,
 )
 
 
@@ -37,6 +39,18 @@ def fig_to_base64_png(fig: plt.Figure) -> str:
     data = base64.b64encode(buf.read()).decode("utf-8")
     plt.close(fig)
     return data
+
+
+def fig_to_output(fig: plt.Figure) -> dict:
+    """Serialize matplotlib figure to Jupyter image output."""
+    return {
+        "output_type": "display_data",
+        "data": {
+            "image/png": fig_to_base64_png(fig),
+            "text/plain": ["<Figure size ...>"],
+        },
+        "metadata": {},
+    }
 
 
 def html_to_output(html_str: str) -> dict:
@@ -158,15 +172,15 @@ def main():
             "import json\n",
             "import numpy as np\n",
             "import matplotlib.pyplot as plt\n",
-            "from IPython.display import HTML, display\n",
             "\n",
             "from src.common.visualizer import (\n",
             "    PALETTE,\n",
-            "    render_html_styled_table,\n",
             "    plot_legacy_6k_benchmark,\n",
             "    plot_legacy_6k_distributions,\n",
             "    plot_legacy_6k_gallery_inspection,\n",
             "    plot_legacy_sample_inspection,\n",
+            "    plot_legacy_6k_scorecard,\n",
+            "    plot_legacy_6k_breakdown_scorecard,\n",
             ")\n",
             "\n",
             "json_path = Path('experiments/logs/legacy_6k_benchmark_results.json')\n",
@@ -195,13 +209,14 @@ def main():
         "- **Độ nhạy ngưỡng $\\tau = 0.30$**: Khi nới ngưỡng nhạy xuống $0.30$, Fake Recall của $M_2^*$ đạt tới **$86.40\\%$**."
     ]))
 
-    # Cell 3: HTML Table
+    # Cell 3: Visual Bar Chart & Scorecard
     cells.append(make_code_cell(
         source=[
-            "# Xuất bảng tổng hợp hiệu năng 6k ảnh ngoại miền qua HTML Styler\n",
-            "display(HTML('''" + html_main + "'''))\n",
+            "# Xuất biểu đồ & bảng tổng hợp hiệu năng 6k ảnh ngoại miền qua Visual Scorecard\n",
+            "fig = plot_legacy_6k_scorecard()\n",
+            "plt.show()\n",
         ],
-        outputs=[html_to_output(html_main)],
+        outputs=[fig_to_output(plot_legacy_6k_scorecard())],
         execution_count=2,
     ))
 
@@ -328,13 +343,14 @@ def main():
         "Chi tiết số lượng và tỷ lệ mẫu phát hiện theo Text2Img, Inpainting, Img2Img và phân vùng mắt/miệng."
     ]))
 
-    # Cell 13: Code Breakdown HTML Table
+    # Cell 13: Grouped Bar Chart Breakdown
     cells.append(make_code_cell(
         source=[
-            "# Xuất bảng phân rã chi tiết từng tác vụ qua HTML Styler\n",
-            "display(HTML('''" + html_breakdown + "'''))\n",
+            "# Xuất biểu đồ phân rã chi tiết từng tác vụ và phân vùng giải phẫu qua Grouped Bars\n",
+            "fig = plot_legacy_6k_breakdown_scorecard()\n",
+            "plt.show()\n",
         ],
-        outputs=[html_to_output(html_breakdown)],
+        outputs=[fig_to_output(plot_legacy_6k_breakdown_scorecard())],
         execution_count=7,
     ))
 

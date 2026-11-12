@@ -23,6 +23,7 @@ from src.common.visualizer import (
     render_html_styled_table,
     plot_tri_vault_tradeoff_analysis,
     plot_radar_and_pareto_frontier,
+    plot_tri_vault_scorecard,
 )
 
 
@@ -34,6 +35,18 @@ def fig_to_base64_png(fig: plt.Figure) -> str:
     data = base64.b64encode(buf.read()).decode("utf-8")
     plt.close(fig)
     return data
+
+
+def fig_to_output(fig: plt.Figure) -> dict:
+    """Serialize matplotlib figure to Jupyter image output."""
+    return {
+        "output_type": "display_data",
+        "data": {
+            "image/png": fig_to_base64_png(fig),
+            "text/plain": ["<Figure size ...>"],
+        },
+        "metadata": {},
+    }
 
 
 def html_to_output(html_str: str) -> dict:
@@ -199,13 +212,12 @@ def main():
             "import json\n",
             "import numpy as np\n",
             "import matplotlib.pyplot as plt\n",
-            "from IPython.display import HTML, display\n",
             "\n",
             "from src.common.visualizer import (\n",
             "    PALETTE,\n",
-            "    render_html_styled_table,\n",
             "    plot_tri_vault_tradeoff_analysis,\n",
             "    plot_radar_and_pareto_frontier,\n",
+            "    plot_tri_vault_scorecard,\n",
             ")\n",
             "\n",
             "chal_path = Path('experiments/logs/model_comparison_benchmark.json')\n",
@@ -235,13 +247,14 @@ def main():
         "3. **Kho Ngoại Miền RealImage (External 6k Benchmark - 6.000 mẫu)**: Thử thách mù đối với các ảnh sinh từ bộ sinh độc lập."
     ]))
 
-    # Cell 3: HTML Table
+    # Cell 3: Visual Scorecard
     cells.append(make_code_cell(
         source=[
-            "# Xuất bảng so sánh toàn diện Tri-Vault qua HTML Styler\n",
-            "display(HTML('''" + html_tri + "'''))\n",
+            "# Xuất bảng ma trận so sánh toàn diện Tri-Vault qua Visual Scorecard\n",
+            "fig = plot_tri_vault_scorecard()\n",
+            "plt.show()\n",
         ],
-        outputs=[html_to_output(html_tri)],
+        outputs=[fig_to_output(plot_tri_vault_scorecard())],
         execution_count=2,
     ))
 

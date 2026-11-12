@@ -32,6 +32,9 @@ from src.common.visualizer import (
     plot_dual_engine_gallery,
     plot_manifold_tsne_pca,
     plot_hard_yield_and_mode_rates,
+    plot_real_manifold_specifications_card,
+    plot_dual_engine_portfolio_card,
+    plot_hard_samples_audit_card,
 )
 from src.data.image_schema import ImageMetadata
 from src.data.splits import normalize_demographics
@@ -273,16 +276,15 @@ def build_notebook_01(output_path: Path):
                 "import matplotlib.pyplot as plt\n",
                 "import numpy as np\n",
                 "from PIL import Image\n",
-                "from IPython.display import HTML, display\n",
                 "\n",
                 "# Nạp module trực quan hóa chuẩn hóa và bảng màu nhận diện thương hiệu\n",
                 "from src.common.config import load_config\n",
                 "from src.common.visualizer import (\n",
                 "    PALETTE,\n",
-                "    render_html_styled_table,\n",
                 "    plot_real_demographics_dashboard,\n",
                 "    plot_landmarks_heatmap_and_inpaint_roi,\n",
                 "    plot_optical_characteristics_distribution,\n",
+                "    plot_real_manifold_specifications_card,\n",
                 ")\n",
                 "from src.data.image_schema import ImageMetadata\n",
                 "from src.data.splits import normalize_demographics\n",
@@ -503,12 +505,13 @@ def build_notebook_01(output_path: Path):
             "execution_count": 10,
             "metadata": {},
             "outputs": [
-                html_to_output(html_spec),
+                fig_to_output(plot_real_manifold_specifications_card()),
                 {"name": "stdout", "output_type": "stream", "text": ["Đã lưu trữ thành công data/dataset_statistics.json. Nghiệm thu hoàn tất 100% Notebook 01.\n"]}
             ],
             "source": [
-                "# Xuất bảng vàng đặc tả đa tạp thật qua HTML Styler\n",
-                "display(HTML('''" + html_spec + "'''))\n",
+                "# Xuất bảng vàng đặc tả đa tạp thật qua Visual Scorecard Card\n",
+                "fig = plot_real_manifold_specifications_card()\n",
+                "plt.show()\n",
                 "print('Đã lưu trữ thành công data/dataset_statistics.json. Nghiệm thu hoàn tất 100% Notebook 01.')\n"
             ]
         }
@@ -611,14 +614,13 @@ def build_notebook_02(output_path: Path):
                 "import matplotlib.pyplot as plt\n",
                 "import numpy as np\n",
                 "from PIL import Image\n",
-                "from IPython.display import HTML, display\n",
                 "\n",
                 "from src.common.config import load_config\n",
                 "from src.common.visualizer import (\n",
                 "    PALETTE,\n",
-                "    render_html_styled_table,\n",
                 "    plot_dual_engine_curation_audit,\n",
                 "    plot_dual_engine_gallery,\n",
+                "    plot_dual_engine_portfolio_card,\n",
                 ")\n",
                 "\n",
                 "print('Bootstrap Notebook 02 thành công. Nạp module sinh dữ liệu và Curation Gate.')\n"
@@ -641,10 +643,11 @@ def build_notebook_02(output_path: Path):
             "cell_type": "code",
             "execution_count": 2,
             "metadata": {},
-            "outputs": [html_to_output(html_eng)],
+            "outputs": [fig_to_output(plot_dual_engine_portfolio_card())],
             "source": [
-                "# Hiển thị bảng đặc tả kỹ thuật danh mục khuếch tán kép\n",
-                "display(HTML('''" + html_eng + "'''))\n"
+                "# Hiển thị bảng đặc tả kỹ thuật danh mục khuếch tán kép qua Visual Card\n",
+                "fig = plot_dual_engine_portfolio_card()\n",
+                "plt.show()\n"
             ]
         },
         # Cell 04
@@ -896,13 +899,12 @@ def build_notebook_03(output_path: Path):
                 "import matplotlib.pyplot as plt\n",
                 "import numpy as np\n",
                 "from PIL import Image\n",
-                "from IPython.display import HTML, display\n",
                 "\n",
                 "from src.common.visualizer import (\n",
                 "    PALETTE,\n",
-                "    render_html_styled_table,\n",
                 "    plot_manifold_tsne_pca,\n",
                 "    plot_hard_yield_and_mode_rates,\n",
+                "    plot_hard_samples_audit_card,\n",
                 ")\n",
                 "\n",
                 "print('Khởi tạo thành công Notebook 03. Nạp module khai thác mẫu khó và hình học đa tạp.')\n"
@@ -926,10 +928,11 @@ def build_notebook_03(output_path: Path):
             "cell_type": "code",
             "execution_count": 2,
             "metadata": {},
-            "outputs": [html_to_output(html_h)],
+            "outputs": [fig_to_output(plot_hard_samples_audit_card())],
             "source": [
-                "# Hiển thị bảng kiểm toán kho 740 mẫu khó đối kháng qua HTML Styler\n",
-                "display(HTML('''" + html_h + "'''))\n"
+                "# Hiển thị kiểm toán kho 740 mẫu khó đối kháng qua 2-Panel Visual Card & Breakdown\n",
+                "fig = plot_hard_samples_audit_card()\n",
+                "plt.show()\n"
             ]
         },
         # Cell 04

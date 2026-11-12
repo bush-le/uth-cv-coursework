@@ -19,10 +19,18 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 os.chdir(root_dir)
 
+import io
+import matplotlib.pyplot as plt
+import numpy as np
 from src.common.visualizer import (
     PALETTE,
     render_html_styled_table,
     plot_interactive_sample_inspector,
+    plot_universal_aspect_ratio_card,
+    plot_universal_benchmark_scorecard_heatmap,
+    plot_tau_threshold_tradeoff_dashboard,
+    plot_universal_fpr_scorecard,
+    plot_styled_scorecard_table,
 )
 
 
@@ -30,6 +38,23 @@ def png_file_to_base64(path: Path) -> str:
     """Read a PNG file and return base64 string."""
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
+
+
+def fig_to_output(fig: plt.Figure) -> dict:
+    """Serialize matplotlib figure to Jupyter image output."""
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=140, bbox_inches="tight")
+    buf.seek(0)
+    data = base64.b64encode(buf.read()).decode("utf-8")
+    plt.close(fig)
+    return {
+        "output_type": "display_data",
+        "data": {
+            "image/png": data,
+            "text/plain": ["<Figure size ...>"],
+        },
+        "metadata": {},
+    }
 
 
 def html_to_output(html_str: str) -> dict:
@@ -174,12 +199,15 @@ def main():
             "import numpy as np\n",
             "import matplotlib.pyplot as plt\n",
             "from PIL import Image\n",
-            "from IPython.display import HTML, display, Image as IPImage\n",
+            "from IPython.display import display, Image as IPImage\n",
             "\n",
             "from src.common.visualizer import (\n",
             "    PALETTE,\n",
-            "    render_html_styled_table,\n",
             "    plot_interactive_sample_inspector,\n",
+            "    plot_universal_aspect_ratio_card,\n",
+            "    plot_universal_benchmark_scorecard_heatmap,\n",
+            "    plot_tau_threshold_tradeoff_dashboard,\n",
+            "    plot_universal_fpr_scorecard,\n",
             ")\n",
             "\n",
             "print('Environment initialized successfully. Workspace: uth-cv-coursework')\n",
@@ -350,13 +378,14 @@ def main():
         "- **`deepfake_faceswap` ($N=1.010$)**: Vi phạm bất biến hình học (tỷ lệ chữ nhật 0.82), gây biến dạng mặt khi nạp vào Vision Transformer."
     ]))
 
-    # Cell 13: Aspect Ratio HTML Table
+    # Cell 13: Aspect Ratio Visual Card
     cells.append(make_code_cell(
         source=[
-            "# Xuất bảng kiểm toán độ phân giải và tỷ lệ khung hình 100% vuông qua HTML Styler\n",
-            "display(HTML('''" + html_res + "'''))\n",
+            "# Xuất bảng kiểm toán độ phân giải và tỷ lệ khung hình 100% vuông qua Visual Card\n",
+            "fig = plot_universal_aspect_ratio_card()\n",
+            "plt.show()\n",
         ],
-        outputs=[html_to_output(html_res)],
+        outputs=[fig_to_output(plot_universal_aspect_ratio_card())],
         execution_count=7,
     ))
 
@@ -370,13 +399,14 @@ def main():
         "Bảng đối chứng trực tiếp các chỉ số phân loại nhị phân ở ngưỡng mặc định $\\tau = 0.50$ trên toàn bộ 20.400 ảnh:"
     ]))
 
-    # Cell 15: Global HTML Table
+    # Cell 15: Global Scorecard Heatmap
     cells.append(make_code_cell(
         source=[
-            "# Xuất bảng tổng hợp toàn cầu qua HTML Styler\n",
-            "display(HTML('''" + html_global + "'''))\n",
+            "# Xuất bảng tổng hợp toàn cầu và phân rã họ công nghệ qua 2-Panel Heatmap Scorecard\n",
+            "fig = plot_universal_benchmark_scorecard_heatmap()\n",
+            "plt.show()\n",
         ],
-        outputs=[html_to_output(html_global)],
+        outputs=[fig_to_output(plot_universal_benchmark_scorecard_heatmap())],
         execution_count=8,
     ))
 
@@ -405,13 +435,29 @@ def main():
         "> 2. **Nhánh Biến Đổi Điểm Mốc & Hòa Trộn Cục Bộ (Face Swapping & Talking Head)**: Giữ lại $85\\% - 95\\%$ khuôn mặt thật gốc tự nhiên (tai, tóc, trán, cổ), chỉ ghép cục bộ qua phép biến đổi affin/TPS và hòa trộn Poisson. Dấu vết duy nhất nằm ở vành đai tiếp giáp siêu mỏng. Khi DINOv2 quét toàn ảnh, $90\\%$ diện tích là người thật tự nhiên lấn át hoàn toàn tín hiệu giả $\\implies$ Fake Recall $< 0.5\\%$ ở ngưỡng chuẩn."
     ]))
 
-    # Cell 18: Family HTML Table
+    # Cell 18: Family Scorecard Table
+    fig_fam_card = plot_styled_scorecard_table(
+        headers_fam,
+        rows_fam,
+        title="Bảng Hiệu Năng Phân Rã Theo 8 Họ Công Nghệ Deepfake & Ảnh Thật Đối Chứng",
+        highlight_rows=[1, 4, 7],
+        figsize=(14, 5.2),
+        scale_y=1.4,
+    )
     cells.append(make_code_cell(
         source=[
-            "# Xuất bảng hiệu năng phân rã theo họ công nghệ qua HTML Styler\n",
-            "display(HTML('''" + html_fam + "'''))\n",
+            "# Xuất bảng hiệu năng phân rã theo họ công nghệ qua Visual Scorecard\n",
+            "from src.common.visualizer import plot_styled_scorecard_table\n",
+            "fig = plot_styled_scorecard_table(\n",
+            "    " + repr(headers_fam) + ",\n",
+            "    " + repr(rows_fam) + ",\n",
+            "    title='Bảng Hiệu Năng Phân Rã Theo 8 Họ Công Nghệ Deepfake',\n",
+            "    highlight_rows=[1, 4, 7],\n",
+            "    figsize=(14, 5.2),\n",
+            ")\n",
+            "plt.show()\n",
         ],
-        outputs=[html_to_output(html_fam)],
+        outputs=[fig_to_output(fig_fam_card)],
         execution_count=10,
     ))
 
@@ -494,13 +540,17 @@ def main():
         "Khi nới ngưỡng $\\tau$ từ $0.50$ xuống các mức nhạy cảm cao hơn ($0.05$ - $0.005$), Fake Recall tăng vọt lên **$29.84\\%$** trên toàn bộ 34 phương pháp."
     ]))
 
-    # Cell 25: Threshold Sweep HTML Table
+    # Cell 25: Threshold Sweep 2-Panel Dashboard
+    npz_bench = np.load("experiments/benchmarks/logs/benchmark_4models_predictions.npz")
+    fig_tau_bench = plot_tau_threshold_tradeoff_dashboard(npz_bench["probs_M2_refined_warmstart"], npz_bench["y_true"], model_name="M2* Champion")
     cells.append(make_code_cell(
         source=[
-            "# Xuất bảng phân tích đánh đổi ngưỡng quyết định qua HTML Styler\n",
-            "display(HTML('''" + html_tau + "'''))\n",
+            "# Xuất bảng phân tích đánh đổi ngưỡng quyết định qua 2-Panel Dashboard\n",
+            "npz = np.load('experiments/benchmarks/logs/benchmark_4models_predictions.npz')\n",
+            "fig = plot_tau_threshold_tradeoff_dashboard(npz['probs_M2_refined_warmstart'], npz['y_true'], model_name='M2* Champion')\n",
+            "plt.show()\n",
         ],
-        outputs=[html_to_output(html_tau)],
+        outputs=[fig_to_output(fig_tau_bench)],
         execution_count=14,
     ))
 
@@ -511,13 +561,14 @@ def main():
         "Đo lường tỷ lệ báo động giả (False Alarm / FPR) trên 2 nguồn ảnh thật đối chứng lớn: FFHQ (8.352 ảnh studio) và FaceForensics++ (1.655 ảnh nén video Youtube C23)."
     ]))
 
-    # Cell 27: Real Faces Robustness HTML Table
+    # Cell 27: Real Faces Robustness Visual Card
     cells.append(make_code_cell(
         source=[
-            "# Xuất bảng đo lường tỷ lệ False Alarm trên các nguồn ảnh thật qua HTML Styler\n",
-            "display(HTML('''" + html_fpr + "'''))\n",
+            "# Xuất biểu đồ & bảng đo lường tỷ lệ False Alarm trên các nguồn ảnh thật qua Visual Scorecard\n",
+            "fig = plot_universal_fpr_scorecard()\n",
+            "plt.show()\n",
         ],
-        outputs=[html_to_output(html_fpr)],
+        outputs=[fig_to_output(plot_universal_fpr_scorecard())],
         execution_count=15,
     ))
 

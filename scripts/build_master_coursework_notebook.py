@@ -181,28 +181,26 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from IPython.display import HTML, display
 
 # Nạp toàn bộ kho hàm trực quan hóa mô-đun hóa từ src.common.visualizer
 from src.common.visualizer import (
     PALETTE,
-    render_html_styled_table,
     plot_real_faces_gallery,
     plot_real_demographics_dashboard,
     plot_attribute_correlation_matrix,
     plot_3d_head_pose_distribution,
     plot_skin_color_gamut,
-    render_real_manifold_specifications_table,
+    plot_real_manifold_specifications_card,
     plot_landmarks_heatmap_and_inpaint_roi,
     plot_soft_mask_feathering_simulation,
     plot_dual_engine_curation_audit,
     plot_dual_engine_gallery,
-    render_dual_engine_portfolio_table,
+    plot_dual_engine_portfolio_card,
     plot_manifold_tsne_pca,
     plot_hard_yield_and_mode_rates,
     plot_biological_error_breakdown,
     plot_hard_samples_comparison_gallery,
-    render_hard_samples_audit_table,
+    plot_hard_samples_audit_card,
     plot_dinov2_architecture_and_parameters,
     plot_clean_10k_dataset_dashboard,
     plot_loss_and_roc_curves_comparison,
@@ -211,18 +209,17 @@ from src.common.visualizer import (
     plot_confusion_matrices_progression,
     plot_comprehensive_metrics_grid,
     plot_radar_and_pareto_frontier,
-    render_golden_matrix_table,
+    plot_golden_matrix_scorecard,
     plot_legacy_6k_benchmark,
     plot_legacy_6k_distributions,
     plot_legacy_6k_gallery_inspection,
-    render_legacy_6k_main_table,
-    render_legacy_6k_breakdown_table,
-    render_tri_vault_html_table,
-    render_universal_resolution_table,
-    render_universal_global_table,
-    render_universal_family_table,
-    render_universal_tau_sweep_table,
-    render_universal_fpr_table,
+    plot_legacy_6k_scorecard,
+    plot_legacy_6k_breakdown_scorecard,
+    plot_tri_vault_scorecard,
+    plot_universal_aspect_ratio_card,
+    plot_universal_benchmark_scorecard_heatmap,
+    plot_tau_threshold_tradeoff_dashboard,
+    plot_universal_fpr_scorecard,
     plot_detector_challenge_sample_inspection,
     plot_interactive_sample_inspector,
 )
@@ -292,10 +289,11 @@ plt.show()
 
         ("markdown", """### §1.5. Bảng Tiêu Chuẩn Kỹ Thuật Đa Tạp Chân Dung Thật Gốc
 
-Bảng tổng hợp các chỉ số kiểm chuẩn toàn vẹn của tập dữ liệu thật 10.000 mẫu được thiết kế theo chuẩn HTML Gradient Heatmap."""),
+Bảng tổng hợp các chỉ số kiểm chuẩn toàn vẹn của tập dữ liệu thật 10.000 mẫu được thiết kế theo chuẩn Visual Scorecard Card."""),
 
-        ("code", """# Hiển thị bảng tiêu chuẩn kỹ thuật đa tạp ảnh thật với gradient CSS
-display(HTML(render_real_manifold_specifications_table()))
+        ("code", """# Hiển thị bảng tiêu chuẩn kỹ thuật đa tạp ảnh thật qua Visual Scorecard Card
+fig = plot_real_manifold_specifications_card()
+plt.show()
 """),
 
         # --- SECTION 2: DUAL-ENGINE DIFFUSION & CURATION ---
@@ -348,8 +346,9 @@ plt.show()
 
 Bảng thông số kỹ thuật, tỷ lệ vượt qua vòng lọc và độ sắc nét quang học của hai động cơ sinh."""),
 
-        ("code", """# Hiển thị bảng so sánh danh mục động cơ khuếch tán kép với CSS styled table
-display(HTML(render_dual_engine_portfolio_table()))
+        ("code", """# Hiển thị bảng so sánh danh mục động cơ khuếch tán kép qua Visual Card
+fig = plot_dual_engine_portfolio_card()
+plt.show()
 """),
 
         # --- SECTION 3: HARD SAMPLES MINING ---
@@ -405,8 +404,9 @@ plt.show()
 
 Bảng thống kê số lượng, xác suất dự đoán trung bình của $M_0$ và mức độ cải thiện của $M_2^*$ trên tập Vault mẫu khó."""),
 
-        ("code", """# Hiển thị bảng kiểm toán chi tiết 213 mẫu khó với CSS heatmap
-display(HTML(render_hard_samples_audit_table()))
+        ("code", """# Hiển thị kiểm toán chi tiết kho mẫu khó đối kháng qua 2-Panel Visual Card & Breakdown
+fig = plot_hard_samples_audit_card()
+plt.show()
 """),
 
         # --- SECTION 4: DINOv2 DETECTOR & ACTIVE LEARNING ---
@@ -489,8 +489,9 @@ plt.show()
 
 Bảng tổng hợp số liệu chính xác được trích xuất từ các checkpoint thực tế."""),
 
-        ("code", """# Hiển thị bảng ma trận vàng đối sánh 4 thế hệ mô hình với gradient màu sắc
-display(HTML(render_golden_matrix_table()))
+        ("code", """# Hiển thị bảng ma trận vàng đối sánh 4 thế hệ mô hình qua 2-Panel Scorecard (Challenge & Master)
+fig = plot_golden_matrix_scorecard()
+plt.show()
 """),
 
         # --- SECTION 5: OOD BLIND TRANSFER 6K ---
@@ -531,9 +532,11 @@ plt.show()
 
 Bảng số liệu chi tiết và phân rã theo nhóm độ sắc nét trên kho ảnh RealisticVision v5.1."""),
 
-        ("code", """# Hiển thị bảng tổng hợp benchmark ngoại lai 6k và phân rã thuộc tính
-display(HTML(render_legacy_6k_main_table()))
-display(HTML(render_legacy_6k_breakdown_table()))
+        ("code", """# Hiển thị biểu đồ & bảng tổng hợp benchmark ngoại lai 6k và phân rã thuộc tính
+fig1 = plot_legacy_6k_scorecard()
+plt.show()
+fig2 = plot_legacy_6k_breakdown_scorecard()
+plt.show()
 """),
 
         # --- SECTION 6: UNIVERSAL BENCHMARK ---
@@ -551,7 +554,8 @@ display(HTML(render_legacy_6k_breakdown_table()))
 """),
 
         ("code", """# Hiển thị bảng đối sánh chiến lược giữa 3 kho kiểm định: Challenge (213), Blind 6k, Universal (20.4k)
-display(HTML(render_tri_vault_html_table()))
+fig = plot_tri_vault_scorecard()
+plt.show()
 """),
 
         ("markdown", """### §6.1. Bảng Hiệu Năng Toàn Cầu & Đánh Giá Từng Họ Mô Hình
@@ -559,8 +563,8 @@ display(HTML(render_tri_vault_html_table()))
 So sánh độ chính xác và AUC của 4 mô hình trên 5 họ kiến trúc sinh."""),
 
         ("code", """# Hiển thị bảng hiệu năng toàn cầu và phân rã 5 họ mô hình trên Universal Benchmark
-display(HTML(render_universal_global_table()))
-display(HTML(render_universal_family_table()))
+fig = plot_universal_benchmark_scorecard_heatmap()
+plt.show()
 """),
 
         ("markdown", """### §6.2. Phân Tích Quét Ngưỡng Quyết Định $\\tau$ & Kiểm Soát Nghiêm Ngặt Tỷ Lệ Báo Động Giả (FPR $\\le 1.0\\%$)
@@ -568,8 +572,11 @@ display(HTML(render_universal_family_table()))
 Trong các hệ thống định danh bảo mật ngân hàng hoặc xuất nhập cảnh, việc báo động giả (False Alarm đối với người thật) có chi phí đắt hơn nhiều so với việc bỏ sót. Do đó, chúng tôi khảo sát quét ngưỡng $\\tau \\in [0.10, 0.90]$ và tìm điểm vận hành tại $\\text{FPR} \\le 1.0\\%$."""),
 
         ("code", """# Hiển thị bảng quét ngưỡng quyết định tau và kiểm soát FPR <= 1.0%
-display(HTML(render_universal_tau_sweep_table()))
-display(HTML(render_universal_fpr_table()))
+npz = np.load('experiments/benchmarks/logs/benchmark_4models_predictions.npz')
+fig1 = plot_tau_threshold_tradeoff_dashboard(npz['probs_M2_refined_warmstart'], npz['y_true'], model_name='M2* Champion')
+plt.show()
+fig2 = plot_universal_fpr_scorecard()
+plt.show()
 """),
 
         # --- SECTION 7: INTERACTIVE FORENSIC INSPECTOR ---

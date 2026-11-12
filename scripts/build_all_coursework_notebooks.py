@@ -31,6 +31,8 @@ from src.common.visualizer import (
     plot_loss_and_roc_curves_comparison,
     plot_error_attribution_and_mode_quotas,
     plot_detector_challenge_sample_inspection,
+    plot_hyperparameters_matrix_card,
+    plot_golden_matrix_scorecard,
 )
 
 ROOT_BOOTSTRAP_CODE = (
@@ -193,12 +195,10 @@ def generate_production_visualizer_notebook(output_path: Path):
                 ROOT_BOOTSTRAP_CODE + "\n",
                 "import matplotlib.pyplot as plt\n",
                 "import torch\n",
-                "from IPython.display import HTML, display\n",
                 "\n",
                 "# Nạp toàn bộ module trực quan hóa chuẩn mực từ src.common.visualizer\n",
                 "from src.common.visualizer import (\n",
                 "    PALETTE,\n",
-                "    render_html_styled_table,\n",
                 "    plot_clean_10k_dataset_dashboard,\n",
                 "    plot_dinov2_architecture_and_parameters,\n",
                 "    plot_adversarial_trajectory_comparison,\n",
@@ -208,6 +208,8 @@ def generate_production_visualizer_notebook(output_path: Path):
                 "    plot_loss_and_roc_curves_comparison,\n",
                 "    plot_error_attribution_and_mode_quotas,\n",
                 "    plot_detector_challenge_sample_inspection,\n",
+                "    plot_hyperparameters_matrix_card,\n",
+                "    plot_golden_matrix_scorecard,\n",
                 ")\n",
                 "\n",
                 "device = 'cuda' if torch.cuda.is_available() else 'cpu'\n",
@@ -281,10 +283,11 @@ def generate_production_visualizer_notebook(output_path: Path):
             "cell_type": "code",
             "execution_count": 4,
             "metadata": {},
-            "outputs": [html_to_output(html_hp)],
+            "outputs": [fig_to_base64_output(plot_hyperparameters_matrix_card())],
             "source": [
-                "# Xuất bảng ma trận siêu tham số huấn luyện qua HTML Styler\n",
-                "display(HTML('''" + html_hp + "'''))\n"
+                "# Xuất bảng ma trận siêu tham số huấn luyện qua Visual Scorecard\n",
+                "fig = plot_hyperparameters_matrix_card()\n",
+                "plt.show()\n"
             ]
         },
         # Cell 08
@@ -418,10 +421,11 @@ def generate_production_visualizer_notebook(output_path: Path):
             "cell_type": "code",
             "execution_count": 10,
             "metadata": {},
-            "outputs": [html_to_output(html_gm)],
+            "outputs": [fig_to_base64_output(plot_golden_matrix_scorecard())],
             "source": [
-                "# Xuất bảng vàng định lượng toàn diện qua HTML Styler\n",
-                "display(HTML('''" + html_gm + "'''))\n"
+                "# Xuất bảng vàng định lượng toàn diện qua 2-Panel Scorecard Heatmap (Challenge & Master)\n",
+                "fig = plot_golden_matrix_scorecard()\n",
+                "plt.show()\n"
             ]
         },
         # Cell 20
