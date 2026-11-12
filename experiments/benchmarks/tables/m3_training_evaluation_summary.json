@@ -1,0 +1,35 @@
+{
+  "best_epoch": 6,
+  "best_val_auc": 0.9846125975473802,
+  "total_train_seconds": 1483.28089594841,
+  "master_frozen_test": {
+    "accuracy": 0.8225806451612904,
+    "roc_auc": 0.9205755777251882,
+    "f1_score": 0.7964946445959105,
+    "precision": 0.9337899543378996,
+    "recall": 0.6943972835314092,
+    "bypass_rate": 0.30560271646859083,
+    "hard_sample_recall": NaN,
+    "loss": 0.7949698882111063
+  },
+  "cumulative_challenge_test": {
+    "accuracy": 0.9342723004694836,
+    "roc_auc": 0.9875463698993111,
+    "f1_score": 0.9357798165137614,
+    "precision": 0.9532710280373832,
+    "recall": 0.918918918918919,
+    "bypass_rate": 0.08108108108108109,
+    "hard_sample_recall": 0.918918918918919,
+    "loss": 0.1500519721161032
+  },
+  "unseen_rv51_test": {
+    "accuracy": 0.9407407407407408,
+    "roc_auc": 0.982775267551544,
+    "f1_score": 0.9418416801292406,
+    "precision": 0.9526143790849673,
+    "recall": 0.9313099041533547,
+    "bypass_rate": 0.06869009584664537,
+    "hard_sample_recall": NaN,
+    "loss": 0.2190542359138866
+  }
+}

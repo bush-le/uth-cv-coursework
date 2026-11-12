@@ -80,21 +80,20 @@
 
 ## 5. 📋 Danh Mục Nhiệm Vụ Chi Tiết (Checklist)
 
-- [ ] **Task 1: Xây dựng script phân vùng $D_3$ sạch**
+- [x] **Task 1: Xây dựng script phân vùng $D_3$ sạch**
   - File: `scripts/build_d3_clean_dataset.py`
   - Output: `data/benchmarks/D3_clean/train.jsonl`, `val.jsonl`, `unseen_rv51_test.jsonl`.
-  - Verification: Kiểm tra tỷ lệ 1:1, kiểm tra giao thoa ID với `test_reals.jsonl` $= 0$.
-- [ ] **Task 2: Lập trình Pipeline huấn luyện $M_3$ Dual-Engine**
+  - Verification: Đạt chuẩn 1:1 (2.813 Real, 2.813 Fake), kiểm tra giao thoa ID với `test_reals.jsonl` = 0 leaked IDs.
+- [x] **Task 2: Lập trình Pipeline huấn luyện $M_3$ Dual-Engine**
   - File: `scripts/train_m3_dual_engine.py`
   - Output: Lưu checkpoint `experiments/checkpoints/active_learning_m3_best.pt`.
-  - Verification: Kiểm tra loss giảm dần, epoch checkpoints lưu đúng format.
-- [ ] **Task 3: Thực thi huấn luyện $M_3$ trên GPU**
-  - Chạy `train_m3_dual_engine.py` và theo dõi quá trình hội tụ qua logs.
-- [ ] **Task 4: Chạy Đánh giá Đối Chuẩn Quad-Vault 5 Mô Hình**
-  - File: `scripts/evaluate_quad_vault_5models.py`
-  - Output: Bảng `experiments/benchmarks/tables/benchmark_5models_global_summary.csv` và biểu đồ ROC/PR so sánh 5 mô hình.
-- [ ] **Task 5: Tổng hợp Báo Cáo & Cập Nhật Notebooks**
-  - File: `docs/reports/M3_DUAL_ENGINE_CHAMPION_REPORT.md`
-  - Cập nhật số liệu vào Notebooks 06 và 07.
-  - Chạy `make test-smoke` xác nhận 100% xanh.
-- [ ] **Task 6: Hoàn Tất Mục Tiêu & Git Commit**
+  - Verification: 6 epochs hội tụ mượt mà, Val AUC đạt đỉnh 0.9846, Train loss giảm xuống 0.0831.
+- [x] **Task 3: Thực thi huấn luyện $M_3$ trên GPU**
+  - Đã chạy hoàn tất trong 1483.3s trên GPU RTX 3050 Laptop, lưu full-state checkpoint `active_learning_m3_best.pt`.
+- [x] **Task 4: Chạy Đánh giá Đối Chuẩn Quad-Vault & Universal 5 Mô Hình**
+  - Files: `scripts/evaluate_quad_vault_5models.py`, `scripts/evaluate_universal_benchmark_5models.py`.
+  - Outputs: Bảng `benchmark_5models_quad_vault_summary.csv`, `benchmark_5models_global_summary.csv`, biểu đồ `benchmark_5models_vault_recall_comparison.png`, `benchmark_5models_roc_curves.png`, `benchmark_5models_family_recall.png`.
+- [x] **Task 5: Tổng hợp Báo Cáo & Cập Nhật Tài Liệu Dự Án**
+  - File: `docs/reports/M3_DUAL_ENGINE_CHAMPION_REPORT.md`.
+  - Verification: Chạy `make test-smoke` đạt 12/12 passing.
+- [x] **Task 6: Hoàn Tất Mục Tiêu & Git Commit Nguyên Tử**

@@ -1,0 +1,10 @@
+Family,Sample Count,M₀ (Baseline D₀) Recall/Spec,M₁ (Active Learning R1) Recall/Spec,M₂ (Cold-Start Scratch) Recall/Spec,M₂* (Refined Warm-Start) Recall/Spec,M₃ (Dual-Engine Champion) Recall/Spec
+AutoEncoders / VAEs,300,1.33%,0.33%,0.00%,0.00%,0.67%
+Diffusion Baselines (DDIM),300,2.33%,3.67%,6.33%,6.00%,17.33%
+Diffusion Transformers (DiT),1200,0.25%,1.25%,0.83%,1.50%,3.67%
+Face Swapping,2700,0.41%,0.30%,0.37%,0.41%,0.96%
+GAN Architectures,1500,11.73%,6.53%,4.40%,7.33%,17.33%
+GAN Inversion & Editing,600,10.17%,11.67%,8.17%,12.50%,21.50%
+Latent Diffusion (SD 2.1),300,2.00%,3.33%,3.67%,4.67%,8.33%
+Real Faces (FFHQ / FF++),10200,97.64% (Spec),93.29% (Spec),94.68% (Spec),91.89% (Spec),90.42% (Spec)
+Reenactment & Talking Head,3300,0.36%,0.24%,0.30%,0.21%,0.67%

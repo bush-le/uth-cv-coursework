@@ -1,0 +1,162 @@
+{
+  "M0 (Baseline)": {
+    "Master_Frozen_Test": {
+      "accuracy": 0.7410865874363328,
+      "roc_auc": 0.8850487574981047,
+      "f1_score": 0.6545866364665912,
+      "precision": 0.9829931972789115,
+      "recall": 0.4906621392190153,
+      "bypass_rate": 0.5093378607809848,
+      "hard_sample_recall": NaN,
+      "loss": 1.965662939338004
+    },
+    "Challenge_Hard_Test": {
+      "accuracy": 0.539906103286385,
+      "roc_auc": 0.8713124889595478,
+      "f1_score": 0.20967741935483872,
+      "precision": 1.0,
+      "recall": 0.11711711711711711,
+      "bypass_rate": 0.8828828828828829,
+      "hard_sample_recall": 0.11711711711711711,
+      "loss": 3.025489086827412
+    },
+    "Unseen_RV51_OOD_Test": {
+      "accuracy": 0.823045267489712,
+      "roc_auc": 0.916225041631183,
+      "f1_score": 0.7946513849092646,
+      "precision": 0.9881235154394299,
+      "recall": 0.6645367412140575,
+      "bypass_rate": 0.3354632587859425,
+      "hard_sample_recall": NaN,
+      "loss": 1.3805563190836965
+    }
+  },
+  "M1 (Active R1)": {
+    "Master_Frozen_Test": {
+      "accuracy": 0.7920203735144312,
+      "roc_auc": 0.9161077017534252,
+      "f1_score": 0.7492323439099282,
+      "precision": 0.9432989690721649,
+      "recall": 0.6213921901528013,
+      "bypass_rate": 0.37860780984719866,
+      "hard_sample_recall": NaN,
+      "loss": 0.7890262470180596
+    },
+    "Challenge_Hard_Test": {
+      "accuracy": 0.8309859154929577,
+      "roc_auc": 0.9654654654654654,
+      "f1_score": 0.8125,
+      "precision": 0.9629629629629629,
+      "recall": 0.7027027027027027,
+      "bypass_rate": 0.2972972972972973,
+      "hard_sample_recall": 0.7027027027027027,
+      "loss": 0.4200395412673133
+    },
+    "Unseen_RV51_OOD_Test": {
+      "accuracy": 0.8378600823045268,
+      "roc_auc": 0.9169708771568207,
+      "f1_score": 0.8207461328480437,
+      "precision": 0.9534883720930233,
+      "recall": 0.7204472843450479,
+      "bypass_rate": 0.2795527156549521,
+      "hard_sample_recall": NaN,
+      "loss": 0.7423324788303532
+    }
+  },
+  "M2 (Cold-Start)": {
+    "Master_Frozen_Test": {
+      "accuracy": 0.7504244482173175,
+      "roc_auc": 0.8909867087896092,
+      "f1_score": 0.6783369803063457,
+      "precision": 0.9538461538461539,
+      "recall": 0.5263157894736842,
+      "bypass_rate": 0.47368421052631576,
+      "hard_sample_recall": NaN,
+      "loss": 1.1989230190250384
+    },
+    "Challenge_Hard_Test": {
+      "accuracy": 0.9248826291079812,
+      "roc_auc": 0.9937290231407878,
+      "f1_score": 0.9230769230769231,
+      "precision": 0.9896907216494846,
+      "recall": 0.8648648648648649,
+      "bypass_rate": 0.13513513513513514,
+      "hard_sample_recall": 0.8648648648648649,
+      "loss": 0.161370767534059
+    },
+    "Unseen_RV51_OOD_Test": {
+      "accuracy": 0.7637860082304527,
+      "roc_auc": 0.8803896787211768,
+      "f1_score": 0.7115577889447237,
+      "precision": 0.959349593495935,
+      "recall": 0.5654952076677316,
+      "bypass_rate": 0.43450479233226835,
+      "hard_sample_recall": NaN,
+      "loss": 1.2290290816330616
+    }
+  },
+  "M2* (Refined)": {
+    "Master_Frozen_Test": {
+      "accuracy": 0.8081494057724957,
+      "roc_auc": 0.9176930770982442,
+      "f1_score": 0.7771203155818539,
+      "precision": 0.9270588235294117,
+      "recall": 0.6689303904923599,
+      "bypass_rate": 0.3310696095076401,
+      "hard_sample_recall": NaN,
+      "loss": 0.8093891089658786
+    },
+    "Challenge_Hard_Test": {
+      "accuracy": 0.9389671361502347,
+      "roc_auc": 0.9874580462815757,
+      "f1_score": 0.9400921658986175,
+      "precision": 0.9622641509433962,
+      "recall": 0.918918918918919,
+      "bypass_rate": 0.08108108108108109,
+      "hard_sample_recall": 0.918918918918919,
+      "loss": 0.14902199451492426
+    },
+    "Unseen_RV51_OOD_Test": {
+      "accuracy": 0.8296296296296296,
+      "roc_auc": 0.9158073737368259,
+      "f1_score": 0.8130081300813009,
+      "precision": 0.9355509355509356,
+      "recall": 0.7188498402555911,
+      "bypass_rate": 0.28115015974440893,
+      "hard_sample_recall": NaN,
+      "loss": 0.7982024449379846
+    }
+  },
+  "M3 (Dual-Engine Champion)": {
+    "Master_Frozen_Test": {
+      "accuracy": 0.8225806451612904,
+      "roc_auc": 0.9205755777251882,
+      "f1_score": 0.7964946445959105,
+      "precision": 0.9337899543378996,
+      "recall": 0.6943972835314092,
+      "bypass_rate": 0.30560271646859083,
+      "hard_sample_recall": NaN,
+      "loss": 0.7949698914493891
+    },
+    "Challenge_Hard_Test": {
+      "accuracy": 0.9342723004694836,
+      "roc_auc": 0.9875463698993111,
+      "f1_score": 0.9357798165137614,
+      "precision": 0.9532710280373832,
+      "recall": 0.918918918918919,
+      "bypass_rate": 0.08108108108108109,
+      "hard_sample_recall": 0.918918918918919,
+      "loss": 0.15005197547411134
+    },
+    "Unseen_RV51_OOD_Test": {
+      "accuracy": 0.9407407407407408,
+      "roc_auc": 0.982775267551544,
+      "f1_score": 0.9418416801292406,
+      "precision": 0.9526143790849673,
+      "recall": 0.9313099041533547,
+      "bypass_rate": 0.06869009584664537,
+      "hard_sample_recall": NaN,
+      "loss": 0.21905423552411082
+    }
+  }
+}
