@@ -19,6 +19,11 @@ from pathlib import Path
 import sys
 from typing import Any, Optional, Union
 
+# Ensure project root is in sys.path when executed directly
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 from IPython.core.interactiveshell import InteractiveShell
 import matplotlib
 matplotlib.use("Agg", force=True)
@@ -650,7 +655,7 @@ axes[0].set_title("[1] Chân Dung Thật\\n(FFHQ #00000)", fontsize=9, fontweigh
 axes[0].axis("off")
 
 axes[1].imshow(soft_mask, cmap="magma")
-axes[1].set_title("[2] Mặt Nạ Feathering\\n(Gaussian $\\sigma=4.0$)", fontsize=9, fontweight="bold")
+axes[1].set_title("[2] Mặt Nạ Feathering\\n(Gaussian $\\\\sigma=4.0$)", fontsize=9, fontweight="bold")
 axes[1].axis("off")
 
 axes[2].imshow(hard_blend)
@@ -663,7 +668,7 @@ axes[3].axis("off")
 
 x_coords = np.arange(w)
 axes[4].plot(x_coords, grad_hard, color="crimson", linewidth=1.5, label="Hard Mask (Spike viền)")
-axes[4].plot(x_coords, grad_soft, color="teal", linewidth=1.5, label="Soft Mask $\\sigma=4.0$ (Mượt)")
+axes[4].plot(x_coords, grad_soft, color="teal", linewidth=1.5, label="Soft Mask $\\\\sigma=4.0$ (Mượt)")
 axes[4].plot(x_coords, grad_real, color="gray", linestyle=":", label="Ảnh Thật (Đối chứng)")
 axes[4].set_title("[5] Gradient Viền Biên\\n(Triệt tiêu Artifact tần số cao)", fontsize=9, fontweight="bold")
 axes[4].set_xlabel("Tọa độ pixel X (ngang má)", fontsize=8)
@@ -674,7 +679,7 @@ axes[4].grid(True, linestyle="--", alpha=0.4)
 axes[4].spines["top"].set_visible(False)
 axes[4].spines["right"].set_visible(False)
 
-plt.suptitle("CƠ CHẾ HÒA TRỘN SOFT-MASK GAUSSIAN FEATHERING ($\\sigma=4.0$) TRONG INPAINTING", fontsize=11, fontweight="bold", y=1.03)
+plt.suptitle("CƠ CHẾ HÒA TRỘN SOFT-MASK GAUSSIAN FEATHERING ($\\\\sigma=4.0$) TRONG INPAINTING", fontsize=11, fontweight="bold", y=1.03)
 plt.show()
 
 print(f"📊 Kết quả kiểm định Gradient viền biên:")
@@ -753,7 +758,7 @@ import torch
 from src.pipelines.curate_image_dataset import ImageCurationGate
 
 # Khởi tạo CurationGate với ngưỡng sắc nét chuẩn Laplacian
-gate = ImageCurationGate(min_sharpness=1.25, clip_enabled=False, face_backend="none")
+gate = ImageCurationGate(min_sharpness=5.0, clip_enabled=False, face_backend="none")
 
 # Chuẩn bị 3 mẫu thử nghiệm: [1] Ảnh thật gốc, [2] Ảnh giả đạt chuẩn, [3] Ảnh giả bị cố tình làm mờ (Degraded Blur)
 test_samples = [

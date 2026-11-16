@@ -86,6 +86,8 @@ def test_notebook_01_execution_outputs():
                     assert len(data["image/png"]) > 200, f"Malformed image data in cell {idx}"
             if out.get("output_type") == "stream":
                 has_stream_data = True
+                stream_text = "".join(out.get("text", []))
+                assert "SyntaxWarning" not in stream_text, f"Cell {idx} contains SyntaxWarning in output stream: {stream_text}"
 
     assert has_display_data, "Notebook 01 should contain at least one matplotlib display_data visualization"
     assert has_stream_data, "Notebook 01 should contain stream stdout log outputs"
