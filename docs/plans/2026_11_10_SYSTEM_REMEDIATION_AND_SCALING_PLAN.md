@@ -73,7 +73,7 @@ def test_temp_directory_uses_nvme_cache() -> None:
     tfile = tempfile.NamedTemporaryFile()
     tpath = Path(tfile.name).resolve()
     tfile.close()
-    assert not str(tpath).startswith("/tmp/pytest-of-bush")
+    assert not str(tpath).startswith("/tmp/pytest-of-")
 ```
 
 - [ ] **Step 2: Run test to verify behavior**

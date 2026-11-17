@@ -10,7 +10,7 @@
   - §4 Kế hoạch kiểm thử & Đánh giá đối chuẩn Quad-Vault 5 mô hình;
   - §5 Danh mục nhiệm vụ theo dõi (Task Checklist with DoD);
   - §6 Kế hoạch Commit nguyên tử & An toàn mã nguồn.
-- **References**: [GEMINI.md](file:///home/bush/Projects/uth-cv-coursework/GEMINI.md), [docs/PURPOSE.md](file:///home/bush/Projects/uth-cv-coursework/docs/PURPOSE.md), [scripts/train_m2_refined.py](file:///home/bush/Projects/uth-cv-coursework/scripts/train_m2_refined.py).
+- **References**: [GEMINI.md](../../GEMINI.md), [docs/PURPOSE.md](../PURPOSE.md), [scripts/train_m2_refined.py](../../scripts/train_m2_refined.py).
 - **Created**: 2026-11-12T11:10:00+07:00
 - **Last Updated**: 2026-11-12T11:10:00+07:00
 

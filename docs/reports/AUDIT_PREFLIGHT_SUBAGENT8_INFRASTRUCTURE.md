@@ -193,7 +193,7 @@ A forensic scan of the codebase and standard deep learning dependencies revealed
    Matplotlib defaults to `$HOME/.config/matplotlib` or `/tmp`.
    *Remediation*: Export `MPLCONFIGDIR="${WORKSPACE_DIR}/.cache/tmp/matplotlib"`.
 5. **Makefile Invocations**:
-   The current [`Makefile`](Makefile) executes `pytest tests/` and `bash scripts/run_pipeline.sh` without setting `TMPDIR`. Running pytest generates temporary test directories in `/tmp/pytest-of-bush/`.
+   The current [`Makefile`](Makefile) executes `pytest tests/` and `bash scripts/run_pipeline.sh` without setting `TMPDIR`. Running pytest generates temporary test directories in `/tmp/pytest-of-<user>/`.
    *Remediation*: Prepend `export TMPDIR` to the Makefile configuration.
 
 ---

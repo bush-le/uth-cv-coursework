@@ -221,7 +221,7 @@ def calculate_roc_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
 - **Curation of 10k images**: **~25 seconds** (down from 26.3 minutes).
 
 ### C. OS / Linux Quota Fix:
-- User `bush` has a quota of 5.5 GB on `tmpfs` (`/tmp`).
+- Current user has a quota of 5.5 GB on `tmpfs` (`/tmp`).
 - Exported in automation scripts:
   ```bash
   export TMPDIR="$(pwd)/.cache/tmp"

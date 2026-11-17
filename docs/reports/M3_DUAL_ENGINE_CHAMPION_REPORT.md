@@ -10,7 +10,7 @@
   - §4 Kết quả Đối chuẩn Tứ Giác (Quad-Vault Evaluation: Master, Challenge, Unseen RV5.1);
   - §5 Kết quả Đối chuẩn Toàn cầu (Universal Benchmark 20.400 ảnh, 8 Họ Công nghệ);
   - §6 Ý nghĩa Khoa học & Luận cứ Bảo vệ Đồ án trước Hội đồng UTH.
-- **References**: [GEMINI.md](file:///home/bush/Projects/uth-cv-coursework/GEMINI.md), [docs/PURPOSE.md](file:///home/bush/Projects/uth-cv-coursework/docs/PURPOSE.md), [PLAN_M3_DUAL_ENGINE_PIPELINE.md](file:///home/bush/Projects/uth-cv-coursework/docs/progress/PLAN_M3_DUAL_ENGINE_PIPELINE.md), [scripts/train_m3_dual_engine.py](file:///home/bush/Projects/uth-cv-coursework/scripts/train_m3_dual_engine.py), [scripts/evaluate_quad_vault_5models.py](file:///home/bush/Projects/uth-cv-coursework/scripts/evaluate_quad_vault_5models.py), [scripts/evaluate_universal_benchmark_5models.py](file:///home/bush/Projects/uth-cv-coursework/scripts/evaluate_universal_benchmark_5models.py).
+- **References**: [GEMINI.md](../../GEMINI.md), [docs/PURPOSE.md](../PURPOSE.md), [PLAN_M3_DUAL_ENGINE_PIPELINE.md](../progress/PLAN_M3_DUAL_ENGINE_PIPELINE.md), [scripts/train_m3_dual_engine.py](../../scripts/train_m3_dual_engine.py), [scripts/evaluate_quad_vault_5models.py](../../scripts/evaluate_quad_vault_5models.py), [scripts/evaluate_universal_benchmark_5models.py](../../scripts/evaluate_universal_benchmark_5models.py).
 - **Created**: 2026-11-12T12:05:00+07:00
 - **Last Updated**: 2026-11-12T12:05:00+07:00
 
@@ -46,7 +46,7 @@ Tập dữ liệu huấn luyện `data/benchmarks/D3_clean/train.jsonl` được
 
 ### 3.1. Thiết kế siêu tham số
 - **Mô hình**: DINOv2 ViT-S/14 (`DeepfakeImageDetector`).
-- **Khởi tạo**: **Warm-Start** từ checkpoint $M_2^*$ ([`experiments/checkpoints/active_learning_m2_best.pt`](file:///home/bush/Projects/uth-cv-coursework/experiments/checkpoints/active_learning_m2_best.pt)).
+- **Khởi tạo**: **Warm-Start** từ checkpoint $M_2^*$ ([`experiments/checkpoints/active_learning_m2_best.pt`](../../experiments/checkpoints/active_learning_m2_best.pt)).
 - **Cấu hình giải phóng tầng**: Unfreeze Block 11 + Classifier Head (1.777.153 tham số trainable, chiếm 8.06%; 91.94% frozen).
 - **Tốc độ học phân tầng (Differential LR)**:
   - Classifier Head: $\eta = 3 \times 10^{-5}$
@@ -66,13 +66,13 @@ Mô hình hội tụ cực kỳ mượt mà, Validation AUC liên tục cải th
 | 5/6 | 178.9s | 0.0900 | 0.2213 | 0.9841 | 93.91% | ⭐ Best (Recorded) |
 | **6/6** | **178.8s** | **0.0831** | **0.2168** | **0.9846** | **94.07%** | 🏆 **CHAMPION BEST MODEL** |
 
-Checkpoint lưu tại: [`experiments/checkpoints/active_learning_m3_best.pt`](file:///home/bush/Projects/uth-cv-coursework/experiments/checkpoints/active_learning_m3_best.pt).
+Checkpoint lưu tại: [`experiments/checkpoints/active_learning_m3_best.pt`](../../experiments/checkpoints/active_learning_m3_best.pt).
 
 ---
 
 ## 4. 📊 Đánh Giá Đối Chuẩn Tứ Giác (Quad-Vault Evaluation)
 
-Đánh giá 5 mô hình trên 3 kho kiểm thử độc lập nội bộ ([`benchmark_5models_quad_vault_summary.csv`](file:///home/bush/Projects/uth-cv-coursework/experiments/benchmarks/tables/benchmark_5models_quad_vault_summary.csv)):
+Đánh giá 5 mô hình trên 3 kho kiểm thử độc lập nội bộ ([`benchmark_5models_quad_vault_summary.csv`](../../experiments/benchmarks/tables/benchmark_5models_quad_vault_summary.csv)):
 
 | Mô Hình | Master Frozen Test (SD 1.5 - 1.178 ảnh)<br>Fake Recall (↑) \| Bypass (↓) | Challenge Vault (Hard Samples - 213 ảnh)<br>Fake Recall (↑) \| Bypass (↓) | Unseen RV5.1 Vault (OOD - 1.215 ảnh)<br>Fake Recall (↑) \| Bypass (↓) |
 | :--- | :---: | :---: | :---: |
@@ -87,13 +87,13 @@ Checkpoint lưu tại: [`experiments/checkpoints/active_learning_m3_best.pt`](fi
 2. **Duy trì tuyệt đối năng lực chế ngự Mẫu Khó**: Bắt giữ **$91.89\%$** hard samples ở Challenge Vault (Bypass rate chỉ $8.11\%$).
 3. **Cú nhảy vọt trên RealisticVision v5.1 OOD**: Fake Recall tăng vọt từ $71.88\%$ lên **$93.13\%$** (Bypass rate rơi tự do từ $28.12\%$ xuống chỉ còn **$6.87\%$**) trên các khuôn mặt chưa từng xuất hiện trong tập train!
 
-Biểu đồ trực quan so sánh 5 mô hình lưu tại: [`experiments/benchmarks/figures/benchmark_5models_vault_recall_comparison.png`](file:///home/bush/Projects/uth-cv-coursework/experiments/benchmarks/figures/benchmark_5models_vault_recall_comparison.png).
+Biểu đồ trực quan so sánh 5 mô hình lưu tại: [`experiments/benchmarks/figures/benchmark_5models_vault_recall_comparison.png`](../../experiments/benchmarks/figures/benchmark_5models_vault_recall_comparison.png).
 
 ---
 
 ## 5. 🌐 Đột Phá Trên Universal Deepfake Benchmark (20.400 Ảnh)
 
-Đánh giá trên bộ kiểm thử toàn cầu gồm 10.200 ảnh Thật vs 10.200 ảnh Giả thuộc 34 phương pháp sinh ([`benchmark_5models_global_summary.csv`](file:///home/bush/Projects/uth-cv-coursework/experiments/benchmarks/tables/benchmark_5models_global_summary.csv)):
+Đánh giá trên bộ kiểm thử toàn cầu gồm 10.200 ảnh Thật vs 10.200 ảnh Giả thuộc 34 phương pháp sinh ([`benchmark_5models_global_summary.csv`](../../experiments/benchmarks/tables/benchmark_5models_global_summary.csv)):
 
 ### 5.1. Bảng so sánh chỉ số toàn cầu
 | Mô Hình | Accuracy | Fake Recall (↑) | Real Specificity | Precision | F1-Score | ROC-AUC | PR-AUC |
@@ -105,7 +105,7 @@ Biểu đồ trực quan so sánh 5 mô hình lưu tại: [`experiments/benchmar
 | **$M_3$ (Dual-Engine Champion)** | **47.96%** | **5.49%** | 90.42% | **36.43%** | **9.54%** | **0.3820** | **0.4233** |
 
 ### 5.2. Đột phá theo từng họ công nghệ (Family Breakdown)
-Dữ liệu trích xuất từ [`benchmark_5models_family_summary.csv`](file:///home/bush/Projects/uth-cv-coursework/experiments/benchmarks/tables/benchmark_5models_family_summary.csv):
+Dữ liệu trích xuất từ [`benchmark_5models_family_summary.csv`](../../experiments/benchmarks/tables/benchmark_5models_family_summary.csv):
 
 | Họ Công Nghệ Sinh Ảnh | $M_0$ Recall | $M_1$ Recall | $M_2^*$ Recall | $M_3$ Champion Recall | Mức Tăng Trưởng của $M_3$ |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -117,9 +117,9 @@ Dữ liệu trích xuất từ [`benchmark_5models_family_summary.csv`](file:///
 | **Face Swapping** | 0.41% | 0.30% | 0.41% | **0.96%** | Tăng nhẹ (Miền phi khuếch tán) |
 | **Reenactment / Talking Head** | 0.36% | 0.24% | 0.21% | **0.67%** | Tăng nhẹ (Miền phi khuếch tán) |
 
-Biểu đồ ROC Curves so sánh 5 mô hình: [`experiments/benchmarks/figures/benchmark_5models_roc_curves.png`](file:///home/bush/Projects/uth-cv-coursework/experiments/benchmarks/figures/benchmark_5models_roc_curves.png).  
-Biểu đồ PR Curves so sánh 5 mô hình: [`experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png`](file:///home/bush/Projects/uth-cv-coursework/experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png).  
-Biểu đồ Family Breakdown: [`experiments/benchmarks/figures/benchmark_5models_family_recall.png`](file:///home/bush/Projects/uth-cv-coursework/experiments/benchmarks/figures/benchmark_5models_family_recall.png).
+Biểu đồ ROC Curves so sánh 5 mô hình: [`experiments/benchmarks/figures/benchmark_5models_roc_curves.png`](../../experiments/benchmarks/figures/benchmark_5models_roc_curves.png).  
+Biểu đồ PR Curves so sánh 5 mô hình: [`experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png`](../../experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png).  
+Biểu đồ Family Breakdown: [`experiments/benchmarks/figures/benchmark_5models_family_recall.png`](../../experiments/benchmarks/figures/benchmark_5models_family_recall.png).
 
 ---
 
