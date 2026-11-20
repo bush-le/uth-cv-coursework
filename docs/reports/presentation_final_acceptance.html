@@ -657,10 +657,7 @@
       </div>
     </div>
     <div class="header-actions">
-      <span style="font-size: 12px; color: var(--text-muted); margin-right: 8px;">💡 Nhấp vào bất kỳ ảnh nào để phóng to</span>
-      <a href="../../notebooks/coursework/00_master_deepfake_defense_showcase.ipynb" class="btn-action primary" target="_blank">
-        ⚡ Mở Notebook 00: Live Inspector
-      </a>
+      <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">💡 Nhấp vào bất kỳ ảnh nào để phóng to xem chi tiết</span>
     </div>
   </header>
 
@@ -670,9 +667,9 @@
       <div class="nav-group-title">Mục Lục Báo Cáo</div>
       <a href="#sec-overview" class="nav-link active">1. Tổng Quan Nghiệm Thu</a>
       <a href="#sec-problem" class="nav-link">2. Thực Trạng & Sự Cố M0</a>
-      <a href="#sec-dataset" class="nav-link">3. Kho Dữ Liệu 6.000 Ảnh</a>
+      <a href="#sec-dataset" class="nav-link">3. Kho Dữ Liệu 12.545 Ảnh</a>
       <a href="#sec-curation" class="nav-link">4. Phễu Lọc CurationGate</a>
-      <a href="#sec-hard-samples" class="nav-link">5. Két 213 Challenge Vault</a>
+      <a href="#sec-hard-samples" class="nav-link">5. Tập Mẫu Khó 213 Challenge Vault</a>
       <a href="#sec-active-learning" class="nav-link">6. Đột Phá M2* (+80.18%)</a>
       <a href="#sec-zero-leakage" class="nav-link">7. Liêm Chính Zero Leakage</a>
       <a href="#sec-champion-m3" class="nav-link">8. Champion M3 (93.13%)</a>
@@ -693,20 +690,20 @@
           Báo Cáo Nghiệm Thu Đồ Án: <span class="accent">Phòng Thủ Deepfake Khuếch Tán Kép</span>
         </h1>
         <p class="section-desc">
-          Đồ án đã khép kín toàn bộ chu trình nghiên cứu từ tạo tập dữ liệu 6.000 ảnh khuếch tán kép (SD 1.5 + Realistic Vision 5.1), phễu sàng lọc chất lượng 3 tầng CurationGate, khai phá 740 mẫu khó (Hard Samples), thiết lập két bẫy 213 Challenge Vault, đến huấn luyện thành công mô hình Champion M3 đạt Fake Recall 93.13% và đối chuẩn Universal Benchmark trên 20.400 ảnh.
+          Đồ án đã hoàn thiện trọn vẹn chu trình nghiên cứu: từ tạo lập kho 12.545 ảnh sinh từ 2 động cơ khuếch tán (Stable Diffusion v1.5: 6.545 ảnh; RealisticVision v5.1: 6.000 ảnh), sàng lọc qua phễu CurationGate 3 tầng, khai thác 740 mẫu khó (Hard Samples), đánh giá trên tập đối kháng 213 Challenge Vault, đến huấn luyện thành công mô hình Champion M3 đạt Fake Recall 93.13% và đối chuẩn trên Universal Benchmark 20.400 ảnh.
         </p>
 
         <!-- KPI Scorecard Highlights -->
         <div class="kpi-grid">
           <div class="kpi-card">
             <span class="kpi-label">Dữ Liệu Sinh Kép</span>
-            <div class="kpi-value">6.000</div>
-            <span class="kpi-note">SD 1.5 + RV5.1 (3 Chế Độ)</span>
+            <div class="kpi-value">12.545</div>
+            <span class="kpi-note">SD 1.5 (6.545) + RV5.1 (6.000)</span>
           </div>
           <div class="kpi-card alert">
-            <span class="kpi-label">Két Bẫy Thách Thức</span>
+            <span class="kpi-label">213 Challenge Vault</span>
             <div class="kpi-value">213</div>
-            <span class="kpi-note">Khóa Cứng 4 Lỗi Sinh Học</span>
+            <span class="kpi-note">Mẫu khó đánh lừa Baseline (Hard Samples)</span>
           </div>
           <div class="kpi-card champion">
             <span class="kpi-label">Bứt Phá Recall M2*</span>
@@ -790,16 +787,50 @@
 
 
       <!-- ===================================================================
-           PHẦN 3: KHO DỮ LIỆU KHUÊCH TÁN KÉP 6.000 ẢNH & LƯỚI MẪU THẬT
+           PHẦN 3: KHO DỮ LIỆU KHUẾCH TÁN KÉP 12.545 ẢNH & LƯỚI MẪU THẬT
            =================================================================== -->
       <section id="sec-dataset" class="report-section">
         <span class="section-eyebrow">02 / SẢN PHẨM DỮ LIỆU</span>
         <h2 class="section-title">
-          Kho Dữ Liệu Khuếch Tán Kép: <span class="accent">6.000 Ảnh Sinh Thực Tế & Lưới Ảnh Đối Chuẩn</span>
+          Kho Dữ Liệu Khuếch Tán Kép: <span class="accent">12.545 Ảnh Sinh Thực Tế & Lưới Ảnh Đối Chuẩn</span>
         </h2>
         <p class="section-desc">
-          Nhóm nghiên cứu đã tạo dựng và kiểm duyệt 6.000 ảnh khuôn mặt từ hai động cơ khuếch tán hàng đầu: <strong>Stable Diffusion v1.5 Inpainting</strong> (3.000 ảnh) và <strong>RealisticVision v5.1</strong> (3.000 ảnh), phân bổ đều trên 3 chế độ sinh: Inpaint, Img2Img và Text-to-Image.
+          Nhóm nghiên cứu đã tạo dựng và kiểm duyệt tổng cộng <strong>12.545 ảnh khuôn mặt</strong> từ hai động cơ khuếch tán đại diện: <strong>Stable Diffusion v1.5</strong> (6.545 ảnh) và <strong>RealisticVision v5.1</strong> (6.000 ảnh), phân bổ trên 3 phương thức sinh: Inpaint, Img2Img và Text-to-Image.
         </p>
+
+        <!-- BẢNG TỔNG HỢP PHÂN BỔ 2 ĐỘNG CƠ SINH DỮ LIỆU (DUAL-ENGINE) -->
+        <div class="table-responsive" style="margin: 20px 0 28px; overflow-x: auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Động cơ sinh</th>
+                <th style="width: 30%;">Nguồn mô hình</th>
+                <th style="width: 15%;">Quy mô sinh</th>
+                <th style="width: 30%;">Chi tiết & Mục đích sử dụng</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Bộ A: Stable Diffusion v1.5</strong></td>
+                <td><code>runwayml/stable-diffusion-v1-5</code></td>
+                <td><strong>6.545 ảnh</strong></td>
+                <td>Vận hành vòng lặp Active Learning nội miền (D₀ → D₁ → D₂)</td>
+              </tr>
+              <tr>
+                <td><strong>Bộ B: RealisticVision v5.1</strong></td>
+                <td><code>SG161222/Realistic_Vision_V5.1_noVAE</code></td>
+                <td><strong>6.000 ảnh</strong></td>
+                <td>Benchmark đối kháng siêu thực ngoại miền (OOD Blind Transfer)</td>
+              </tr>
+              <tr style="background: var(--surface-soft); font-weight: 700;">
+                <td><strong>Tổng cộng ảnh sinh mới</strong></td>
+                <td>-</td>
+                <td><strong class="accent" style="color: var(--primary); font-size: 15px;">12.545 ảnh</strong></td>
+                <td>Bao phủ 3 chế độ: Inpaint, Img2Img, Text-to-Image</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: DUAL ENGINE PORTFOLIO GRID -->
         <div class="artifact-row-card">
@@ -816,7 +847,7 @@
           </div>
         </div>
 
-        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 32px 0 16px;">Bộ Sưu Tập Mẫu Khuôn Mặt Thực Tế Khổ Lớn Xuất Từ Kho 6.000 Ảnh:</h3>
+        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 32px 0 16px;">Bộ Sưu Tập Mẫu Khuôn Mặt Thực Tế Khổ Lớn Xuất Từ Kho 12.545 Ảnh Sinh:</h3>
 
         <!-- Mẫu 1: Nhân vật Nữ #0 -->
         <div class="face-subject-container">
@@ -994,15 +1025,15 @@
 
 
       <!-- ===================================================================
-           PHẦN 5: KHAI PHÁ 740 MẪU KHÓ & KÉT 213 CHALLENGE VAULT
+           PHẦN 5: KHAI THÁC 740 MẪU KHÓ & ĐỐI CHUẨN 213 CHALLENGE VAULT
            =================================================================== -->
       <section id="sec-hard-samples" class="report-section">
-        <span class="section-eyebrow">04 / BẪY THỬ THÁCH MÙ</span>
+        <span class="section-eyebrow">04 / ĐỐI CHUẨN MẪU KHÓ</span>
         <h2 class="section-title">
-          Challenge Vault: <span class="accent">Khai Phá 740 Mẫu Khó & Giải Mã 4 Dị Tật Sinh Học Vi Thể</span>
+          213 Challenge Vault: <span class="accent">Khai Thác 740 Mẫu Khó & Phân Tích 4 Dị Tật Sinh Học Vi Thể</span>
         </h2>
         <p class="section-desc">
-          Dựa trên 2 tiêu chuẩn toán học khắt khe (Ranh giới mơ hồ |P - 0.50| ≤ 0.15 và Đảo chiều tự tin cao), nhóm đã cô lập 213 mẫu khó nhất vào Két bẫy Challenge Vault làm thước đo bất biến kiểm chứng qua mọi vòng học.
+          Dựa trên 2 tiêu chí định lượng khắt khe (vùng ranh giới không chắc chắn |P - 0.50| ≤ 0.15 và mẫu dự đoán sai với độ tin cậy cao), nhóm đã cô lập 213 mẫu khó nhất vào tập đối kháng 213 Challenge Vault làm thước đo bất biến kiểm chứng qua mọi vòng học.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: BIOLOGICAL DEFECTS GALLERY -->
@@ -1331,12 +1362,6 @@
             <strong>Bằng chứng pháp y trực quan:</strong> Vùng mắt, khóe miệng và đường viền chân tóc sáng rực điểm chú ý của mạng nơ-ron, cung cấp giải trình minh bạch tuyệt đối cho chuyên viên thẩm định an ninh ngân hàng.
           </div>
         </div>
-
-        <div style="text-align: center; margin: 24px 0;">
-          <a href="../../notebooks/coursework/00_master_deepfake_defense_showcase.ipynb" class="btn-action primary" target="_blank" style="font-size: 15px; padding: 14px 28px;">
-            🚀 Khởi Chạy Live Demo Trên Notebook 00 (VSCode / Jupyter)
-          </a>
-        </div>
       </section>
 
 
@@ -1365,7 +1390,7 @@
             <tr>
               <td><strong>1. Dữ Liệu Khuếch Tán Kép</strong></td>
               <td>Sinh ảnh SD với Inpaint/Img2Img/Text2Img</td>
-              <td>6.000 ảnh 2 động cơ SD 1.5 + RV5.1; Soft Feathering σ=4.0 xóa vết cắt</td>
+              <td>12.545 ảnh từ 2 động cơ (SD 1.5: 6.545 ảnh + RV5.1: 6.000 ảnh); Soft Feathering σ=4.0 xóa vết cắt</td>
               <td><span class="badge-pill green">ĐẠT 100%</span></td>
             </tr>
             <tr>
@@ -1377,7 +1402,7 @@
             <tr class="highlight-champion">
               <td><strong>3. Khai Phá Mẫu Khó</strong></td>
               <td>Active Learning vòng lặp cải thiện biên</td>
-              <td>740 mẫu khó, Két 213 Challenge; Recall tăng từ 11.71% → 91.89%</td>
+              <td>740 mẫu khó, tập đối kháng 213 Challenge Vault; Recall tăng từ 11.71% → 91.89%</td>
               <td><span class="badge-pill green">VƯỢT (+80%)</span></td>
             </tr>
             <tr>
@@ -1395,7 +1420,7 @@
             <tr>
               <td><strong>6. XAI Live Inspector</strong></td>
               <td>Trực quan hóa giải thích mô hình</td>
-              <td>DINOv2 Attention Heatmap thời gian thực (18.5 ms/ảnh) trên Notebook 00</td>
+              <td>DINOv2 Spatial Attention Heatmap thời gian thực (18.5 ms/ảnh) giải trình trực quan</td>
               <td><span class="badge-pill green">HOÀN TẤT</span></td>
             </tr>
           </tbody>
