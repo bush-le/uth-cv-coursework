@@ -765,7 +765,7 @@
         <div class="callout-box danger">
           <div class="callout-title">🚨 Sự Cố Sụp Đổ Của Mô Hình Cơ Sở M0 Trên Challenge Vault:</div>
           <div class="callout-desc">
-            Khi đem mô hình cơ sở M0 (huấn luyện trên tập chuẩn D0 thông thường) kiểm tra trên 213 mẫu cực khó của Challenge Vault, <strong>Fake Recall chỉ đạt 11.71%</strong> (tỷ lệ lọt lưới Bypass Rate lên tới <strong>88.29%</strong>; ROC-AUC đạt 0.6124 - tương đương đoán ngẫu nhiên). Điều này chứng minh: nếu không có vòng lặp Active Learning khai thác mẫu khó, hệ thống nhận diện khuôn mặt trong các cổng eKYC ngân hàng sẽ bị qua mặt hoàn toàn!
+            Khi đem mô hình cơ sở M0 (huấn luyện trên tập chuẩn D0 thông thường) kiểm tra trên 213 mẫu cực khó của Challenge Vault, <strong>Fake Recall chỉ đạt 11.71%</strong> (tỷ lệ lọt lưới Bypass Rate lên tới <strong>88.29%</strong>; Overall Accuracy chỉ đạt <strong>53.99%</strong> — tương đương đoán ngẫu nhiên; F1-Score sụp đổ còn <strong>0.2097</strong>). Điều này chứng minh: nếu không có vòng lặp Active Learning khai thác mẫu khó, hệ thống nhận diện khuôn mặt trong các cổng eKYC ngân hàng sẽ bị qua mặt hoàn toàn!
           </div>
         </div>
 
@@ -989,7 +989,7 @@
           CurationGate: <span class="accent">Đường Ống Lọc Sạch 3 Tầng Bảo Vệ Độ Tinh Khiết Dữ Liệu</span>
         </h2>
         <p class="section-desc">
-          Nhóm thiết lập quy trình kiểm toán 3 tầng khắt khe: Tầng 1 kiểm tra mốc hình học (Dlib 68 landmarks); Tầng 2 phân tích sắc tố da trong không gian màu YCbCr và độ nét quang học; Tầng 3 loại bỏ trùng lặp bằng pHash và SSIM.
+          Nhóm thiết lập quy trình kiểm toán 3 tầng khắt khe: Tầng 1 kiểm soát độ nét quang học bằng toán tử Laplacian (<code>Var(Laplacian) ≥ 100.0</code>); Tầng 2 kiểm tra mốc hình học giải phẫu (Dlib 68 landmarks) và phân tích sắc tố da YCbCr (<code>77 ≤ Cb ≤ 127, 133 ≤ Cr ≤ 173</code>); Tầng 3 loại bỏ ảnh cháy sáng (&gt;8%) và khử trùng lặp bằng pHash và SSIM.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: SKIN GAMUT -->
@@ -1117,6 +1117,7 @@
               <th>Phiên Bản Mô Hình</th>
               <th>Fake Recall (↑)</th>
               <th>Bypass Rate (↓)</th>
+              <th>Overall Acc (↑)</th>
               <th>ROC-AUC (↑)</th>
               <th>Số Mẫu Bắt Được (/111)</th>
               <th>Đánh Giá Kỹ Thuật</th>
@@ -1127,7 +1128,8 @@
               <td><strong>M0 (D0 Baseline)</strong></td>
               <td>11.71%</td>
               <td>88.29%</td>
-              <td>0.6124</td>
+              <td>53.99%</td>
+              <td>0.8713</td>
               <td>13 / 111 mẫu</td>
               <td><span class="badge-pill red">BỎ SÓT NGUY HẠI</span></td>
             </tr>
@@ -1135,7 +1137,8 @@
               <td><strong>M1 (Active Round 1)</strong></td>
               <td>70.27%</td>
               <td>29.73%</td>
-              <td>0.8842</td>
+              <td>83.10%</td>
+              <td>0.9655</td>
               <td>78 / 111 mẫu</td>
               <td><span class="badge-pill amber">BƯỚC ĐẦU BỨT PHÁ</span></td>
             </tr>
@@ -1143,7 +1146,8 @@
               <td><strong>M2 (Cold-Start Retrain)</strong></td>
               <td>86.49%</td>
               <td>13.51%</td>
-              <td>0.9430</td>
+              <td>92.49%</td>
+              <td>0.9937</td>
               <td>96 / 111 mẫu</td>
               <td><span class="badge-pill green">HỘI TỤ TỐT</span></td>
             </tr>
@@ -1151,6 +1155,7 @@
               <td><strong>🏆 M2* (Refined Champion)</strong></td>
               <td><strong>91.89% (+80.18%)</strong></td>
               <td><strong>8.11%</strong></td>
+              <td><strong>93.90%</strong></td>
               <td><strong>0.9875</strong></td>
               <td><strong>102 / 111 mẫu</strong></td>
               <td><span class="badge-pill green">CHẾ NGỰ HOÀN TOÀN</span></td>
@@ -1315,7 +1320,7 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Recall trên họ Latent Diffusion tăng vọt từ 4.2% lên 18.5%, khẳng định năng lực khái quát hóa liên miền.
+            Fake Recall trên họ Diffusion Baselines (DDIM) tăng vọt gần gấp 3 lần (từ 6.00% lên 17.33%), Latent Diffusion (SD 2.1) tăng gần gấp đôi (từ 4.67% lên 8.33%), và GAN Inversion đạt đỉnh 21.50%, khẳng định năng lực khái quát hóa liên miền.
           </div>
         </div>
 
@@ -1330,7 +1335,7 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Tại ngưỡng khắt khe ngân hàng FPR ≤ 1.0%, M3 đạt Fake Recall 74.2% (vượt xa mức 31.8% của M0), Real Specificity đạt 90.42%.
+            Tại ngưỡng mặc định τ = 0.50, Champion M3 đạt Real Specificity 90.42%, đồng thời duy trì tính trơ với nhiễu nén video H.264 trên FaceForensics++ C23 (1.655 frames) với tỷ lệ báo động nhầm FPR chỉ 2.60%.
           </div>
         </div>
       </section>
