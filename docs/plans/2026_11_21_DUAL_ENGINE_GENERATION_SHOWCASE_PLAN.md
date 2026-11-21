@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Bổ sung Mục `03b / CƠ CHẾ SINH ẢNH DUAL-ENGINE` vào [presentation_final_acceptance.html](../../reports/presentation_final_acceptance.html) thông qua [build_acceptance_report_vertical.py](../../../scripts/build_acceptance_report_vertical.py), trình bày trực quan toàn bộ cơ chế 3 chế độ (`Text2Img`, `Img2Img`, `Inpainting`), khác biệt kỹ thuật giữa Bộ A (`SD v1.5 Base`) và Bộ B (`RealisticVision v5.1`), cấu trúc Prompt/Negative Prompt thực tế và minh họa hình học Mask.
+**Goal:** Bổ sung Mục `03b / CƠ CHẾ SINH ẢNH DUAL-ENGINE` vào [presentation_final_acceptance.html](../reports/presentation_final_acceptance.html) thông qua [build_acceptance_report_vertical.py](../../scripts/build_acceptance_report_vertical.py), trình bày trực quan toàn bộ cơ chế 3 chế độ (`Text2Img`, `Img2Img`, `Inpainting`), khác biệt kỹ thuật giữa Bộ A (`SD v1.5 Base`) và Bộ B (`RealisticVision v5.1`), cấu trúc Prompt/Negative Prompt thực tế và minh họa hình học Mask.
 
 **Architecture:** Tách quy trình dựng tài nguyên hình ảnh mới thành một script chuyên biệt tạo 3 biểu đồ/ảnh tổng hợp từ dữ liệu & hàm thật trên đĩa vào `docs/reports/assets/extracted_nb/`, sau đó tích hợp Section `#sec-generation-mechanics` (`03b`) cùng mục lục Sidebar, luồng điều hướng `Alt+ArrowUp/Down`, sơ đồ kiến trúc SVG nội tuyến và các thẻ Prompt Card phân tách màu vào `scripts/build_acceptance_report_vertical.py`. Toàn bộ kiểm chứng đi qua `tests/test_acceptance_presentation.py` (TDD) và `make test` + `make test-smoke` + `make lint`.
 
