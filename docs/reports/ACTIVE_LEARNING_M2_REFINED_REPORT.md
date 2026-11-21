@@ -1,6 +1,6 @@
 # ACTIVE_LEARNING_M2_REFINED_REPORT.md — Forensic Diagnosis & Empirical Validation of Refined Active Learning Round 2 ($M_2^*$)
 
-- **Motivation/Background**: During deep validation of Active Learning Round 2 ($M_2$), an empirical regression was identified where $M_2$ exhibited worse recall and higher bypass rate than $M_1$ across both the Master Frozen Test Vault ($52.63\%$ vs $62.14\%$) and the External 6k Out-of-Distribution Benchmark ($21.43\%$ vs $43.90\%$). This forensic report diagnoses the root cause of Catastrophic Interference, details the refined training protocol (Warm-Start with Balanced Regularization), and validates the superior performance of $M_2^*$.
+- **Motivation/Background**: During deep validation of Active Learning Round 2 ($M_2$), an empirical regression was identified where $M_2$ exhibited worse recall and higher bypass rate than $M_1$ across both the Master Frozen Test Vault ($52.63\%$ vs $62.14\%$) and the External 6k Out-of-Distribution Benchmark ($70.13\%$ vs $80.03\%$ at standard `504px`; $21.40\%$ vs $43.92\%$ under archived `224px` stress-test). This forensic report diagnoses the root cause of Catastrophic Interference, details the refined training protocol (Warm-Start with Balanced Regularization), and validates the superior performance of $M_2^*$.
 - **Purpose**: Document the mathematical, architectural, and empirical resolution of the $M_2$ degradation, demonstrating that $M_2^*$ successfully resolves negative transfer, simultaneously advancing both broad generalization and specialized adversarial robustness.
 - **Overview Pipeline**: Forensic Error Analysis ($M_2$ Cold-Start vs $M_1$) -> Warm-Start Architecture Initialization -> Balanced Regularization ($\lambda_{\text{hard}} = 1.15$, conservative LR) -> Multi-Vault Benchmark Verification (Master Frozen Test + Cumulative Challenge Test + External 6k OOD Benchmark).
 - **Detailed Plan**: §1 Executive Summary & Key Milestones; §2 Root Cause Forensic Diagnosis (Catastrophic Interference); §3 Refined Mathematical & Training Formulation; §4 Multi-Vault Comparative Benchmark ($M_0$ vs $M_1$ vs $M_2^{\text{cold}}$ vs $M_2^*$); §5 Precision-Recall & Calibration Dynamics; §6 Defense Against Future Regressions & Continuous Guardrails.
@@ -14,7 +14,7 @@
 
 In the initial implementation of Active Learning Round 2, the detector model ($M_2$) suffered from **Catastrophic Interference (Negative Transfer)**. While $M_2$ exhibited ultra-high precision on inpainting challenge fakes, its generalization recall collapsed severely on unseen data:
 - **Master Frozen Test Vault Recall**: Dropped from $62.14\%$ ($M_1$) down to $52.63\%$ ($M_2$), with bypass rate surging from $37.86\%$ to $47.37\%$.
-- **Legacy 6k External Benchmark Recall**: Dropped from $43.90\%$ ($M_1$) down to $21.43\%$ ($M_2$), with bypass rate surging from $56.10\%$ to $78.57\%$.
+- **Legacy 6k External Benchmark Recall**: Dropped from $80.03\%$ ($M_1$) down to $70.13\%$ ($M_2$) at `504px` (and from $43.92\%$ to $21.40\%$ under the archived `224px` evaluation).
 
 This anomaly contradicted the foundational premise of Active Learning: *augmenting a model with adversarially mined hard samples must preserve base manifold coverage while closing vulnerability vectors*.
 

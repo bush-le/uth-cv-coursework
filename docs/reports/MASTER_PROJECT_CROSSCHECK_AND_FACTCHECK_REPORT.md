@@ -15,8 +15,8 @@
 ### 1.1 Định Vị Tài Nguyên Trong Workspace
 - **Dữ liệu & Split Manifests**: Được lưu trữ tại `data/raw/`, `data/synthetic/`, `data/hard_samples/`, `data/active_learning/`, `data/external_benchmarks/` và `data/benchmarks/`.
 - **Nhật Ký Đánh Giá, Tệp JSON, Bảng CSV & Tensors Dự Đoán NPZ**:
-  - `experiments/benchmarks/tables/`: Lưu trữ các tệp CSV tổng kết Universal Benchmark (`benchmark_4models_global_summary.csv`, `benchmark_4models_family_summary.csv`, `benchmark_4models_method_summary.csv`).
-  - `experiments/benchmarks/logs/`: Lưu trữ JSON kết quả chi tiết (`universal_benchmark_4models_results.json`) và tensor dự đoán (`benchmark_4models_predictions.npz`).
+  - `experiments/benchmarks/tables/`: Lưu trữ các tệp CSV tổng kết Universal Benchmark (`benchmark_5models_global_summary.csv`, `benchmark_5models_family_summary.csv`, `benchmark_5models_method_summary.csv`) và `benchmark_5models_quad_vault_summary.csv`.
+  - `experiments/benchmarks/logs/`: Lưu trữ JSON kết quả chi tiết (`universal_benchmark_5models_results.json`) và tensor dự đoán (`benchmark_5models_predictions.npz`), cùng bản lưu trữ nén `224px` (`*_224px.*`) để đối chứng.
   - `experiments/logs/`: Lưu trữ JSON đánh giá Active Learning (`model_comparison_benchmark.json`, `closed_loop_metrics.json`) và kết quả 6k OOD (`legacy_6k_benchmark_results.json`, `legacy_6k_predictions.npz`).
   - `experiments/checkpoints/`: Lưu trữ 15 checkpoint PyTorch thực tế.
 
@@ -24,13 +24,13 @@
 
 | Hạng Mục Kiểm Toán | Tiêu Chuẩn Cam Kết | Kết Quả Thực Tế | Đánh Giá Toàn Vẹn |
 | :--- | :--- | :--- | :---: |
-| **Dữ Liệu Thật (Real Faces)** | 10.000 mẫu tuyển chọn (FFHQ + CelebA-HQ) | 4.000 mẫu phân vùng sạch trên ổ đĩa, 0 thiếu file | **ĐẠT CHUẨN 100%** |
-| **Dữ Liệu Sinh (Synthetic)** | SD 1.5 + RealisticVision v5.1 | 2.200 ảnh SD 1.5 lọc chuẩn + 6.000 ảnh RealImage | **ĐẠT CHUẨN 100%** |
-| **Kho Mẫu Khó (Hard Samples)** | Khai thác ranh giới $|P-0.5| \le 0.15$ | 740 mẫu khai thác, 213 mẫu Challenge Vault | **ĐẠT CHUẨN 100%** |
-| **Universal Benchmark** | Đa họ mô hình, cân bằng 50/50 | 20.400 ảnh (34 thuật toán sinh, 5 họ mô hình) | **ĐẠT CHUẨN 100%** |
-| **Mô Hình & Checkpoint** | 0 mock data, 0 neural head ngẫu nhiên | 15 checkpoint PyTorch thực tế, trọng số hợp lệ | **ĐẠT CHUẨN 100%** |
+| **Dữ Liệu Thật (Real Faces)** | Nguồn chuẩn sạch FFHQ + CelebA-HQ | 4.000 mẫu phân vùng sạch (`2.813 / 598 / 589`), 0 thiếu file | **ĐẠT CHUẨN 100%** |
+| **Dữ Liệu Sinh (Synthetic)** | Dual-Engine SD 1.5 + RealisticVision v5.1 | `6.545` thô (`5.251` sạch) SD 1.5 + `6.000` RV5.1 = **12.545 ảnh giả** | **ĐẠT CHUẨN 100%** |
+| **Kho Mẫu Khó (Hard Samples)** | Khai thác FN & ranh giới ($|P-0.5| \le 0.10$) | 740 mẫu khó SD 1.5 (`629` train + `111` vào 213 Challenge Vault) | **ĐẠT CHUẨN 100%** |
+| **Universal Benchmark** | Đa họ mô hình, cân bằng 50/50 | 20.400 ảnh (34 thuật toán sinh, **8 họ công nghệ** @ `512→504px`) | **ĐẠT CHUẨN 100%** |
+| **Mô Hình & Checkpoint** | 0 mock data, 0 neural head ngẫu nhiên | 15 checkpoint PyTorch thực tế (`M₀ → M₃`), trọng số hợp lệ | **ĐẠT CHUẨN 100%** |
 | **Bộ Notebook Giảng Dạy** | 0 cell code rỗng, 0 bare `plt.show()` | Bộ 4 Unified Notebooks (`00..03`, lưu trữ `legacy_v1/` riêng) | **ĐẠT CHUẨN 100%** |
-| **Kiểm Thử Khói (Smoke Test)** | `make test-smoke` < 6 giây | 12/12 tests passing trong 4.68 giây | **ĐẠT CHUẨN 100%** |
+| **Kiểm Thử Tự Động (`pytest`)** | `make test` & `make test-smoke` pass 100% | **201 passed** (`make test`) / **41 passed** (`make test-smoke`) | **ĐẠT CHUẨN 100%** |
 
 ---
 
@@ -49,9 +49,10 @@
 ### 2.2. Dữ Liệu Sinh Stable Diffusion v1.5 (`data/synthetic/`)
 - **Quy mô thô:** 2.745 ảnh sinh trước lọc.
 - **Quy mô sau lọc CurationGate:** **2.200 ảnh đạt chuẩn vàng** (`data/synthetic/curated_manifest.jsonl`):
-  - `sd_inpaint`: **878 ảnh** (Can thiệp vùng mắt/miệng bằng mặt nạ mốc 68 landmarks).
+  - `sd_inpaint`: **878 ảnh** (Can thiệp vùng mắt/miệng qua mặt nạ elip giải phẫu trích xuất từ bounding box `OpenCV Haar`).
   - `sd_img2img`: **834 ảnh** (Biến đổi ngoại hình từ ảnh thật với strength=0.3).
   - `sd_text2img`: **488 ảnh** (Tổng hợp toàn diện từ prompt nhân khẩu học).
+- *(Ngoài 2.200 ảnh $D_0$, vòng AL R1 và R2 sinh thêm `3.800` ảnh thô và giữ **`3.051` ảnh sạch**, nâng tổng SD 1.5 toàn dự án lên **`6.545` thô / `5.251` sạch**.)*
 
 ### 2.3. Kho Mẫu Khó Đối Kháng (`data/hard_samples/`)
 - **Tổng số mẫu khó đã khai thác:** **740 mẫu** (`data/hard_samples/hard_samples_manifest.jsonl`).
@@ -73,11 +74,11 @@ Nhằm khắc phục triệt để hiện tượng bộ dò chỉ học được
 [ Original Real Canvas ] ────────── ( x [1 - Alpha] ) ────► [ Composite Photo with Seamless Seams ]
 ```
 
-### Phễu Lọc Chất Lượng Tự Động 3 Tầng (CurationGate)
-1. **Tầng 1 (Hình Học Khuôn Mặt):** RetinaFace Face Confidence $\ge 0.85$, diện tích khuôn mặt $20\% \le \text{Area} \le 65\%$.
-2. **Tầng 2 (Quang Học Tần Số Cao):** Biến sai toán tử Laplacian $\ge 15.0$ (loại bỏ hoàn toàn ảnh mờ nhòe, out nét).
-3. **Tầng 3 (Thẩm Mỹ & Ngữ Nghĩa):** CLIP-IQA Aesthetic Score $\ge 0.60$.
-- **Kết quả:** Đào thải 545 ảnh thô bị lỗi dị tật giải phẫu mắt lé, răng nứt gãy và biến dạng vành tai trước khi đưa vào huấn luyện.
+### Phễu Lọc Chất Lượng Tự Động 3 Tầng (`ImageCurationGate`, `src/pipelines/curate_image_dataset.py`)
+1. **Tầng 1 (Độ Nét Quang Học Hiệu Chỉnh Động):** `compute_laplacian_sharpness` chuẩn hóa trên tensor `[0, 1] × 1000`, hiệu chỉnh ngưỡng tối thiểu theo **phân vị 5% (`q = 0.05`)** của tập ảnh thật (mặc định `≥ 1.25`).
+2. **Tầng 2 (Hình Học & Giải Phẫu Khuôn Mặt — `OpenCV Haar` + `verify_facial_geometry`):** Dò khuôn mặt đơn sắc bằng OpenCV Haar Cascade (loại bỏ không thấy mặt hoặc ≥ 2 khuôn mặt); kiểm tra tỷ lệ `0.65 ≤ h/w ≤ 1.6`, diện tích `20%–65%` khung hình, không cắt cụt trán/cằm (`skin ≤ 35%`), không cháy sáng ROI (`> 8.0%`), không lệch tâm (`0.15–0.85`), và không gãy biên ngang (`seam_spike > 8.0 & peak > 20.0`).
+3. **Tầng 3 (Chống Trùng Lặp Nội Dung `SHA-256`):** Băm tệp `file_sha256` loại bỏ 100% ảnh trùng lặp (`clip.enabled = false` theo mặc định).
+- **Kết quả:** Đào thải **545 ảnh thô** ở Block 1 ($D_0$, giữ 2.200/2.745) và tổng cộng **1.294 ảnh lỗi** trên toàn SD 1.5 (giữ **5.251 / 6.545 = 80.23%**).
 
 ---
 
@@ -131,46 +132,49 @@ Toàn bộ các mô hình được đối chuẩn trên cả 2 kho kiểm thử 
 
 *(Ghi chú: Dữ liệu `224px` cũ được lưu trữ tại `experiments/logs/legacy_6k_benchmark_results_224px.json` để phục vụ đối chứng phân giải.)*
 
-### 5.2. Phân Rã Theo Tác Vụ Sinh & Vùng Giải Phẫu ($\tau=0.50$)
-- **Text2Img (2.000 ảnh):** $M_0$ 2.45% (49) $\to M_1$ 59.60% (1.192) $\to M_2^*$ **86.65%** (1.733/2.000).
-- **Inpainting (2.000 ảnh):** $M_0$ 2.30% (46) $\to M_1$ 39.90% (798) $\to M_2^*$ **65.45%** (1.309/2.000).
-  - Vùng quanh mắt (`eyes` — 1.000 ảnh): $M_2^*$ bắt **66.20%** (662/1.000).
-  - Vùng khuôn miệng (`mouth` — 1.000 ảnh): $M_2^*$ bắt **64.70%** (647/1.000).
-- **Img2Img (2.000 ảnh):** $M_0$ 1.25% (25) $\to M_1$ 32.25% (645) $\to M_2^*$ **58.30%** (1.166/2.000).
+### 5.2. Phân Rã Theo Tác Vụ Sinh & Vùng Giải Phẫu (@ Chuẩn `512→504px`, $\tau=0.50$)
+*(Trích từ `experiments/logs/legacy_6k_benchmark_results.json` — chuẩn phân giải `512→504px LANCZOS`):*
+- **Text2Img (2.000 ảnh):** $M_0$ 98.80% $\to M_1$ 99.75% $\to M_2^*$ **99.90%** $\to M_3$ **100.00%** (2.000/2.000).
+- **Img2Img (2.000 ảnh):** $M_0$ 76.15% $\to M_1$ 82.20% $\to M_2^*$ **83.60%** $\to M_3$ **96.60%** (1.932/2.000).
+- **Inpainting (2.000 ảnh):** $M_0$ 50.65% $\to M_1$ 58.15% $\to M_2^*$ **56.90%** (bỏ lọt 862 ảnh — điểm mù OOD chính) $\to M_3$ **86.50%** (1.730/2.000).
+  - Vùng quanh mắt (`eyes` — 1.000 ảnh): $M_2^*$ bắt **59.10%** $\to M_3$ **87.40%** (874/1.000).
+  - Vùng khuôn miệng (`mouth` — 1.000 ảnh): $M_2^*$ bắt **54.70%** $\to M_3$ **85.60%** (856/1.000).
 
 ---
 
-## 6. Sát Hạch Toàn Cầu Universal Deepfake Benchmark (20.400 Ảnh, 34 Phương Pháp)
+## 6. Sát Hạch Toàn Cầu Universal Deepfake Benchmark (20.400 Ảnh, 34 Phương Pháp @ `512→504px LANCZOS`)
 
-*Nguồn: `experiments/benchmarks/tables/` và `experiments/benchmarks/logs/universal_benchmark_4models_results.json`*
+*Nguồn: `experiments/benchmarks/tables/benchmark_5models_*.csv`, `experiments/benchmarks/logs/universal_benchmark_5models_results.json` và `benchmark_5models_predictions.npz`*
 
-### 6.1. Hiệu Năng Toàn Cầu (20.400 Ảnh: 10.200 Thật vs 10.200 Giả)
-- **Độ chính xác chuẩn ($\tau=0.50$):** $M_0=50.19\%, M_1=47.73\%, M_2=48.20\%, M_2^*=47.19\%$.
-- **Độ đặc hiệu ảnh thật (Real Specificity):**
-  - $M_0$: **97.64%** (9.959/10.200) — FPR = 2.36%.
-  - $M_1$: **93.29%** (9.516/10.200) — FPR = 6.71%.
-  - $M_2$: **94.68%** (9.657/10.200) — FPR = 5.32%.
-  - $M_2^*$: **91.89%** (9.373/10.200) — FPR = 8.11%.
+### 6.1. Hiệu Năng Toàn Cầu (20.400 Ảnh: 10.200 Thật vs 10.200 Giả @ `512→504px`)
+- **Độ chính xác / Fake Recall ($\tau=0.50$):**
+  - $M_0$: Acc **56.18%**, Fake Recall **13.48%**, ROC-AUC **0.6431**.
+  - $M_1$: Acc **56.43%**, Fake Recall **17.94%**, ROC-AUC **0.5552**.
+  - $M_2$ (Cold): Acc **53.58%**, Fake Recall **10.68%**, ROC-AUC **0.5597**.
+  - $M_2^*$ (Refined): Acc **55.52%**, Fake Recall **16.48%**, ROC-AUC **0.5619**.
+  - **$M_3$ (Dual-Engine Champion):** Acc **57.95%** (cao nhất), Fake Recall **21.15%** (tăng **3.85×** mức `5.49%` khi bị nén `224px`), Precision **80.13%**, F1-Score **33.46%**, ROC-AUC **0.6101**, PR-AUC **0.6365**.
+- **Độ đặc hiệu ảnh thật (Real Specificity @ $\tau=0.50$):**
+  - $M_0$: **98.87%** (FPR 1.13%), $M_1$: **94.91%** (FPR 5.09%), $M_2$: **96.49%** (FPR 3.51%), $M_2^*$: **94.57%** (FPR 5.43%), **$M_3$: 94.75%** (FPR 5.25%).
 - **Kháng nhiễu nén Video (FF++ C23 Youtube H.264 — 1.655 ảnh):**
-  - $M_0$ FPR: **0.18%**, $M_2^*$ FPR: **1.45%** (Hoàn toàn miễn nhiễm với nhiễu nén video).
+  - $M_0$ FPR: **0.24%**, **$M_3$ FPR: 5.14%** tại $\tau=0.50$ (và giảm còn **2.54%** khi nâng $\tau=0.85$).
 
-### 6.2. Phân Rã Theo 8 Họ Công Nghệ Sinh
-1. **GAN Inversion & Latent Editing (`e4e`, `e4s` — 600 ảnh):** $M_2^*$ đạt **12.50%** (cao nhất trong các họ ngoại lai).
-2. **GAN Architectures (`StyleGAN2/3/XL`, `stargan`, `styleclip` — 1.500 ảnh):** $M_2^*$ đạt **7.33%**.
-3. **Diffusion Baselines (`ddim` — 300 ảnh):** $M_2^*$ đạt **6.00%**.
-4. **Latent Diffusion (`sd2.1` — 300 ảnh):** $M_2^*$ đạt **4.67%**.
-5. **Diffusion Transformers (`DiT`, `SiT`, `pixart`, `RDDM` — 1.200 ảnh):** $M_2^*$ đạt **1.50%**.
-6. **Face Swapping (9 phương pháp — 2.700 ảnh):** $M_2^*$ đạt **0.41%**.
-7. **Talking Head & Reenactment (11 phương pháp — 3.300 ảnh):** $M_2^*$ đạt **0.21%**.
-8. **AutoEncoders / VAEs (`VQGAN` — 300 ảnh):** $M_2^*$ đạt **0.00%**.
+### 6.2. Phân Rã Theo 8 Họ Công Nghệ Sinh ($M_3$ Champion @ `512→504px`)
+1. **GAN Architectures (`StyleGAN2/3/XL`, `stargan`, `styleclip` — 1.500 ảnh):** $M_3$ đạt **60.00%** (`StyleGAN2` **100.00%**).
+2. **Latent Diffusion (`sd2.1` — 300 ảnh):** $M_3$ đạt **54.00%** (từ `23.67%` của $M_0$ và phục hồi mạnh từ `8.33%` ở `224px`).
+3. **GAN Inversion & Latent Editing (`e4e`, `e4s` — 600 ảnh):** $M_3$ đạt **53.67%** (`e4e` **99.67%**).
+4. **AutoEncoders / VAEs (`VQGAN` — 300 ảnh):** $M_3$ đạt **35.33%**.
+5. **Diffusion Baselines (`ddim` — 300 ảnh):** $M_3$ đạt **31.33%** (gấp **7.24×** $M_0$ 4.33%).
+6. **Diffusion Transformers (`DiT`, `SiT`, `pixart`, `RDDM` — 1.200 ảnh):** $M_3$ đạt **17.67%** (`pixart` **60.67%**).
+7. **Reenactment & Talking Head (11 phương pháp — 3.300 ảnh):** $M_3$ đạt **6.55%** (miền video nén `256×256`).
+8. **Face Swapping (9 phương pháp — 2.700 ảnh):** $M_3$ đạt **5.37%** (miền ghép video `256×256`).
 
-### 6.3. Quét Ngưỡng Quyết Định $\tau$ Trên Mô Hình Champion $M_2^*$
-- **$\tau = 0.800$ (Bảo mật sinh trắc học ngân hàng):** Specificity **96.18%**, Real FPR **3.82%**.
-- **$\tau = 0.500$ (Mặc định):** Specificity **91.89%**, Real FPR **8.11%**, Fake Recall 2.48%.
-- **$\tau = 0.200$ (Sàng lọc an ninh diện rộng):** Specificity **84.83%**, Fake Recall **5.18%**.
-- **$\tau = 0.050$ (Bộ lọc cưỡng bức điều tra số):** Specificity **73.47%**, Fake Recall **10.95%**.
-- **$\tau = 0.010$ (Truy vết pháp y số chuyên sâu):** Specificity **57.54%**, Fake Recall **22.29%**.
-- **$\tau = 0.005$ (Độ nhạy tối đa):** Fake Recall đạt **29.84%** (Bắt giữ 3.044 ảnh deepfake toàn cầu).
+### 6.3. Quét Ngưỡng Quyết Định $\tau$ Trên Champion $M_3$ (@ `512→504px`)
+- **$\tau = 0.850$ (Bảo mật cao):** Real Specificity **97.59%**, Fake Recall **17.11%**, Accuracy **57.35%** (FF++ C23 FPR **2.54%**).
+- **$\tau = 0.500$ (Mặc định):** Real Specificity **94.75%**, Fake Recall **21.15%**, Accuracy **57.95%**.
+- **$\tau = 0.200$ (Sàng lọc rộng):** Real Specificity **91.09%**, Fake Recall **25.47%**, Accuracy **58.28%**.
+- **$\tau = 0.050$ (Tăng nhạy):** Real Specificity **85.29%**, Fake Recall **30.83%**, Accuracy **58.06%**.
+- **$\tau = 0.010$ (Truy vết pháp y số):** Real Specificity **75.87%**, Fake Recall **38.99%**, Accuracy **57.43%**.
+- **$\tau = 0.005$ (Độ nhạy tối đa):** Real Specificity **71.18%**, Fake Recall **43.60%** (4.447 ảnh giả toàn cầu).
 
 ---
 

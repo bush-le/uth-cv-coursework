@@ -41,7 +41,7 @@
 - **Nội dung**: Minh họa 3 cơ chế tạo sinh bổ trợ của Pha 1:
   1. `01. Text-to-Image (T2I)` (`sd_text2img`) — sinh danh tính nhân tạo mới từ đặc tả văn bản.
   2. `02. Facial Inpainting` (`sd_inpainting`) — chỉnh sửa cục bộ vùng mắt, mũi, miệng qua mặt nạ nhị phân.
-  3. `03. Image-to-Image (Img2Img)` (`sd_img2img`) — biến đổi diện mạo trên khung hình học 5 điểm mốc gốc.
+  3. `03. Image-to-Image (Img2Img)` (`sd_img2img`) — biến đổi diện mạo bảo toàn cấu trúc khung khuôn mặt gốc.
 
 ### Slide 05 — 04 / 2D System Architecture: Đường Ống 6 Giai Đoạn Dự Kiến
 - **Bố cục**: Sơ đồ luồng toàn chiều ngang (`svg viewBox="0 0 1700 490"`) + 3 thẻ nguyên tắc thiết kế bên dưới.
@@ -49,8 +49,8 @@
 
 ### Slide 06 — 05 / 2D Automated Curation Gate: Tiền Xử Lý Hình Học & Phễu Sàng Lọc 3 Tầng
 - **Bố cục**: Chia 2 cột (`split-2col`).
-- **Trái**: Quy trình `Stage 02` gồm quét khung mặt, căn chỉnh hình học 5 điểm mốc và tách mặt nạ vùng nhạy cảm.
-- **Phải**: Phễu lọc tự động `Stage 04` gồm 3 tầng kiểm định (độ sắc nét, cấu trúc giải phẫu khuôn mặt, và độ khớp ngữ nghĩa).
+- **Trái**: Quy trình `Stage 02` gồm quét khung mặt (`OpenCV Haar`), định vị bounding box và tách mặt nạ vùng nhạy cảm.
+- **Phải**: Phễu lọc tự động `Stage 04` gồm 3 tầng kiểm định (độ sắc nét, cấu trúc giải phẫu khuôn mặt, và chống trùng lặp nội dung).
 
 ### Slide 07 — 06 / Phase 2: Baseline dinoViT Benchmark & Phân Nhánh Reject / Bypass
 - **Bố cục**: Sơ đồ kiến trúc toàn chiều ngang + 3 thẻ cơ chế Pha 2 bên dưới.

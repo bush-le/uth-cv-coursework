@@ -1,9 +1,9 @@
 # README.md — Danh Mục Toàn Diện Hệ Thống Tài Liệu Đề Tài 11 (Nhóm 4)
 
-- **Motivation/Background**: Cung cấp bản đồ điều hướng toàn diện (Master Navigation Sitemap) cho toàn bộ hệ thống tài liệu, kế hoạch kỹ thuật, báo cáo thực nghiệm và bộ 8 notebook giảng dạy của Đề tài 11.
+- **Motivation/Background**: Cung cấp bản đồ điều hướng toàn diện (Master Navigation Sitemap) cho toàn bộ hệ thống tài liệu, kế hoạch kỹ thuật, báo cáo thực nghiệm và bộ 4 unified coursework notebooks của Đề tài 11.
 - **Purpose**: Định vị chính xác vị trí, vai trò và mối liên kết logic giữa tất cả các thành phần trong thư mục `docs/`, `notebooks/` và `.agents/`.
-- **Overview Pipeline**: Mục tiêu nghiên cứu ([PURPOSE.md](PURPOSE.md)) -> Thiết kế hệ thống ([OVERVIEW.md](OVERVIEW.md)) -> 8 Coursework Notebooks ([notebooks/coursework/](../notebooks/coursework/)) -> Đặc tả giai đoạn (`docs/phases/`) -> Kế hoạch kỹ thuật (`docs/plans/`) -> Báo cáo & Slide bảo vệ (`docs/reports/`).
-- **Detailed Plan**: §1 Tài liệu cốt lõi; §2 Bộ 8 Coursework Notebooks; §3 Đặc tả kỹ thuật các giai đoạn; §4 Kế hoạch kỹ thuật chi tiết; §5 Báo cáo thực nghiệm & kiểm toán; §6 Slide thuyết trình & bảo vệ đồ án.
+- **Overview Pipeline**: Mục tiêu nghiên cứu ([PURPOSE.md](PURPOSE.md)) -> Thiết kế hệ thống ([OVERVIEW.md](OVERVIEW.md)) -> 4 Unified Coursework Notebooks ([notebooks/coursework/](../notebooks/coursework/)) -> Đặc tả giai đoạn (`docs/phases/`) -> Kế hoạch kỹ thuật (`docs/plans/`) -> Báo cáo & Slide bảo vệ (`docs/reports/`).
+- **Detailed Plan**: §1 Tài liệu cốt lõi; §2 Bộ 4 Coursework Notebooks chuẩn hóa; §3 Đặc tả kỹ thuật các giai đoạn; §4 Kế hoạch kỹ thuật chi tiết; §5 Báo cáo thực nghiệm & kiểm toán; §6 Slide thuyết trình & bảo vệ đồ án.
 - **References**: [PURPOSE.md](PURPOSE.md), [OVERVIEW.md](OVERVIEW.md), `reports/MASTER_PROJECT_CROSSCHECK_AND_FACTCHECK_REPORT.md`.
 - **Created**: 2026-11-02T07:30:00+07:00
 - **Last Updated**: 2026-11-11T23:25:00+07:00

@@ -42,9 +42,9 @@
   > "Sang `Slide 03`, **Nhóm thực hiện: Nhóm 4** xác lập rõ phạm vi thực hiện gồm: tạo sinh ảnh tĩnh 2D đa chế độ, khai phá mẫu vượt rào qua Baseline `dinoViT`, khóa bất biến danh tính gốc và thực nghiệm đối chứng `D0 / D1 / D2`. Đồng thời, nhóm chủ động loại trừ sinh âm thanh, không huấn luyện lại mạng nền từ đầu và tuân thủ nghiêm ngặt đạo đức dữ liệu."
 
 ### Slide 04 — 03 / 2D Generation Mechanisms: Stable Diffusion & 3 Dạng Dữ Liệu Khuôn Mặt (Nhóm thực hiện: Nhóm 4)
-- **Điểm nhấn thị giác**: Ba cột song song minh họa 3 dạng dữ liệu mà Stable Diffusion hỗ trợ: `Text-to-Image (T2I)` (sinh mặt mới từ chữ), `Facial Inpainting` (sửa cục bộ mắt/miệng) và `Image-to-Image (Img2Img)` (biến đổi diện mạo giữ khung 5 điểm mốc).
+- **Điểm nhấn thị giác**: Ba cột song song minh họa 3 dạng dữ liệu mà Stable Diffusion hỗ trợ: `Text-to-Image (T2I)` (sinh mặt mới từ chữ), `Facial Inpainting` (sửa cục bộ mắt/miệng) và `Image-to-Image (Img2Img)` (biến đổi diện mạo giữ khung khuôn mặt gốc).
 - **Lời thoại gợi ý**:
-  > "Ở `Slide 04`, Stable Diffusion hoạt động bằng cách khử nhiễu từ không gian tiềm ẩn (Latent Space). **Nhóm thực hiện: Nhóm 4** khai thác mô hình này để tạo ra 3 dạng dữ liệu khuôn mặt: Dạng 1 là `Text-to-Image` sinh danh tính mới hoàn toàn từ mô tả văn bản để mở rộng tập mẫu; Dạng 2 là `Facial Inpainting` chỉ sửa cục bộ mắt hoặc miệng trên mặt thật để tạo ra mẫu giả tinh vi nhất; và Dạng 3 là `Image-to-Image` biến đổi diện mạo nhưng giữ nguyên khung 5 điểm mốc hình học để tạo các cặp ảnh đối chứng."
+  > "Ở `Slide 04`, Stable Diffusion hoạt động bằng cách khử nhiễu từ không gian tiềm ẩn (Latent Space). **Nhóm thực hiện: Nhóm 4** khai thác mô hình này để tạo ra 3 dạng dữ liệu khuôn mặt: Dạng 1 là `Text-to-Image` sinh danh tính mới hoàn toàn từ mô tả văn bản để mở rộng tập mẫu; Dạng 2 là `Facial Inpainting` chỉ sửa cục bộ mắt hoặc miệng trên mặt thật để tạo ra mẫu giả tinh vi nhất; và Dạng 3 là `Image-to-Image` biến đổi diện mạo nhưng giữ nguyên cấu trúc khung mặt gốc để tạo các cặp ảnh đối chứng."
 
 ### Slide 05 — 04 / 2D System Architecture: Đường Ống 6 Giai Đoạn Dự Kiến
 - **Điểm nhấn thị giác**: Sơ đồ luồng ngang 6 giai đoạn từ `Stage 01: Data Acquisition` đến `Stage 06: Dataset Export` bàn giao xuống bộ phát hiện hạ nguồn.
@@ -52,9 +52,9 @@
   > "`Slide 05` trình bày kiến trúc đường ống 6 giai đoạn mô-đun hóa: từ thu thập nguồn dữ liệu, tiền xử lý căn chỉnh khuôn mặt, tạo sinh đa chế độ bằng Stable Diffusion, lọc chất lượng tự động, gán nhãn lưu vết đến xuất bản phân tập phục vụ đánh giá và tinh chỉnh mô hình phát hiện."
 
 ### Slide 06 — 05 / 2D Automated Curation Gate: Tiền Xử Lý Hình Học & Phễu Sàng Lọc 3 Tầng
-- **Điểm nhấn thị giác**: Cột trái mô tả quy trình phát hiện 5 điểm mốc và tách mặt nạ; cột phải là phễu lọc 3 tầng (độ sắc nét, cấu trúc giải phẫu mặt, độ khớp ngữ nghĩa).
+- **Điểm nhấn thị giác**: Cột trái mô tả quy trình phát hiện bounding box khuôn mặt (`OpenCV Haar`) và tách mặt nạ; cột phải là phễu lọc 3 tầng (độ sắc nét quang học, cấu trúc giải phẫu mặt, và chống trùng lặp nội dung).
 - **Lời thoại gợi ý**:
-  > "Để ngăn ngừa ảnh lỗi làm nhiễu mô hình hạ nguồn, `Slide 06` thiết lập cổng kiểm duyệt tự động 3 tầng. Mọi ảnh sinh ra phải vượt qua bài kiểm tra độ sắc nét, kiểm tra hình học 5 điểm mốc khuôn mặt và độ tương đồng ngữ nghĩa trước khi được đưa vào Pha 2."
+  > "Để ngăn ngừa ảnh lỗi làm nhiễu mô hình hạ nguồn, `Slide 06` thiết lập cổng kiểm duyệt tự động 3 tầng. Mọi ảnh sinh ra phải vượt qua bài kiểm tra độ sắc nét, kiểm tra hình học khuôn mặt bằng `OpenCV Haar` và kiểm định chống trùng lặp trước khi được đưa vào Pha 2."
 
 ### Slide 07 — 06 / Phase 2: Baseline dinoViT Benchmark & Phân Nhánh Reject / Bypass
 - **Điểm nhấn thị giác**: Kiến trúc `dinoViT` trích xuất token `[CLS]` từ lưới patch khuôn mặt và cổng quyết định phân nhánh `REJECT` (bị bắt giữ) vs. `BYPASS` (vượt rào -> `Hard Sample`).

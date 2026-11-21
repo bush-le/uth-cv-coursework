@@ -57,56 +57,48 @@ All 6,000 images reside in `data/external_benchmarks/synthetic_face_dataset_6k/`
 
 ---
 
-## 2. Task-Level Evasion Dynamics
+## 2. Task-Level Evasion Dynamics (@ Standard `512→504px` Architecture)
 
-Empirical breakdown across the three generation modalities reveals fundamental differences in how generative mechanisms manifest visual artifacts:
+Empirical breakdown across the three generation modalities (`experiments/logs/legacy_6k_benchmark_results.json` at `512→504px`) reveals fundamental differences in how generative mechanisms manifest visual artifacts:
 
 ### 1. `text2img` (Pure Latent Generation)
-- **$M_1$ Recall**: $59.60\%$ ($\tau=0.50$).
-- **Diagnosis**: Full-frame text-to-image synthesis leaves consistent global spectral signatures, background frequency inconsistencies, and skin-texture smoothing that DINOv2 easily categorizes as synthetic.
+- **Recall Progression ($\tau=0.50$)**: $M_0$ $98.80\%$ $\to M_1$ $99.75\%$ $\to M_2^*$ $99.90\%$ $\to M_3$ **$100.00\%$** (2,000/2,000). *(Under legacy 224px downscaling, $M_1$ dropped to $59.60\%$.)*
+- **Diagnosis**: Full-frame text-to-image synthesis leaves consistent global spectral signatures and skin-texture smoothing that DINOv2 at full `504px` token density easily detects.
 
 ### 2. `inpaint` (Localized Biometric Manipulation)
-- **$M_1$ Recall**: $39.90\%$ ($\tau=0.50$).
-- **Diagnosis**: Because 80% to 90% of the face remains authentic photographic data, global patch average pooling dilutes the localized anomaly tokens. Without specialized boundary awareness, baseline detectors struggle to trigger.
+- **Recall Progression ($\tau=0.50$)**: $M_0$ $50.65\%$ $\to M_1$ $58.15\%$ $\to M_2^*$ **$56.90\%$** (862 bypassed fakes — primary OOD blind spot) $\to M_3$ **$86.50\%$** (1,730/2,000).
+- **Diagnosis**: Because 80% to 90% of the face remains authentic photographic data blended with soft feathering, baseline/SD1.5-only models still miss realistic RV5.1 inpaintings until multi-engine $D_3$ adaptation ($M_3$).
 
 ### 3. `img2img` (Perceptual Blending)
-- **$M_1$ Recall**: $32.25\%$ ($\tau=0.50$).
-- **Diagnosis**: Image-to-image transforms preserve original photographic edge geometry while subtly altering skin tone or features. This constitutes the most evasive task modality for standard vision backbones.
+- **Recall Progression ($\tau=0.50$)**: $M_0$ $76.15\%$ $\to M_1$ $82.20\%$ $\to M_2^*$ **$83.60\%$** $\to M_3$ **$96.60\%$** (1,932/2,000).
+- **Diagnosis**: Image-to-image transforms preserve original photographic edge geometry; resolving inference at `504px` plus Dual-Engine $D_3$ fine-tuning closes nearly all evasion gaps (bypass down to `3.40%`).
 
 ---
 
-## 3. Inpainting Sub-Region Vulnerability Audit
+## 3. Inpainting Sub-Region Vulnerability Audit (@ `512→504px` vs Archived `224px`)
 
 Evaluating the 2,000 inpainting images across periocular (`eyes`) and perioral (`mouth`) regions:
 
-| Sub-Region Target | Sample Count | $M_0$ Recall (\tau=0.5$) | $M_1$ Recall (\tau=0.5$) | Old $M_2$ Recall (\tau=0.5$) | $M_2^*$ Refined Recall (\tau=0.5$) | Key Vulnerability Factor |
-| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Periocular (`eyes`)** | 1,000 | 2.20% | 40.90% | 22.80% | **66.20%** | Saccadic eye reflections, pupil geometry, eyelash continuity. |
-| **Perioral (`mouth`)** | 1,000 | 2.40% | 38.90% | 22.20% | **64.70%** | Teeth alignment, lip vermilion border texture, shadow blending. |
+| Sub-Region Target | Sample Count | $M_0$ (`504px`) | $M_1$ (`504px`) | $M_2^*$ (`504px`) | $M_3$ Champion (`504px`) | Archived $M_2^*$ (`224px`) | Key Vulnerability Factor |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Periocular (`eyes`)** | 1,000 | 47.40% | 58.50% | 59.10% | **87.40%** | 66.20% | Saccadic eye reflections, pupil geometry, eyelash continuity. |
+| **Perioral (`mouth`)** | 1,000 | 53.90% | 57.80% | 54.70% | **85.60%** | 64.70% | Teeth alignment, lip vermilion border texture, shadow blending. |
 
-**Key Takeaway**: Both regions exhibit roughly equivalent bypass rates (~$60\%$ bypass for $M_1$ at fixed $\tau=0.50$), confirming that localized inpainting bypass is driven by context dominance rather than anatomical region bias.
+**Key Takeaway**: Across both `eyes` and `mouth` local edits, $M_2^*$ suffered ~`40.9%–45.3%` bypass at `504px` (`862/2,000` inpaint misses), directly motivating $D_3$ Dual-Engine adaptation which lifted $M_3$ inpaint recall to **87.40% (eyes)** and **85.60% (mouth)**.
 
 ---
 
 ## 4. Probability Density & Calibration Shift Analysis
 
-A key mathematical insight from inspecting `legacy_6k_predictions.npz` is the **Conservative Calibration Shift**:
-
-$$\mathbb{E}_{x \sim \mathcal{D}_{\text{6k}}}[P_{M_1}(\text{Fake}|x)] = 0.4512 \quad \text{vs} \quad \mathbb{E}_{x \sim \mathcal{D}_{\text{6k}}}[P_{M_2^{\text{cold}}}(\text{Fake}|x)] = 0.2886$$
-
-### The $[0.30, 0.50]$ Screening Zone
-In the old $M_2$ cold-start model:
-- Only $21.4\%$ of fake images scored $\ge 0.50$.
-- However, **$24.43\%$ of images** scored in the twilight zone $[0.30, 0.50]$.
-- When lowering the threshold to $\tau = 0.30$, detection recall doubled from $21.4\%$ to **$45.83\%$**.
-
-This demonstrates that the model did detect anomalous features, but output low confidence due to extreme penalization for false positives during hard mining.
+Inspecting probability means across resolutions explains both **Cold-Start Catastrophic Interference** and the **224px Resolution Collapse**:
+- **Standard `504px`**: Mean $P(\text{Fake})$ progressed from $0.7492$ ($M_0$) $\to 0.7938$ ($M_1$) $\to 0.6968$ ($M_2^{\text{cold}}$ regression) $\to 0.7974$ ($M_2^*$) $\to$ **$0.9408$ ($M_3$)**.
+- **Archived `224px` stress-test**: Downscaling erased 80.25% of DINOv2 patches, pulling mean $P(\text{Fake})$ down to $0.1610$ ($M_0$), $0.4512$ ($M_1$), and $0.2886$ ($M_2^{\text{cold}}$), though threshold relaxation ($\tau = 0.30$) still doubled $M_2^{\text{cold}}$ recall ($21.40\% \to 45.83\%$).
 
 ---
 
-## 5. Standalone Production Deployment of $M_2^*$ (Single Best Architecture)
+## 5. Production Deployment Summary ($M_3$ Champion & $M_2^*$ Warm-Start Guardrail)
 
-With the refined continual learning recipe ($M_2^*$), the detector achieves superior performance standalone without requiring any ensemble, cascaded pipelines, or multi-model dependencies:
-- **Zero Ensemble Overhead**: Evaluates images in a single forward pass through $M_2^*$, minimizing inference latency to ~15ms on GPU and eliminating complex multi-model routing logic.
-- **Unified Robustness**: Intercepts **$70.13\%$** of out-of-distribution synthetic faces at standard threshold $\tau = 0.50$ while reducing the bypass rate on hard adversarial inpaintings to just **$8.11\%$**.
-- **Adaptive Single-Model Thresholding**: Systems requiring maximum interception can tune the decision threshold $\tau \in [0.30, 0.50]$ directly on $M_2^*$, attaining up to **$84.20\%$** recall without deploying secondary models.
+Using native `512→504px LANCZOS` preprocessing with single-pass GPU inference:
+- **Zero Ensemble Overhead**: Evaluates images in a single forward pass (~18.5 ms/image on GPU), avoiding cascaded pipeline latency.
+- **Full 6k OOD Generalization**: $M_2^*$ achieves **80.13%** recall (OOD before RV5.1 training; 70.13% even when stressed at 224px) while preserving **91.89%** Challenge Vault recall (`8.11%` bypass).
+- **Champion $M_3$ Performance**: Dual-Engine Warm-Start reaches **94.37%** recall on the full 6,000 RV5.1 repository (`text2img` 100%, `img2img` 96.60%, `inpaint` 86.50%) while holding **93.13%** on strictly identity-disjoint `unseen_rv51_test.jsonl`.
