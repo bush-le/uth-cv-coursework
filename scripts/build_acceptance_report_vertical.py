@@ -1252,6 +1252,246 @@ def build_vertical_report_html() -> str:
       color: #ef4444;
     }
 
+    /* Section 03b: Dual-Engine Generation Mechanics Visual Components */
+    .flow-tracks-board {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 22px 0;
+    }
+    .flow-track {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--primary);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .flow-track.t2i { border-left-color: #c2410c; background: linear-gradient(90deg, #fffaf5 0%, #ffffff 18%); }
+    .flow-track.i2i { border-left-color: #7e22ce; background: linear-gradient(90deg, #fdfaff 0%, #ffffff 18%); }
+    .flow-track.inp { border-left-color: #1d4ed8; background: linear-gradient(90deg, #f6faff 0%, #ffffff 18%); }
+    .flow-track-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .flow-track-title {
+      font-family: var(--font-display);
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .flow-track.t2i .flow-track-title { color: #c2410c; }
+    .flow-track.i2i .flow-track-title { color: #7e22ce; }
+    .flow-track.inp .flow-track-title { color: #1d4ed8; }
+    .flow-track-sub {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--surface-soft);
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .flow-nodes-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1.15fr);
+      gap: 8px;
+      align-items: stretch;
+    }
+    .flow-node {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .flow-node.output-node {
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      background: #f8fafc;
+      border-color: var(--border-strong);
+    }
+    .flow-node-step {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .flow-node-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .flow-node-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .flow-pills {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .eng-pill {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 5px;
+      line-height: 1.35;
+    }
+    .eng-pill.sd { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .eng-pill.rv { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .eng-pill.shared { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-light);
+      user-select: none;
+    }
+    .flow-mini-thumb {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid var(--border-strong);
+      flex-shrink: 0;
+      cursor: zoom-in;
+    }
+    @media (max-width: 1050px) {
+      .flow-nodes-row {
+        grid-template-columns: 1fr;
+      }
+      .flow-arrow {
+        transform: rotate(90deg);
+        height: 18px;
+      }
+    }
+    .mode-trio-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin: 22px 0;
+    }
+    .mode-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-top: 4px solid var(--primary);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .mode-card.i2i { border-top-color: #7e22ce; }
+    .mode-card.inp { border-top-color: #1d4ed8; }
+    .mode-card.t2i { border-top-color: #c2410c; }
+    .mode-card-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .mode-card-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--surface-soft);
+      padding: 6px 10px;
+      border-radius: 6px;
+      line-height: 1.5;
+    }
+    .mode-card-body {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .prompt-pair-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 18px 0;
+    }
+    .prompt-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+    }
+    .prompt-card-head {
+      padding: 10px 16px;
+      background: var(--surface-soft);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .prompt-card-title {
+      font-family: var(--font-display);
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .prompt-code-box {
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: #0f172a;
+      background: #f8fafc;
+      word-break: break-word;
+    }
+    .prompt-tok {
+      display: inline;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tok-prefix { background: #dbeafe; color: #1e3a8a; }
+    .tok-demo { background: #fef3c7; color: #92400e; }
+    .tok-optic { background: #ede9fe; color: #5b21b6; }
+    .tok-light { background: #ffedd5; color: #9a3412; }
+    .tok-skin { background: #dcfce7; color: #166534; }
+    .tok-neg { background: #fee2e2; color: #991b1b; }
+    .prompt-card-foot {
+      padding: 9px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+      background: #ffffff;
+    }
+    .tok-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 6px;
+      font-size: 12px;
+      align-items: center;
+    }
+
     @media (max-width: 900px) {
       .layout-wrapper {
         grid-template-columns: 1fr;
@@ -1264,6 +1504,9 @@ def build_vertical_report_html() -> str:
       }
       .face-strip-row {
         grid-template-columns: 1fr 1fr;
+      }
+      .mode-trio-grid, .prompt-pair-grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -1281,7 +1524,7 @@ def build_vertical_report_html() -> str:
         margin-bottom: 20px;
         break-inside: avoid-page;
       }
-      .artifact-row-card, .face-subject-container {
+      .artifact-row-card, .face-subject-container, .mode-card, .prompt-card, .flow-track {
         box-shadow: none;
         break-inside: avoid;
       }
@@ -1316,6 +1559,7 @@ def build_vertical_report_html() -> str:
       <a href="#sec-overview" class="nav-link active">1. Tổng Quan Nghiệm Thu</a>
       <a href="#sec-problem" class="nav-link">2. Thách Thức & Sự Cố M0</a>
       <a href="#sec-dataset" class="nav-link">3. Bộ Dữ Liệu 12.545 Ảnh</a>
+      <a href="#sec-generation-mechanics" class="nav-link">3b. Cơ Chế Dual-Engine</a>
       <a href="#sec-curation" class="nav-link">4. Quy Trình Lọc CurationGate</a>
       <a href="#sec-hard-samples" class="nav-link">5. 740 Mẫu Khó & 213 Vault</a>
       <a href="#sec-active-learning" class="nav-link">6. Đột Phá M2* (+80.18%)</a>
@@ -1725,6 +1969,386 @@ def build_vertical_report_html() -> str:
           </div>
           <div class="artifact-row-footer">
             <strong>Đảm bảo tính đa dạng:</strong> Dữ liệu phân bổ đều các nhóm tuổi từ thanh niên đến người lớn tuổi, tỷ lệ nam/nữ cân bằng, và góc nghiêng khuôn mặt nằm trong khoảng tự nhiên (±30°).
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ===================================================================
+           PHẦN 3B: CƠ CHẾ SINH ẢNH DUAL-ENGINE (SD 1.5 VS RV5.1, 3 CHẾ ĐỘ & PROMPT)
+           =================================================================== -->
+      <section id="sec-generation-mechanics" class="report-section">
+        <span class="section-eyebrow">03b / CƠ CHẾ SINH ẢNH DUAL-ENGINE</span>
+        <h2 class="section-title">
+          Giải Phẫu Kỹ Thuật Sinh Ảnh: <span class="accent">3 Chế Độ × SD 1.5 Base vs RealisticVision v5.1</span>
+        </h2>
+        <p class="section-desc">
+          Mọi ảnh giả ở kích thước chuẩn <code>512×512</code> đều chạy qua bộ giải đa bước <strong><code>DPMSolverMultistepScheduler</code></strong> (cấu hình <code>dpmsolver++</code> kết hợp <code>use_karras_sigmas=True</code>). Tuy nhiên, <strong>Bộ A (SD v1.5 Base)</strong> và <strong>Bộ B (RealisticVision v5.1)</strong> khác nhau căn bản về chiến lược điều khiển Latent, cơ chế tạo Mask Inpainting, công thức Prompt/Negative Prompt và siêu tham số — trực tiếp tạo ra hai dải phổ giả mạo từ "dễ lộ ranh giới" đến "tả thực lỗ chân lông".
+        </p>
+
+        <!-- LUỒNG KIẾN TRÚC TRỰC QUAN 3 CHẾ ĐỘ (THAY THẾ SVG CHẬT HẸP) -->
+        <div class="flow-tracks-board">
+          <!-- Track 1: Text2Img -->
+          <div class="flow-track t2i">
+            <div class="flow-track-head">
+              <span class="flow-track-title">1. TEXT-TO-IMAGE (<code>sd_text2img</code>) — Sinh Danh Tính Mới Hoàn Toàn Từ Nhiễu</span>
+              <span class="flow-track-sub">Latent <code>(4, 64, 64)</code> → VAE Decode → <code>(3, 512, 512)</code></span>
+            </div>
+            <div class="flow-nodes-row">
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 1 • Khởi tạo</div>
+                  <div class="flow-node-title">🎲 Nhiễu Gaussian Thuần</div>
+                  <div class="flow-node-desc">Khởi tạo <code>z_T ~ N(0, I)</code> ngẫu nhiên, hoàn toàn không dùng ảnh thật đầu vào (<code>source = null</code>).</div>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 2 • Điều kiện CLIP</div>
+                  <div class="flow-node-title">📝 Tổ Hợp Prompt Đa Chiều</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: Grammar 7-Slot (&lt;45 từ)</span>
+                  <span class="eng-pill rv">RV5.1: Lưới 5-D (2.000 tổ hợp)</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 3 • Khử nhiễu</div>
+                  <div class="flow-node-title">⚙️ UNet 4-ch (100% Steps)</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: 20 bước • CFG = 6.2</span>
+                  <span class="eng-pill rv">RV5.1: 25 bước • CFG = 7.0</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node output-node">
+                <img src="assets/samples/text2img_0.png" class="flow-mini-thumb" alt="Mẫu Text2Img 512x512" title="Nhấp để phóng to">
+                <div>
+                  <div class="flow-node-step">Kết quả</div>
+                  <div class="flow-node-title">Ảnh 512×512 Độc Lập</div>
+                  <div class="flow-node-desc">Danh tính mới 100%, giúp detector học dấu vết giải mã VAE &amp; tổng hợp toàn cục.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Track 2: Img2Img -->
+          <div class="flow-track i2i">
+            <div class="flow-track-head">
+              <span class="flow-track-title">2. IMAGE-TO-IMAGE (<code>sd_img2img</code>) — Giữ Khung Mặt Gốc, Đổi Vi Kết Cấu Da &amp; Ánh Sáng</span>
+              <span class="flow-track-sub">Mã hóa ảnh thật → Bơm nhiễu tỷ lệ <code>strength</code> → Tái tạo <code>steps × s</code> bước cuối</span>
+            </div>
+            <div class="flow-nodes-row">
+              <div class="flow-node output-node" style="background: #ffffff; border-color: var(--border);">
+                <img src="assets/samples/real_0.jpg" class="flow-mini-thumb" alt="Ảnh thật gốc tham chiếu" title="Nhấp để phóng to">
+                <div>
+                  <div class="flow-node-step">Bước 1 • Nguồn</div>
+                  <div class="flow-node-title">Ảnh Thật x₀</div>
+                  <div class="flow-node-desc">FFHQ / CelebA-HQ <code>512×512</code> đưa qua VAE Encoder thành latent <code>z₀</code>.</div>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 2 • Bơm nhiễu</div>
+                  <div class="flow-node-title">🌫️ Mức Biến Đổi Strength</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: s=0.30 (≤0.25 trẻ/kính)</span>
+                  <span class="eng-pill rv">RV5.1: s=0.55 (RAW photo)</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 3 • Khử nhiễu</div>
+                  <div class="flow-node-title">⚙️ Denoise Bước Cuối</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: ~6 bước tái tạo</span>
+                  <span class="eng-pill rv">RV5.1: ~13 bước tái tạo</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node output-node">
+                <img src="assets/samples/img2img_0.png" class="flow-mini-thumb" alt="Mẫu Img2Img 512x512" title="Nhấp để phóng to">
+                <div>
+                  <div class="flow-node-step">Kết quả</div>
+                  <div class="flow-node-title">Biến Đổi Bề Mặt Da</div>
+                  <div class="flow-node-desc">Giữ nguyên dáng mặt gốc nhưng thay đổi vi cấu trúc lỗ chân lông &amp; ánh sáng.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Track 3: Inpainting -->
+          <div class="flow-track inp">
+            <div class="flow-track-head">
+              <span class="flow-track-title">3. FACIAL INPAINTING (<code>sd_inpaint</code>) — Chỉ Vẽ Lại Vùng Mask, Khóa 95% Pixel Thật Xung Quanh</span>
+              <span class="flow-track-sub">Dùng chung checkpoint <code>stable-diffusion-v1-5/stable-diffusion-inpainting</code> (UNet 9 kênh)</span>
+            </div>
+            <div class="flow-nodes-row">
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 1 • Mask ROI</div>
+                  <div class="flow-node-title">🎭 Ảnh Thật + Mặt Nạ</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: Haar + 3 vùng + blur 18</span>
+                  <span class="eng-pill rv">RV5.1: Ellipse 50% miệng/mắt</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 2 • UNet 9 kênh</div>
+                  <div class="flow-node-title">🧩 Nạp 3 Tensor Song Song</div>
+                  <div class="flow-node-desc">Ghép <code>4ch z_t</code> + <code>1ch mask</code> + <code>4ch vùng nền khóa</code> để chỉ sửa bên trong mask.</div>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 3 • Hòa trộn biên</div>
+                  <div class="flow-node-title">✨ Chống Đường Viền</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: m·fake + (1-m)·real</span>
+                  <span class="eng-pill rv">RV5.1: Composite trực tiếp</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node output-node">
+                <img src="assets/samples/inpaint_0.png" class="flow-mini-thumb" alt="Mẫu Inpainting 512x512" title="Nhấp để phóng to">
+                <div>
+                  <div class="flow-node-step">Kết quả</div>
+                  <div class="flow-node-title">Bẫy Khó Nhất (11.71%)</div>
+                  <div class="flow-node-desc">Xóa sạch dấu vết cắt dán biên → khiến mô hình M₀ sụp đổ trước khi học AL.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BẢNG ĐỐI CHIẾU KỸ THUẬT 1-1: SD 1.5 VS RV5.1 -->
+        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 28px 0 10px;">Đối Chiếu Trực Diện Hai Động Cơ: Bộ A (<code>SD 1.5 Base</code>) vs Bộ B (<code>RealisticVision v5.1</code>)</h3>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 22%;">Tiêu Chí Kỹ Thuật</th>
+                <th style="width: 39%;">Bộ A: Stable Diffusion v1.5 Base (<code>src/pipelines/generate_deepfake_images.py</code>)</th>
+                <th style="width: 39%;">Bộ B: RealisticVision v5.1 (<code>scripts/run_generation.py</code>)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Checkpoint T2I &amp; Img2Img</strong></td>
+                <td><code>configs/dataset_factory.yaml → generation.model_id</code> (SD v1.5 Base)</td>
+                <td><code>SG161222/Realistic_Vision_V5.1_noVAE</code> (tinh chỉnh chuyên tả thực ảnh chụp)</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>Checkpoint Inpainting</strong></td>
+                <td><code>stable-diffusion-v1-5/stable-diffusion-inpainting</code> (UNet 9 kênh)</td>
+                <td><strong>Dùng chung</strong> <code>stable-diffusion-v1-5/stable-diffusion-inpainting</code> (<code>INPAINT_MODEL</code>)</td>
+              </tr>
+              <tr>
+                <td><strong>Steps &amp; CFG Scale</strong></td>
+                <td><code>steps = 20</code> | <code>guidance_scale = 6.2</code> (cân bằng tốc độ và độ tự nhiên)</td>
+                <td><code>steps = 25</code> | <code>guidance_scale = 7.0</code> (đẩy chi tiết da &amp; ánh sáng sắc nét hơn)</td>
+              </tr>
+              <tr>
+                <td><strong>Img2Img Strength</strong></td>
+                <td><code>0.30</code> (tự động hạ xuống <code>≤ 0.25</code> nếu mẫu là trẻ em <code>0–6 tuổi</code> hoặc đeo kính để chống biến dạng)</td>
+                <td><code>0.55</code> (mức biến đổi mạnh hơn ở kết cấu da &amp; biểu cảm trong 2.000 mẫu Img2Img)</td>
+              </tr>
+              <tr>
+                <td><strong>Scheduler &amp; Seed</strong></td>
+                <td><code>DPMSolverMultistepScheduler</code> (<code>dpmsolver++</code>, Karras) • Seed CRC32 tất định <code>sample_seed()</code></td>
+                <td><code>DPMSolverMultistepScheduler</code> (Karras sigmas; <code>dpmsolver++</code> cho T2I/I2I) • Seed <code>42 + idx</code></td>
+              </tr>
+              <tr>
+                <td><strong>Cơ Chế Mask Inpainting</strong></td>
+                <td><code>generate_dynamic_face_mask</code>: <code>OpenCV Haar</code> dò mặt, xoay vòng 3 vùng (<code>periocular</code>, <code>lips</code>, <code>full</code> +18% cằm), Gaussian <code>blur_radius=18</code> + alpha blend mềm</td>
+                <td><code>create_mask(512×512)</code>: Ellipse nhị phân cứng chia 50% vùng miệng (<code>mouth</code>, chẵn) và 50% vùng mắt/kính (<code>eyes</code>, lẻ)</td>
+              </tr>
+              <tr>
+                <td><strong>Chiến Lược Tạo Prompt</strong></td>
+                <td><strong><code>PromptGrammarEngine</code> (7 Slot)</strong> + giới hạn <code>≤ 45 từ</code> (&lt; 70 CLIP token); Active Learning gắn <strong>Softmax Error-Steering</strong> (<code>exploration_floor=0.15</code>)</td>
+                <td><strong>T2I:</strong> Lưới Descartes 5 chiều <strong>2.000</strong> tổ hợp (10 tuổi × 2 giới tính × 5 sắc tộc × 5 biểu cảm × 4 ánh sáng)<br><strong>I2I &amp; Inpaint:</strong> Prompt mẫu cố định <code>RAW photo, 8k uhd, dslr</code></td>
+              </tr>
+              <tr>
+                <td><strong>Hệ Quả Thực Nghiệm</strong></td>
+                <td>Nhiều ca biên mềm tinh vi ở chế độ Inpaint → ép M₀ sụp đổ và làm bàn đạp Active Learning (<code>M₀ → M₂*</code>: 11.71% → 91.89%)</td>
+                <td>Kết cấu lỗ chân lông &amp; ánh sáng cực giống ảnh chụp thật → phơi bày điểm mù OOD của <code>M₂*</code> (lọt <code>1.792/6.000</code> ảnh) trước khi <code>M₃</code> học khóa <code>93.13%</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ẢNH 1: ĐỐI CHIẾU 3 CHẾ ĐỘ KÈM ZOOM VI KẾT CẤU -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">🔬 Đối Chiếu Tận Mắt 3 Chế Độ: SD 1.5 Base vs RealisticVision v5.1 (Zoom 2× Da &amp; Biên)</span>
+            <span class="artifact-badge champion">REAL SAMPLES VISUAL AUDIT</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/dual_engine_visual_3modes.png" class="artifact-img-full" alt="Đối chiếu trực quan 3 chế độ giữa SD 1.5 và RV5.1" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Quan sát trực tiếp:</strong> Các ô phóng đại 2× cho thấy ảnh từ <strong>SD 1.5</strong> có xu hướng mịn da hơn, trong khi <strong>RV5.1</strong> ở chế độ <code>Img2Img</code> và <code>Text2Img</code> tái tạo rõ lỗ chân lông, nếp gấp chân chim và ánh sáng RAW chụp studio nhờ chuỗi <code>RAW photo, visible pores, 8k uhd, dslr</code>.
+          </div>
+        </div>
+
+        <!-- ẢNH 2: GIẢI PHẪU HÌNH HỌC MASK INPAINTING -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">🎭 Giải Phẫu Mặt Nạ Inpainting: SD 1.5 Soft-Mask (Haar + Blur 18px) vs RV5.1 Binary Ellipse</span>
+            <span class="artifact-badge">MASK &amp; ALPHA PROFILE</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/dual_engine_mask_anatomy.png" class="artifact-img-full" alt="So sánh hình học mặt nạ Soft-Mask và Binary Ellipse" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Giải thích kỹ thuật:</strong> Đồ thị mặt cắt ngang alpha ở hàng dưới minh họa độ dốc mượt <code>[0 → 1]</code> trên dải biên <code>7.5%–13.8%</code> của <code>generate_dynamic_face_mask</code> (SD 1.5), khác hẳn bước nhảy dựng đứng <code>0 → 1</code> của <code>create_mask</code> (RV5.1). Nhờ vùng đệm alpha này, công thức <code>m · fake + (1 - m) · real</code> xóa sạch viền ghép nối.
+          </div>
+        </div>
+
+        <!-- ẢNH 3: PHÂN BỔ QUOTA REAL-TIME & CẤU TRÚC PROMPT -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">📊 Biến Thiên Quota Active Learning (R1 → R2) &amp; Cấu Trúc Tổ Hợp Prompt Thực Tế</span>
+            <span class="artifact-badge champion">MANIFEST ANALYTICS</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/dual_engine_prompt_quota_evolution.png" class="artifact-img-full" alt="Phân bổ 3 chế độ qua các vòng và ngữ pháp PromptGrammarEngine vs 5-D Grid" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Bằng chứng đóng vòng:</strong> Số đếm từ manifest thật cho thấy ở Active Learning Vòng 2, <code>AdaptiveBudgetController</code> tự động dồn <strong>47.2%</strong> (<code>897/1.900</code>) ngân sách vào nhánh khó nhất là <code>sd_inpaint</code> (từ mức đều 33.3% ở R1), đồng thời <code>PromptGrammarEngine</code> xoay xác suất qua 7 slot với sàn khám phá <code>exploration_floor = 0.15</code>.
+          </div>
+        </div>
+
+        <!-- PHÒNG THÍ NGHIỆM PROMPT & NEGATIVE PROMPT THỰC TẾ -->
+        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 30px 0 8px;">Giải Phẫu Prompt Thực Tế Trích Nguyên Văn Từ Manifest &amp; Negative Prompt</h3>
+        <div class="tok-legend">
+          <span style="font-weight: 700; color: var(--text);">Chú giải màu thành phần:</span>
+          <span class="prompt-tok tok-prefix">Tiền tố khung hình / tác vụ</span>
+          <span class="prompt-tok tok-demo">Nhân khẩu học (Tuổi / Giới tính / Sắc tộc)</span>
+          <span class="prompt-tok tok-optic">Quang học / Thân máy DSLR</span>
+          <span class="prompt-tok tok-light">Ánh sáng / Phông nền</span>
+          <span class="prompt-tok tok-skin">Vi kết cấu da / Biểu cảm / Khuyết điểm</span>
+          <span class="prompt-tok tok-neg">Negative Prompt (Từ khóa cấm)</span>
+        </div>
+
+        <!-- Cặp 1: TEXT2IMG -->
+        <div class="prompt-pair-grid">
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ A (SD 1.5) • Text2Img (<code>fake_ffhq_00003_1.png</code>)</span>
+              <span class="artifact-badge">PromptGrammar 7-Slot</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">head and shoulders portrait, centered, direct eye contact,</span>
+              <span class="prompt-tok tok-demo">baby girl, toddler portrait, delicate soft skin, gentle baby features,</span>
+              <span class="prompt-tok tok-light">soft studio key light, diffuse beauty dish fill, subtle catchlights,</span>
+              <span class="prompt-tok tok-optic">medium format Hasselblad portrait, natural skin pores, realistic micro-contrast,</span>
+              <span class="prompt-tok tok-skin">candid sideways glance, subtle head tilt, spontaneous capture</span>
+            </div>
+            <div class="prompt-card-foot">Khóa nhân khẩu theo metadata FFHQ nhưng giữ <strong>&lt; 45 từ</strong> (&lt; 70 CLIP token) để không bị cắt đuôi. Seed: <code>1966126620</code>.</div>
+          </div>
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ B (RV5.1) • Text2Img (<code>0_text2img.png</code>)</span>
+              <span class="artifact-badge champion">5-D Cartesian Grid (2.000)</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">RAW photo, a close-up portrait of a</span>
+              <span class="prompt-tok tok-demo">32-year-old South Asian woman,</span>
+              <span class="prompt-tok tok-skin">subtle warm smile,</span>
+              <span class="prompt-tok tok-light">neutral grey studio backdrop, soft rim lighting with subtle shadows,</span>
+              <span class="prompt-tok tok-optic">detailed skin texture, visible pores, 8k uhd, dslr, high quality</span>
+            </div>
+            <div class="prompt-card-foot">Trộn ngẫu nhiên tích Descartes <code>10 tuổi × 2 giới × 5 sắc tộc × 5 biểu cảm × 4 sáng = 2.000 tổ hợp</code> cân bằng (<code>seed=42</code>).</div>
+          </div>
+        </div>
+
+        <!-- Cặp 2: IMG2IMG -->
+        <div class="prompt-pair-grid">
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ A (SD 1.5) • Img2Img (<code>fake_ffhq_00000_0.png</code>)</span>
+              <span class="artifact-badge">Strength=0.30 (≤0.25 trẻ)</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">high resolution portrait, natural skin texture, realistic illumination,</span>
+              <span class="prompt-tok tok-demo">baby boy, toddler portrait, delicate soft skin, gentle baby features,</span>
+              <span class="prompt-tok tok-optic">shot on 85mm f/1.4 prime lens, creamy bokeh, sharp eye focus,</span>
+              <span class="prompt-tok tok-light">diffuse window light, soft gradient shadows, gentle ambient illumination</span>
+            </div>
+            <div class="prompt-card-foot">Ưu tiên giữ cấu trúc quang học &amp; ánh sáng thật của ảnh nguồn; chặn mức <code>strength ≤ 0.25</code> với trẻ em/kính để tránh biến dạng khuôn mặt.</div>
+          </div>
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ B (RV5.1) • Img2Img (<code>0_img2img.png</code>)</span>
+              <span class="artifact-badge champion">Strength=0.55 • Cố Định</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">RAW photo, a close-up portrait of</span>
+              <span class="prompt-tok tok-demo">an adult person,</span>
+              <span class="prompt-tok tok-skin">natural skin texture,</span>
+              <span class="prompt-tok tok-light">studio lighting,</span>
+              <span class="prompt-tok tok-optic">photorealistic, 8k uhd, dslr</span>
+            </div>
+            <div class="prompt-card-foot">Áp đồng bộ 1 prompt chuẩn mực trên toàn bộ <code>2.000</code> ảnh CelebA-HQ, dùng <code>strength=0.55</code> để tái tạo lớp bề mặt DSLR sắc nét.</div>
+          </div>
+        </div>
+
+        <!-- Cặp 3: INPAINTING -->
+        <div class="prompt-pair-grid">
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ A (SD 1.5) • Inpainting (<code>fake_ffhq_00002_0.png</code>)</span>
+              <span class="artifact-badge">ROI: lips / periocular / full</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">seamless natural facial features, authentic skin texture,</span>
+              <span class="prompt-tok tok-demo">woman face, feminine features, adult portrait, natural skin,</span>
+              <span class="prompt-tok tok-skin">subtle warm smile, natural laughing eyes, relaxed facial muscles,</span>
+              <span class="prompt-tok tok-light">cozy candlelit warm glow, low-key illumination, deep soft shadows</span>
+            </div>
+            <div class="prompt-card-foot">Nhấn mạnh <em>seamless blend</em> + bỏ slot che khuất khi Inpaint để tái tạo chính xác biểu cảm &amp; đồng nhất ánh sáng với nền thật xung quanh.</div>
+          </div>
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ B (RV5.1) • Inpainting (<code>0_inpaint.png</code>)</span>
+              <span class="artifact-badge champion">50% Mouth / 50% Eyes</span>
+            </div>
+            <div class="prompt-code-box">
+              <strong>[Vùng miệng - chẵn]:</strong> <span class="prompt-tok tok-skin">a natural smiling mouth, realistic lips and skin texture,</span> <span class="prompt-tok tok-optic">photorealistic, 8k uhd</span><br>
+              <strong>[Vùng mắt - lẻ]:</strong> <span class="prompt-tok tok-demo">wearing stylish black sunglasses,</span> <span class="prompt-tok tok-skin">natural skin reflections,</span> <span class="prompt-tok tok-optic">photorealistic, 8k uhd</span>
+            </div>
+            <div class="prompt-card-foot">Chia 50/50 giữa biến đổi nụ cười và đeo kính râm, dùng chung model <code>stable-diffusion-v1-5/stable-diffusion-inpainting</code>.</div>
+          </div>
+        </div>
+
+        <!-- NEGATIVE PROMPT ANATOMY -->
+        <div class="callout-box danger">
+          <div class="callout-title">🚫 Đối Chiếu Negative Prompt Chặn Dị Tật Sinh Học (Áp Dụng Cho Cả 3 Chế Độ)</div>
+          <div class="callout-desc">
+            <p style="margin-bottom: 8px;">
+              <strong>• Bộ A — <code>CALIBRATED_NEGATIVE_PROMPT</code> (SD 1.5):</strong>
+              <span class="prompt-tok tok-neg" style="font-family: var(--font-mono); font-size: 11.5px;">blurry, distorted face, bad anatomy, deformed eyes, extra fingers, cartoon, 3d render, doll, oversaturated, plastic skin, mutation, cropped forehead, unitooth, out of frame</span>
+              <br><em>Mục tiêu:</em> Triệt tiêu các dị tật đặc trưng của SD 1.5 như răng liền khối (<code>unitooth</code>), da nhựa (<code>plastic skin</code>), búp bê (<code>doll</code>) và cắt trán (<code>cropped forehead</code>).
+            </p>
+            <p style="margin-bottom: 0;">
+              <strong>• Bộ B — <code>NEGATIVE_PROMPT</code> (RV5.1):</strong>
+              <span class="prompt-tok tok-neg" style="font-family: var(--font-mono); font-size: 11.5px;">deformed, bad eyes, bad anatomy, bad hands, poorly drawn face, mutation, mutated, ugly, disgusting, cartoon, 3d, anime, airbrushed, oversaturated, blurry, low quality, watermark, text, signature</span>
+              <br><em>Mục tiêu:</em> Ngăn mô hình bị trơn láng quá mức (<code>airbrushed</code>) và chặn triệt để chữ ký/watermark (<code>watermark, text, signature</code>) vốn xuất hiện trong tập pre-train ảnh chụp chân thực.
+            </p>
           </div>
         </div>
       </section>
@@ -2300,6 +2924,76 @@ def build_vertical_report_html() -> str:
             <strong>Đánh giá khoa học trung thực:</strong> Vì tập huấn luyện chỉ gồm ảnh khuôn mặt tĩnh từ Diffusion (SD 1.5 + RV5.1) và bài test này chạy ở <code>224×224</code> trên đa số phương pháp ngoài Diffusion (FaceSwap, Talking Head, GAN, VAE), chỉ số ROC-AUC tổng hợp hiện chỉ đạt <strong>0.3820</strong> (PR-AUC 0.4233). Điều này chứng minh rõ ràng giới hạn chuyên biệt theo họ sinh ảnh và mở ra hướng nâng cấp bổ sung dữ liệu GAN/FaceSwap/Video ở giai đoạn tiếp theo.
           </div>
         </div>
+
+        <!-- Universal Benchmark 5-Model Global Summary Table -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mô Hình (20.400 Ảnh @ 224×224)</th>
+                <th>Accuracy</th>
+                <th>Fake Recall (↑)</th>
+                <th>Bypass Rate (↓)</th>
+                <th>Real Specificity (↑)</th>
+                <th>Precision</th>
+                <th>F1-Score</th>
+                <th>ROC-AUC | PR-AUC</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>M₀ (Baseline D₀)</strong></td>
+                <td>50.19%</td>
+                <td>2.75%</td>
+                <td>97.25%</td>
+                <td><strong>97.64%</strong></td>
+                <td><strong>53.74%</strong></td>
+                <td>5.22%</td>
+                <td>0.4896 | 0.4880</td>
+              </tr>
+              <tr>
+                <td><strong>M₁ (Active Learning R1)</strong></td>
+                <td>47.73%</td>
+                <td>2.17%</td>
+                <td>97.83%</td>
+                <td>93.29%</td>
+                <td>24.42%</td>
+                <td>3.98%</td>
+                <td>0.3331 | 0.3923</td>
+              </tr>
+              <tr>
+                <td><strong>M₂ (Cold-Start Scratch)</strong></td>
+                <td>48.20%</td>
+                <td>1.72%</td>
+                <td>98.28%</td>
+                <td>94.68%</td>
+                <td>24.37%</td>
+                <td>3.21%</td>
+                <td>0.4507 | 0.4447</td>
+              </tr>
+              <tr>
+                <td><strong>M₂* (Refined Warm-Start)</strong></td>
+                <td>47.19%</td>
+                <td>2.48%</td>
+                <td>97.52%</td>
+                <td>91.89%</td>
+                <td>23.43%</td>
+                <td>4.49%</td>
+                <td>0.3594 | 0.3970</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>🏆 M₃ (Dual-Engine Champion)</strong></td>
+                <td>47.96%</td>
+                <td><span class="badge-pill green">5.49% (Gấp 2.2× M₂*)</span></td>
+                <td><strong>94.51%</strong></td>
+                <td>90.42%</td>
+                <td>36.43%</td>
+                <td><span class="badge-pill green">9.54% (Cao nhất)</span></td>
+                <td>0.3820 | 0.4233</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
 
@@ -2498,7 +3192,7 @@ def build_vertical_report_html() -> str:
       const lightboxCaption = document.getElementById('lightbox-caption');
       const lightboxClose = document.getElementById('lightbox-close');
 
-      const clickableImages = document.querySelectorAll('.artifact-img-full, .face-strip-card img, .zoom-hint-banner');
+      const clickableImages = document.querySelectorAll('.artifact-img-full, .face-strip-card img, .flow-mini-thumb, .zoom-hint-banner');
       clickableImages.forEach(el => {
         el.addEventListener('click', () => {
           let targetImg = el;
@@ -2546,9 +3240,17 @@ def build_vertical_report_html() -> str:
     return html_content
 
 def main():
+    import sys
+
+    root_dir = str(Path(__file__).resolve().parents[1])
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
+    from scripts.generate_dual_engine_mechanics_visuals import main as generate_03b_visuals
+
     generate_m0_collapse_chart()
     regenerate_clean_defect_taxonomy()
     regenerate_clean_d3_audit()
+    generate_03b_visuals()
     generate_m2star_rv51_profiling_chart()
     generate_m3_convergence_chart()
     generate_curation_funnel_chart()

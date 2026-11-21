@@ -4,7 +4,7 @@
 - **Purpose**: Hướng dẫn demo pretrained trên Kaggle, ghi rõ bằng chứng đã kiểm tra và phần chưa triển khai.
 - **Overview Pipeline**: Drive/local sources → chọn 3 ảnh → xem mask → ba native Diffusers pipelines → PNG + manifest + technical QA + gallery.
 - **Detailed Plan**: Chuẩn bị môi trường, dữ liệu, inference, kiểm tra artifacts, giới hạn và bước tiếp theo.
-- **References**: [DEFINE](../PURPOSE.md), [Phase 1](../phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md), [notebook](../../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb), [config](../../configs/generation/kaggle_image_demo.yaml).
+- **References**: [DEFINE](../PURPOSE.md), [Phase 1](../phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md), `SD_IMAGE_DEMO_KAGGLE.ipynb` (gói Kaggle ZIP), [config](../../configs/generation/kaggle_image_demo.yaml).
 - **Created**: 2026-11-09T13:24:35+07:00
 - **Last Updated**: 2026-11-09T13:24:35+07:00
 
@@ -32,7 +32,7 @@ Sơ đồ vector của luồng này có trong [bản HTML](KAGGLE_SD_IMAGE_DEMO.
 
 1. Tạo Kaggle Notebook Python, bật **GPU** và **Internet**.
 2. Upload gói `SD_IMAGE_DEMO_KAGGLE.zip` được bàn giao thành một **Kaggle Dataset riêng tư**, rồi attach Dataset vào notebook. Gói này chỉ chứa code/config/docs/notebook, không chứa weights hay ảnh thật.
-3. Import [SD_IMAGE_DEMO_KAGGLE.ipynb](../../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb).
+3. Import `SD_IMAGE_DEMO_KAGGLE.ipynb` (từ gói `SD_IMAGE_DEMO_KAGGLE.zip`).
 4. Chạy phần môi trường và chuẩn bị dữ liệu. Notebook giải nén source rồi chỉ cài [requirements/notebook.txt](../../requirements/notebook.txt) vào kernel; [launcher](../../src/pipelines/sd_demo_launcher.py) cài/chạy model trong venv worker, giữ torch/torchvision CUDA. Nếu đã chạy cell cũ cài generation.txt vào kernel, lưu outputs và tạo session Kaggle mới; restart kernel không hoàn tác pip. Không còn ép protobuf xuống dưới 6.
 5. Xem contact sheet nguồn/mask. Mask trắng là vùng sửa. Nếu lệch vùng miệng, sửa `mask_box_xyxy_normalized` hoặc thêm `mask_path` cho từng ảnh vào manifest trước khi inference.
 6. Chạy inference, xem gallery và tải ZIP artifacts ở cell cuối. Thời gian thật và GPU peak memory được ghi sau chạy; chưa có số đo tốc độ Kaggle trong báo cáo này.

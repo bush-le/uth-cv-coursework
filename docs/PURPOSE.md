@@ -26,7 +26,7 @@ Nhóm 4 đã chủ động triển khai và tự sinh hơn **12.500 ảnh khuôn
 
 | Tiêu Chí | **Bộ A: Stable Diffusion v1.5 Base** | **Bộ B: RealImage v5.1 (Realistic Vision)** |
 | :--- | :--- | :--- |
-| **Model Checkpoint** | `runwayml/stable-diffusion-v1-5` | `SG161222/Realistic_Vision_V5.1_noVAE` |
+| **Model Checkpoint** | `configs/dataset_factory.yaml -> generation.model_id` (SD v1.5 Base) | `SG161222/Realistic_Vision_V5.1_noVAE` |
 | **Quy mô dữ liệu** | **~6.545 ảnh** (2.745 ảnh $D_0$ + 3.800 ảnh AL) | **Đúng 6.000 ảnh** (2.000 Text2Img, 2.000 Inpaint, 2.000 Img2Img) |
 | **Đặc trưng thị giác** | Sinh ảnh cơ bản, còn tồn tại vi nhiễu latent | Siêu thực (Photorealistic), chi tiết chân thực về lỗ chân lông, mắt, miệng |
 | **Vai trò nghiên cứu** | Vận hành cỗ máy Active Learning nội miền ($D_0 \to D_1 \to D_2$) | Đóng vai trò **Thử nghiệm đối kháng ngoại miền (Cross-Generator Adversarial Benchmark)** |

@@ -15,7 +15,8 @@ Generates docs/reports/presentation_final_acceptance.html with embedded real vis
 from pathlib import Path
 import re
 
-OUTPUT_PATH = Path("docs/reports/presentation_final_acceptance.html")
+# Legacy presentation builder; keep separate from active presentation_final_acceptance.html
+OUTPUT_PATH = Path("docs/reports/presentation_final_acceptance_legacy.html")
 
 def build_presentation_html() -> str:
     base_file = Path("docs/reports/presentation_5min_define_and_design.html")

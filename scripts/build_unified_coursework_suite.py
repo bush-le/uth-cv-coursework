@@ -1230,8 +1230,8 @@ defect_samples = [
     },
 ]
 
-fig, axes = plt.subplots(2, 4, figsize=(15, 6.8))
-plt.subplots_adjust(hspace=0.25, wspace=0.15)
+fig, axes = plt.subplots(2, 4, figsize=(15, 7.6))
+plt.subplots_adjust(top=0.86, hspace=0.38, wspace=0.16)
 
 for idx, item in enumerate(defect_samples):
     p = Path(item["file"])
@@ -1731,7 +1731,8 @@ for ax in [axes[0]]:
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-plt.suptitle("KIỂM TOÁN DỮ LIỆU D3: ZERO IDENTITY LEAKAGE & CƠ CẤU ĐA ĐỘNG CƠ KHUẾCH TÁN", fontsize=12, fontweight="bold", y=1.02)
+plt.suptitle("KIỂM TOÁN DỮ LIỆU D3: ZERO IDENTITY LEAKAGE & CƠ CẤU ĐA ĐỘNG CƠ KHUẾCH TÁN", fontsize=12, fontweight="bold", y=0.98)
+plt.tight_layout(rect=[0, 0, 1, 0.91])
 plt.show()
 plt.close("all")
 """
