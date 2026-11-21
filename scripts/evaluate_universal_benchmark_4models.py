@@ -536,10 +536,10 @@ def main():
     # Figure 1: Global Metrics Bar Chart
     fig, axes = plt.subplots(1, 4, figsize=(18, 5.5))
     metrics_to_plot = [
-        ("accuracy", "Độ Chính Xác (Accuracy)", "%", 100.0, (50, 100)),
-        ("fake_recall", "Thu Hồi Ảnh Giả (Fake Recall)", "%", 100.0, (20, 100)),
-        ("bypass_rate", "Tỷ Lệ Bỏ Lọt (Bypass Rate ↓)", "%", 100.0, (0, 80)),
-        ("roc_auc", "Diện Tích ROC-AUC (↑)", "", 1.0, (0.75, 1.0)),
+        ("accuracy", "Độ Chính Xác (Accuracy)", "%", 100.0, (0, 100)),
+        ("fake_recall", "Thu Hồi Ảnh Giả (Fake Recall ↑)", "%", 100.0, (0, 100)),
+        ("bypass_rate", "Tỷ Lệ Bỏ Lọt (Bypass Rate ↓)", "%", 100.0, (0, 110)),
+        ("roc_auc", "Diện Tích ROC-AUC (↑)", "", 1.0, (0.0, 1.0)),
     ]
     model_labels = [cfg["display_name"] for cfg in MODEL_CONFIGS]
     model_colors = [cfg["color"] for cfg in MODEL_CONFIGS]
