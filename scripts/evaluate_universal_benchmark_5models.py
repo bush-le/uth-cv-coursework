@@ -166,7 +166,7 @@ def main() -> None:
         m3_cfg = MODEL_CONFIGS[4]
         logger.info("Loading M3 model weights from %s...", m3_cfg["ckpt"])
         m3_model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
-        m3_state = torch.load(m3_cfg["ckpt"], map_location="cpu")
+        m3_state = torch.load(m3_cfg["ckpt"], map_location="cpu", weights_only=False)
         if "model_state_dict" in m3_state:
             m3_model.load_state_dict(m3_state["model_state_dict"])
         elif isinstance(m3_state, dict):
@@ -208,7 +208,7 @@ def main() -> None:
             key = cfg["key"]
             model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
             model.unfreeze_backbone(unfreeze_last_n_blocks=1)
-            state = torch.load(cfg["ckpt"], map_location="cpu")
+            state = torch.load(cfg["ckpt"], map_location="cpu", weights_only=False)
             model.load_state_dict(state["model_state_dict"] if "model_state_dict" in state else state)
             model.eval()
             model.to(device)

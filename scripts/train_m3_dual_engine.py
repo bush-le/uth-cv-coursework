@@ -133,7 +133,7 @@ def main() -> None:
 
     logger.info("Initializing DeepfakeImageDetector with Warm-Start from M2*: %s", m2_ckpt_path)
     model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
-    m2_state = torch.load(m2_ckpt_path, map_location="cpu")
+    m2_state = torch.load(m2_ckpt_path, map_location="cpu", weights_only=False)
     if "model_state_dict" in m2_state:
         model.load_state_dict(m2_state["model_state_dict"])
     else:
@@ -273,7 +273,7 @@ def main() -> None:
 
     # 7. Comprehensive Post-Training Evaluation on Best Model
     logger.info("=== ĐÁNH GIÁ ĐA KHO TRÊN BEST CHECKPOINT (%s) ===", best_ckpt_path)
-    best_state = torch.load(best_ckpt_path, map_location=device)
+    best_state = torch.load(best_ckpt_path, map_location=device, weights_only=False)
     if "model_state_dict" in best_state:
         model.load_state_dict(best_state["model_state_dict"])
 

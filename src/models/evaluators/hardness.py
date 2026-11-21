@@ -174,7 +174,7 @@ def load_verified_checkpoint(
     if not p.is_file():
         raise FileNotFoundError(f"Checkpoint file not found: {p}")
 
-    checkpoint = torch.load(p, map_location=device)
+    checkpoint = torch.load(p, map_location=device, weights_only=False)
     if not isinstance(checkpoint, dict) or "model_state_dict" not in checkpoint:
         raise ValueError(f"Checkpoint {p} does not contain required 'model_state_dict' dictionary.")
 

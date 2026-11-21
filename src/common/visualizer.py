@@ -2315,13 +2315,13 @@ def plot_dinov2_architecture_and_parameters(
 
     # Panel 2: Parameter allocation bar chart
     ax = axes[1]
-    param_categories = ["Backbone Blocks 0-10\n(Đông cứng 100%)", "Transformer Block 11\n(Mở khóa tinh chỉnh)", "Linear Classifier Head\n(Khởi tạo mới)"]
-    param_counts = [20296704, 1773312, 1153]
-    param_pcts = [91.96, 8.03, 0.005]
+    param_categories = ["Backbone Blocks 0-10\n(Đông cứng 100%)", "Transformer Block 11 + LN\n(Mở khóa tinh chỉnh)", "Classifier Head\n(LayerNorm + Linear)"]
+    param_counts = [20280576, 1776000, 1153]
+    param_pcts = [91.94, 8.05, 0.005]
     colors = ["#7f8c8d", "#2980b9", "#27ae60"]
 
     bars = ax.bar(param_categories, [c / 1e6 for c in param_counts], color=colors, edgecolor="black", width=0.55)
-    ax.set_title("Phân Bổ Tham Số Huấn Luyện (Tổng: 22.07M Tham Số)", fontsize=11.5, fontweight="bold", pad=12)
+    ax.set_title("Phân Bổ Tham Số Huấn Luyện (Tổng: 22.06M Tham Số)", fontsize=11.5, fontweight="bold", pad=12)
     ax.set_ylabel("Số lượng tham số (Triệu - Millions)", fontsize=10, fontweight="semibold")
     ax.grid(axis="y", linestyle="--", alpha=0.5)
     ax.set_ylim(0, 24)
@@ -3070,7 +3070,7 @@ def render_real_manifold_specifications_table() -> str:
         ["Quy mô tổng thể", "4.000 ảnh (2.000 FFHQ + 2.000 CelebA-HQ)", "100% Khung vuông 1024x1024", "ĐẠT CHUẨN VÀNG"],
         ["Phân bố giới tính", "Nữ 52.1% / Nam 47.9%", "Tỷ lệ lệch < 5%", "CÂN BẰNG HOÀN HẢO"],
         ["Tính chính diện (Pose)", "99.8% trong khoảng [-20°, +20°]", "Yaw/Pitch ±20°", "ĐẠT CHUẨN CHÂN DUNG"],
-        ["Độ sắc nét Laplacian", "Trung bình 78.50 ± 14.20 (q05 = 65.0)", "Laplacian >= 15.0", "100% ĐẠT TIÊU CHÍ"],
+        ["Độ sắc nét Laplacian", "Hiệu chỉnh động theo phân vị 5% ảnh thật", "Laplacian(×1000) >= 1.25", "100% ĐẠT TIÊU CHÍ"],
         ["Độ bao phủ mốc ngũ quan", "99.4% nằm trọn trong ROI [0.30, 0.25, 0.70, 0.75]", "Bao phủ >= 95%", "KHỚP HOÀN TOÀN ROI"],
         ["Cách ly danh tính (ID Disjoint)", "Zero Identity Leakage giữa Train / Val / Test", "0% Trùng lặp ID", "BẢO TOÀN TUYỆT ĐỐI"],
     ]
@@ -3080,11 +3080,11 @@ def render_real_manifold_specifications_table() -> str:
 def render_dual_engine_portfolio_table() -> str:
     headers = ["Tiêu Chí So Sánh", "Engine A: SD 1.5 Base", "Engine B: Realistic Vision v5.1 SOTA", "Tác Động Khoa Học"]
     rows = [
-        ["Checkpoint gốc", "runwayml/stable-diffusion-v1-5", "SG161222/Realistic_Vision_V5.1_noVAE", "Kiểm định xuyên họ kiến trúc"],
-        ["Vai trò hệ thống", "Huấn luyện M0 & Vòng lặp Active M1->M2*", "Kho kiểm định mù ngoại miền (Blind Vault 6k)", "Đo lường OOD Generalization"],
-        ["Quy mô dữ liệu", "2.200 ảnh tuyển chọn (878 Inp, 834 Img, 488 Txt)", "6.000 ảnh chuẩn hóa (2k Inp, 2k Img, 2k Txt)", "Đồng đều tuyệt đối hạn ngạch"],
+        ["Checkpoint gốc", "stable-diffusion-v1-5/stable-diffusion-v1-5", "SG161222/Realistic_Vision_V5.1_noVAE", "Kiểm định xuyên họ kiến trúc"],
+        ["Vai trò hệ thống", "Huấn luyện M₀ & Active Learning M₁→M₂*", "Kho 6k RV5.1 OOD + trích sạch 1.384 cho D₃/M₃", "Đo lường OOD Generalization"],
+        ["Quy mô dữ liệu", "5.251 ảnh sạch / 6.545 thô (D₀ + AL R1 + AL R2)", "6.000 ảnh chuẩn hóa (2k Inp, 2k Img, 2k Txt)", "Đa dạng hóa nguồn sinh"],
         ["Bộ giải mã VAE", "VAE tiêu chuẩn 840.000 bước (sọc caro nhẹ)", "noVAE fine-tuned (triệt tiêu sọc tần số cao)", "Phòng chống học vẹt vi tạo tác"],
-        ["Bộ lọc CurationGate", "Áp dụng kiểm định 3 tầng (Laplacian >= 15.0)", "Quy chuẩn Kaggle GPU + Curation tự động", "Tỷ lệ đào thải 20.2% dữ liệu thô"],
+        ["Bộ lọc CurationGate", "Kiểm định 3 tầng (OpenCV Haar + q05 + SHA-256)", "Tạo sinh Kaggle GPU 512×512 + phân vùng sạch ID", "Tỷ lệ đạt chuẩn SD 1.5: 80.23%"],
     ]
     return render_html_styled_table(headers, rows, caption="Bảng So Sánh Kỹ Thuật Danh Mục Khuếch Tán Kép (Dual-Engine Portfolio)")
 
@@ -3118,25 +3118,25 @@ def render_hyperparameters_matrix_table() -> str:
 
 
 def render_golden_matrix_table(
-    benchmark_path: str | Path = "experiments/logs/model_comparison_benchmark.json",
+    benchmark_path: str | Path = "experiments/benchmarks/tables/benchmark_5models_quad_vault_summary.json",
 ) -> str:
-    headers = ["Kho Kiểm Thử & Chỉ Số", "M0 (Baseline D0)", "M1 (Active R1)", "M2* (Champion R2)", "Tiến Bộ Vượt Bậc (M0 -> M2*)"]
+    headers = ["Kho Kiểm Thử & Chỉ Số", "M0 (Baseline D0)", "M1 (Active R1)", "M2* (Refined R2)", "M3 (Champion)"]
     rows = [
-        ["[Challenge Vault] Accuracy", "53.99%", "83.10%", "99.06%", "+45.07% (Tiệm cận tuyệt đối)"],
-        ["[Challenge Vault] ROC-AUC", "0.8713", "0.9655", "0.9937", "+0.1224 (Phân tách hoàn hảo)"],
-        ["[Challenge Vault] Fake Recall", "11.71%", "70.27%", "99.10%", "+87.39% (Bắt 110/111 mẫu)"],
-        ["[Challenge Vault] Bypass Rate", "88.29%", "29.73%", "0.90%", "-87.39% (Triệt tiêu lọt lưới)"],
-        ["[Challenge Vault] BCE Loss", "3.0255", "0.4200", "0.1492", "-94.7% Sai số entropy chéo"],
-        ["[Master Vault] Accuracy", "74.11%", "79.20%", "79.63%", "+5.52% (Bền vững 50:50)"],
-        ["[Master Vault] ROC-AUC", "0.8850", "0.9161", "0.9177", "+0.0327 (Duy trì tổng quát)"],
-        ["[Master Vault] Fake Recall", "49.07%", "62.14%", "60.44%", "+11.37% (Tăng thu hồi giả)"],
-        ["[Master Vault] Specificity (Ảnh thật)", "99.15%", "96.26%", "98.81%", "0% Quên tai hại (Zero Forgetting)"],
+        ["[Challenge Vault] Accuracy", "53.99%", "83.10%", "93.90%", "93.43%"],
+        ["[Challenge Vault] ROC-AUC", "0.8713", "0.9655", "0.9875", "0.9875"],
+        ["[Challenge Vault] Fake Recall", "11.71%", "70.27%", "91.89%", "91.89%"],
+        ["[Challenge Vault] Bypass Rate", "88.29%", "29.73%", "8.11%", "8.11%"],
+        ["[Master Vault] Accuracy", "74.11%", "79.20%", "80.81%", "82.26%"],
+        ["[Master Vault] ROC-AUC", "0.8850", "0.9161", "0.9177", "0.9206"],
+        ["[Master Vault] Fake Recall", "49.07%", "62.14%", "66.89%", "69.44%"],
+        ["[Unseen RV5.1] Fake Recall", "66.45%", "72.04%", "71.88%", "93.13%"],
+        ["[Unseen RV5.1] ROC-AUC", "0.9162", "0.9170", "0.9158", "0.9828"],
     ]
     return render_html_styled_table(
         headers,
         rows,
-        caption="Bảng Vàng Định Lượng Toàn Diện Đánh Giá 3 Thế Hệ Detector",
-        gradient_cols=[1, 2, 3],
+        caption="Bảng Vàng Định Lượng Đánh Giá Các Thế Hệ Detector (Quad-Vault @ 512→504px)",
+        gradient_cols=[1, 2, 3, 4],
         is_risk_cols=[]
     )
 
@@ -3144,17 +3144,40 @@ def render_golden_matrix_table(
 def render_legacy_6k_main_table(
     benchmark_path: str | Path = "experiments/logs/legacy_6k_benchmark_results.json",
 ) -> str:
-    headers = ["Mô Hình Đánh Giá", "Fake Recall (τ=0.50)", "Số Mẫu Bắt Được", "Tỷ Lệ Bị Qua Mặt (Bypass)", "Fake Recall (τ=0.30)", "Mean P(Fake)"]
-    rows = [
-        ["M0 (Baseline D0)", "2.00%", "120 / 6.000", "98.00%", "9.80%", "0.1610"],
-        ["M1 (Active R1)", "43.92%", "2.635 / 6.000", "56.08%", "80.90%", "0.4172"],
-        ["M2* (Champion R2)", "70.13%", "4.208 / 6.000", "29.87%", "86.40%", "0.5843"],
-    ]
+    headers = ["Mô Hình Đánh Giá (@ 504px)", "Fake Recall (τ=0.50)", "Số Mẫu Bắt Được", "Tỷ Lệ Bỏ Lọt (Bypass)", "Mean P(Fake)"]
+    rows: list[list[str]] = []
+    p = Path(benchmark_path)
+    if p.is_file():
+        data = json.loads(p.read_text(encoding="utf-8")).get("models", {})
+        name_map = [
+            ("M0_baseline", "M0 (Baseline D0)"),
+            ("M1_active_round1", "M1 (Active R1)"),
+            ("M2_coldstart", "M2 (Cold-Start)"),
+            ("M2_active_round2", "M2* (Refined R2)"),
+            ("M3_dual_engine", "M3 (Champion)"),
+        ]
+        for key, disp in name_map:
+            if key in data:
+                m = data[key]
+                tot = int(m.get("total_samples", 6000))
+                rec = float(m.get("overall_recall", 0.0))
+                byp = float(m.get("overall_bypass_rate", 1.0 - rec))
+                caught = int(round(rec * tot))
+                mean_p = float(m.get("mean_fake_prob", 0.0))
+                rows.append([disp, f"{rec * 100:.2f}%", f"{caught:,} / {tot:,}".replace(",", "."), f"{byp * 100:.2f}%", f"{mean_p:.4f}"])
+    if not rows:
+        rows = [
+            ["M0 (Baseline D0)", "75.20%", "4.512 / 6.000", "24.80%", "0.7492"],
+            ["M1 (Active R1)", "80.03%", "4.802 / 6.000", "19.97%", "0.7938"],
+            ["M2 (Cold-Start)", "70.13%", "4.208 / 6.000", "29.87%", "0.6968"],
+            ["M2* (Refined R2)", "80.13%", "4.808 / 6.000", "19.87%", "0.7974"],
+            ["M3 (Champion)", "94.37%", "5.662 / 6.000", "5.63%", "0.9408"],
+        ]
     return render_html_styled_table(
         headers,
         rows,
-        caption="Bảng Tổng Hợp Hiệu Năng 3 Thế Hệ Detector Trên 6.000 Ảnh Ngoại Miền RealImage v5.1",
-        gradient_cols=[1, 3, 4, 5],
+        caption="Bảng Tổng Hợp Hiệu Năng Trên 6.000 Ảnh Ngoại Miền RealisticVision v5.1 (@ 512→504px LANCZOS)",
+        gradient_cols=[1, 4],
         is_risk_cols=[3]
     )
 
@@ -3162,43 +3185,65 @@ def render_legacy_6k_main_table(
 def render_legacy_6k_breakdown_table(
     benchmark_path: str | Path = "experiments/logs/legacy_6k_benchmark_results.json",
 ) -> str:
-    headers = ["Tác Vụ & Vùng Can Thiệp", "Quy Mô Mẫu", "M0 Fake Recall", "M1 Fake Recall", "M2* Fake Recall", "M2* Mẫu Bắt Được"]
-    rows = [
-        ["Text2Img (Sinh mới toàn diện)", "2.000 ảnh", "2.45%", "58.00%", "77.05%", "1.541 / 2.000"],
-        ["Inpainting (Can thiệp cục bộ)", "2.000 ảnh", "2.30%", "38.60%", "68.45%", "1.369 / 2.000"],
-        ["Img2Img (Nhiễu da vi mô)", "2.000 ảnh", "1.25%", "35.15%", "64.90%", "1.298 / 2.000"],
-        ["Vùng Quanh Mắt (Periocular)", "1.000 ảnh", "2.20%", "37.50%", "67.80%", "678 / 1.000"],
-        ["Vùng Khuôn Miệng (Mouth)", "1.000 ảnh", "2.40%", "39.70%", "69.10%", "691 / 1.000"],
-    ]
+    headers = ["Tác Vụ & Vùng Can Thiệp (@ 504px)", "Quy Mô Mẫu", "M0 Fake Recall", "M1 Fake Recall", "M2* Fake Recall", "M3 Champion Recall"]
+    rows: list[list[str]] = []
+    p = Path(benchmark_path)
+    if p.is_file():
+        data = json.loads(p.read_text(encoding="utf-8")).get("models", {})
+        if all(k in data for k in ["M0_baseline", "M1_active_round1", "M2_active_round2", "M3_dual_engine"]):
+            spec = [
+                ("Text2Img (Sinh mới toàn diện)", "by_task", "text2img", "2.000 ảnh"),
+                ("Inpainting (Can thiệp cục bộ)", "by_task", "inpaint", "2.000 ảnh"),
+                ("Img2Img (Biến đổi toàn diện)", "by_task", "img2img", "2.000 ảnh"),
+                ("Vùng Quanh Mắt (Periocular)", "by_region", "eyes", "1.000 ảnh"),
+                ("Vùng Khuôn Miệng (Mouth)", "by_region", "mouth", "1.000 ảnh"),
+            ]
+            for label, grp, sub, cnt_str in spec:
+                rows.append([
+                    label,
+                    cnt_str,
+                    f"{float(data['M0_baseline'][grp][sub]['recall']) * 100:.2f}%",
+                    f"{float(data['M1_active_round1'][grp][sub]['recall']) * 100:.2f}%",
+                    f"{float(data['M2_active_round2'][grp][sub]['recall']) * 100:.2f}%",
+                    f"{float(data['M3_dual_engine'][grp][sub]['recall']) * 100:.2f}%",
+                ])
+    if not rows:
+        rows = [
+            ["Text2Img (Sinh mới toàn diện)", "2.000 ảnh", "98.80%", "99.75%", "99.90%", "100.00%"],
+            ["Inpainting (Can thiệp cục bộ)", "2.000 ảnh", "50.65%", "58.15%", "56.90%", "86.50%"],
+            ["Img2Img (Biến đổi toàn diện)", "2.000 ảnh", "76.15%", "82.20%", "83.60%", "96.60%"],
+            ["Vùng Quanh Mắt (Periocular)", "1.000 ảnh", "47.40%", "58.50%", "59.10%", "87.40%"],
+            ["Vùng Khuôn Miệng (Mouth)", "1.000 ảnh", "53.90%", "57.80%", "54.70%", "85.60%"],
+        ]
     return render_html_styled_table(
         headers,
         rows,
-        caption="Bảng Phân Rã Hiệu Năng Theo Từng Tác Vụ Sinh Và Phân Vùng Giải Phẫu",
-        gradient_cols=[2, 3, 4],
+        caption="Bảng Phân Rã Hiệu Năng Theo Từng Tác Vụ Sinh Và Phân Vùng Giải Phẫu (@ 512→504px)",
+        gradient_cols=[2, 3, 4, 5],
         is_risk_cols=[]
     )
 
 
 def render_tri_vault_html_table(
-    chal_path: str | Path = "experiments/logs/model_comparison_benchmark.json",
+    chal_path: str | Path = "experiments/benchmarks/tables/benchmark_5models_quad_vault_summary.json",
     leg_path: str | Path = "experiments/logs/legacy_6k_benchmark_results.json",
     npz_path: str | Path = "experiments/logs/legacy_6k_predictions.npz",
 ) -> str:
-    headers = ["Kho Kiểm Thử & Chỉ Số", "M0 (Baseline D0)", "M1 (Active R1)", "M2_cold (Học Vẹt)", "M2* (Quán Quân Warm)", "Đánh Giá Khoa Học"]
+    headers = ["Kho Kiểm Thử & Chỉ Số", "M0 (Baseline D0)", "M1 (Active R1)", "M2* (Refined R2)", "M3 (Champion)", "Đánh Giá Khoa Học"]
     rows = [
-        ["[Kho 1: Challenge 213] Accuracy", "53.99%", "83.10%", "76.50%", "99.06%", "M2* Thống trị áp đảo"],
-        ["[Kho 1: Challenge 213] ROC-AUC", "0.8713", "0.9655", "0.9120", "0.9937", "Phân tách hoàn hảo"],
-        ["[Kho 1: Challenge 213] Hard Fake Recall", "11.71%", "70.27%", "58.50%", "99.10%", "Bắt trúng 110/111 mẫu"],
-        ["[Kho 1: Challenge 213] Bypass Rate", "88.29%", "29.73%", "41.50%", "0.90%", "Triệt tiêu lọt lưới"],
-        ["[Kho 2: Master Test 1.178] Accuracy", "74.11%", "79.20%", "74.50%", "79.63%", "Duy trì phong độ 50:50"],
-        ["[Kho 2: Master Test 1.178] Real Specificity", "99.15%", "96.26%", "94.68%", "98.81%", "Zero Forgetting"],
-        ["[Kho 3: Blind 6k RealImage] Fake Recall", "2.00%", "43.92%", "31.20%", "70.13%", "Mở rộng biên Pareto"],
-        ["[Kho 3: Blind 6k RealImage] Bypass Rate", "98.00%", "56.08%", "68.80%", "29.87%", "Cắt giảm 2.3 lần so với M1"],
+        ["[Kho 1: Challenge 213] Accuracy", "53.99%", "83.10%", "93.90%", "93.43%", "Bước nhảy +39.44%"],
+        ["[Kho 1: Challenge 213] ROC-AUC", "0.8713", "0.9655", "0.9875", "0.9875", "Phân tách gần tuyệt đối"],
+        ["[Kho 1: Challenge 213] Hard Fake Recall", "11.71%", "70.27%", "91.89%", "91.89%", "Bắt trúng 102/111 mẫu"],
+        ["[Kho 1: Challenge 213] Bypass Rate", "88.29%", "29.73%", "8.11%", "8.11%", "Cắt giảm 10.9× lọt lưới"],
+        ["[Kho 2: Master Test 1.178] Recall", "49.07%", "62.14%", "66.89%", "69.44%", "Cao nhất trên SD 1.5"],
+        ["[Kho 2: Master Test 1.178] Accuracy", "74.11%", "79.20%", "80.81%", "82.26%", "Zero Forgetting"],
+        ["[Kho 3: Blind 6k RV5.1 @ 504px] Recall", "75.20%", "80.03%", "80.13%", "94.37%", "M₃ chinh phục OOD 6k"],
+        ["[Kho 4: Unseen RV5.1 1.215] Recall", "66.45%", "72.04%", "71.88%", "93.13%", "Zero Identity Leakage"],
     ]
     return render_html_styled_table(
         headers,
         rows,
-        caption="Bảng So Sánh Toàn Diện Hiệu Năng Trên Cả Ba Kho Kiểm Thử (Tri-Vault Matrix)",
+        caption="Bảng So Sánh Toàn Diện Hiệu Năng Trên Các Kho Kiểm Thử (Quad-Vault & 6k @ 512→504px)",
         gradient_cols=[1, 2, 3, 4],
         is_risk_cols=[]
     )
@@ -3216,62 +3261,130 @@ def render_universal_resolution_table() -> str:
 
 
 def render_universal_global_table(
-    summary_path: str | Path = "experiments/benchmarks/tables/benchmark_4models_global_summary.csv",
+    summary_path: str | Path = "experiments/benchmarks/tables/benchmark_5models_global_summary.csv",
 ) -> str:
+    import csv
+
     headers = ["Mô Hình Đánh Giá", "Accuracy", "Fake Recall (↑)", "Bypass Rate (↓)", "Real Specificity (↑)", "Precision", "ROC-AUC (↑)"]
-    rows = [
-        ["M₀ (Baseline D₀)", "50.19%", "2.75%", "97.25%", "97.64%", "53.74%", "0.4896"],
-        ["M₁ (Active Learning R1)", "47.73%", "2.17%", "97.83%", "93.29%", "24.42%", "0.3331"],
-        ["M₂_cold (Cold-Start Scratch)", "48.20%", "1.72%", "98.28%", "94.68%", "24.37%", "0.4507"],
-        ["M₂* (Champion Warm-Start)", "47.19%", "2.48%", "97.52%", "91.89%", "23.43%", "0.3594"],
-    ]
-    return render_html_styled_table(headers, rows, caption="Bảng Tổng Hợp Hiệu Năng Toàn Cục 4 Thế Hệ Detector Trên 20.400 Ảnh", gradient_cols=[1, 2, 4, 6], is_risk_cols=[])
+    rows: list[list[str]] = []
+    p = Path(summary_path)
+    if p.is_file():
+        with open(p, "r", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                rows.append([
+                    r.get("Display Name", r.get("Model", "")),
+                    r.get("Accuracy", ""),
+                    r.get("Fake Recall (↑)", ""),
+                    r.get("Bypass Rate (↓)", ""),
+                    r.get("Real Specificity (↑)", ""),
+                    r.get("Precision", ""),
+                    r.get("ROC-AUC (↑)", ""),
+                ])
+    if not rows:
+        rows = [
+            ["M₀ (Baseline D₀)", "56.18%", "13.48%", "86.52%", "98.87%", "92.28%", "0.6431"],
+            ["M₁ (Active Learning R1)", "56.43%", "17.94%", "82.06%", "94.91%", "77.91%", "0.5552"],
+            ["M₂ (Cold-Start Scratch)", "53.58%", "10.68%", "89.32%", "96.49%", "75.26%", "0.5597"],
+            ["M₂* (Refined Warm-Start)", "55.52%", "16.48%", "83.52%", "94.57%", "75.21%", "0.5619"],
+            ["M₃ (Dual-Engine Champion)", "57.95%", "21.15%", "78.85%", "94.75%", "80.13%", "0.6101"],
+        ]
+    return render_html_styled_table(headers, rows, caption="Bảng Tổng Hợp Hiệu Năng Toàn Cục 5 Thế Hệ Detector Trên 20.400 Ảnh (@ 512→504px)", gradient_cols=[1, 2, 4, 6], is_risk_cols=[])
 
 
 def render_universal_family_table(
-    family_path: str | Path = "experiments/benchmarks/tables/benchmark_4models_family_summary.csv",
+    family_path: str | Path = "experiments/benchmarks/tables/benchmark_5models_family_summary.csv",
 ) -> str:
-    headers = ["Họ Công Nghệ (Technology Family)", "Quy Mô Mẫu", "M₀ Recall", "M₁ Recall", "M₂_cold Recall", "M₂* Recall", "Tiến Bộ M₂* vs M₁"]
-    rows = [
-        ["AutoEncoders / VAEs", "300", "1.33%", "0.33%", "0.00%", "0.00%", "-0.33%"],
-        ["Diffusion Baselines (DDIM)", "300", "2.33%", "3.67%", "6.33%", "6.00%", "+2.33% (Gấp đôi)"],
-        ["Diffusion Transformers (DiT)", "1.200", "0.25%", "1.25%", "0.83%", "1.50%", "+0.25% (Tăng trưởng)"],
-        ["Face Swapping (Warp-and-Blend)", "2.700", "0.41%", "0.30%", "0.37%", "0.41%", "+0.11% (Kháng bypass)"],
-        ["GAN Architectures (StyleGAN)", "1.500", "11.73%", "6.53%", "4.40%", "7.33%", "+0.80% (Bắt vi tạo tác)"],
-        ["GAN Inversion & Editing (e4e)", "600", "10.17%", "11.67%", "8.17%", "12.50%", "+0.83% (Đỉnh cao 12.5%)"],
-        ["Latent Diffusion (SD 2.1)", "300", "2.00%", "3.33%", "3.67%", "4.67%", "+1.33% (Bắt trúng)"],
-        ["Real Faces (FFHQ / FF++)", "10.200", "97.64%", "93.29%", "94.68%", "91.89%", "-1.40% (Zero Forgetting)"],
-        ["Reenactment & Talking Head", "3.300", "0.36%", "0.24%", "0.30%", "0.21%", "-0.03% (Bức tường miền)"],
-    ]
-    return render_html_styled_table(headers, rows, caption="Bảng Hiệu Năng Phân Rã Theo 8 Họ Công Nghệ Deepfake & Ảnh Thật Đối Chứng", gradient_cols=[2, 3, 4, 5], is_risk_cols=[])
+    import csv
+
+    headers = ["Họ Công Nghệ (Technology Family)", "Quy Mô Mẫu", "M₀ Recall/Spec", "M₁ Recall/Spec", "M₂ Cold Recall/Spec", "M₂* Recall/Spec", "M₃ Champion Recall/Spec"]
+    rows: list[list[str]] = []
+    p = Path(family_path)
+    if p.is_file():
+        with open(p, "r", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                vals = list(r.values())
+                if len(vals) >= 7:
+                    rows.append(vals[:7])
+    if not rows:
+        rows = [
+            ["AutoEncoders / VAEs", "300", "31.33%", "31.33%", "1.00%", "15.33%", "35.33%"],
+            ["Diffusion Baselines (DDIM)", "300", "4.33%", "19.00%", "11.67%", "17.33%", "31.33%"],
+            ["Diffusion Transformers (DiT)", "1200", "5.33%", "11.75%", "6.33%", "10.67%", "17.67%"],
+            ["Face Swapping", "2700", "1.59%", "4.41%", "1.96%", "3.70%", "5.37%"],
+            ["GAN Architectures", "1500", "48.47%", "53.87%", "33.13%", "51.20%", "60.00%"],
+            ["GAN Inversion & Editing", "600", "48.50%", "50.83%", "46.33%", "51.17%", "53.67%"],
+            ["Latent Diffusion (SD 2.1)", "300", "23.67%", "44.33%", "27.33%", "44.33%", "54.00%"],
+            ["Real Faces (FFHQ / FF++)", "10200", "98.87% (Spec)", "94.91% (Spec)", "96.49% (Spec)", "94.57% (Spec)", "94.75% (Spec)"],
+            ["Reenactment & Talking Head", "3300", "2.18%", "5.24%", "1.97%", "4.45%", "6.55%"],
+        ]
+    return render_html_styled_table(headers, rows, caption="Bảng Hiệu Năng Phân Rã Theo 8 Họ Công Nghệ Deepfake & Ảnh Thật Đối Chứng (@ 512→504px)", gradient_cols=[2, 3, 4, 5, 6], is_risk_cols=[])
 
 
 def render_universal_tau_sweep_table(
-    npz_path: str | Path = "experiments/benchmarks/logs/benchmark_4models_predictions.npz",
+    npz_path: str | Path = "experiments/benchmarks/logs/benchmark_5models_predictions.npz",
 ) -> str:
-    headers = ["Ngưỡng Quyết Định τ", "Fake Recall (↑)", "Bypass Rate (↓)", "Real Specificity (↑)", "Overall Accuracy"]
-    rows = [
-        ["tau = 0.500 (Mặc định)", "2.48%", "97.52%", "91.89%", "47.19%"],
-        ["tau = 0.200", "5.18%", "94.82%", "84.83%", "45.00%"],
-        ["tau = 0.100", "7.75%", "92.25%", "79.26%", "43.51%"],
-        ["tau = 0.050", "10.95%", "89.05%", "73.47%", "42.21%"],
-        ["tau = 0.020", "16.53%", "83.47%", "64.61%", "40.57%"],
-        ["tau = 0.010", "22.29%", "77.71%", "57.54%", "39.92%"],
-        ["tau = 0.005 (Cực nhạy)", "29.84%", "70.16%", "49.70%", "39.77%"],
-    ]
-    return render_html_styled_table(headers, rows, caption="Khảo Sát Đánh Đổi Khi Dịch Chuyển Ngưỡng Quyết Định Phân Loại τ trên M2*", gradient_cols=[1, 2, 3, 4], is_risk_cols=[2])
+    headers = ["Ngưỡng Quyết Định τ (M₃)", "Fake Recall (↑)", "Bypass Rate (↓)", "Real Specificity (↑)", "Overall Accuracy"]
+    rows: list[list[str]] = []
+    p = Path(npz_path)
+    if p.is_file():
+        npz = np.load(p, allow_pickle=True)
+        key = "probs_M3_dual_engine" if "probs_M3_dual_engine" in npz else "probs_M2_refined_warmstart"
+        if key in npz and "y_true" in npz:
+            probs = npz[key]
+            y_true = npz["y_true"]
+            is_fake = y_true == 1
+            is_real = y_true == 0
+            for tau, tag in [(0.850, "Bảo mật cao"), (0.500, "Mặc định"), (0.200, "Sàng lọc"), (0.100, ""), (0.050, ""), (0.010, ""), (0.005, "Cực nhạy")]:
+                rec = float(np.mean(probs[is_fake] >= tau)) * 100.0
+                byp = 100.0 - rec
+                spec = float(np.mean(probs[is_real] < tau)) * 100.0
+                acc = float(np.mean((probs >= tau).astype(int) == y_true)) * 100.0
+                label = f"tau = {tau:.3f}" + (f" ({tag})" if tag else "")
+                rows.append([label, f"{rec:.2f}%", f"{byp:.2f}%", f"{spec:.2f}%", f"{acc:.2f}%"])
+    if not rows:
+        rows = [
+            ["tau = 0.850 (Bảo mật cao)", "17.11%", "82.89%", "97.59%", "57.35%"],
+            ["tau = 0.500 (Mặc định)", "21.15%", "78.85%", "94.75%", "57.95%"],
+            ["tau = 0.200 (Sàng lọc)", "25.47%", "74.53%", "91.09%", "58.28%"],
+            ["tau = 0.100", "28.07%", "71.93%", "88.16%", "58.11%"],
+            ["tau = 0.050", "30.83%", "69.17%", "85.29%", "58.06%"],
+            ["tau = 0.010", "38.99%", "61.01%", "75.87%", "57.43%"],
+            ["tau = 0.005 (Cực nhạy)", "43.60%", "56.40%", "71.18%", "57.39%"],
+        ]
+    return render_html_styled_table(headers, rows, caption="Khảo Sát Đánh Đổi Ngưỡng Quyết Định τ Trên Champion M₃ (@ 512→504px)", gradient_cols=[1, 2, 3, 4], is_risk_cols=[2])
 
 
 def render_universal_fpr_table(
-    npz_path: str | Path = "experiments/benchmarks/logs/benchmark_4models_predictions.npz",
+    npz_path: str | Path = "experiments/benchmarks/logs/benchmark_5models_predictions.npz",
 ) -> str:
-    headers = ["Nguồn Ảnh Thật Đối Chứng", "Số Lượng Ảnh", "M₀ FPR", "M₁ FPR", "M₂_cold FPR", "M₂* FPR", "Đặc Tính Bền Vững"]
-    rows = [
-        ["FF++ Video C23 (Youtube nén)", "1.655 ảnh", "0.18%", "1.39%", "0.79%", "1.45%", "Miễn nhiễm nhiễu nén video"],
-        ["FFHQ Studio (Chân dung HQ)", "8.352 ảnh", "2.81%", "7.89%", "6.32%", "9.59%", "Bảo tồn độ đặc hiệu chuẩn"],
-        ["Test Data V3 (Mẫu độc lập)", "193 ảnh", "1.55%", "1.04%", "0.00%", "1.04%", "Độ tin cậy tuyệt đối"],
-    ]
-    return render_html_styled_table(headers, rows, caption="Khảo Sát Tính Bền Vững & Tỷ Lệ Báo Động Giả (FPR) Trên Các Miền Ảnh Thật", gradient_cols=[2, 3, 4, 5], is_risk_cols=[2, 3, 4, 5])
+    headers = ["Nguồn Ảnh Thật Đối Chứng", "Số Lượng Ảnh", "M₀ FPR", "M₁ FPR", "M₂_cold FPR", "M₂* FPR", "M₃ FPR"]
+    rows: list[list[str]] = []
+    p = Path(npz_path)
+    if p.is_file():
+        npz = np.load(p, allow_pickle=True)
+        if "y_true" in npz and "sources" in npz and "probs_M3_dual_engine" in npz:
+            y_true = npz["y_true"]
+            sources = npz["sources"]
+            is_real = y_true == 0
+            label_map = {
+                "ff++_real": "FF++ Video C23 (Youtube nén)",
+                "ffhq_real": "FFHQ Studio (Chân dung HQ)",
+                "test_data_v3": "Test Data V3 (Mẫu độc lập)",
+            }
+            for src in sorted(set(sources[is_real])):
+                m = is_real & (sources == src)
+                vals = [
+                    f"{float(np.mean(npz[k][m] >= 0.5)) * 100.0:.2f}%"
+                    for k in ["probs_M0_baseline", "probs_M1_active_r1", "probs_M2_coldstart", "probs_M2_refined_warmstart", "probs_M3_dual_engine"]
+                ]
+                rows.append([label_map.get(str(src), str(src)), f"{int(np.sum(m)):,} ảnh".replace(",", "."), *vals])
+    if not rows:
+        rows = [
+            ["FF++ Video C23 (Youtube nén)", "1.655 ảnh", "0.24%", "4.41%", "2.30%", "2.90%", "5.14%"],
+            ["FFHQ Studio (Chân dung HQ)", "8.352 ảnh", "1.26%", "5.22%", "3.74%", "5.95%", "5.20%"],
+            ["Test Data V3 (Mẫu độc lập)", "193 ảnh", "3.11%", "5.18%", "4.15%", "4.66%", "8.29%"],
+        ]
+    return render_html_styled_table(headers, rows, caption="Khảo Sát Tỷ Lệ Báo Động Giả (FPR) Trên Các Miền Ảnh Thật (@ 512→504px, τ=0.50)", gradient_cols=[2, 3, 4, 5, 6], is_risk_cols=[2, 3, 4, 5, 6])
 
 
 # =========================================================================
@@ -3325,7 +3438,7 @@ def plot_real_manifold_specifications_card() -> plt.Figure:
         ["Quy mô tổng thể", "4.000 ảnh (2.000 FFHQ + 2.000 CelebA-HQ)", "100% Khung vuông 1024x1024", "ĐẠT CHUẨN VÀNG"],
         ["Phân bố giới tính", "Nữ 52.1% / Nam 47.9%", "Tỷ lệ lệch < 5%", "CÂN BẰNG HOÀN HẢO"],
         ["Tính chính diện (Pose)", "99.8% trong khoảng [-20°, +20°]", "Yaw/Pitch ±20°", "ĐẠT CHUẨN CHÂN DUNG"],
-        ["Độ sắc nét Laplacian", "Trung bình 78.50 ± 14.20 (q05 = 65.0)", "Laplacian >= 15.0", "100% ĐẠT TIÊU CHÍ"],
+        ["Độ sắc nét Laplacian", "Hiệu chỉnh động theo phân vị 5% ảnh thật", "Laplacian(×1000) >= 1.25", "100% ĐẠT TIÊU CHÍ"],
         ["Độ bao phủ mốc ngũ quan", "99.4% nằm trọn trong ROI [0.30, 0.25, 0.70, 0.75]", "Bao phủ >= 95%", "KHỚP HOÀN TOÀN ROI"],
         ["Cách ly danh tính (ID Disjoint)", "Zero Identity Leakage giữa Train / Val / Test", "0% Trùng lặp ID", "BẢO TOÀN TUYỆT ĐỐI"],
     ]
@@ -3342,11 +3455,11 @@ def plot_dual_engine_portfolio_card() -> plt.Figure:
     """Plot visual comparison card between Engine A (SD 1.5) and Engine B (Realistic Vision v5.1)."""
     headers = ["Tiêu Chí So Sánh", "Engine A: SD 1.5 Base", "Engine B: Realistic Vision v5.1 SOTA", "Tác Động Khoa Học"]
     rows = [
-        ["Checkpoint gốc", "runwayml/stable-diffusion-v1-5", "SG161222/Realistic_Vision_V5.1_noVAE", "Kiểm định xuyên họ kiến trúc"],
-        ["Vai trò hệ thống", "Huấn luyện M0 & Vòng lặp Active M1->M2*", "Kho kiểm định mù ngoại miền (Blind Vault 6k)", "Đo lường OOD Generalization"],
-        ["Quy mô dữ liệu", "2.200 ảnh tuyển chọn (878 Inp, 834 Img, 488 Txt)", "6.000 ảnh chuẩn hóa (2k Inp, 2k Img, 2k Txt)", "Đồng đều tuyệt đối hạn ngạch"],
+        ["Checkpoint gốc", "stable-diffusion-v1-5/stable-diffusion-v1-5", "SG161222/Realistic_Vision_V5.1_noVAE", "Kiểm định xuyên họ kiến trúc"],
+        ["Vai trò hệ thống", "Huấn luyện M₀ & Active Learning M₁→M₂*", "Kho 6k RV5.1 OOD + trích sạch 1.384 cho D₃/M₃", "Đo lường OOD Generalization"],
+        ["Quy mô dữ liệu", "5.251 ảnh sạch / 6.545 thô (D₀ + AL R1 + AL R2)", "6.000 ảnh chuẩn hóa (2k Inp, 2k Img, 2k Txt)", "Đa dạng hóa nguồn sinh"],
         ["Bộ giải mã VAE", "VAE tiêu chuẩn 840.000 bước (sọc caro nhẹ)", "noVAE fine-tuned (triệt tiêu sọc tần số cao)", "Phòng chống học vẹt vi tạo tác"],
-        ["Bộ lọc CurationGate", "Áp dụng kiểm định 3 tầng (Laplacian >= 15.0)", "Quy chuẩn Kaggle GPU + Curation tự động", "Tỷ lệ đào thải 20.2% dữ liệu thô"],
+        ["Bộ lọc CurationGate", "Kiểm định 3 tầng (OpenCV Haar + q05 + SHA-256)", "Tạo sinh Kaggle GPU 512×512 + phân vùng sạch ID", "Tỷ lệ đạt chuẩn SD 1.5: 80.23%"],
     ]
     return plot_styled_scorecard_table(
         headers,

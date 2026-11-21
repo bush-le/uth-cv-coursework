@@ -342,7 +342,7 @@ def build_presentation_html() -> str:
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
                   <span style="font-weight: 700; font-size: 13px; color: var(--primary);">🎯 Hướng giải quyết của Đề Tài 11:</span>
                   <p style="font-size: 12px; color: var(--text); margin-top: 4px;">
-                    Thiết lập chu trình <strong>Active Learning khép kín</strong>: Khai phá 740 ca biên khó $\to$ Tinh chỉnh phân tầng Block 11 DINOv2 $\to$ Đẩy lùi đường biên quyết định $\to$ Chế ngự toàn diện các mẫu giả mạo tinh vi.
+                    Thiết lập chu trình <strong>Active Learning khép kín</strong>: Khai phá 740 ca biên khó → Tinh chỉnh phân tầng Block 11 DINOv2 → Đẩy lùi đường biên quyết định → Chế ngự toàn diện các mẫu giả mạo tinh vi.
                   </p>
                 </div>
               </div>
@@ -721,7 +721,7 @@ def build_presentation_html() -> str:
                 </div>
 
                 <div style="text-align: center; font-size: 11px; color: var(--text-muted);">
-                  Tổng số mẫu khó khai phá: <strong>740 mẫu</strong> $\to$ Khóa cứng <strong>213 mẫu độc lập</strong> làm Challenge Vault!
+                  Tổng số mẫu khó khai phá: <strong>740 mẫu</strong> → Khóa cứng <strong>213 mẫu độc lập</strong> làm Challenge Vault!
                 </div>
               </div>
             </div>

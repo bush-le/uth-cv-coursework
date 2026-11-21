@@ -74,7 +74,7 @@ def load_checkpoint(
         raise FileNotFoundError(f"Checkpoint not found: {ckpt_file}")
 
     logger.info("Restoring training state from checkpoint: %s", ckpt_file)
-    checkpoint = torch.load(ckpt_file, map_location=device)
+    checkpoint = torch.load(ckpt_file, map_location=device, weights_only=False)
 
     # Restore model parameters
     if "model_state_dict" in checkpoint:

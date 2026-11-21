@@ -199,7 +199,7 @@ def main():
 
         logger.info("\n=== Evaluating %s (%s) on 6,000 legacy fakes ===", model_name, ckpt_path.name)
         detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
-        state = torch.load(ckpt_path, map_location=device)
+        state = torch.load(ckpt_path, map_location=device, weights_only=False)
         detector.load_state_dict(state["model_state_dict"] if "model_state_dict" in state else state)
 
         t_start = time.time()

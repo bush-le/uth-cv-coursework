@@ -265,7 +265,7 @@ def train_single_stage(
     if best_file.exists():
         import shutil
         shutil.copy2(best_file, alias_file)
-        ckpt = torch.load(best_file, map_location=device)
+        ckpt = torch.load(best_file, map_location=device, weights_only=False)
         if "model_state_dict" in ckpt:
             model.load_state_dict(ckpt["model_state_dict"])
 
