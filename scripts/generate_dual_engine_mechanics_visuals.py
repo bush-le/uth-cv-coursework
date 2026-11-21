@@ -299,7 +299,7 @@ def render_resolution_degradation_comparison(out_path: Path) -> None:
     sample_path = sample_187 if sample_187.exists() else Path("data/external_benchmarks/synthetic_face_dataset_6k/img2img/0_img2img.png")
     with Image.open(sample_path) as img:
         rgb_512 = img.convert("RGB")
-        rgb_504 = rgb_512.resize((504, 504), Image.Resampling.BILINEAR)
+        rgb_504 = rgb_512.resize((504, 504), Image.Resampling.LANCZOS)
         rgb_224 = rgb_512.resize((224, 224), Image.Resampling.BILINEAR)
         rgb_224_vis = rgb_224.resize((504, 504), Image.Resampling.BILINEAR)
 
@@ -324,10 +324,12 @@ def render_resolution_degradation_comparison(out_path: Path) -> None:
     mag_504, lap_504 = _fft_and_lap(arr_504)
     mag_224, lap_224 = _fft_and_lap(arr_224)
 
-    quad = json.loads(Path("experiments/benchmarks/tables/benchmark_5models_quad_vault_summary.json").read_text())
-    legacy = json.loads(Path("experiments/logs/legacy_6k_benchmark_results.json").read_text())
+    legacy_512 = json.loads(Path("experiments/logs/legacy_6k_benchmark_results.json").read_text())
+    legacy_224 = json.loads(Path("experiments/logs/legacy_6k_benchmark_results_224px.json").read_text())
     with open("experiments/benchmarks/tables/benchmark_5models_global_summary.csv", encoding="utf-8") as f:
-        univ = {r["Model"]: r for r in csv.DictReader(f)}
+        univ_504 = {r["Model"]: r for r in csv.DictReader(f)}
+    with open("experiments/benchmarks/tables/benchmark_5models_global_summary_224px.csv", encoding="utf-8") as f:
+        univ_224 = {r["Model"]: r for r in csv.DictReader(f)}
 
     fig = plt.figure(figsize=(16.8, 7.6), dpi=180)
     gs = fig.add_gridspec(2, 4, width_ratios=[1.0, 1.0, 0.85, 1.25], hspace=0.34, wspace=0.22)
@@ -367,39 +369,42 @@ def render_resolution_degradation_comparison(out_path: Path) -> None:
     ax_fft2.set_xticks([])
     ax_fft2.set_yticks([])
 
-    # Col 2-3 combined: Quantitative Resolution Impact Bar Chart
+    # Col 2-3 combined: Quantitative Resolution Impact Bar Chart (Same Vaults: 504px LANCZOS vs 224px BILINEAR)
     ax_bar = fig.add_subplot(gs[:, 2:])
     labels = [
-        "M₀ Baseline\n(RV5.1 512px vs 6k 224px)",
-        "M₁ Active R1\n(RV5.1 512px vs 6k 224px)",
-        "M₃ Champion\n(Unseen RV5.1 512px vs Universal 224px)",
+        "M₀ Baseline\n(RV5.1 6k)",
+        "M₁ Active R1\n(RV5.1 6k)",
+        "M₂* Warm-Start\n(RV5.1 6k)",
+        "M₃ Champion\n(Universal 20.4k)",
     ]
     hi_vals = [
-        quad["M0 (Baseline)"]["Unseen_RV51_OOD_Test"]["recall"] * 100.0,
-        quad["M1 (Active R1)"]["Unseen_RV51_OOD_Test"]["recall"] * 100.0,
-        quad["M3 (Dual-Engine Champion)"]["Unseen_RV51_OOD_Test"]["recall"] * 100.0,
+        legacy_512["models"]["M0_baseline"]["overall_recall"] * 100.0,
+        legacy_512["models"]["M1_active_round1"]["overall_recall"] * 100.0,
+        legacy_512["models"]["M2_active_round2"]["overall_recall"] * 100.0,
+        float(univ_504["M3_dual_engine"]["Fake Recall (↑)"].rstrip("%")),
     ]
     lo_vals = [
-        legacy["models"]["M0_baseline"]["overall_recall"] * 100.0,
-        legacy["models"]["M1_active_round1"]["overall_recall"] * 100.0,
-        float(univ["M3_dual_engine"]["Fake Recall (↑)"].rstrip("%")),
+        legacy_224["models"]["M0_baseline"]["overall_recall"] * 100.0,
+        legacy_224["models"]["M1_active_round1"]["overall_recall"] * 100.0,
+        legacy_224["models"]["M2_active_round2"]["overall_recall"] * 100.0,
+        float(univ_224["M3_dual_engine"]["Fake Recall (↑)"].rstrip("%")),
     ]
     x = np.arange(len(labels))
     w = 0.34
-    b1 = ax_bar.bar(x - w / 2, hi_vals, w, label="Suy luận chuẩn 512→504px (1.296 patches)", color="#1d4ed8", edgecolor="#0f172a", linewidth=0.8)
-    b2 = ax_bar.bar(x + w / 2, lo_vals, w, label="Suy luận giảm cỡ 224px (256 patches)", color="#dc2626", edgecolor="#0f172a", linewidth=0.8)
+    b1 = ax_bar.bar(x - w / 2, hi_vals, w, label="Chuẩn 512→504px LANCZOS (1.296 patches)", color="#1d4ed8", edgecolor="#0f172a", linewidth=0.8)
+    b2 = ax_bar.bar(x + w / 2, lo_vals, w, label="Lỗi nén 224×224 BILINEAR (256 patches)", color="#dc2626", edgecolor="#0f172a", linewidth=0.8)
     for b in b1:
         h = b.get_height()
-        ax_bar.text(b.get_x() + b.get_width() / 2, h + 1.8, f"{h:.2f}%", ha="center", va="bottom", fontsize=9.5, fontweight="bold", color="#1e40af")
+        ax_bar.text(b.get_x() + b.get_width() / 2, h + 1.8, f"{h:.2f}%", ha="center", va="bottom", fontsize=9.2, fontweight="bold", color="#1e40af")
     for b in b2:
         h = b.get_height()
-        ax_bar.text(b.get_x() + b.get_width() / 2, h + 1.8, f"{h:.2f}%", ha="center", va="bottom", fontsize=9.5, fontweight="bold", color="#991b1b")
+        ax_bar.text(b.get_x() + b.get_width() / 2, h + 1.8, f"{h:.2f}%", ha="center", va="bottom", fontsize=9.2, fontweight="bold", color="#991b1b")
 
     ax_bar.set_xticks(x)
-    ax_bar.set_xticklabels(labels, fontsize=9.3, fontweight="bold")
-    ax_bar.set_ylim(0, 110)
+    ax_bar.set_xticklabels(labels, fontsize=9.2, fontweight="bold")
+    ax_bar.set_ylim(0, 102)
     ax_bar.set_ylabel("Fake Recall (%)", fontsize=10.5, fontweight="bold")
-    ax_bar.set_title("Hệ Quả Thực Nghiệm Khi Mất Mật Độ Patch 504px → 224px\n(Dữ Liệu Từ Quad-Vault 512px, Legacy 6k 224px & Universal 20.4k)", fontsize=11.0, fontweight="bold", pad=10)
+    ax_bar.set_title("Đối Chứng Trực Tiếp Trước & Sau Khi Sửa Lỗi Phân Giải (Cùng Bộ Ảnh)\n(Suy luận đúng 504px khôi phục 2.00% → 75.20% ở M₀ và 5.49% → 21.15% ở M₃)", fontsize=10.6, fontweight="bold", pad=10)
     ax_bar.grid(axis="y", linestyle="--", alpha=0.45)
     ax_bar.spines["top"].set_visible(False)
     ax_bar.spines["right"].set_visible(False)
@@ -442,7 +447,7 @@ def render_dinov2_architecture_diagram(out_path: Path) -> None:
 
     sample_face = Path("docs/reports/assets/samples/real_0.jpg")
     with Image.open(sample_face) as im:
-        arr_504 = np.asarray(im.convert("RGB").resize((504, 504), Image.Resampling.BILINEAR), dtype=np.uint8)
+        arr_504 = np.asarray(im.convert("RGB").resize((504, 504), Image.Resampling.LANCZOS), dtype=np.uint8)
 
     ax_face = ax.inset_axes([0.04, 0.25, 0.175, 0.53])
     ax_face.imshow(arr_504)
@@ -715,12 +720,17 @@ def regenerate_universal_sweep_figure(out_path: Path) -> None:
     ax1.barh(y_pos, m2_fam, bar_h, label="M₂* Refined", color="#2980b9", edgecolor="black")
     b_m3 = ax1.barh(y_pos + bar_h, m3_fam, bar_h, label="M₃ Champion", color="#27ae60", edgecolor="black")
     for b in b_m3:
-        ax1.text(b.get_width() + 0.4, b.get_y() + b.get_height() / 2, f"{b.get_width():.1f}%", va="center", ha="left", fontsize=8.2, fontweight="bold", color="#27ae60")
+        ax1.text(b.get_width() + 0.8, b.get_y() + b.get_height() / 2, f"{b.get_width():.1f}%", va="center", ha="left", fontsize=8.2, fontweight="bold", color="#27ae60")
     ax1.set_yticks(y_pos)
     ax1.set_yticklabels(family_names_short, fontsize=8.8, fontweight="bold")
     ax1.set_xlabel("Fake Recall (%)", fontsize=9.2, fontweight="bold")
-    ax1.set_title("Đột Phá Fake Recall Theo 8 Họ Công Nghệ Sinh Ảnh\n(DDIM ×2.89, SD 2.1 ×1.78, DiT ×2.45, GAN Inv 21.5%)", fontsize=10.0, fontweight="bold")
-    ax1.set_xlim(0, 26)
+    ax1.set_title(
+        f"Đột Phá Fake Recall Theo 8 Họ Công Nghệ (@ 512→504px LANCZOS)\n"
+        f"(GAN {m3_fam[4]:.1f}%, SD 2.1 {m3_fam[1]:.1f}%, GAN Inv {m3_fam[3]:.1f}%, DDIM {m3_fam[0]:.1f}%)",
+        fontsize=9.8,
+        fontweight="bold",
+    )
+    ax1.set_xlim(0, max(72.0, max(m3_fam) + 12.0))
     ax1.legend(fontsize=8.2, loc="lower right")
     ax1.grid(axis="x", linestyle="--", alpha=0.4)
 
@@ -733,14 +743,19 @@ def regenerate_universal_sweep_figure(out_path: Path) -> None:
     bg1 = ax2.bar(x_ind - w_g / 2, rec_g, w_g, label="Fake Recall (↑)", color="#e74c3c", edgecolor="black")
     bg2 = ax2.bar(x_ind + w_g / 2, f1_g, w_g, label="F1-Score (↑)", color="#3498db", edgecolor="black")
     for b in bg1:
-        ax2.text(b.get_x() + b.get_width() / 2, b.get_height() + 0.18, f"{b.get_height():.2f}%", ha="center", va="bottom", fontsize=8.0, fontweight="bold", color="#c0392b")
+        ax2.text(b.get_x() + b.get_width() / 2, b.get_height() + 0.6, f"{b.get_height():.2f}%", ha="center", va="bottom", fontsize=8.0, fontweight="bold", color="#c0392b")
     for b in bg2:
-        ax2.text(b.get_x() + b.get_width() / 2, b.get_height() + 0.18, f"{b.get_height():.2f}%", ha="center", va="bottom", fontsize=8.0, fontweight="bold", color="#2980b9")
+        ax2.text(b.get_x() + b.get_width() / 2, b.get_height() + 0.6, f"{b.get_height():.2f}%", ha="center", va="bottom", fontsize=8.0, fontweight="bold", color="#2980b9")
     ax2.set_xticks(x_ind)
     ax2.set_xticklabels(models_g, fontsize=8.8, fontweight="bold")
     ax2.set_ylabel("Phần Trăm (%)", fontsize=9.2, fontweight="bold")
-    ax2.set_title("Hiệu Năng Toàn Cầu Trên 20.400 Ảnh (Universal Benchmark)\n(M₃ tăng hơn gấp đôi Fake Recall: 2.48% → 5.49%)", fontsize=10.0, fontweight="bold")
-    ax2.set_ylim(0, 12)
+    ax2.set_title(
+        f"Hiệu Năng Toàn Cầu Trên 20.400 Ảnh (@ 512→504px)\n"
+        f"(M₃ dẫn đầu với Fake Recall {rec_g[-1]:.2f}% & F1 {f1_g[-1]:.2f}%)",
+        fontsize=9.8,
+        fontweight="bold",
+    )
+    ax2.set_ylim(0, max(42.0, max(f1_g) + 8.0))
     ax2.legend(fontsize=8.2, loc="upper left")
     ax2.grid(axis="y", linestyle="--", alpha=0.4)
 
@@ -749,11 +764,13 @@ def regenerate_universal_sweep_figure(out_path: Path) -> None:
     ax3.plot(thresholds, sweep_specs, "g-s", linewidth=2, label="Real Specificity (%)", markersize=4)
     ax3.plot(thresholds, sweep_f1s, "b-^", linewidth=2, label="F1-Score (%)", markersize=4)
     ax3.axvline(0.5, color="black", linestyle="--", linewidth=1.2, label="Ngưỡng Mặc Định (τ = 0.5)")
-    ax3.scatter([0.5], [5.49], color="red", s=80, zorder=5)
+    rec_05 = rec_g[-1]
+    spec_05 = _pct(global_rows[-1]["Real Specificity (↑)"])
+    ax3.scatter([0.5], [rec_05], color="red", s=80, zorder=5)
     ax3.annotate(
-        "τ=0.5: Recall=5.49%\nSpec=90.42%",
-        xy=(0.5, 5.49),
-        xytext=(0.56, 28.0),
+        f"τ=0.5: Recall={rec_05:.2f}%\nSpec={spec_05:.2f}%",
+        xy=(0.5, rec_05),
+        xytext=(0.56, min(65.0, rec_05 + 22.0)),
         bbox=dict(boxstyle="round,pad=0.35", fc="#ffffff", ec="#94a3b8", lw=1.0),
         arrowprops=dict(arrowstyle="->", color="#475569", lw=1.2),
         fontsize=8.5,
@@ -769,16 +786,19 @@ def regenerate_universal_sweep_figure(out_path: Path) -> None:
     ax3.grid(True, linestyle="--", alpha=0.4)
 
     ax4 = axes[1, 1]
+    ff_fp = int(np.sum(probs_ff >= 0.5))
+    ff_tot = len(probs_ff)
+    ff_fpr_05 = (ff_fp / ff_tot * 100.0) if ff_tot else 0.0
     ax4.plot(thresholds, sweep_ff_fprs, "m-d", linewidth=2.2, markersize=4.5, label="FF++ Video FPR (%)")
     ax4.axvline(0.5, color="black", linestyle="--", linewidth=1.2)
-    ax4.axhline(2.60, color="#8e44ad", linestyle=":", linewidth=1.2)
-    ax4.scatter([0.5], [2.60], color="#8e44ad", s=80, zorder=5)
-    ax4.text(0.52, 3.5, "τ=0.5: FPR = 2.60%\n(Chỉ 43/1.655 báo động nhầm)", fontsize=8.5, fontweight="bold", color="#8e44ad")
+    ax4.axhline(ff_fpr_05, color="#8e44ad", linestyle=":", linewidth=1.2)
+    ax4.scatter([0.5], [ff_fpr_05], color="#8e44ad", s=80, zorder=5)
+    ax4.text(0.52, ff_fpr_05 + 1.2, f"τ=0.5: FPR = {ff_fpr_05:.2f}%\n({ff_fp}/{ff_tot:,} khung báo động nhầm)".replace(",", "."), fontsize=8.5, fontweight="bold", color="#8e44ad")
     ax4.set_xlabel("Ngưỡng Quyết Định τ (Decision Threshold)", fontsize=9.2)
     ax4.set_ylabel("Tỷ Lệ Báo Động Nhầm (FPR %)", fontsize=9.2)
-    ax4.set_title("Khả Năng Kháng Nhiễu Nén Video Trên FaceForensics++ C23\n(1.655 khung hình nén H.264 - Kiểm soát FPR dưới 2.6%)", fontsize=10.0, fontweight="bold")
+    ax4.set_title(f"Khả Năng Kháng Nhiễu Nén Video Trên FaceForensics++ C23\n({ff_tot:,} khung hình nén H.264 — FPR @ τ=0.5 là {ff_fpr_05:.2f}%)".replace(",", "."), fontsize=9.8, fontweight="bold")
     ax4.set_xlim(0.0, 1.0)
-    ax4.set_ylim(0, 25)
+    ax4.set_ylim(0, max(25.0, max(sweep_ff_fprs) + 5.0))
     ax4.legend(fontsize=8.2, loc="upper right")
     ax4.grid(True, linestyle="--", alpha=0.4)
 

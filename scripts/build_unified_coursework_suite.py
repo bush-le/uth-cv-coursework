@@ -975,7 +975,7 @@ def build_notebook_02(
 Trong các hệ thống phòng thủ Deepfake truyền thống sử dụng mạng CNN (ResNet, EfficientNet), bộ trích xuất đặc trưng có xu hướng bám víu vào các vi vết tần số cao tại đường biên cắt dán (Boundary Overfitting). Khi đối đầu với các kỹ thuật hòa trộn mượt mà như **Soft-mask Gaussian Feathering ($\sigma=4.0$)** được phân tích tại Phần 1, các mô hình CNN này sụp đổ độ chính xác do mất dấu tín hiệu biên cứng.
 
 Để giải quyết triệt để điểm mù này, đồ án lựa chọn nền tảng **Vision Transformer tự giám sát (DINOv2 ViT-S/14)**:
-- **Cơ chế Tokenization không gian**: Ảnh đầu vào kích thước $(3, 224, 224)$ được phân tách thành các mảng vuông không chồng lấn $14 \times 14$ pixels, tạo thành lưới $16 \times 16 = 256$ spatial patch tokens.
+- **Cơ chế Tokenization không gian**: Ảnh đầu vào kích thước $(3, 512, 512)$ được `MetaDinoV2Wrapper` nội suy về bội số của 14 là $(3, 504, 504)$ và phân tách thành các mảng vuông không chồng lấn $14 \times 14$ pixels, tạo thành lưới $36 \times 36 = 1.296$ spatial patch tokens.
 - **Token đại diện toàn cục (`[CLS]`)**: Được bổ sung vào đầu chuỗi, nâng tổng số tokens lên $257$, ánh xạ qua không gian nhúng ẩn $D = 384$.
 - **Cơ chế Attention toàn diện (Self-Attention)**: 12 khối Transformer Encoder liên tục đối chiếu tương quan giữa các vùng khuôn mặt (mắt trái đối xứng mắt phải, vành tai tương thích góc quay cằm), giúp phát hiện các nghịch lý giải phẫu học mà CNN không thể nhận thức.
 - **Chiến lược Tinh Chỉnh Khối Cuối (Partial Block Unfreezing)**:
@@ -1020,7 +1020,7 @@ pct_trainable = (trainable_p2 / total_params) * 100.0
 pct_frozen = (frozen_p2 / total_params) * 100.0
 
 # Kiểm tra Tensor Contract (B, C, H, W) -> Features (B, 384) -> Logits (B, 1)
-dummy_batch = torch.randn(2, 3, 224, 224, dtype=torch.float32)
+dummy_batch = torch.randn(2, 3, 512, 512, dtype=torch.float32)
 with torch.no_grad():
     features = detector.extract_features(dummy_batch)
     logits = detector(dummy_batch)
@@ -1569,9 +1569,9 @@ def build_notebook_03(
                    Warm-Start from $M_2^*$, unfreeze Block 11 + Head (1.78M params, 8.06% trainable),
                    Differential LR (3e-5 / 3e-6) with Cosine Annealing, live forward inference on Unseen RV5.1.
       - Section 3: Quad-Vault Benchmark (5 models comparison across Master Frozen, Challenge, Unseen RV5.1).
-      - Section 4: Universal Deepfake Benchmark (20,400 images, 34 generators, 8 families),
-                   Family breakdown gains (DDIM 17.33%, SD 2.1 8.33%, DiT 3.67%, GAN Inversion 21.50%),
-                   and Decision Threshold Sweep (tau in [0.05, 0.95]) with FF++ C23 compression invariance.
+      - Section 4: Universal Deepfake Benchmark (20,400 images, 34 generators, 8 families @ 512→504px LANCZOS),
+                   Family breakdown gains (GAN 60.00%, SD 2.1 54.00%, GAN Inversion 53.67%, DDIM 31.33%, DiT 17.67%),
+                   and Decision Threshold Sweep (tau in [0.05, 0.95]) with FF++ C23 video compression stability.
       - Section 5: Scientific synthesis and segue to Master Showcase Notebook 00.
     """
     if shell is None:
@@ -1592,7 +1592,7 @@ def build_notebook_03(
 2. Khảo sát cấu trúc Warm-Start từ M2* và động học hội tụ của mô hình Champion M3 (mở khóa Block 11 + Head với 1.78M tham số, Differential Learning Rate và Cosine Annealing qua 6 epochs đạt Val AUC 0.9846).
 3. Thực thi suy luận trực tiếp (Live Inference) với PyTorch checkpoint M3 (experiments/checkpoints/active_learning_m3_best.pt) trên tập kiểm thử Unseen RV5.1 Vault, kiểm chứng Fake Recall đạt 93.13% (tỷ lệ lọt lưới bypass chỉ còn 6.87%).
 4. Đánh giá đối chuẩn Tứ Giác (Quad-Vault Evaluation) so sánh 5 thế hệ mô hình (M0, M1, M2, M2*, M3) trên 3 kho kiểm thử độc lập: Master Frozen Test, Cumulative Challenge Vault, và Unseen RV5.1 Vault.
-5. Sát hạch toàn diện trên Universal Deepfake Benchmark (20.400 ảnh, 34 thuật toán sinh, 8 họ công nghệ); quét ngưỡng quyết định tau in [0.05, 0.95] và kiểm chứng tính kháng nhiễu nén video trên FaceForensics++ (FPR <= 2.6%).""",
+5. Sát hạch toàn diện trên Universal Deepfake Benchmark (20.400 ảnh, 34 thuật toán sinh, 8 họ công nghệ ở chuẩn 512→504px LANCZOS); quét ngưỡng quyết định tau in [0.05, 0.95] và kiểm chứng báo động nhầm trên video nén FaceForensics++ C23 (FPR 5.14% @ tau=0.50, 2.54% @ tau=0.85).""",
     )
     cells.append(header)
 
@@ -1820,11 +1820,10 @@ sample_reals = [x for x in test_lines if x["label"] == 0 and Path(x["file_path"]
 sample_fakes = [x for x in test_lines if x["label"] == 1 and Path(x["file_path"]).is_file()][:4]
 eval_samples = sample_reals + sample_fakes
 
-# Pipeline tiền xử lý chuẩn ImageNet cho DINOv2
+# Pipeline tiền xử lý chuẩn DINOv2 (512×512 LANCZOS → MetaDinoV2Wrapper nội suy 504×504 & tự chuẩn hóa ImageNet)
 transform = T.Compose([
-    T.Resize((224, 224)),
+    T.Resize((512, 512), interpolation=T.InterpolationMode.LANCZOS),
     T.ToTensor(),
-    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
 # 3. Thực thi Live Forward Inference và kiểm định Tensor Contract
@@ -1835,7 +1834,7 @@ for s in eval_samples:
     raw_images.append(img_pil)
     batch_tensors.append(transform(img_pil))
 
-batch_tensor = torch.stack(batch_tensors).to(device)  # (B=8, C=3, H=224, W=224)
+batch_tensor = torch.stack(batch_tensors).to(device)  # (B=8, C=3, H=512, W=512)
 
 with torch.no_grad():
     features = detector.extract_features(batch_tensor)  # (B=8, D=384)
@@ -2006,13 +2005,13 @@ Universal Deepfake Benchmark là bài sát hạch toàn diện nhất trong đ�
 ### 4.2. Khả Năng Tổng Quát Hóa Liên Kiến Trúc (Cross-Generator Generalization)
 Vì sao phát hiện Deepfake liên miền lại cực kỳ khó? Các bộ dò huấn luyện trên một kiến trúc cụ thể thường bị "overfit" vào vi vết tần số của kiến trúc đó. Khi đối đầu với 34 thuật toán chưa từng gặp, Fake Recall của các mô hình thông thường chỉ đạt dưới 3%.
 
-Tuy nhiên, nhờ nền tảng đặc trưng tự giám sát DINOv2 kết hợp với tập huấn luyện kép $D_3$, Champion $M_3$ tạo ra bước nhảy vọt toàn diện:
-- **Diffusion Baselines (DDIM)**: $M_2^*$ 6.00% $\to$ **$M_3$ 17.33%** (Tăng gấp **2.89 lần**).
-- **Latent Diffusion (SD 2.1)**: $M_2^*$ 4.67% $\to$ **$M_3$ 8.33%** (Tăng gần gấp đôi).
-- **Diffusion Transformers (DiT)**: $M_2^*$ 1.50% $\to$ **$M_3$ 3.67%** (Tăng gấp **2.45 lần**).
-- **GAN Inversion & Editing**: $M_2^*$ 12.50% $\to$ **$M_3$ 21.50%** (Tăng thêm **+9.00%**).
-- **GAN Architectures**: $M_2^*$ 7.33% $\to$ **$M_3$ 17.33%** (Tăng gấp **2.36 lần**).
-- **Tổng thể Fake Recall toàn cầu**: Tăng từ 2.48% ($M_2^*$) lên **5.49% ($M_3$)**, trong khi vẫn giữ vững Real Specificity ở mức **90.42%**.
+Tuy nhiên, nhờ nền tảng đặc trưng tự giám sát DINOv2 kết hợp với tập huấn luyện kép $D_3$ và chuẩn suy luận đồng nhất `512→504px LANCZOS`, Champion $M_3$ đạt hiệu năng vượt trội:
+- **GAN Architectures**: $M_2^*$ 51.20% $\to$ **$M_3$ 60.00%** (`StyleGAN2` đạt **100.00%**).
+- **Latent Diffusion (SD 2.1)**: $M_0$ 23.67% / $M_2^*$ 44.33% $\to$ **$M_3$ 54.00%** (khôi phục mạnh mẽ từ 8.33% khi bị nén 224px).
+- **GAN Inversion & Editing**: $M_2^*$ 51.17% $\to$ **$M_3$ 53.67%** (`e4e` đạt **99.67%**).
+- **Diffusion Baselines (DDIM)**: $M_0$ 4.33% / $M_2^*$ 17.33% $\to$ **$M_3$ 31.33%**.
+- **Diffusion Transformers (DiT)**: $M_0$ 5.33% / $M_2^*$ 10.67% $\to$ **$M_3$ 17.67%** (`pixart` đạt **60.67%**).
+- **Tổng thể Fake Recall toàn cầu**: Tăng từ 16.48% ($M_2^*$) lên **21.15% ($M_3$)** (ROC-AUC **0.6101**, Precision **80.13%**), trong khi giữ Real Specificity ở mức **94.75%**!
 """
     cells.append(make_markdown_cell(sec4_md))
 
@@ -2135,13 +2134,13 @@ b_m3 = ax1.barh(y_pos + bar_h, m3_fam_recalls, bar_h, label="M3 Champion", color
 
 for idx, b in enumerate(b_m3):
     val = b.get_width()
-    ax1.text(val + 0.4, b.get_y() + b.get_height()/2, f"{val:.1f}%", va="center", ha="left", fontsize=8, fontweight="bold", color="#27ae60")
+    ax1.text(val + 0.8, b.get_y() + b.get_height()/2, f"{val:.1f}%", va="center", ha="left", fontsize=8, fontweight="bold", color="#27ae60")
 
 ax1.set_yticks(y_pos)
 ax1.set_yticklabels(family_names_short, fontsize=8.5, fontweight="bold")
 ax1.set_xlabel("Fake Recall (%)", fontsize=9)
-ax1.set_title("Đột Phá Fake Recall Theo 8 Họ Công Nghệ Sinh Ảnh\\n(DDIM x2.89, SD 2.1 x1.78, DiT x2.45, GAN Inv 21.5%)", fontsize=10, fontweight="bold")
-ax1.set_xlim(0, 26)
+ax1.set_title("Đột Phá Fake Recall Theo 8 Họ Công Nghệ (@ 512→504px LANCZOS)\\n(GAN 60.0%, SD 2.1 54.0%, GAN Inv 53.7%, DDIM 31.3%, DiT 17.7%)", fontsize=9.8, fontweight="bold")
+ax1.set_xlim(0, max(72.0, max(m3_fam_recalls) + 12.0))
 ax1.legend(fontsize=8, loc="lower right")
 ax1.grid(axis="x", linestyle="--", alpha=0.4)
 
@@ -2157,15 +2156,15 @@ bg1 = ax2.bar(x_ind - w_g/2, rec_global, w_g, label="Fake Recall (↑)", color="
 bg2 = ax2.bar(x_ind + w_g/2, f1_global, w_g, label="F1-Score (↑)", color="#3498db", edgecolor="black")
 
 for b in bg1:
-    ax2.text(b.get_x() + b.get_width()/2, b.get_height() + 0.15, f"{b.get_height():.2f}%", ha="center", va="bottom", fontsize=8, fontweight="bold", color="#c0392b")
+    ax2.text(b.get_x() + b.get_width()/2, b.get_height() + 0.6, f"{b.get_height():.2f}%", ha="center", va="bottom", fontsize=8, fontweight="bold", color="#c0392b")
 for b in bg2:
-    ax2.text(b.get_x() + b.get_width()/2, b.get_height() + 0.15, f"{b.get_height():.2f}%", ha="center", va="bottom", fontsize=8, fontweight="bold", color="#2980b9")
+    ax2.text(b.get_x() + b.get_width()/2, b.get_height() + 0.6, f"{b.get_height():.2f}%", ha="center", va="bottom", fontsize=8, fontweight="bold", color="#2980b9")
 
 ax2.set_xticks(x_ind)
 ax2.set_xticklabels(models_global, fontsize=8.5, fontweight="bold")
 ax2.set_ylabel("Phần Trăm (%)", fontsize=9)
-ax2.set_title("Hiệu Năng Toàn Cầu Trên 20.400 Ảnh (Universal Benchmark)\\n(M3 tăng hơn gấp đôi Fake Recall: 2.48% -> 5.49%)", fontsize=10, fontweight="bold")
-ax2.set_ylim(0, 12)
+ax2.set_title(f"Hiệu Năng Toàn Cầu Trên 20.400 Ảnh (@ 512→504px)\\n(M3 đạt Recall {rec_global[-1]:.2f}% & F1 {f1_global[-1]:.2f}%, gấp 3.85x so với 224px)", fontsize=9.8, fontweight="bold")
+ax2.set_ylim(0, max(42.0, max(f1_global) + 8.0))
 ax2.legend(fontsize=8, loc="upper left")
 ax2.grid(axis="y", linestyle="--", alpha=0.4)
 
@@ -2177,11 +2176,13 @@ ax3.plot(thresholds, sweep_f1s, "b-^", linewidth=2, label="F1-Score (%)", marker
 ax3.axvline(0.5, color="black", linestyle="--", linewidth=1.2, label="Ngưỡng Mặc Định (τ = 0.5)")
 
 # Highlight point at tau = 0.5
-ax3.scatter([0.5], [5.49], color="red", s=80, zorder=5)
+rec_at_05 = rec_global[-1]
+spec_at_05 = parse_pct(global_rows[-1]["Real Specificity (↑)"])
+ax3.scatter([0.5], [rec_at_05], color="red", s=80, zorder=5)
 ax3.annotate(
-    "τ=0.5: Recall=5.49%\\nSpec=90.42%",
-    xy=(0.5, 5.49),
-    xytext=(0.56, 28.0),
+    f"τ=0.5: Recall={rec_at_05:.2f}%\\nSpec={spec_at_05:.2f}%",
+    xy=(0.5, rec_at_05),
+    xytext=(0.56, min(65.0, rec_at_05 + 22.0)),
     bbox=dict(boxstyle="round,pad=0.35", fc="#ffffff", ec="#94a3b8", lw=1.0),
     arrowprops=dict(arrowstyle="->", color="#475569", lw=1.2),
     fontsize=8.5,
@@ -2199,17 +2200,20 @@ ax3.grid(True, linestyle="--", alpha=0.4)
 
 # 4. Bottom-Right: FaceForensics++ C23 Video Compression Robustness
 ax4 = axes[1, 1]
+ff_fp = int(np.sum(probs_ff >= 0.5))
+ff_tot = len(probs_ff)
+ff_fpr_05 = (ff_fp / ff_tot * 100.0) if ff_tot else 0.0
 ax4.plot(thresholds, sweep_ff_fprs, "m-d", linewidth=2.2, markersize=4.5, label="FF++ Video FPR (%)")
 ax4.axvline(0.5, color="black", linestyle="--", linewidth=1.2)
-ax4.axhline(2.60, color="#8e44ad", linestyle=":", linewidth=1.2)
-ax4.scatter([0.5], [2.60], color="#8e44ad", s=80, zorder=5)
-ax4.text(0.52, 3.2, "τ=0.5: FPR = 2.60%\\n(Chỉ 43/1.655 báo động nhầm)", fontsize=8.5, fontweight="bold", color="#8e44ad")
+ax4.axhline(ff_fpr_05, color="#8e44ad", linestyle=":", linewidth=1.2)
+ax4.scatter([0.5], [ff_fpr_05], color="#8e44ad", s=80, zorder=5)
+ax4.text(0.52, ff_fpr_05 + 1.2, f"τ=0.5: FPR = {ff_fpr_05:.2f}%\\n({ff_fp}/{ff_tot:,} khung báo động nhầm)", fontsize=8.5, fontweight="bold", color="#8e44ad")
 
 ax4.set_xlabel("Ngưỡng Quyết Định τ (Decision Threshold)", fontsize=9)
 ax4.set_ylabel("Tỷ Lệ Báo Động Nhầm (FPR %)", fontsize=9)
-ax4.set_title("Khả Năng Kháng Nhiễu Nén Video Trên FaceForensics++ C23\\n(1.655 khung hình nén H.264 - Kiểm soát FPR dưới 2.6%)", fontsize=10, fontweight="bold")
+ax4.set_title(f"Khả Năng Kháng Nhiễu Nén Video Trên FaceForensics++ C23\\n({ff_tot:,} khung hình H.264 — FPR @ τ=0.5 là {ff_fpr_05:.2f}%)", fontsize=9.8, fontweight="bold")
 ax4.set_xlim(0.0, 1.0)
-ax4.set_ylim(0, 25)
+ax4.set_ylim(0, max(25.0, max(sweep_ff_fprs) + 5.0))
 ax4.legend(fontsize=8, loc="upper right")
 ax4.grid(True, linestyle="--", alpha=0.4)
 
@@ -2234,7 +2238,7 @@ Thông qua các kiểm định thực nghiệm nghiêm ngặt trong Notebook 03,
    - SD 1.5 Master Test: **69.44%** Fake Recall.
    - Challenge Hard Test: **91.89%** Fake Recall (tỷ lệ lọt lưới chỉ 8.11%).
    - Unseen RV5.1 Vault: **93.13%** Fake Recall (tỷ lệ lọt lưới chỉ 6.87%).
-4. **Bước Nhảy Vọt Về Khả Năng Tổng Quát Hóa Liên Bộ Sinh (Universal Benchmark)**: Trên 20.400 ảnh và 34 phương pháp sinh, $M_3$ tăng gấp 2.89 lần Fake Recall trên DDIM (17.33%), gần gấp đôi trên SD 2.1 (8.33%), gấp 2.45 lần trên DiT (3.67%), và đạt 21.50% trên GAN Inversion; đồng thời duy trì độ đặc hiệu 90.42% và kiểm soát FPR trên video nén FF++ dưới 2.60%.
+4. **Bước Nhảy Vọt Về Khả Năng Tổng Quát Hóa Liên Bộ Sinh (Universal Benchmark @ 512→504px LANCZOS)**: Trên 20.400 ảnh và 34 phương pháp sinh, $M_3$ đạt **60.00%** trên GAN Architectures (`StyleGAN2` **100.00%**), **54.00%** trên SD 2.1 (tăng vọt từ 8.33% ở 224px), **53.67%** trên GAN Inversion (`e4e` **99.67%**), **31.33%** trên DDIM và **17.67%** trên DiT (`pixart` **60.67%**); đồng thời đạt Fake Recall toàn cầu **21.15%**, Real Specificity **94.75%**, ROC-AUC **0.6101** và kiểm soát FF++ C23 FPR ở mức **5.14%** (`τ=0.50`) / **2.54%** (`τ=0.85`).
 
 ---
 👉 **Khám phá Đại Bản Doanh Trình Diễn Đồ Án**: Xem toàn cảnh báo cáo tổng quan A-Z, bảng vàng thành tích M0-M3, và thực hành tương tác trực tiếp với công cụ chẩn đoán nhiệt chú ý tại **[Notebook 00: 00_master_deepfake_defense_showcase.ipynb](00_master_deepfake_defense_showcase.ipynb)**.
@@ -2323,7 +2327,7 @@ Trong bối cảnh các công nghệ sinh ảnh khuôn mặt nhân tạo (Genera
 4. **Thế hệ $M_3$ (Dual-Engine Champion - Cross-Generator Generalization & Zero Identity Leakage)**:
    - *Vấn đề đặt ra*: $M_2^*$ dù rất mạnh trên SD 1.5 nhưng khi gặp ảnh sinh bởi động cơ khuếch tán mới (RealisticVision v5.1), Fake Recall bị khựng lại ở mức 71.88% (tỷ lệ lọt lưới 28.12%).
    - *Giải pháp Động cơ Kép*: Mở rộng không gian phân phối sang RealisticVision v5.1 với phân vùng $D_3$ sạch, **tuyệt đối cách ly 626 ảnh test** để đảm bảo không rò rỉ danh tính (**Zero Identity Leakage**).
-   - *Thành tựu đỉnh cao*: Fake Recall trên Unseen RV5.1 Vault tăng vọt lên **93.13%** (Bypass Rate chỉ còn **6.87%**), đồng thời Fake Recall trên sát hạch toàn cầu Universal Benchmark (20.400 ảnh) tăng hơn gấp đôi từ 2.48% lên **5.49%** (DDIM tăng gấp gần 3 lần từ 6.00% lên 17.33%).
+   - *Thành tựu đỉnh cao*: Fake Recall trên Unseen RV5.1 Vault tăng vọt lên **93.13%** (Bypass Rate chỉ còn **6.87%**), đồng thời khi chạy đúng chuẩn `512→504px LANCZOS` trên Universal Benchmark (20.400 ảnh), $M_3$ đạt **21.15%** Fake Recall (gấp **3.85 lần** bản 224px; `SD 2.1` **54.00%**, `GAN` **60.00%**, `DDIM` **31.33%**).
 """
     cells.append(make_markdown_cell(sec1_md))
 
@@ -2398,7 +2402,7 @@ print("Ghi chú khoa học:")
 print("   * Master Frozen Test: 1.178 ảnh SD 1.5 chuẩn (M3 dẫn đầu với 69.44% Fake Recall, kháng quên thảm họa).")
 print("   * Challenge Hard Test: 213 mẫu biên mơ hồ (M2* và M3 cùng đạt 91.89% Fake Recall, Bypass chỉ 8.11%).")
 print("   * Unseen RV5.1 Vault: 1.215 ảnh photorealistic (M3 nhảy vọt từ 71.88% lên 93.13%, Bypass chỉ 6.87%).")
-print("   * Universal Benchmark: 20.400 ảnh trên 34 bộ sinh (M3 tăng gấp hơn 2.2 lần Fake Recall toàn cầu: 2.48% -> 5.49%).")
+print("   * Universal Benchmark: 20.400 ảnh trên 34 bộ sinh @ 512→504px (M3 đạt 21.15% Fake Recall, ROC-AUC 0.6101, Spec 94.75%).")
 """
     cells.append(make_code_cell(code_scorecard_table, shell=shell))
 
@@ -2413,10 +2417,10 @@ gs = fig.add_gridspec(2, 2, height_ratios=[1.0, 0.95], hspace=0.35, wspace=0.25)
 # 1. Top-Left: Grouped Bar Chart Fake Recall across 4 Vaults
 ax1 = fig.add_subplot(gs[0, 0])
 vault_names = ["Master Test\\n(SD 1.5)", "Challenge Vault\\n(Hard Samples)", "Unseen RV5.1\\n(Photorealistic)", "Universal Test\\n(20.400 ảnh)"]
-m0_rec = [49.07, 11.71, 66.45, 2.75]
-m1_rec = [62.14, 70.27, 72.04, 2.17]
-m2_rec = [66.89, 91.89, 71.88, 2.48]
-m3_rec = [69.44, 91.89, 93.13, 5.49]
+m0_rec = [49.07, 11.71, 66.45, 13.48]
+m1_rec = [62.14, 70.27, 72.04, 17.94]
+m2_rec = [66.89, 91.89, 71.88, 16.48]
+m3_rec = [69.44, 91.89, 93.13, 21.15]
 
 x = np.arange(len(vault_names))
 w = 0.18
@@ -2461,9 +2465,9 @@ ax2.grid(True, linestyle="--", alpha=0.4)
 # 3. Bottom: Cross-Generator Generalization Across 8 Tech Families
 ax3 = fig.add_subplot(gs[1, :])
 fam_labels = ["DDIM", "SD 2.1", "DiT", "GAN Arch", "GAN Inversion", "AutoEncoders", "Face Swap", "Reenactment"]
-m0_fam = [2.33, 2.00, 0.25, 11.73, 10.17, 1.33, 0.41, 0.36]
-m2_fam = [6.00, 4.67, 1.50, 7.33, 12.50, 0.00, 0.41, 0.21]
-m3_fam = [17.33, 8.33, 3.67, 17.33, 21.50, 0.67, 0.96, 0.67]
+m0_fam = [4.33, 23.67, 5.33, 48.47, 48.50, 31.33, 1.59, 2.18]
+m2_fam = [17.33, 44.33, 10.67, 51.20, 51.17, 15.33, 3.70, 4.45]
+m3_fam = [31.33, 54.00, 17.67, 60.00, 53.67, 35.33, 5.37, 6.55]
 
 xf = np.arange(len(fam_labels))
 wf = 0.25
@@ -2472,13 +2476,13 @@ ax3.bar(xf, m2_fam, wf, label="M2* (Refined Warm-Start)", color="#2980b9", edgec
 b_m3_fam = ax3.bar(xf + wf, m3_fam, wf, label="M3 (Dual-Engine Champion)", color="#27ae60", edgecolor="black")
 
 for b in b_m3_fam:
-    ax3.text(b.get_x() + b.get_width()/2, b.get_height() + 0.4, f"{b.get_height():.1f}%", ha="center", va="bottom", fontsize=8, fontweight="bold", color="#27ae60")
+    ax3.text(b.get_x() + b.get_width()/2, b.get_height() + 1.0, f"{b.get_height():.1f}%", ha="center", va="bottom", fontsize=8, fontweight="bold", color="#27ae60")
 
 ax3.set_xticks(xf)
 ax3.set_xticklabels(fam_labels, fontsize=9, fontweight="bold")
 ax3.set_ylabel("Fake Recall (%)", fontsize=9)
-ax3.set_title("Sát Hạch Toàn Cầu Universal Benchmark (20.400 Ảnh, 34 Phương Pháp Sinh): Đột Phá Đa Bộ Sinh Của M3\\n(DDIM x2.89, SD 2.1 x1.78, DiT x2.45, GAN Inversion 21.50%)", fontsize=10.5, fontweight="bold")
-ax3.set_ylim(0, 26)
+ax3.set_title("Sát Hạch Toàn Cầu Universal Benchmark (20.400 Ảnh @ 512→504px LANCZOS): Đột Phá Đa Bộ Sinh Của M3\\n(GAN 60.0%, SD 2.1 54.0%, GAN Inv 53.7%, DDIM 31.3%, DiT 17.7%)", fontsize=10.2, fontweight="bold")
+ax3.set_ylim(0, 72)
 ax3.legend(fontsize=8.5, loc="upper right")
 ax3.grid(axis="y", linestyle="--", alpha=0.4)
 
@@ -2749,13 +2753,13 @@ Nhằm đảm bảo tính thuyết phục cao nhất trước Hội đồng Chuy
 
 - **Thách thức khái quát hóa ngoài phân phối (OOD)**: Một bộ dò chỉ huấn luyện trên SD 1.5 và RV5.1 liệu có thể nhận diện được ảnh sinh bởi các thuật toán hoàn toàn xa lạ (DDIM, DiT, GAN, StyleGAN, FaceForensics++)?
 - **Khẳng định qua Sát Hạch Toàn Cầu 20.400 Ảnh**:
-  - Trên tập dữ liệu khổng lồ gồm 34 bộ sinh thuộc 8 họ công nghệ, Champion $M_3$ nhân đôi hiệu năng tổng thể: Fake Recall toàn cầu tăng từ **2.48% ($M_2^*$) lên 5.49% ($M_3$)**.
-  - Đột phá vượt bậc trên các bộ sinh khuếch tán tiên tiến:
-    - DDIM: Fake Recall tăng gần gấp 3 lần (**6.00% $\to$ 17.33%**).
-    - SD 2.1: Fake Recall tăng gần gấp 2 lần (**4.67% $\to$ 8.33%**).
-    - Diffusion Transformers (DiT): Fake Recall tăng gấp 2.45 lần (**1.50% $\to$ 3.67%**).
-    - GAN Inversion & Editing: Fake Recall đạt đỉnh **21.50%**.
-  - Đồng thời, mô hình kiểm soát độ đặc hiệu trên ảnh thật ở mức cao **90.42%** và duy trì tính trơ với nhiễu nén video H.264 trên FaceForensics++ C23 (tỷ lệ báo động nhầm FPR chỉ **2.60%**).
+  - Trên tập dữ liệu khổng lồ gồm 34 bộ sinh thuộc 8 họ công nghệ (ở chuẩn `512→504px LANCZOS`), Champion $M_3$ đạt **21.15%** Fake Recall toàn cầu (ROC-AUC **0.6101**, Precision **80.13%**), gấp gần 4 lần kết quả nén `224px`.
+  - Đột phá vượt bậc trên nhiều họ kiến trúc:
+    - GAN Architectures: **60.00%** (`StyleGAN2` đạt **100.00%**).
+    - SD 2.1 (Latent Diffusion): **54.00%** (tăng mạnh từ **23.67%** của $M_0$ và **8.33%** khi nén 224px).
+    - GAN Inversion & Editing: **53.67%** (`e4e` đạt **99.67%**).
+    - DDIM (Diffusion Baselines): **31.33%**; Diffusion Transformers (DiT): **17.67%** (`pixart` **60.67%**).
+  - Đồng thời, mô hình giữ độ đặc hiệu trên ảnh thật toàn cục ở mức cao **94.75%** và kiểm soát FPR trên video nén H.264 FaceForensics++ C23 ở mức **5.14%** (`τ=0.50`) / **2.54%** (`τ=0.85`).
 """
     cells.append(make_markdown_cell(sec3_md))
 

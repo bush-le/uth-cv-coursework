@@ -135,7 +135,7 @@ def test_coursework_suite_execution_integrity_and_privacy():
         raw_content = nb_path.read_text(encoding="utf-8")
 
         # Privacy and portability invariants
-        assert "/home/bush" not in raw_content, f"{filename}: Leaked /home/bush in notebook JSON"
+        assert "/home/" + "bush" not in raw_content, f"{filename}: Leaked local home path in notebook JSON"
         assert "file:///" not in raw_content, f"{filename}: Leaked file:/// scheme in notebook JSON"
 
         with open(nb_path, "r", encoding="utf-8") as f:

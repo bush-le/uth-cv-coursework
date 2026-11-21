@@ -224,6 +224,6 @@ def test_checkpoint_cpu_fallback():
     model = DeepfakeImageDetector(backbone="dino_vit", pretrained=False)
     model.eval()
     with torch.no_grad():
-        x = torch.randn(2, 3, 224, 224)
+        x = torch.randn(2, 3, 512, 512)
         out = model(x)
     assert out.shape == (2, 1)

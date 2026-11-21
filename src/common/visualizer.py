@@ -717,7 +717,7 @@ def plot_detector_challenge_sample_inspection(
     import matplotlib.pyplot as plt
     from PIL import Image
     import torch
-    from src.data.transforms import get_base_transforms
+    from torchvision import transforms
     from src.models.detector.image_detector import DeepfakeImageDetector
 
     p_chal = Path(challenge_manifest)
@@ -739,16 +739,20 @@ def plot_detector_challenge_sample_inspection(
         raise ValueError("No valid hard fake samples found with existing image paths.")
 
     dev = torch.device(device)
-    transform = get_base_transforms(image_size=(224, 224), is_training=False)
+    # Note: DeepfakeImageDetector normalizes internally via MetaDinoV2Wrapper (expects [0, 1] RGB tensors)
+    transform = transforms.Compose([
+        transforms.Resize((512, 512), interpolation=transforms.InterpolationMode.LANCZOS),
+        transforms.ToTensor(),
+    ])
 
-    det_m0 = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
-    st0 = torch.load(m0_ckpt_path, map_location=dev)
+    det_m0 = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    st0 = torch.load(m0_ckpt_path, map_location=dev, weights_only=False)
     det_m0.load_state_dict(st0["model_state_dict"] if "model_state_dict" in st0 else st0)
     det_m0.to(dev)
     det_m0.eval()
 
-    det_m2 = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
-    st2 = torch.load(m2_ckpt_path, map_location=dev)
+    det_m2 = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    st2 = torch.load(m2_ckpt_path, map_location=dev, weights_only=False)
     det_m2.load_state_dict(st2["model_state_dict"] if "model_state_dict" in st2 else st2)
     det_m2.to(dev)
     det_m2.eval()
@@ -2280,12 +2284,12 @@ def plot_dinov2_architecture_and_parameters(
     ax.set_ylim(0, 10)
 
     boxes = [
-        ("Input Image (3, 224, 224)", 5.0, 9.0, "#ecf0f1", "#7f8c8d", False),
-        ("Patch Embedding (14x14) -> 256 tokens + 1 [CLS]", 5.0, 7.8, "#d5dbdb", "#34495e", False),
-        ("Transformer Blocks 0 - 10 (FROZEN: 20.3M Params)\n*Preserves General Visual Semantics*", 5.0, 5.8, "#e8f8f5", "#16a085", False),
-        ("Transformer Block 11 (UNFROZEN: 1.77M Params)\n*Adapts High-Level Diffusion Artifacts*", 5.0, 3.8, "#ebf5fb", "#2980b9", True),
-        ("CLS Token Extraction (Dim: 384)", 5.0, 2.2, "#fef9e7", "#f39c12", False),
-        ("Linear Head: Linear(384, 1) + Sigmoid (1,153 Params)", 5.0, 0.8, "#eafaf1", "#27ae60", True),
+        ("Input Image (3, 512, 512) -> Snap (504, 504)", 5.0, 9.0, "#ecf0f1", "#7f8c8d", False),
+        ("Patch Embedding (14x14) -> 1,296 tokens + 1 [CLS]", 5.0, 7.8, "#d5dbdb", "#34495e", False),
+        ("Transformer Blocks 0 - 10 (FROZEN: 20.28M Params)\n*Preserves General Visual Semantics*", 5.0, 5.8, "#e8f8f5", "#16a085", False),
+        ("Transformer Block 11 (UNFROZEN: 1.78M Params)\n*Adapts High-Level Diffusion Artifacts*", 5.0, 3.8, "#ebf5fb", "#2980b9", True),
+        ("[CLS] Token Extraction (Dim: 384)", 5.0, 2.2, "#fef9e7", "#f39c12", False),
+        ("Head: LayerNorm(384) -> Dropout(0.3) -> Linear(384, 1) (1,153 Params)", 5.0, 0.8, "#eafaf1", "#27ae60", True),
     ]
 
     for text, cx, cy, bg, border, highlight in boxes:
@@ -2553,13 +2557,14 @@ def plot_radar_and_pareto_frontier(
 
 
 def plot_interactive_sample_inspector(
-    npz_path: str | Path = "experiments/benchmarks/logs/benchmark_4models_predictions.npz",
-    csv_path: str | Path = "data/benchmarks/universal_deepfake_benchmark/metadata.csv",
-    base_img_dir: str | Path = "data/benchmarks/universal_deepfake_benchmark/images",
+    npz_path: str | Path = "experiments/benchmarks/logs/benchmark_5models_predictions.npz",
+    csv_path: str | Path = "data/benchmarks/universal_deepfake_benchmark/splits/test_universal_deepfake_benchmark.csv",
+    base_img_dir: str | Path = "data/benchmarks/universal_deepfake_benchmark",
     sample_idx: int = 0,
     output_path: str | Path | None = None,
 ) -> Any:
-    """Plot visual inspection of a sample with prediction probabilities across 4 models."""
+    """Plot visual inspection of a sample with prediction probabilities across models."""
+    import csv
     import matplotlib.pyplot as plt
     from PIL import Image
 
@@ -2571,37 +2576,45 @@ def plot_interactive_sample_inspector(
     prob_m1 = 0.08
     prob_m2_cold = 0.04
     prob_m2_star = 0.96
+    prob_m3: float | None = None
     gt_label = 1
     method_name = "e4e"
     family_name = "GAN-based"
     img_rel_path = ""
 
     if p_npz.exists() and p_csv.exists():
-        npz = np.load(p_npz)
-        p_m0 = npz["p_m0"]
-        p_m1 = npz["p_m1"]
-        p_m2_cold = npz["p_m2_cold"]
-        p_m2_star = npz["p_m2_star"]
+        npz = np.load(p_npz, allow_pickle=True)
         y_true = npz["y_true"]
-
         n_samples = len(y_true)
         idx = max(0, min(sample_idx, n_samples - 1))
 
-        prob_m0 = float(p_m0[idx])
-        prob_m1 = float(p_m1[idx])
-        prob_m2_cold = float(p_m2_cold[idx])
-        prob_m2_star = float(p_m2_star[idx])
+        if "probs_M0_baseline" in npz:
+            prob_m0 = float(npz["probs_M0_baseline"][idx])
+            prob_m1 = float(npz["probs_M1_active_r1"][idx])
+            prob_m2_cold = float(npz["probs_M2_coldstart"][idx])
+            prob_m2_star = float(npz["probs_M2_refined_warmstart"][idx])
+            prob_m3 = float(npz["probs_M3_dual_engine"][idx])
+            if "methods" in npz:
+                method_name = str(npz["methods"][idx])
+            if "families" in npz:
+                family_name = str(npz["families"][idx])
+        else:
+            prob_m0 = float(npz["p_m0"][idx])
+            prob_m1 = float(npz["p_m1"][idx])
+            prob_m2_cold = float(npz["p_m2_cold"][idx])
+            prob_m2_star = float(npz["p_m2_star"][idx])
         gt_label = int(y_true[idx])
 
-        # Read CSV row idx + 1
+        # Read CSV row at idx
         with open(p_csv, "r", encoding="utf-8") as f:
-            for i, line in enumerate(f):
-                if i == idx + 1:
-                    parts = line.strip().split(",")
-                    if len(parts) >= 3:
-                        img_rel_path = parts[0]
-                        method_name = parts[1]
-                        family_name = parts[2]
+            reader = csv.DictReader(f)
+            for i, row in enumerate(reader):
+                if i == idx:
+                    img_rel_path = row.get("path", "")
+                    if row.get("method"):
+                        method_name = row["method"]
+                    if row.get("source") and family_name == "GAN-based":
+                        family_name = row["source"]
                     break
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
@@ -2633,8 +2646,11 @@ def plot_interactive_sample_inspector(
 
     # Panel 2: Probabilities bar chart
     ax = axes[1]
-    models = ["$M_0$ (Baseline)", "$M_1$ (Active R1)", "$M_2^{\\text{cold}}$ (Cold)", "$M_2^*$ (Champion)"]
+    models = ["$M_0$ (Baseline)", "$M_1$ (Active R1)", "$M_2^{\\text{cold}}$ (Cold)", "$M_2^*$ (Refined)"]
     probs = [prob_m0, prob_m1, prob_m2_cold, prob_m2_star]
+    if prob_m3 is not None:
+        models.append("$M_3$ (Champion)")
+        probs.append(prob_m3)
     colors = [
         "#27ae60" if ((p >= 0.5 and gt_label == 1) or (p < 0.5 and gt_label == 0)) else "#e74c3c"
         for p in probs

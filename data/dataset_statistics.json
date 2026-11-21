@@ -1,8 +1,12 @@
 {
   "counts_by_source": {
     "raw_real": 4000,
-    "synthetic_total": 2200,
-    "curated_synthetic": 2200,
+    "synthetic_total": 5251,
+    "synthetic_raw_total": 6545,
+    "d0_curated_synthetic": 2200,
+    "d0_raw_synthetic": 2745,
+    "rv51_ood_synthetic": 6000,
+    "curated_synthetic": 5251,
     "hard_samples": 740
   },
   "counts_by_mode": {
@@ -36,25 +40,26 @@
       "Glasses": 60
     }
   },
-  "curation_pass_rate": 1.0,
+  "curation_pass_rate": 0.8023,
+  "d0_curation_pass_rate": 0.8015,
   "hard_rate_by_mode": {
     "sd_text2img": 0.05327868852459016,
     "sd_inpaint": 0.6583143507972665,
     "sd_img2img": 0.1630695443645084
   },
-  "tau": null,
+  "tau": 0.5,
   "hardness_config": {
     "method": "real_manifold",
     "backbone_id": "facebook/dinov2-small",
     "k_neighbors": 5,
     "reference_quantile": 0.5,
-    "detector_checkpoint": "experiments/checkpoints/baseline_detector_best.pt",
+    "detector_checkpoint": "experiments/checkpoints/baseline_d0_best.pt",
     "detector_tau": 0.5,
     "batch_size": 16,
     "max_real_reference": 150
   },
   "generation_config": {
-    "model_id": "runwayml/stable-diffusion-v1-5",
+    "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
     "inpaint_model_id": "stable-diffusion-v1-5/stable-diffusion-inpainting",
     "modes": [
       "sd_img2img",

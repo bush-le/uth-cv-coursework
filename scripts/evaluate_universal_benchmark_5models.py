@@ -10,6 +10,7 @@ Generates:
 - experiments/benchmarks/figures/benchmark_5models_family_recall.png
 """
 
+import argparse
 import csv
 import json
 import os
@@ -95,8 +96,14 @@ MODEL_CONFIGS = [
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Evaluate all 5 Deepfake Detector Models on Universal Benchmark")
+    parser.add_argument("--target-size", type=int, default=512, help="Square resize before DINOv2 forward (default: 512 -> 504px)")
+    parser.add_argument("--batch-size", type=int, default=48, help="Evaluation batch size")
+    parser.add_argument("--force-recompute", action="store_true", help="Ignore existing caches and run full 5-model GPU inference")
+    args = parser.parse_args()
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    logger.info("Universal Benchmark Suite 5-Model Evaluation on device: %s", device)
+    logger.info("Universal Benchmark Suite 5-Model Evaluation on device: %s (@ %dx%d LANCZOS)", device, args.target_size, args.target_size)
 
     benchmark_csv = Path("data/benchmarks/universal_deepfake_benchmark/splits/test_universal_deepfake_benchmark.csv")
     base_img_dir = Path("data/benchmarks/universal_deepfake_benchmark/test_images")
@@ -113,10 +120,15 @@ def main() -> None:
         records = list(csv.DictReader(f))
     logger.info("Loaded %d benchmark records", len(records))
 
-    dataset = UniversalBenchmarkDataset(records, base_img_dir=base_img_dir, target_size=(224, 224))
+    dataset = UniversalBenchmarkDataset(
+        records,
+        base_img_dir=base_img_dir,
+        target_size=(args.target_size, args.target_size),
+        resampling=Image.Resampling.LANCZOS,
+    )
     dataloader = DataLoader(
         dataset,
-        batch_size=32,
+        batch_size=args.batch_size,
         shuffle=False,
         num_workers=4,
         pin_memory=torch.cuda.is_available(),
@@ -126,13 +138,13 @@ def main() -> None:
     npz_4models_path = log_dir / "benchmark_4models_predictions.npz"
     npz_5models_path = log_dir / "benchmark_5models_predictions.npz"
 
-    model_predictions: Dict[str, List[float]] = {}
+    model_predictions: Dict[str, List[float]] = {cfg["key"]: [] for cfg in MODEL_CONFIGS}
     y_true: np.ndarray
     methods_arr: np.ndarray
     families_arr: np.ndarray
     sources_arr: np.ndarray
 
-    if npz_5models_path.exists():
+    if npz_5models_path.exists() and not args.force_recompute:
         logger.info("Found existing 5-model prediction cache: %s", npz_5models_path)
         loaded = np.load(npz_5models_path)
         y_true = loaded["y_true"]
@@ -140,7 +152,7 @@ def main() -> None:
         families_arr = loaded["families"]
         sources_arr = loaded["sources"]
         model_predictions = {cfg["key"]: loaded[f"probs_{cfg['key']}"].tolist() for cfg in MODEL_CONFIGS}
-    elif npz_4models_path.exists():
+    elif npz_4models_path.exists() and not args.force_recompute:
         logger.info("Found 4-model cache. Loading and computing M3 inference...")
         loaded = np.load(npz_4models_path)
         y_true = loaded["y_true"]
@@ -179,7 +191,6 @@ def main() -> None:
         logger.info("M3 inference completed in %.1f seconds!", time.time() - t0)
         model_predictions[m3_cfg["key"]] = m3_preds
 
-        # Save 5-model cache
         npz_data = {
             "y_true": y_true,
             "methods": methods_arr,
@@ -191,7 +202,54 @@ def main() -> None:
         np.savez_compressed(npz_5models_path, **npz_data)
         logger.info("Saved 5-model cache to %s", npz_5models_path)
     else:
-        raise FileNotFoundError(f"Missing prediction cache: {npz_4models_path}")
+        logger.info("Running synchronized 5-model inference on %d images at %dx%d LANCZOS...", len(records), args.target_size, args.target_size)
+        models: Dict[str, DeepfakeImageDetector] = {}
+        for cfg in MODEL_CONFIGS:
+            key = cfg["key"]
+            model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+            model.unfreeze_backbone(unfreeze_last_n_blocks=1)
+            state = torch.load(cfg["ckpt"], map_location="cpu")
+            model.load_state_dict(state["model_state_dict"] if "model_state_dict" in state else state)
+            model.eval()
+            model.to(device)
+            models[key] = model
+
+        all_labels: List[int] = []
+        all_methods: List[str] = []
+        all_sources: List[str] = []
+        all_families: List[str] = []
+        t0 = time.time()
+        with torch.no_grad():
+            for batch_idx, (imgs, lbls, methods, sources, families) in enumerate(dataloader):
+                imgs = imgs.to(device, non_blocking=True)
+                all_labels.extend(lbls.tolist())
+                all_methods.extend(methods)
+                all_sources.extend(sources)
+                all_families.extend(families)
+                with torch.amp.autocast("cuda", enabled=(device == "cuda")):
+                    for cfg in MODEL_CONFIGS:
+                        key = cfg["key"]
+                        probs = torch.sigmoid(models[key](imgs).view(-1)).cpu().tolist()
+                        model_predictions[key].extend(probs)
+                if (batch_idx + 1) % 100 == 0 or (batch_idx + 1) == len(dataloader):
+                    logger.info("  [Batch %d/%d (%.1f%%)] -> %d samples", batch_idx + 1, len(dataloader), (batch_idx + 1) / len(dataloader) * 100, len(all_labels))
+
+        logger.info("Full 5-model inference completed in %.1f seconds!", time.time() - t0)
+        y_true = np.array(all_labels, dtype=int)
+        methods_arr = np.array(all_methods)
+        families_arr = np.array(all_families)
+        sources_arr = np.array(all_sources)
+
+        npz_data = {
+            "y_true": y_true,
+            "methods": methods_arr,
+            "families": families_arr,
+            "sources": sources_arr,
+        }
+        for cfg in MODEL_CONFIGS:
+            npz_data[f"probs_{cfg['key']}"] = np.array(model_predictions[cfg["key"]], dtype=np.float32)
+        np.savez_compressed(npz_5models_path, **npz_data)
+        logger.info("Saved 5-model cache to %s", npz_5models_path)
 
     # 2. Compute Global & Granular Metrics
     logger.info("Computing metrics for all 5 models...")
@@ -269,6 +327,21 @@ def main() -> None:
             writer.writerow(row)
     logger.info("Saved family CSV to %s", tbl_family_path)
 
+    # 4b. Export Per-Method CSV Summary (34 methods across 5 models)
+    tbl_method_path = tbl_dir / "benchmark_5models_method_summary.csv"
+    distinct_fake_methods = sorted([m for m in set(methods_arr.tolist()) if m != "real"])
+    with open(tbl_method_path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Method", "Family", "Count"] + [f"{cfg['display_name']} Recall" for cfg in MODEL_CONFIGS])
+        for m in distinct_fake_methods:
+            m_mask = methods_arr == m
+            row = [m, METHOD_TAXONOMY.get(m, "Other"), int(np.sum(m_mask))]
+            for cfg in MODEL_CONFIGS:
+                m_probs = np.array(model_predictions[cfg["key"]])[m_mask]
+                row.append(f"{np.mean(m_probs >= 0.50)*100:.2f}%" if len(m_probs) > 0 else "0.00%")
+            writer.writerow(row)
+    logger.info("Saved method CSV to %s", tbl_method_path)
+
     # 5. Generate ROC Curves Plot
     plt.figure(figsize=(9, 7), dpi=300)
     for cfg in MODEL_CONFIGS:
@@ -283,7 +356,8 @@ def main() -> None:
     plt.ylim([-0.02, 1.02])
     plt.xlabel("False Positive Rate (FPR)", fontsize=11, fontweight="bold")
     plt.ylabel("True Positive Rate (TPR / Recall)", fontsize=11, fontweight="bold")
-    plt.title("ROC Curves Comparison Across 5 Detector Models (Universal Benchmark)", fontsize=12, fontweight="bold", pad=12)
+    res_label = f"{args.target_size}→{(args.target_size // 14) * 14}px LANCZOS"
+    plt.title(f"ROC Curves Comparison Across 5 Detector Models (Universal Benchmark @ {res_label})", fontsize=12, fontweight="bold", pad=12)
     plt.legend(loc="lower right", fontsize=9, frameon=True)
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
@@ -306,7 +380,7 @@ def main() -> None:
     plt.ylim([-0.02, 1.02])
     plt.xlabel("Recall", fontsize=11, fontweight="bold")
     plt.ylabel("Precision", fontsize=11, fontweight="bold")
-    plt.title("Precision-Recall Curves Across 5 Detector Models (Universal Benchmark)", fontsize=12, fontweight="bold", pad=12)
+    plt.title(f"Precision-Recall Curves Across 5 Detector Models (Universal Benchmark @ {res_label})", fontsize=12, fontweight="bold", pad=12)
     plt.legend(loc="lower left", fontsize=9, frameon=True)
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
@@ -315,26 +389,30 @@ def main() -> None:
     plt.close()
     logger.info("Saved PR curve figure to %s", pr_fig_path)
 
-    # 7. Generate Family Bar Chart
+    # 7. Generate Family Bar Chart (dynamic Y-axis headroom so bars never clip)
     fake_families = [fam for fam in distinct_families if not fam.startswith("Real")]
     x = np.arange(len(fake_families))
     width = 0.16
 
+    max_fam_recall = 0.0
     fig, ax = plt.subplots(figsize=(15, 6), dpi=300)
     for i, cfg in enumerate(MODEL_CONFIGS):
         key = cfg["key"]
         vals = [family_results[fam][f"{key}_recall"] * 100 for fam in fake_families]
+        if vals:
+            max_fam_recall = max(max_fam_recall, max(vals))
         bars = ax.bar(x + (i - 2) * width, vals, width, label=cfg["display_name"], color=cfg["color"], edgecolor="black", linewidth=0.8, alpha=0.9)
         if key == "M3_dual_engine":
             for b in bars:
                 h = b.get_height()
-                ax.text(b.get_x() + b.get_width() / 2, h + 0.5, f"{h:.1f}%", ha="center", va="bottom", fontsize=8.5, fontweight="bold", color="#4c1d95")
+                ax.text(b.get_x() + b.get_width() / 2, h + 0.8, f"{h:.1f}%", ha="center", va="bottom", fontsize=8.5, fontweight="bold", color="#4c1d95")
 
+    ylim_top = min(108.0, max(30.0, float(np.ceil((max_fam_recall + 12.0) / 10.0) * 10.0)))
     ax.set_ylabel("Fake Recall (%)", fontsize=11, fontweight="bold")
-    ax.set_title("Family Recall Breakdown Across 5 Detector Models (20,400 Images • Zoomed Y: 0–30%)", fontsize=13, fontweight="bold", pad=12)
+    ax.set_title(f"Family Recall Breakdown Across 5 Detector Models (20,400 Images @ {res_label} • Y: 0–{int(ylim_top)}%)", fontsize=13, fontweight="bold", pad=12)
     ax.set_xticks(x)
     ax.set_xticklabels([f.replace(" / ", "\n") for f in fake_families], rotation=20, ha="right", fontsize=9)
-    ax.set_ylim(0, 30)
+    ax.set_ylim(0, ylim_top)
     ax.grid(axis="y", linestyle="--", alpha=0.5)
     ax.legend(loc="upper right", fontsize=9, frameon=True)
     plt.tight_layout()

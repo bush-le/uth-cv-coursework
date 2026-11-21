@@ -76,12 +76,12 @@ def test_hard_sample_requires_face_crop_manifold_proximity():
 
     dummy = torch.randn(3, 256, 256)
     # Specified bounding box
-    cropped = crop_face_tensor(dummy, bbox=(0.20, 0.20, 0.80, 0.80), target_size=(224, 224))
-    assert cropped.shape == (3, 224, 224)
+    cropped = crop_face_tensor(dummy, bbox=(0.20, 0.20, 0.80, 0.80), target_size=(512, 512))
+    assert cropped.shape == (3, 512, 512)
 
     # Automatic fallback
-    auto_cropped = crop_face_tensor(dummy, bbox=None, target_size=(224, 224))
-    assert auto_cropped.shape == (3, 224, 224)
+    auto_cropped = crop_face_tensor(dummy, bbox=None, target_size=(512, 512))
+    assert auto_cropped.shape == (3, 512, 512)
 
 
 def test_diversity_filter_prunes_near_duplicate_embeddings():

@@ -55,7 +55,7 @@ class Legacy6kDataset(Dataset):
         if self.transform is not None:
             tensor = self.transform(img)
         else:
-            tensor = torch.zeros((3, 224, 224), dtype=torch.float32)
+            tensor = torch.zeros((3, 512, 512), dtype=torch.float32)
 
         return {
             "image": tensor,
@@ -81,8 +81,9 @@ def evaluate_model_on_6k(
     with torch.no_grad():
         for batch in dataloader:
             images = batch["image"].to(device)
-            logits = model(images).view(-1)
-            probs = torch.sigmoid(logits).cpu().numpy().tolist()
+            with torch.amp.autocast("cuda", enabled=(device.type == "cuda")):
+                logits = model(images).view(-1)
+                probs = torch.sigmoid(logits).cpu().numpy().tolist()
 
             all_probs.extend(probs)
             all_tasks.extend(batch["task"])
@@ -149,10 +150,11 @@ def main():
     )
     parser.add_argument("--device", type=str, default="cuda", help="Target device (cuda or cpu)")
     parser.add_argument("--batch-size", type=int, default=32, help="Evaluation batch size")
+    parser.add_argument("--target-size", type=int, default=512, help="Resize target before ViT forward (default: 512 -> 504px)")
     args = parser.parse_args()
 
     device = torch.device(args.device if args.device == "cuda" and torch.cuda.is_available() else "cpu")
-    logger.info("Running 6k Legacy Synthetic Benchmark on device: %s", device)
+    logger.info("Running 6k Legacy Synthetic Benchmark on device: %s (@ %dx%d LANCZOS)", device, args.target_size, args.target_size)
 
     manifest_path = Path(args.manifest)
     if not manifest_path.exists():
@@ -165,20 +167,26 @@ def main():
                 records.append(json.loads(line.strip()))
 
     logger.info("Loaded %d records from %s", len(records), manifest_path)
-    transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
+    transform = transforms.Compose([
+        transforms.Resize((args.target_size, args.target_size), interpolation=transforms.InterpolationMode.LANCZOS),
+        transforms.ToTensor(),
+    ])
     dataset = Legacy6kDataset(records, transform=transform)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=2)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=torch.cuda.is_available())
 
     checkpoints = {
         "M0_baseline": Path("experiments/checkpoints/baseline_d0_best.pt"),
         "M1_active_round1": Path("experiments/checkpoints/active_learning_m1_best.pt"),
+        "M2_coldstart": Path("experiments/checkpoints/active_learning_m2_coldstart_backup.pt"),
         "M2_active_round2": Path("experiments/checkpoints/active_learning_m2_best.pt"),
+        "M3_dual_engine": Path("experiments/checkpoints/active_learning_m3_best.pt"),
     }
 
     results: Dict[str, Any] = {
         "title": "Legacy 6k Synthetic Dataset Out-of-Distribution Benchmark Report",
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "total_samples": len(records),
+        "target_size": args.target_size,
         "device": str(device),
         "models": {},
     }
@@ -190,7 +198,7 @@ def main():
             continue
 
         logger.info("\n=== Evaluating %s (%s) on 6,000 legacy fakes ===", model_name, ckpt_path.name)
-        detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
+        detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
         state = torch.load(ckpt_path, map_location=device)
         detector.load_state_dict(state["model_state_dict"] if "model_state_dict" in state else state)
 
@@ -222,7 +230,9 @@ def main():
         npz_file,
         m0_probs=raw_probs.get("M0_baseline", np.array([])),
         m1_probs=raw_probs.get("M1_active_round1", np.array([])),
+        m2_coldstart_probs=raw_probs.get("M2_coldstart", np.array([])),
         m2_probs=raw_probs.get("M2_active_round2", np.array([])),
+        m3_probs=raw_probs.get("M3_dual_engine", np.array([])),
         tasks=np.array([r.get("task", "") for r in records]),
         sub_regions=np.array([r.get("sub_region") or "none" for r in records]),
         image_paths=np.array([r["image_path"] for r in records]),

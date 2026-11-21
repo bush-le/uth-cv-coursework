@@ -325,6 +325,59 @@ def test_miner_raises_when_manifest_missing(monkeypatch, tmp_path):
         mine_main()
 
 
+def test_load_yaml_with_defaults_resolves_subconfigs():
+    """Verify load_yaml_with_defaults resolves Hydra-style defaults entries in configs/config.yaml."""
+    from src.common.config import load_yaml_with_defaults
+
+    cfg = load_yaml_with_defaults("configs/config.yaml")
+    assert "detection" in cfg and cfg["detection"]["model"]["spatial_backbone"] == "dinov2_small"
+    assert "dataset" in cfg and "generation" in cfg
+
+
+def test_evaluate_pipeline_requires_verified_checkpoint(tmp_path):
+    """Zero-Mock Invariant: evaluate_pipeline must reject missing or None checkpoints."""
+    from src.pipelines.evaluate import evaluate_pipeline
+
+    with pytest.raises(ValueError, match="checkpoint_path is required"):
+        evaluate_pipeline(config_path="configs/config.yaml", checkpoint_path=None)
+
+    with pytest.raises(FileNotFoundError):
+        evaluate_pipeline(config_path="configs/config.yaml", checkpoint_path=str(tmp_path / "missing.pt"))
+
+
+def test_infer_pipeline_runs_with_verified_checkpoint(tmp_path):
+    """Verify infer_pipeline rejects missing checkpoints and runs real RGB inference when valid."""
+    import torch
+    from PIL import Image
+    from src.models.detector.image_detector import DeepfakeImageDetector
+    from src.pipelines.infer import infer_pipeline
+
+    with pytest.raises(FileNotFoundError):
+        infer_pipeline(
+            config_path="configs/config.yaml",
+            input_path=str(tmp_path),
+            checkpoint_path=str(tmp_path / "nonexistent.pt"),
+        )
+
+    det = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    ckpt_path = tmp_path / "m_test.pt"
+    torch.save({"model_state_dict": det.state_dict()}, ckpt_path)
+
+    img_path = tmp_path / "sample.png"
+    Image.new("RGB", (64, 64), color=(100, 120, 140)).save(img_path)
+
+    results = infer_pipeline(
+        config_path="configs/config.yaml",
+        input_path=str(img_path),
+        checkpoint_path=str(ckpt_path),
+        threshold=0.5,
+    )
+    assert len(results) == 1
+    assert 0.0 <= results[0]["p_fake"] <= 1.0
+    assert results[0]["prediction"] in ("real", "fake")
+
+
+
 
 
 
