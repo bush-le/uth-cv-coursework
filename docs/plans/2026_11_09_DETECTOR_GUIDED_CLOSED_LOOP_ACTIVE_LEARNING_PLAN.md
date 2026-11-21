@@ -4,7 +4,7 @@
 - **Purpose**: Serve as the comprehensive, authoritative implementation plan and benchmark blueprint for Topic 11 (Facial Deepfake Detection under Active Adversarial Feedback) with Dual-Benchmark evaluation, stateful round resumption, and 9-channel inpainting UNet integration.
 - **Overview Pipeline**: Baseline Detector $M_0$ $\to$ Modality Budget Allocation (Tier 1) & Regional Mask Targeting (Tier 2) $\to$ Combinatorial Prompt Generation (7 slots, CLIP $\le 60$ words) $\to$ Synthesis Pool Generation (T2I / I2I / 9-ch Inpaint) $\to$ Quality Curation Gate $\to$ Calibrated Inference (Validation Temperature Scaling) $\to$ Hard-Sample Mining ($H_r$) $\to$ Hard Split ($85\%$ Train, $15\%$ Challenge Test) $\to$ Error Attribution Feedback $\to$ Dataset Expansion ($D_r = D_{r-1} \cup H_r^{\text{train}}$) $\to$ Retraining $M_r$ $\to$ Dual-Benchmark Evaluation (Master Frozen Test + Cumulative Challenge Test) $\to$ Trajectory Logging.
 - **Detailed Plan**: §1 Executive Architecture & Core Innovations; §2 Global Constraints & Guardrails; §3 Completed Milestones (Tasks 1–4); §4 Task 5: Dual-Benchmark Splitting & Evaluation Integration; §5 Task 6: Multi-Round Production Scaling & Proof-of-Utility Benchmark; §6 Task 7: Active Learning Progression Visualizer; §7 Task 8: Coursework Deliverables & Documentation Synchronization.
-- **References**: [GEMINI.md](GEMINI.md), [SESSION_HANDOVER.md](SESSION_HANDOVER.md), [docs/progress/SESSION_HANDOVER_2026_11_09.md](docs/progress/SESSION_HANDOVER_2026_11_09.md), [configs/dataset_factory.yaml](configs/dataset_factory.yaml), [src/pipelines/run_closed_loop_active_learning.py](src/pipelines/run_closed_loop_active_learning.py).
+- **References**: [GEMINI.md](../../AGENTS.md), [SESSION_HANDOVER.md](../../SESSION_HANDOVER.md), [docs/progress/SESSION_HANDOVER_2026_11_09.md](../progress/SESSION_HANDOVER_2026_11_09.md), [configs/dataset_factory.yaml](../../configs/dataset_factory.yaml), [src/pipelines/run_closed_loop_active_learning.py](../../src/pipelines/run_closed_loop_active_learning.py).
 - **Created**: 2026-11-09T19:26:00+07:00
 - **Last Updated**: 2026-11-09T20:05:00+07:00
 
@@ -25,7 +25,7 @@
 
 **Tech Stack:** Python 3.10+, PyTorch 2.1+, Torchvision, Hugging Face Diffusers (Stable Diffusion v1.5 base & 9-channel UNet `stable-diffusion-v1-5/stable-diffusion-inpainting`), DINOv2 ViT (Linear Probe / LayerNorm), OpenCV, NumPy, Pytest.
 
-**Spec:** [docs/OVERVIEW.md](docs/OVERVIEW.md), [SESSION_HANDOVER.md](SESSION_HANDOVER.md), [GEMINI.md](GEMINI.md).
+**Spec:** [docs/OVERVIEW.md](../OVERVIEW.md), [SESSION_HANDOVER.md](../../SESSION_HANDOVER.md), [GEMINI.md](../../AGENTS.md).
 
 ---
 

@@ -4,9 +4,12 @@
 - **Purpose**: Present official 4-way comparative proof-of-utility benchmarking metrics across multi-generation evolutionary rounds (M0 -> M_rand -> M1 -> M2) under 100% strict identity-disjoint test isolation.
 - **Overview Pipeline**: Real Identities Partitioning -> Frozen Test Vault Isolation (D_test) -> Round 0 (D0 -> M0) -> Round 1 Pool 1 Mining (H1, R -> M_rand, M1) -> Round 2 Adversarial Synthesis (strength=0.28, micro-masks -> H2 -> M2) -> Unified Evaluation on D_test.
 - **Detailed Plan**: §1 Identity-Disjoint Isolation Audit; §2 Multi-Generation Experimental Setup; §3 Golden 4-Way Comparative Table; §4 Analytical Insights & Scientific Conclusions.
-- **References**: [GEMINI.md](GEMINI.md), [dataset_factory.yaml](configs/dataset_factory.yaml), [run_iterative_auto_pipeline.py](scripts/run_iterative_auto_pipeline.py).
+- **References**: [AGENTS.md](../../AGENTS.md), [dataset_factory.yaml](../../configs/dataset_factory.yaml), [run_iterative_auto_pipeline.py](../../scripts/run_iterative_auto_pipeline.py).
 - **Created**: 2026-11-09T17:46:41+07:00
-- **Last Updated**: 2026-11-09T18:25:00+07:00
+- **Last Updated**: 2026-11-21T18:10:00+07:00
+
+> [!NOTE]
+> **Historical 12-Sample Smoke Loop Archive**: This report records an early 12-sample prototype run under `data/iterative_loop/frozen_test.jsonl`. For the authoritative, full-scale production benchmarks (`M₀ → M₃` across Master Frozen, Challenge Vault 213, Unseen RV5.1, Legacy 6k, and Universal 20.4k @ `512→504px`), see [`docs/reports/M3_DUAL_ENGINE_CHAMPION_REPORT.md`](../../docs/reports/M3_DUAL_ENGINE_CHAMPION_REPORT.md) and `experiments/benchmarks/tables/`.
 
 ---
 

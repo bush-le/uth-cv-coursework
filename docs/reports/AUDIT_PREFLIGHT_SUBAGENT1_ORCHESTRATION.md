@@ -12,14 +12,14 @@
   - §6 Identified Bugs, Silent Fallbacks & State Synchronization Risks
   - §7 Concrete Code Recommendations & Remediation Diffs
 - **References**:
-  - [`scripts/run_clean_10k_production_pipeline.py`](scripts/run_clean_10k_production_pipeline.py)
-  - [`src/pipelines/run_block1_baseline.py`](src/pipelines/run_block1_baseline.py)
-  - [`src/pipelines/run_closed_loop_active_learning.py`](src/pipelines/run_closed_loop_active_learning.py)
-  - [`scripts/run_pipeline.sh`](scripts/run_pipeline.sh)
-  - [`src/pipelines/curate_image_dataset.py`](src/pipelines/curate_image_dataset.py)
-  - [`src/pipelines/train_image_detector.py`](src/pipelines/train_image_detector.py)
-  - [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](.agents/rules/ZERO_MOCK_DATA_RULE.md)
-  - [`GEMINI.md`](GEMINI.md)
+  - [`scripts/run_clean_10k_production_pipeline.py`](../../scripts/run_clean_10k_production_pipeline.py)
+  - [`src/pipelines/run_block1_baseline.py`](../../src/pipelines/run_block1_baseline.py)
+  - [`src/pipelines/run_closed_loop_active_learning.py`](../../src/pipelines/run_closed_loop_active_learning.py)
+  - [`scripts/run_pipeline.sh`](../../scripts/run_pipeline.sh)
+  - [`src/pipelines/curate_image_dataset.py`](../../src/pipelines/curate_image_dataset.py)
+  - [`src/pipelines/train_image_detector.py`](../../src/pipelines/train_image_detector.py)
+  - [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](../../.agents/rules/ZERO_MOCK_DATA_RULE.md)
+  - [`GEMINI.md`](../../AGENTS.md)
 - **Created**: 2026-11-10T08:35:00+07:00
 - **Last Updated**: 2026-11-10T08:35:00+07:00
 
@@ -215,7 +215,7 @@ The manifest and checkpoint paths between stages were verified for exact string 
 ```
 
 **Checkpoint Protocol Audit**:
-- In `run_closed_loop_active_learning.py:439`, `if current_detector_ckpt.exists():` previously skipped loading without raising an exception if the file was missing. Under [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](.agents/rules/ZERO_MOCK_DATA_RULE.md), this must raise `FileNotFoundError`.
+- In `run_closed_loop_active_learning.py:439`, `if current_detector_ckpt.exists():` previously skipped loading without raising an exception if the file was missing. Under [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](../../.agents/rules/ZERO_MOCK_DATA_RULE.md), this must raise `FileNotFoundError`.
 
 ---
 

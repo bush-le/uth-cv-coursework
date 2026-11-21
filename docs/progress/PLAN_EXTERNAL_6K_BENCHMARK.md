@@ -18,7 +18,7 @@
 
 **Tech Stack:** PyTorch, torchvision, PIL, Matplotlib, JSONL, pytest.
 
-**Spec:** [`docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md`](docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md)
+**Spec:** [`docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md`](../phases/PHASE_EXTERNAL_6K_BENCHMARK.md)
 
 ## Global Constraints
 - Strictly isolate `data/external_benchmarks/` from the production 10,000 dataset in `data/partitions/` and `data/benchmarks/`.

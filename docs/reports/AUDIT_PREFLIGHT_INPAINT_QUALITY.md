@@ -4,7 +4,7 @@
 - **Purpose**: Provide a comprehensive forensic evaluation of organ mask boundaries, the 9-channel inpainting UNet interface, the smoothstep post-blending operation, color tone / white balance consistency, and prompt grammar demographic alignment across `src/models/diffusion/stable_diffusion_engine.py`, `src/models/diffusion/prompt_engine.py`, and `configs/dataset_factory.yaml`.
 - **Overview Pipeline**: Mask Geometry & Landmark Analysis $\to$ 9-Channel UNet Latent Binarization Check $\to$ Post-Blending Transition Band & Frequency Attenuation Audit $\to$ Color Space ($\Delta E_{ab}^*$) & Prompt Specialization Verification $\to$ Identification of Critical Bugs & Mathematical Failure Modes $\to$ Production Drop-in Patches & Quality Metrics.
 - **Detailed Plan**: §1 Executive Audit Scorecard; §2 Pillar 1: Mask Geometry, Landmark Alignment & Target Region Diversity; §3 Pillar 2: Inpainting UNet Input vs Post-Blending Mechanics; §4 Pillar 3: Color Tone, White Balance & Spatial Frequency Continuity; §5 Pillar 4: Critical Prompt Engine Substring Defect & Resolution; §6 Quantitative Inpainting Quality Benchmarks & Metrics; §7 Actionable Architectural Recommendations & Production Drop-in Patches.
-- **References**: [GEMINI.md](GEMINI.md), [configs/dataset_factory.yaml](configs/dataset_factory.yaml), [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py), [src/pipelines/generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py), [tests/test_dynamic_masking.py](tests/test_dynamic_masking.py), [tests/test_prompt_engine.py](tests/test_prompt_engine.py).
+- **References**: [GEMINI.md](../../AGENTS.md), [configs/dataset_factory.yaml](../../configs/dataset_factory.yaml), [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py), [src/pipelines/generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py), [tests/test_dynamic_masking.py](../../tests/test_dynamic_masking.py), [tests/test_prompt_engine.py](../../tests/test_prompt_engine.py).
 - **Created**: 2026-11-10T08:35:00+07:00
 - **Last Updated**: 2026-11-10T08:35:00+07:00
 
@@ -31,7 +31,7 @@ An exhaustive numerical, architectural, and visual fidelity audit of the Stable 
 
 ### 2.1 Bounding Box Detection & Ingestion Protocol
 
-In [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), `generate_dynamic_face_mask` implements an adaptive multi-format ingestion protocol:
+In [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), `generate_dynamic_face_mask` implements an adaptive multi-format ingestion protocol:
 
 ```python
 needs_detection = False
@@ -250,7 +250,7 @@ Stable Diffusion inpainting does not intrinsically constrain the global illumina
    $$\Delta E_{ab}^* = \sqrt{(\Delta L^*)^2 + (\Delta a^*)^2 + (\Delta b^*)^2}$$
    When $\Delta E_{ab}^* > 3.0$, human vision readily perceives the color mismatch. In a 30-pixel alpha blend, this produces a muddy, discolored halo ring around the face or organ.
 2. **Prompt Conditioning Interference**:
-   In [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py), the `inpaint` prompt mode appends a randomly sampled `lighting_tag`:
+   In [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py), the `inpaint` prompt mode appends a randomly sampled `lighting_tag`:
    ```python
    prompt_parts = [
        "seamless natural facial features, authentic skin texture",
@@ -272,7 +272,7 @@ Stable Diffusion inpainting does not intrinsically constrain the global illumina
 
 ### 5.1 Defect Discovery: Substring Collision in Age Classification
 
-During forensic inspection of `PromptGrammarEngine.generate_prompt` in [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py), an acute defect was discovered in the demographic keyword matching logic:
+During forensic inspection of `PromptGrammarEngine.generate_prompt` in [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py), an acute defect was discovered in the demographic keyword matching logic:
 
 ```python
 # DEFECTIVE CODE (lines 204-205 prior to patch):
@@ -341,7 +341,7 @@ else:
         gender_tag = "person face"
 ```
 
-A dedicated automated regression test was added to [tests/test_prompt_engine.py](tests/test_prompt_engine.py):
+A dedicated automated regression test was added to [tests/test_prompt_engine.py](../../tests/test_prompt_engine.py):
 ```python
 def test_young_adult_demographics_no_toddler_collision() -> None:
     """Verify '20-29' age group does not falsely collide with '0-2' toddler substrings."""
@@ -502,6 +502,6 @@ In `generate_dynamic_face_mask`, separate `"lips"` (localized oral mask) from `"
 
 ### 7.4 Summary of Pre-Flight Implementation Actions
 
-1. **Prompt Grammar Bug Fix**: Applied to [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py) lines 204–228. Verified via `pytest tests/test_prompt_engine.py` (7 passed in 0.80s).
-2. **Quality Audit Documentation**: Recorded in this comprehensive report [docs/reports/AUDIT_PREFLIGHT_INPAINT_QUALITY.md](docs/reports/AUDIT_PREFLIGHT_INPAINT_QUALITY.md).
+1. **Prompt Grammar Bug Fix**: Applied to [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py) lines 204–228. Verified via `pytest tests/test_prompt_engine.py` (7 passed in 0.80s).
+2. **Quality Audit Documentation**: Recorded in this comprehensive report [docs/reports/AUDIT_PREFLIGHT_INPAINT_QUALITY.md](AUDIT_PREFLIGHT_INPAINT_QUALITY.md).
 3. **Pre-Flight Readiness Clearance**: `sd_inpaint` is verified structurally robust for the impending 10,000-sample production run, with known forensic detection trade-offs documented for downstream classifier training.

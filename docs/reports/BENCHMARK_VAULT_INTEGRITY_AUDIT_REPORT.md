@@ -4,7 +4,7 @@
 - **Purpose**: Provide empirical verification of the Master Frozen Test Vault integrity, diagnose potential partition contamination, validate JSONL schema contracts, and outline actionable architectural protocols for the 10,000-sample scale-up.
 - **Overview Pipeline**: `data/benchmarks/` -> Hash & Bit-level Auditing -> Leakage & Identity Analysis -> Schema & Metadata Verification -> Modality & Balance Quantification -> Recommendations for Scale-Up.
 - **Detailed Plan**: §1 Executive Summary; §2 Cryptographic Immutability of Master Frozen Test Vault; §3 Forensic Data Leakage & Identity Disjointness Audit; §4 Class Balance & Ratio Analysis; §5 Generative Modality Breakdown; §6 Physical File Existence & Storage Audit; §7 JSONL Schema & ImageMetadata Compliance; §8 Strategic Roadmap & Protocols for 10,000 Scale-Up.
-- **References**: [docs/phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md](docs/phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md), [src/data/image_schema.py](src/data/image_schema.py), `configs/dataset_factory.yaml`.
+- **References**: [docs/phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md](../phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md), [src/data/image_schema.py](../../src/data/image_schema.py), `configs/dataset_factory.yaml`.
 - **Created**: 2026-11-10T07:35:00+07:00
 - **Last Updated**: 2026-11-10T07:35:00+07:00
 

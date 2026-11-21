@@ -1,7 +1,7 @@
 # Preflight Audit: Text2Img Photorealism, Framing, and Anatomical Quality
 
 - **Motivation/Background**: Scaling deepfake synthesis to 10,000 production samples (Topic 11) demands rigorous preflight quality assurance on the text-to-image pipeline (`sd_text2img`). In pure generative text-to-image synthesis, lacking an conditioning reference image ($I_{\text{src}}$), the diffusion latent trajectory is guided exclusively by prompt conditioning vectors and negative prompt gradients. Uncalibrated framing, anatomical drift (unitooth, iris asymmetry), or suboptimal solver steps directly undermine forensic dataset realism.
-- **Purpose**: Deliver an exhaustive technical and visual fidelity audit of the `sd_text2img` generative pipeline in [stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), [prompt_engine.py](src/models/diffusion/prompt_engine.py), and [dataset_factory.yaml](configs/dataset_factory.yaml), providing hard empirical metrics for canvas framing, optical/biometric fidelity, negative prompt efficacy, DPMSolver++ 20-step convergence, and guidance scale calibration on NVIDIA RTX 3050 hardware.
+- **Purpose**: Deliver an exhaustive technical and visual fidelity audit of the `sd_text2img` generative pipeline in [stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), [prompt_engine.py](../../src/models/diffusion/prompt_engine.py), and [dataset_factory.yaml](../../configs/dataset_factory.yaml), providing hard empirical metrics for canvas framing, optical/biometric fidelity, negative prompt efficacy, DPMSolver++ 20-step convergence, and guidance scale calibration on NVIDIA RTX 3050 hardware.
 - **Overview Pipeline**: Dynamic Prompt Generation ($\mathcal{P}_{\text{grammar}}$) $\rightarrow$ CLIP ViT-L/14 Token Budget Validation ($L \le 77$) $\rightarrow$ Latent Diffusion Sampling (DPM++ 2M Karras vs PNDM) $\rightarrow$ VAE Decode $\rightarrow$ Biometric/Optical Scanning & Defect Attribution.
 - **Detailed Plan**:
   - §1 Executive Preflight Scorecard & Core Verdicts
@@ -11,7 +11,7 @@
   - §5 DPMSolver++ 20-Step Convergence vs PNDM Benchmark
   - §6 Guidance Scale Calibration Sweep ($\gamma \in [4.5, 12.0]$)
   - §7 Production Hardening Specifications & Actionable Roadmap
-- **References**: [stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), [prompt_engine.py](src/models/diffusion/prompt_engine.py), [dataset_factory.yaml](configs/dataset_factory.yaml), [device.py](src/common/device.py), [DIFFUSION_ENGINE_AND_PROMPT_GRAMMAR_AUDIT_REPORT.md](docs/reports/DIFFUSION_ENGINE_AND_PROMPT_GRAMMAR_AUDIT_REPORT.md), [VISUAL_ANATOMICAL_ARTIFACT_AUDIT_REPORT.md](docs/reports/VISUAL_ANATOMICAL_ARTIFACT_AUDIT_REPORT.md).
+- **References**: [stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), [prompt_engine.py](../../src/models/diffusion/prompt_engine.py), [dataset_factory.yaml](../../configs/dataset_factory.yaml), [device.py](../../src/common/device.py), [DIFFUSION_ENGINE_AND_PROMPT_GRAMMAR_AUDIT_REPORT.md](DIFFUSION_ENGINE_AND_PROMPT_GRAMMAR_AUDIT_REPORT.md), [VISUAL_ANATOMICAL_ARTIFACT_AUDIT_REPORT.md](VISUAL_ANATOMICAL_ARTIFACT_AUDIT_REPORT.md).
 - **Created**: 2026-11-10T08:35:00+07:00
 - **Last Updated**: 2026-11-10T08:35:00+07:00
 
@@ -54,7 +54,7 @@ flowchart TD
 ## 2. 📐 Full-Canvas Framing & Composition Audit
 
 ### 2.1 The Positive Framing Prior Vulnerability
-The active prompt generator in [prompt_engine.py](src/models/diffusion/prompt_engine.py) anchors text-to-image synthesis with:
+The active prompt generator in [prompt_engine.py](../../src/models/diffusion/prompt_engine.py) anchors text-to-image synthesis with:
 ```python
 if mode == "text2img":
     base_prefix = "head and shoulders portrait, centered, direct eye contact"
@@ -117,7 +117,7 @@ In text-to-image synthesis where expressions specify smiles, SD 1.5 has an estab
 ## 4. 🛡️ Negative Prompt Calibration & Over-Smoothing Defense
 
 ### 4.1 Token Headroom Analysis
-CLIP ViT-L/14 enforces a strict 77-token limit (1 start token, 75 payload tokens, 1 end token). The active negative prompt in [stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py) is:
+CLIP ViT-L/14 enforces a strict 77-token limit (1 start token, 75 payload tokens, 1 end token). The active negative prompt in [stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py) is:
 ```python
 CALIBRATED_NEGATIVE_PROMPT = (
     "blurry, out of focus, distorted face, bad anatomy, deformed eyes, extra fingers, "
@@ -220,7 +220,7 @@ $$\mathbf{\epsilon}_{\text{guided}} = \mathbf{\epsilon}_{\text{uncond}} + \gamma
 Based on the forensic evidence gathered during this audit, the following three hardening modifications must be enacted before scaling production to 10,000 samples:
 
 ### Action 1: Augment `CALIBRATED_NEGATIVE_PROMPT` with Framing & Dental Anchors
-Expand the calibrated negative prompt in [stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py) and [dataset_factory.yaml](configs/dataset_factory.yaml) to consume 16 tokens of the available 33-token headroom:
+Expand the calibrated negative prompt in [stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py) and [dataset_factory.yaml](../../configs/dataset_factory.yaml) to consume 16 tokens of the available 33-token headroom:
 
 ```python
 # Refactored CALIBRATED_NEGATIVE_PROMPT (58 tokens total, well below 75 ceiling)
@@ -234,7 +234,7 @@ CALIBRATED_NEGATIVE_PROMPT = (
 - **Guaranteed Effect**: Eliminates the 33.3% crown clipping defect; repels upper boundary facial expansion; suppresses fused dental arches.
 
 ### Action 2: Strengthen `base_prefix` in `PromptGrammarEngine`
-Refine the base photographic prefix in [prompt_engine.py](src/models/diffusion/prompt_engine.py) to reinforce vertical headroom:
+Refine the base photographic prefix in [prompt_engine.py](../../src/models/diffusion/prompt_engine.py) to reinforce vertical headroom:
 ```python
 if mode == "text2img":
     base_prefix = "head and shoulders portrait, centered framing, balanced vertical headroom, direct eye contact"
@@ -242,7 +242,7 @@ if mode == "text2img":
 - **Guaranteed Effect**: Provides positive attention steering for a natural portrait margin above the hair crown.
 
 ### Action 3: Enforce `guidance_scale = 6.2` and `steps = 20` across All Entry Points
-Ensure that [dataset_factory.yaml](configs/dataset_factory.yaml) and [generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py) consistently default to:
+Ensure that [dataset_factory.yaml](../../configs/dataset_factory.yaml) and [generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py) consistently default to:
 ```yaml
 generation:
   steps: 20

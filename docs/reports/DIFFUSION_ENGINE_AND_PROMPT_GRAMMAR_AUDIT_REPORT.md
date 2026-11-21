@@ -11,7 +11,7 @@
   - §5 RTX 3050 Memory Footprint, Dynamic Offloading & Modality Pipeline Caching
   - §6 Concrete Code Refactor & Production Upgrade Specifications
   - §7 10,000-Sample Scale-Up Execution Roadmap
-- **References**: [stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), [prompt_engine.py](src/models/diffusion/prompt_engine.py), [dataset_factory.yaml](configs/dataset_factory.yaml), [generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py), [device.py](src/common/device.py).
+- **References**: [stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), [prompt_engine.py](../../src/models/diffusion/prompt_engine.py), [dataset_factory.yaml](../../configs/dataset_factory.yaml), [generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py), [device.py](../../src/common/device.py).
 - **Created**: 2026-11-10T07:35:00+07:00
 - **Last Updated**: 2026-11-10T07:35:00+07:00
 

@@ -11,7 +11,7 @@
   - §5 Mathematical Vectorization & Code Quality Verification
   - §6 Computational Throughput & Latency Micro-Benchmarks
   - §7 Architectural Recommendations for the 10,000 Scale-Up
-- **References**: [metrics.py](src/common/metrics.py), [curate_image_dataset.py](src/pipelines/curate_image_dataset.py), [dataset_factory.yaml](configs/dataset_factory.yaml), [DEMO_BATCH_AUDIT_REPORT.md](docs/DEMO_BATCH_AUDIT_REPORT.md).
+- **References**: [metrics.py](../../src/common/metrics.py), [curate_image_dataset.py](../../src/pipelines/curate_image_dataset.py), [dataset_factory.yaml](../../configs/dataset_factory.yaml), [AUDIT_PREFLIGHT_SUBAGENT3_CURATION.md](AUDIT_PREFLIGHT_SUBAGENT3_CURATION.md).
 - **Created**: 2026-11-10T07:35:00+07:00
 - **Last Updated**: 2026-11-10T07:35:00+07:00
 
@@ -167,7 +167,7 @@ We audited 150 curated synthetic images passed by the gate using secondary casca
 
 ## 5. ⚡ Mathematical Vectorization & Code Quality Verification
 
-We performed line-by-line inspection of [metrics.py](src/common/metrics.py) and [curate_image_dataset.py](src/pipelines/curate_image_dataset.py) against the `GEMINI.md` Charter (§4 "Zero Raw Loops: 100% vectorized NumPy/PyTorch math").
+We performed line-by-line inspection of [metrics.py](../../src/common/metrics.py) and [curate_image_dataset.py](../../src/pipelines/curate_image_dataset.py) against the `GEMINI.md` Charter (§4 "Zero Raw Loops: 100% vectorized NumPy/PyTorch math").
 
 ### 5.1 Vectorization Audit Table
 

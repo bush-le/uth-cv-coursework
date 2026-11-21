@@ -4,7 +4,7 @@
 - **Purpose**: Thiết kế bản đặc tả kiến trúc kỹ thuật toàn diện để tái cấu trúc và chuẩn hóa bộ notebook thành chuỗi 4 chương tích hợp (The 4-Part Unified Narrative Suite), đảm bảo 100% code tương tác thực tế, trực quan sinh động, bao quát đầy đủ mọi thành quả của dự án mà không bỏ sót bất kỳ chi tiết nào.
 - **Overview Pipeline**: Khảo sát hiện trạng & Bóc tách tài nguyên -> Thiết kế cấu trúc 4 Notebook -> Chuẩn hóa mã tương tác (DataModule, Tensor, DINOv2, Checkpoints) -> Tích hợp bảng đối chiếu chuẩn vàng ($M_0 \to M_3$, 6k OOD, 20.4k Universal) -> Kiểm thử thực thi tự động (Zero error, Zero blank cells).
 - **Detailed Plan**: §1 Bối cảnh & Ý định thiết kế; §2 Mục tiêu, Phi mục tiêu & Điều cấm; §3 Các ràng buộc kỹ thuật; §4 So sánh các phương án & Lý do lựa chọn; §5 Đặc tả chi tiết 4 Notebook; §6 Quản lý dữ liệu & Lưu trữ phiên bản cũ; §7 Trách nhiệm của kỹ sư thực thi (Builder Scope).
-- **References**: [GEMINI.md](../../GEMINI.md), [docs/PURPOSE.md](../PURPOSE.md), [docs/OVERVIEW.md](../OVERVIEW.md), [MASTER_PROJECT_CROSSCHECK_AND_FACTCHECK_REPORT.md](../reports/MASTER_PROJECT_CROSSCHECK_AND_FACTCHECK_REPORT.md), [M3_DUAL_ENGINE_CHAMPION_REPORT.md](../reports/M3_DUAL_ENGINE_CHAMPION_REPORT.md).
+- **References**: [GEMINI.md](../../AGENTS.md), [docs/PURPOSE.md](../PURPOSE.md), [docs/OVERVIEW.md](../OVERVIEW.md), [MASTER_PROJECT_CROSSCHECK_AND_FACTCHECK_REPORT.md](../reports/MASTER_PROJECT_CROSSCHECK_AND_FACTCHECK_REPORT.md), [M3_DUAL_ENGINE_CHAMPION_REPORT.md](../reports/M3_DUAL_ENGINE_CHAMPION_REPORT.md).
 - **Created**: 2026-11-16T21:40:00+07:00
 - **Last Updated**: 2026-11-16T21:40:00+07:00
 

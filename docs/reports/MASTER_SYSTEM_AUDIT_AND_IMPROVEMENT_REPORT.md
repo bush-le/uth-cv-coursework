@@ -12,7 +12,7 @@
   - §6 Phase-by-Phase Remediation & Execution Blueprint for 10k Scale
 - **References**:
   - [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](../../.agents/rules/ZERO_MOCK_DATA_RULE.md)
-  - [`GEMINI.md`](../../GEMINI.md)
+  - [`GEMINI.md`](../../AGENTS.md)
   - [`docs/reports/VISUAL_ANATOMICAL_ARTIFACT_AUDIT_REPORT.md`](VISUAL_ANATOMICAL_ARTIFACT_AUDIT_REPORT.md)
   - [`docs/reports/ACTIVE_LEARNING_HARD_SAMPLE_AUDIT_REPORT.md`](ACTIVE_LEARNING_HARD_SAMPLE_AUDIT_REPORT.md)
   - [`docs/reports/BENCHMARK_VAULT_INTEGRITY_AUDIT_REPORT.md`](BENCHMARK_VAULT_INTEGRITY_AUDIT_REPORT.md)

@@ -4,7 +4,7 @@
 - **Purpose**: Provide a comprehensive empirical, task-level, and region-level breakdown of detection evasion on 6,000 legacy images (`data/external_benchmarks/synthetic_face_dataset_6k/`), evaluate threshold sensitivity, diagnose conservative calibration dynamics, and evaluate standalone production deployment robustness.
 - **Overview Pipeline**: 6,000 Legacy Synthetic Images -> Task & Region Segmentation (`img2img`, `inpaint`, `text2img`, `eyes`, `mouth`) -> Batched Forward Inference -> Calibration & Threshold Sensitivity Curves -> Standalone Production Deployment of M2*.
 - **Detailed Plan**: §1 Executive Summary & Dataset Distribution; §2 Task-Level Evasion Dynamics; §3 Inpainting Sub-Region Vulnerability Audit; §4 Probability Density & Calibration Shift Analysis; §5 Standalone Production Deployment of M2* (Single Best Architecture); §6 Comprehensive Findings.
-- **References**: [GEMINI.md](../../GEMINI.md), [docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md](../phases/PHASE_EXTERNAL_6K_BENCHMARK.md), [docs/reports/ACTIVE_LEARNING_M2_REFINED_REPORT.md](ACTIVE_LEARNING_M2_REFINED_REPORT.md), [src/common/visualizer.py](../../src/common/visualizer.py), [scripts/benchmark_legacy_6k.py](../../scripts/benchmark_legacy_6k.py).
+- **References**: [AGENTS.md](../../AGENTS.md), [docs/phases/PHASE_EXTERNAL_6K_BENCHMARK.md](../phases/PHASE_EXTERNAL_6K_BENCHMARK.md), [docs/reports/ACTIVE_LEARNING_M2_REFINED_REPORT.md](ACTIVE_LEARNING_M2_REFINED_REPORT.md), [src/common/visualizer.py](../../src/common/visualizer.py), [scripts/benchmark_legacy_6k.py](../../scripts/benchmark_legacy_6k.py).
 - **Created**: 2026-11-11T16:35:00+07:00
 - **Last Updated**: 2026-11-11T16:35:00+07:00
 
@@ -36,12 +36,24 @@ All 6,000 images reside in `data/external_benchmarks/synthetic_face_dataset_6k/`
 
 ### High-Level Benchmark Summary Across Generations
 
+#### A. Chuẩn Kiến Trúc DINOv2 (`512→504px LANCZOS`, `experiments/logs/legacy_6k_benchmark_results.json`)
+
+| Model Stage | Overall Fake Recall ($\tau=0.50$) | Overall Bypass Rate ($\tau=0.50$) | Mean $P(\text{Fake})$ | Task Recall (`img2img` / `inpaint` / `text2img`) |
+| :--- | :---: | :---: | :---: | :--- |
+| **$M_0$ (Baseline D0)** | 75.20% | 24.80% | 0.7492 | 76.15% / 50.65% / 98.80% |
+| **$M_1$ (Active R1)** | 80.03% | 19.97% | 0.7938 | 82.20% / 58.15% / 99.75% |
+| **$M_2^{\text{cold}}$ (Cold-Start)** | 70.13% | 29.87% | 0.6968 | 68.55% / 42.10% / 99.75% |
+| **$M_2^*$ (Refined R2)** | 80.13% | 19.87% | 0.7974 | 83.60% / 56.90% / 99.90% |
+| **$M_3$ (Dual-Engine Champion)** | **94.37%** | **5.63%** | **0.9408** | **96.60% / 86.50% / 100.00%** |
+
+#### B. Lưu Trữ Stress-Test Nén Thấp Lịch Sử (`224×224 BILINEAR`, `experiments/logs/legacy_6k_benchmark_results_224px.json`)
+
 | Model Stage | Overall Fake Recall ($\tau=0.50$) | Overall Bypass Rate ($\tau=0.50$) | Mean $P(\text{Fake})$ | Screening Recall ($\tau=0.30$) | Primary Operational Profile |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **$M_0$ (Baseline D0)** | 2.00% | 98.00% | 0.1610 | 11.23% | **Total OOD Blindness**: Never saw diffusion noise, bypasses almost entirely. |
+| **$M_0$ (Baseline D0)** | 2.00% | 98.00% | 0.1610 | 11.23% | **224px Resolution Collapse + OOD Blindness**. |
 | **$M_1$ (Active R1)** | 43.92% | 56.08% | 0.4512 | 70.40% | **Broad Generalist**: Detects global diffusion surface artifacts effectively. |
 | **$M_2^{\text{cold}}$ (Old R2)** | 21.40% | 78.60% | 0.2886 | 45.83% | **Catastrophic Cold-Start**: Over-fitted to inpainting seams, conservative shift. |
-| **$M_2^*$ (Refined R2)** | **70.13%** | **29.87%** | **0.5560** | **84.20%** | **Optimal Continual Defense**: Conquers both broad diffusion noise and subtle inpainting seams, slashing bypass rate to 29.87%. |
+| **$M_2^*$ (Refined R2)** | **70.13%** | **29.87%** | **0.5560** | **84.20%** | **Refined R2 (at 224px)**: Conquers both diffusion noise and subtle inpainting seams. |
 
 ---
 

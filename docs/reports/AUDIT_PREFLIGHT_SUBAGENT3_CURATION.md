@@ -4,7 +4,7 @@
 - **Purpose**: Identify subtle concurrency hazards, mathematical edge cases in sharpness scoring, false positive rejections on real faces, anatomical blindspots, and performance bottlenecks to guarantee data integrity, zero false-negative leakage of deformed faces, and minimal false-positive rejection of valid samples.
 - **Overview Pipeline**: Haar Singleton & Process Safety Audit -> Sharpness Metric Tensor & BBox Calibration -> Facial Geometry Empirical Real-Face Validation (200 FFHQ images) -> Throughput & Profiling Analysis (10k Scaling) -> Hardened Code Remediation Blueprint.
 - **Detailed Plan**: §1 Executive Summary & Scorecard; §2 Haar Cascade Singleton & Process/Thread Safety; §3 Face-ROI Sharpness Threshold Calibration & Edge Cases; §4 Facial Geometry Integrity & False Rejection Analysis; §5 Throughput Profiling & 10,000 Image Scaling Dynamics; §6 Production Code Recommendations & Actionable Checklist.
-- **References**: [GEMINI.md](GEMINI.md), [src/pipelines/curate_image_dataset.py](src/pipelines/curate_image_dataset.py), [src/common/metrics.py](src/common/metrics.py), [configs/dataset_factory.yaml](configs/dataset_factory.yaml), [tests/test_image_curation.py](tests/test_image_curation.py).
+- **References**: [GEMINI.md](../../AGENTS.md), [src/pipelines/curate_image_dataset.py](../../src/pipelines/curate_image_dataset.py), [src/common/metrics.py](../../src/common/metrics.py), [configs/dataset_factory.yaml](../../configs/dataset_factory.yaml), [tests/test_image_curation.py](../../tests/test_image_curation.py).
 - **Created**: 2026-11-10T08:35:00+07:00
 - **Last Updated**: 2026-11-10T08:35:00+07:00
 

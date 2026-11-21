@@ -10,7 +10,7 @@
   - §4 DPMSolver++ 20-Step Behavior on Truncated Img2Img (6 Steps)
   - §5 Prompt Specialization, Occlusion Semantics & Demographic Adaptation
   - §6 Actionable Hardening Recommendations & Production Roadmap
-- **References**: [stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), [prompt_engine.py](src/models/diffusion/prompt_engine.py), [dataset_factory.yaml](configs/dataset_factory.yaml), [generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py), [transforms.py](src/data/transforms.py).
+- **References**: [stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), [prompt_engine.py](../../src/models/diffusion/prompt_engine.py), [dataset_factory.yaml](../../configs/dataset_factory.yaml), [generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py), [transforms.py](../../src/data/transforms.py).
 - **Created**: 2026-11-10T08:38:00+07:00
 - **Last Updated**: 2026-11-10T08:38:00+07:00
 
@@ -290,11 +290,11 @@ elif mode != "inpaint":
 
 | Area | Current Implementation | Actionable Production Hardening | Implementation Target |
 | :--- | :--- | :--- | :--- |
-| **Manipulation Strength** | Fixed `0.30` in `dataset_factory.yaml`. | Maintain `0.30` as standard default; enforce `0.25` for infants/children (`age_group` in `"0-2"`, `"3-6"`) and pre-existing glasses wearers. | [generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py#L363-L367) |
-| **Resampling Filter** | `Image.Resampling.LANCZOS` in generation; unconstrained in torchvision. | Retain `LANCZOS` for all generation downsampling; update `transforms.Resize` to `InterpolationMode.BICUBIC` with `antialias=True`. | [transforms.py](src/data/transforms.py#L53) |
-| **Occlusion Congruence** | Random occlusion sampled if `glasses == 'None'`. | Explicitly map `glasses: 'None'` to neutral non-eye occlusions in `PromptGrammarEngine`. | [prompt_engine.py](src/models/diffusion/prompt_engine.py#L242) |
+| **Manipulation Strength** | Fixed `0.30` in `dataset_factory.yaml`. | Maintain `0.30` as standard default; enforce `0.25` for infants/children (`age_group` in `"0-2"`, `"3-6"`) and pre-existing glasses wearers. | [generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py#L363-L367) |
+| **Resampling Filter** | `Image.Resampling.LANCZOS` in generation; unconstrained in torchvision. | Retain `LANCZOS` for all generation downsampling; update `transforms.Resize` to `InterpolationMode.BICUBIC` with `antialias=True`. | [transforms.py](../../src/data/transforms.py#L53) |
+| **Occlusion Congruence** | Random occlusion sampled if `glasses == 'None'`. | Explicitly map `glasses: 'None'` to neutral non-eye occlusions in `PromptGrammarEngine`. | [prompt_engine.py](../../src/models/diffusion/prompt_engine.py#L242) |
 | **Resolution Asymmetry** | 1024x1024 real faces vs 512x512 synthetic. | Pre-generate downsampled 512x512 real cache using Lanczos-3 to enforce bit-level resolution symmetry. | `scripts/preprocess_real_faces.py` |
-| **DPMSolver++ Pipeline** | Recreated per switch; attention/VAE slicing. | Retain `DPMSolverMultistepScheduler(use_karras_sigmas=True, algorithm_type='dpmsolver++')`; add `PYTORCH_ALLOC_CONF=expandable_segments:True`. | [stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py#L268) |
+| **DPMSolver++ Pipeline** | Recreated per switch; attention/VAE slicing. | Retain `DPMSolverMultistepScheduler(use_karras_sigmas=True, algorithm_type='dpmsolver++')`; add `PYTORCH_ALLOC_CONF=expandable_segments:True`. | [stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py#L268) |
 
 ---
 

@@ -4,7 +4,7 @@
 - **Purpose**: Provide a comprehensive mathematical, architectural, and data-integrity audit of `src/pipelines/evaluate_image_benchmark.py`, `src/models/evaluators/calibrated_mining.py`, `src/common/metrics.py`, and `experiments/logs/`, with actionable remediation for the 10,000-sample scale-up.
 - **Overview Pipeline**: Audit Ingestion -> Dual-Benchmark Leakage Audit -> Calibration & Overconfidence Analysis -> Metric Formulation & Edge-Case Audit -> Scale-Up 10k Architectural Recommendations.
 - **Detailed Plan**: §1 Executive Audit Verdict; §2 Dual-Benchmark Protocol & Data Contamination Audit; §3 Calibration & Temperature Scaling Mechanics; §4 Bypass Rate & Decision Threshold Dynamics; §5 Metric Implementation Correctness & Edge-Case Analysis; §6 10,000 Scale-Up Recommendations.
-- **References**: [GEMINI.md](GEMINI.md), [evaluate_image_benchmark.py](src/pipelines/evaluate_image_benchmark.py), [calibrated_mining.py](src/models/evaluators/calibrated_mining.py), [metrics.py](src/common/metrics.py), [closed_loop_metrics.json](experiments/logs/closed_loop_metrics.json).
+- **References**: [GEMINI.md](../../AGENTS.md), [evaluate_image_benchmark.py](../../src/pipelines/evaluate_image_benchmark.py), [calibrated_mining.py](../../src/models/evaluators/calibrated_mining.py), [metrics.py](../../src/common/metrics.py), [closed_loop_metrics.json](../../experiments/logs/closed_loop_metrics.json).
 - **Created**: 2026-11-10T07:35:00+07:00
 - **Last Updated**: 2026-11-10T07:35:00+07:00
 

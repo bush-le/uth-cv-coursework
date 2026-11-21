@@ -4,7 +4,7 @@
 - **Purpose**: Identify subtle VRAM/RAM memory leaks, verify scheduler numerical stability and step convergence (`DPMSolverMultistepScheduler` at $N=20$), validate facial mask binarization and Hermite smoothstep blending, audit the 7-slot prompt combinatorial budget and CLIP token limits, and immunize error steering against NaN/Inf poisoning.
 - **Overview Pipeline**: `DPMSolverMultistepScheduler` Verification ($N=20$ across `text2img`, `inpaint`, `img2img`) -> VRAM & RAM Memory Profiling (2,000 to 10,000 loop dynamics, `_switch_mode`, GPU concurrency limits) -> Bounding Box & Inpainting Mask Logic Audit -> Prompt Grammar Token Budget & Softmax Stability Audit -> Concrete Hardening Patches & Unit Tests.
 - **Detailed Plan**: §1 Executive Summary & Comprehensive Scorecard; §2 DPMSolverMultistepScheduler Verification; §3 VRAM & RAM Memory Leak Audit; §4 Bounding Box & Inpainting Mask Logic; §5 Prompt Grammar Budget & Softmax Error-Steering Stability; §6 Actionable Production Hardening Patches; §7 Pre-Flight Checklist & Scaling Sign-Off.
-- **References**: [GEMINI.md](GEMINI.md), [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py), [src/pipelines/generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py), [configs/dataset_factory.yaml](configs/dataset_factory.yaml), [tests/test_stable_diffusion.py](tests/test_stable_diffusion.py), [tests/test_prompt_engine.py](tests/test_prompt_engine.py).
+- **References**: [GEMINI.md](../../AGENTS.md), [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py), [src/pipelines/generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py), [configs/dataset_factory.yaml](../../configs/dataset_factory.yaml), [tests/test_stable_diffusion.py](../../tests/test_stable_diffusion.py), [tests/test_prompt_engine.py](../../tests/test_prompt_engine.py).
 - **Created**: 2026-11-10T08:35:00+07:00
 - **Last Updated**: 2026-11-10T08:35:00+07:00
 
@@ -65,7 +65,7 @@ flowchart TD
 ## 2. ⚡ DPMSolverMultistepScheduler Verification
 
 ### 2.1 Multi-Mode Configuration Verification
-In [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py#L264-L277):
+In [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py#L264-L277):
 ```python
 # Configure DPMSolverMultistepScheduler for high-fidelity 20-step generation
 try:
@@ -106,11 +106,11 @@ $$t_{\text{start}} = \max\left(N - \lfloor N \cdot S \rfloor, 0\right)$$
 $$\text{Active Timesteps} = \text{Timesteps}[t_{\text{start}}:]$$
 
 Under our production configuration:
-- In [configs/dataset_factory.yaml](configs/dataset_factory.yaml#L30-L32): `steps: 20`, `img2img_strength: 0.30`.
+- In [configs/dataset_factory.yaml](../../configs/dataset_factory.yaml#L30-L32): `steps: 20`, `img2img_strength: 0.30`.
 - $\lfloor 20 \times 0.30 \rfloor = 6$ steps.
 - $t_{\text{start}} = 20 - 6 = 14$.
 - The pipeline executes only the final 6 timesteps: `[69, 35, 15, 6, 2, 0]`.
-- For infant faces or subjects with eyeglasses, [generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py#L366) clamps strength to $S=0.25$:
+- For infant faces or subjects with eyeglasses, [generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py#L366) clamps strength to $S=0.25$:
   - $\lfloor 20 \times 0.25 \rfloor = 5$ steps: `[35, 15, 6, 2, 0]`.
 - **Numerical Stability Verification**:
   Because `lower_order_final=True`, DPM-Solver++ executes Step 1 as 1st order, Steps 2–4 as 2nd order, and Step 5 as 1st order. In our empirical testing, running 5 and 6 steps completed cleanly without producing NaN latents, saturated color clipping, or structural artifacts.
@@ -125,7 +125,7 @@ In Diffusers, multi-step solvers maintain internal state buffers (`self.model_ou
   Consequently, no intermediate tensor state persists across distinct generation calls.
 
 ### 2.5 Method Signature Alignment
-In [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py#L300-L400):
+In [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py#L300-L400):
 - `generate_text2img(num_inference_steps: int = 30)`
 - `generate_inpaint(num_inference_steps: int = 30)`
 - `generate_img2img(num_inference_steps: int = 25)`
@@ -170,10 +170,10 @@ To audit whether `_tensor_to_pil`, `_pil_to_tensor`, or `pipe(...)` leak memory,
 - **Explanation**:
   - `_tensor_to_pil(tensor)`: Moves tensor to CPU via `.detach().cpu().clamp(0.0, 1.0)`. The NumPy array and PIL Image are scoped locally. References drop to zero upon method exit.
   - `_pil_to_tensor(pil_img)`: Performs in-memory conversion on CPU and returns `torch.from_numpy(...).permute(2, 0, 1).contiguous()`.
-  - In [generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py#L407), the generated tensor is transferred to CPU, converted to uint8, and written to disk. The local variable `fake_tensor` is rebound on every loop iteration, freeing the previous GPU buffer immediately.
+  - In [generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py#L407), the generated tensor is transferred to CPU, converted to uint8, and written to disk. The local variable `fake_tensor` is rebound on every loop iteration, freeing the previous GPU buffer immediately.
 
 ### 3.3 Pipeline Mode Switching Mechanics
-In [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py#L201-L214):
+In [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py#L201-L214):
 ```python
 def _switch_mode(self, mode: str) -> Any:
     if self._active_mode == mode and self._active_pipeline is not None:
@@ -197,7 +197,7 @@ We profiled memory across sequential transitions (`text2img` $\to$ `inpaint` $\t
 ```
 - `_active_pipeline` is strictly dereferenced and garbage collected.
 - `torch.cuda.empty_cache()` releases all reserved UNet and VAE blocks back to the CUDA driver before loading the next model.
-- Furthermore, in [generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py#L265):
+- Furthermore, in [generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py#L265):
   ```python
   # Group by mode_idx (img2img, inpaint, text2img)
   tasks.sort(key=lambda t: t["mode_idx"])
@@ -219,7 +219,7 @@ Process 1356389 has 2.87 GiB memory in use.
 ### 3.5 Long-Running Operational Vulnerabilities Identified
 
 #### Critical Vulnerability 1: Deferred Manifest Writing
-In [src/pipelines/generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py#L425-L429):
+In [src/pipelines/generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py#L425-L429):
 ```python
 fake_records.sort(key=lambda r: r["image_id"])
 with open(out_manifest_path, "w", encoding="utf-8") as f:
@@ -250,7 +250,7 @@ with open(out_manifest_path, "w", encoding="utf-8") as f:
 ## 4. 📐 Bounding Box & Inpainting Mask Logic
 
 ### 4.1 Bounding Box Normalization & Coordinate Contracts
-In [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py#L49-L65):
+In [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py#L49-L65):
 ```python
 # Detect if bbox is missing, pixel-coordinate formatted, or a dummy full-canvas bbox
 needs_detection = False
@@ -313,7 +313,7 @@ The engine supports three targeted inpainting regions:
 - **Boundary Clamping**: Coordinates must be clamped to $[0.0, 1.0]$ before computing pixel center $(c_x, c_y)$ and semi-axes $(a_x, a_y)$ to prevent out-of-bounds negative ellipse radius exceptions.
 
 ### 4.4 Mask Binarization vs Feathered Smoothstep Blending
-In [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py#L357-L382):
+In [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py#L357-L382):
 ```python
 pil_mask = self._mask_to_pil(mask).resize((diff_w, diff_h), Image.Resampling.BILINEAR)
 # Binarize mask for 9-channel inpainting UNet to prevent boundary blurring and halos
@@ -351,7 +351,7 @@ return torch.clamp(blended, 0.0, 1.0)
 ## 5. 🔤 Prompt Grammar Budget & Softmax Error-Steering Stability
 
 ### 5.1 Combinatorial Word Budget vs CLIP Context Window
-The dynamic grammar engine in [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py) constructs prompts from 7 taxonomic slots:
+The dynamic grammar engine in [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py) constructs prompts from 7 taxonomic slots:
 `[base_prefix, subject_gender, subject_age, occlusion, lighting, optics, expression, imperfections]`.
 - Prompt Assembly Constraint (lines 296–303):
   ```python
@@ -396,7 +396,7 @@ Inclusion Frequencies across 1,000 Prompts (text2img):
   3. With each slot taking 4–5 words, 7 slots $\times 4.5\text{ words} = 31.5\text{ words} \le 45\text{ words}$, allowing **100% representation for all 7 taxonomic categories**.
 
 ### 5.3 Softmax Error-Steering Stability in `update_error_weights`
-In [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py#L108-L155):
+In [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py#L108-L155):
 ```python
 def update_error_weights(
     self,
@@ -455,7 +455,7 @@ def update_error_weights(
 To guarantee 100% reliability for the 10,000-image scaling run, the following patches are provided for direct integration.
 
 ### Patch 1: Dynamic Face Mask Normalization & Resilience
-In [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py):
+In [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py):
 ```python
 def generate_dynamic_face_mask(
     image: torch.Tensor,
@@ -501,7 +501,7 @@ def generate_dynamic_face_mask(
 ```
 
 ### Patch 2: Numerical Sanitization in `update_error_weights`
-In [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py):
+In [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py):
 ```python
 def update_error_weights(
     self,
@@ -548,7 +548,7 @@ def update_error_weights(
 ```
 
 ### Patch 3: Incremental Manifest Flushing & Cache Hygiene in 10k Loop
-In [src/pipelines/generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py):
+In [src/pipelines/generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py):
 ```python
 # Open manifest in append mode with explicit per-sample flushing
 manifest_file = open(out_manifest_path, "a", encoding="utf-8")

@@ -2,9 +2,9 @@
 
 - **Motivation/Background**: Nhằm phục vụ công tác nghiệm thu đồ án chuyên sâu Đề tài 11 tại Viện CNTT & AI - Trường Đại học Giao thông Vận tải TP.HCM (UTH), hệ thống cần một báo cáo đối chuẩn chéo (Cross-Check) và xác minh sự thật (Fact-Check) độc lập, chứng minh tính xác thực 100% của toàn bộ dữ liệu, mô hình, độ đo và tài liệu giảng dạy.
 - **Purpose**: Cung cấp bức tranh toàn cảnh được kiểm chứng toán học, kỹ thuật và thực nghiệm trên toàn bộ kho lưu trữ `uth-cv-coursework`, triệt tiêu hoàn toàn mã giả (mock data), số liệu ảo và lỗi trực quan hóa trong notebooks.
-- **Overview Pipeline**: Khảo sát đa tạp ảnh thật -> Kiểm toán động cơ khuếch tán kép & phễu lọc Curation -> Xác thực 213 mẫu khó -> Đối chuẩn 4 thế hệ mô hình DINOv2 ($M_0 \to M_2^*$) -> Thử thách mù OOD 6k -> Sát hạch Universal 20.4k ảnh -> Nghiệm thu bộ 8 Coursework Notebooks.
-- **Detailed Plan**: §1 Tóm tắt điều hành & Định vị tài nguyên; §2 Toàn vẹn kho dữ liệu & Kiểm toán phân vùng; §3 Động cơ khuếch tán kép & Làm mịn biên Gaussian; §4 Ma trận tiến hóa Active Learning & Kiểm chuẩn Checkpoint; §5 Kiểm định ngoại lai mù 6.000 ảnh RealisticVision; §6 Sát hạch Universal Defense 34 phương pháp; §7 Kiểm toán toàn vẹn bộ 8 Coursework Notebooks; §8 Bảng chỉ số đối chiếu chuẩn vàng.
-- **References**: `../../GEMINI.md`, `../../docs/PURPOSE.md`, `../../docs/OVERVIEW.md`, `ACTIVE_LEARNING_M2_REFINED_REPORT.md`, `LEGACY_6K_OOD_BENCHMARK_REPORT.md`, `EDA_UNIVERSAL_BENCHMARK_REPORT.md`.
+- **Overview Pipeline**: Khảo sát đa tạp ảnh thật -> Kiểm toán động cơ khuếch tán kép & phễu lọc Curation -> Xác thực 213 mẫu khó -> Đối chuẩn 5 thế hệ mô hình DINOv2 ($M_0 \to M_3$) -> Thử thách mù OOD 6k -> Sát hạch Universal 20.4k ảnh (`512→504px`) -> Nghiệm thu bộ 4 Unified Coursework Notebooks.
+- **Detailed Plan**: §1 Tóm tắt điều hành & Định vị tài nguyên; §2 Toàn vẹn kho dữ liệu & Kiểm toán phân vùng; §3 Động cơ khuếch tán kép & Làm mịn biên Gaussian; §4 Ma trận tiến hóa Active Learning & Kiểm chuẩn Checkpoint; §5 Kiểm định ngoại lai mù 6.000 ảnh RealisticVision; §6 Sát hạch Universal Defense 34 phương pháp; §7 Kiểm toán toàn vẹn bộ 4 Unified Coursework Notebooks; §8 Bảng chỉ số đối chiếu chuẩn vàng.
+- **References**: [AGENTS.md](../../AGENTS.md), [PURPOSE.md](../PURPOSE.md), [OVERVIEW.md](../OVERVIEW.md), `ACTIVE_LEARNING_M2_REFINED_REPORT.md`, `M3_DUAL_ENGINE_CHAMPION_REPORT.md`, `LEGACY_6K_OOD_BENCHMARK_REPORT.md`, `EDA_UNIVERSAL_BENCHMARK_REPORT.md`.
 - **Created**: 2026-11-11T23:25:00+07:00
 - **Last Updated**: 2026-11-11T23:35:00+07:00
 
@@ -29,7 +29,7 @@
 | **Kho Mẫu Khó (Hard Samples)** | Khai thác ranh giới $|P-0.5| \le 0.15$ | 740 mẫu khai thác, 213 mẫu Challenge Vault | **ĐẠT CHUẨN 100%** |
 | **Universal Benchmark** | Đa họ mô hình, cân bằng 50/50 | 20.400 ảnh (34 thuật toán sinh, 5 họ mô hình) | **ĐẠT CHUẨN 100%** |
 | **Mô Hình & Checkpoint** | 0 mock data, 0 neural head ngẫu nhiên | 15 checkpoint PyTorch thực tế, trọng số hợp lệ | **ĐẠT CHUẨN 100%** |
-| **Bộ Notebook Giảng Dạy** | 0 cell code rỗng, 0 bare `plt.show()` | 8 notebooks (97 code cells, 103 markdown cells) | **ĐẠT CHUẨN 100%** |
+| **Bộ Notebook Giảng Dạy** | 0 cell code rỗng, 0 bare `plt.show()` | Bộ 4 Unified Notebooks (`00..03`, lưu trữ `legacy_v1/` riêng) | **ĐẠT CHUẨN 100%** |
 | **Kiểm Thử Khói (Smoke Test)** | `make test-smoke` < 6 giây | 12/12 tests passing trong 4.68 giây | **ĐẠT CHUẨN 100%** |
 
 ---
@@ -119,14 +119,17 @@ Toàn bộ các mô hình được đối chuẩn trên cả 2 kho kiểm thử 
 
 *Nguồn: `experiments/logs/legacy_6k_benchmark_results.json` và `data/external_benchmarks/synthetic_face_dataset_6k/`*
 
-### 5.1. Hiệu Năng Tổng Thể Trên 6.000 Ảnh Kiểm Thử Mù (100% Ảnh Giả)
+### 5.1. Hiệu Năng Tổng Thể Trên 6.000 Ảnh Kiểm Thử Mù (Chuẩn `512→504px` & Đối Chứng `224px` Cũ)
 
-| Mô Hình | Fake Recall ($\tau=0.50$) | Mẫu Bắt Được | Tỷ Lệ Lọt Lưới (Bypass) | Fake Recall ($\tau=0.30$) | Mean $P(\text{Fake})$ | Đặc Tính Vận Hành |
-| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **$M_0$ (Baseline)** | **2.00%** | 120 / 6.000 | **98.00%** | 12.93% | 0.1610 | **Mù hoàn toàn ngoại miền** |
-| **$M_1$ (Active R1)** | **43.92%** | 2.635 / 6.000 | **56.08%** | 80.93% | 0.4512 | Bắt tốt nhiễu khuếch tán toàn cục |
-| **$M_2$ (Cold Retrain)** | **37.00%** | 2.220 / 6.000 | **63.00%** | 41.70% | 0.3736 | Inpaint recall sụt giảm do cold-start |
-| **$M_2^*$ (Champion)** | **70.13%** | **4.208 / 6.000** | **29.87%** | **85.93%** | **0.5560** | **Chinh phục cả inpaint và kết cấu da** |
+| Mô Hình | Recall (`504px`) | Bypass (`504px`) | Recall (`224px` cũ) | Mean $P(\text{Fake})$ (`504px`) | Đặc Tính Vận Hành |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **$M_0$ (Baseline)** | **75.20%** | 24.80% | 2.00% | 0.7492 | Tụt xuống 2.00% nếu bị nén `224px` |
+| **$M_1$ (Active R1)** | **80.03%** | 19.97% | 43.92% | 0.7938 | Bắt tốt nhiễu khuếch tán toàn cục |
+| **$M_2$ (Cold Retrain)** | **70.13%** | 29.87% | 37.00% | 0.6968 | Inpaint recall giảm do cold-start |
+| **$M_2^*$ (Warm-Start)** | **80.13%** | 19.87% | 70.13% | 0.7974 | Cân bằng nội miền & OOD trước `D3` |
+| **$M_3$ (Dual-Engine Champion)** | **94.37%** | **5.63%** | — | **0.9408** | **Chinh phục toàn kho 6k (`text2img` 100%, `img2img` 96.6%, `inpaint` 86.5%)** |
+
+*(Ghi chú: Dữ liệu `224px` cũ được lưu trữ tại `experiments/logs/legacy_6k_benchmark_results_224px.json` để phục vụ đối chứng phân giải.)*
 
 ### 5.2. Phân Rã Theo Tác Vụ Sinh & Vùng Giải Phẫu ($\tau=0.50$)
 - **Text2Img (2.000 ảnh):** $M_0$ 2.45% (49) $\to M_1$ 59.60% (1.192) $\to M_2^*$ **86.65%** (1.733/2.000).
@@ -171,26 +174,22 @@ Toàn bộ các mô hình được đối chuẩn trên cả 2 kho kiểm thử 
 
 ---
 
-## 7. Kiểm Toán Bộ 8 Coursework Notebooks (`notebooks/coursework/`)
+## 7. Kiểm Toán Bộ 4 Unified Coursework Notebooks (`notebooks/coursework/`)
 
-Toàn bộ 8 notebooks đã được rà soát và thực thi trực tiếp qua kernel InteractiveShell:
+Toàn bộ 4 unified notebooks hợp nhất đã được rà soát và thực thi trực tiếp qua kernel `InteractiveShell` (các phiên bản gốc 8–10 notebooks được lưu trữ trong `notebooks/coursework/legacy_v1/`):
 
-| Notebook File | Tổng Số Cells | Code Cells | Markdown Cells | Empty Outputs | Bare `plt.show()` | Trạng Thái Thực Thi |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `00_master_deepfake_defense_coursework.ipynb` | 67 | 33 | 34 | 0 | 0 | **100% VERIFIED** |
-| `01_eda_faces_demographics.ipynb` | 20 | 10 | 10 | 0 | 0 | **100% VERIFIED** |
-| `02_sd_generation_and_curation.ipynb` | 16 | 7 | 9 | 0 | 0 | **100% VERIFIED** |
-| `03_hard_samples_and_benchmark_comparison.ipynb` | 15 | 7 | 8 | 0 | 0 | **100% VERIFIED** |
-| `04_active_learning_production_visualizer.ipynb` | 25 | 12 | 13 | 0 | 0 | **100% VERIFIED** |
-| `05_synthetic_face_6k_realimage_benchmark.ipynb` | 15 | 7 | 8 | 0 | 0 | **100% VERIFIED** |
-| `06_specialization_vs_generalization_synthesis.ipynb`| 11 | 5 | 6 | 0 | 0 | **100% VERIFIED** |
-| `07_universal_deepfake_benchmark.ipynb` | 31 | 16 | 15 | 0 | 0 | **100% VERIFIED** |
-| **TỔNG CỘNG HỆ THỐNG** | **200** | **97** | **103** | **0** | **0** | **100% HOÀN HẢO** |
+| Notebook File | Tổng Số Cells | Dung Lượng | Empty / Error Outputs | Trạng Thái Thực Thi |
+| :--- | :---: | :---: | :---: | :---: |
+| `00_master_deepfake_defense_showcase.ipynb` | 10 | ~1.70 MB | 0 / 0 | **100% VERIFIED** |
+| `01_diffusion_dataset_and_curation.ipynb` | 16 | ~1.64 MB | 0 / 0 | **100% VERIFIED** |
+| `02_hard_samples_and_active_learning.ipynb` | 11 | ~1.69 MB | 0 / 0 | **100% VERIFIED** |
+| `03_champion_m3_and_universal_benchmark.ipynb` | 11 | ~1.55 MB | 0 / 0 | **100% VERIFIED** |
+| **TỔNG CỘNG SUITE HIỆN HÀNH** | **48** | **~6.58 MB (< 10 MB)** | **0 / 0** | **100% HOÀN HẢO** |
 
 ---
 
 ## 8. Kết Luận Nghiệm Thu & Khẳng Định Chất Lượng
 
 1. **Tính Khoa Học & Bền Vững:** Không sử dụng bất kỳ kỹ thuật giả lập (mocking) nào trong đường ống đánh giá và kiểm thử. Mọi số liệu báo cáo đều có thể tái tạo (reproducible) bằng lệnh bash và script Python trong `scripts/`.
-2. **Tuân Thủ Clean Architecture:** Toàn bộ logic toán học, trích xuất đặc trưng và trực quan hóa nằm tập trung trong `src/common/visualizer.py`. Toàn bộ notebooks đóng vai trò là client trực quan hóa thuần túy.
-3. **Sẵn Sàng Nghiệm Thu:** Toàn bộ hệ thống mã nguồn, bộ 8 notebooks, checkpoint nơ-ron và tài liệu thuyết minh đã đạt độ hoàn thiện cao nhất, sẵn sàng bảo vệ đồ án trước Hội đồng chuyên môn UTH.
+2. **Tuân Thủ Clean Architecture:** Toàn bộ logic toán học, trích xuất đặc trưng và trực quan hóa nằm tập trung trong `src/`. Toàn bộ notebooks đóng vai trò là client trực quan hóa thuần túy.
+3. **Sẵn Sàng Nghiệm Thu:** Toàn bộ hệ thống mã nguồn, bộ 4 unified notebooks, checkpoint nơ-ron `M0..M3` và tài liệu thuyết minh đã đạt độ hoàn thiện cao nhất, sẵn sàng bảo vệ đồ án trước Hội đồng chuyên môn UTH.

@@ -4,7 +4,7 @@
 - **Purpose**: Provide a step-by-step, test-driven engineering plan to eliminate all bugs, eliminate evaluation bias, enforce strict validation-based calibration, and produce scientifically sound coursework deliverables.
 - **Overview Pipeline**: Fix Demographic Schema $\to$ Fix Dynamic Quantile Mining ($H_1, H_2 \neq \emptyset$) $\to$ Fix Validation Calibration ($\tau^*_{\text{val}}$ peeking prevention) $\to$ Fix DINOv2 Unfreezing & Logit Scaling $\to$ Fix CPU Pin Memory & Split Floor $\to$ Execute End-to-End Verification Pipeline.
 - **Detailed Plan**: §1 Root Cause & Target Architecture; §2 Global Invariants & Review Focus; §3 Six Executable TDD Tasks; §4 Definition of Done & Success Criteria.
-- **References**: [GEMINI.md](GEMINI.md), [ITERATIVE_PROOF_OF_UTILITY.md](experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md), [evaluate_iterative_benchmarks.py](scripts/evaluate_iterative_benchmarks.py), [mine_hard_samples.py](src/pipelines/mine_hard_samples.py).
+- **References**: [GEMINI.md](../../AGENTS.md), [ITERATIVE_PROOF_OF_UTILITY.md](../../experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md), [evaluate_iterative_benchmarks.py](../../scripts/evaluate_iterative_benchmarks.py), [mine_hard_samples.py](../../src/pipelines/mine_hard_samples.py).
 - **Created**: 2026-11-09T17:56:00+07:00
 - **Last Updated**: 2026-11-09T17:56:00+07:00
 

@@ -36,12 +36,12 @@ Four rigorous `@pytest.mark.smoke` test functions were implemented:
    - Enforces Cell 0 Institutional Header: Markdown cell containing `"TRƯỜNG ĐẠI HỌC GIAO THÔNG VẬN TẢI TP.HCM"`, `"ĐỀ TÀI 11"`, and `"PHẦN {part_num}"`.
    - Enforces Cell 1 Roadmap Table: Markdown cell containing `"Lộ Trình"` / `"Roadmap"`, and the active notebook badge (`"🎯"` / `"(Đang xem)"`).
 3. `test_coursework_suite_relative_links_resolve_on_disk`:
-   - Scans every markdown and code cell across all 4 notebooks for Markdown relative links (`[label](url)`).
+   - Scans every markdown and code cell across all 4 notebooks for Markdown relative links (`[label](relative-path)`).
    - Strips anchors and filters out external URLs (`http`, `https`, `mailto`).
    - Verifies that 100% of relative links (including paths into `../../src/`, `../../docs/`, `../../scripts/`, and sister `.ipynb` notebooks) resolve to existing, readable files on disk.
    - Validates that at least 15 relative links, $\ge 4$ `src/` links, $\ge 4$ `docs/` links, and $\ge 8$ sister notebook links are present and verified.
 4. `test_coursework_suite_execution_integrity_and_privacy`:
-   - Verifies privacy and portability: zero occurrences of local home directory paths or `file:///` schemes.
+   - Verifies privacy and portability: zero occurrences of local home directory paths or local file URI schemes.
    - Verifies that every code cell has valid execution outputs with zero errors (`output_type != "error"`).
    - Verifies that zero code cells leak `SyntaxWarning` messages in stream outputs.
    - Verifies presence of rich visual `display_data` (matplotlib PNG) and text `stream` outputs.
@@ -59,7 +59,7 @@ The repository's notebook governance guide was rewritten to provide a comprehens
      - Part 3: Champion M3 & Universal Benchmark (Zero Identity Leakage audit on $D_3$, Champion $M_3$ Warm-Start, Quad-Vault benchmark 93.13%, Universal Benchmark on 20,400 images across 34 generators & 8 families, threshold sweep $\tau \in [0.05, 0.95]$).
 3. **Legacy Archive Documentation**:
    - Outlined the transition from 10 legacy exploratory notebooks (`legacy_v1/`, ~49.4 MB) to the streamlined 4-part suite (~6.7 MB).
-   - Documented provenance preservation and linked directly to [`notebooks/coursework/legacy_v1/README.md`](../../notebooks/coursework/legacy_v1/README.md).
+   - Documented provenance preservation and linked directly to [`notebooks/coursework/legacy_v1/README.md`](../../../notebooks/coursework/legacy_v1/README.md).
 4. **Builder Engine Architecture**:
    - Explained `scripts/build_unified_coursework_suite.py` headless programmatic build and execution engine.
    - Documented exact CLI flags (`--notebook 0`, `--notebook 1`, `--notebook 2`, `--notebook 3`, `--notebook all`).
@@ -76,7 +76,7 @@ The repository's notebook governance guide was rewritten to provide a comprehens
 - [x] Cell 0 institutional header (Topic 11, UTH) and Cell 1 Roadmap Table verified across all 4 notebooks.
 - [x] All relative markdown links across all notebook cells resolve on disk (0 missing links).
 - [x] Zero execution errors (`output_type != "error"`) and zero `SyntaxWarning` occurrences.
-- [x] Zero leakage of local home directory paths or `file:///` schemes.
+- [x] Zero leakage of local home directory paths or local file URI schemes.
 - [x] `notebooks/README.md` updated with complete 4-part narrative, legacy archive provenance, and builder engine instructions.
 - [x] `make test-smoke` passes (37 passed in 5.42s).
 - [x] `make lint` passes with 0 syntax/compilation errors.

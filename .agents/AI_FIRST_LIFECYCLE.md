@@ -132,7 +132,7 @@ Mục tiêu: Chuyển đổi định nghĩa bài toán thành bản thiết kế
 - Hoàn thiện báo cáo kỹ thuật dựa trên file mẫu quy chuẩn của dự án:
   - **Báo cáo chuyên sâu (`*.md` & `*.html`)**: Chứa đầy đủ Sơ đồ Luồng Công việc Toàn diện (Mermaid code + hình ảnh vector) và Mục Tài Liệu Tham Khảo (References) 4 nhóm chuẩn.
   - **Chuẩn hóa Jupyter Notebook (`notebooks/**/*.ipynb`)**: Mở đầu bằng Cell 0 (Mục tiêu) và Cell 1 gồm Bảng Lộ trình Thực thi 4 cột chuẩn (`| Step | Description | What it does | Import path |`) kèm ngay phía dưới là Mục Liên kết Nhanh Tài Liệu & Báo Cáo liên quan. Tuyệt đối KHÔNG chèn sơ đồ luồng workflow hay references học thuật vào notebook để giữ notebook gọn nhẹ, tương tác mượt mà theo quy chuẩn tại [`AI_REFERENCE.md`](AI_REFERENCE.md).
-  - **Bảo mật & Điều hướng (`Ctrl + Click`)**: 100% liên kết mã nguồn và tài liệu phải sử dụng đường dẫn tương đối chuẩn (`../../src/...`), tuyệt đối KHÔNG hardcode đường dẫn tuyệt đối chứa username hệ thống (`file:///home/...`).
+  - **Bảo mật & Điều hướng (`Ctrl + Click`)**: 100% liên kết mã nguồn và tài liệu phải sử dụng đường dẫn tương đối chuẩn (`../../src/...`), tuyệt đối KHÔNG hardcode đường dẫn tuyệt đối chứa username hệ thống hay local URI scheme.
 - Ghi nhận đầy đủ:
   - Bảng số liệu định lượng (Quantitative Results): Loss, Accuracy, mAP, FPS.
   - Hình ảnh trực quan hóa định tính (Qualitative Visualizations) từ `experiments/predictions/`.

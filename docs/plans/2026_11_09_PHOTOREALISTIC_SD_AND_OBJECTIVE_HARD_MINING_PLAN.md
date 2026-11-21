@@ -4,7 +4,7 @@
 - **Purpose**: Cung cấp bản kế hoạch chi tiết, có thể thực thi theo quy trình TDD để: (1) Nâng cấp chất lượng ảnh sinh chân thực cao (Photorealistic Prompting & Soft Feathered Masking); (2) Chuyển đổi phương pháp khai thác Mẫu Khó sang Đa Tạp Thật Khách Quan (`Real-Manifold Proximity`); (3) Thực thi toàn bộ chặng kiểm chứng 300 mẫu (150 thật + 150 giả); (4) Đo lường Proof of Utility với số liệu ROC-AUC và Recall tăng trưởng rõ rệt.
 - **Overview Pipeline**: `configs/dataset_factory.yaml` (tuning prompts, negative prompts, manifold method) -> `src/pipelines/generate_deepfake_images.py` -> `src/pipelines/curate_image_dataset.py` -> `src/pipelines/mine_hard_samples.py` -> `scripts/organize_topic_dataset.py` -> `src/pipelines/train.py` -> `evaluate.py` -> `experiments/predictions/real_vs_synthetic_gallery.png`.
 - **Detailed Plan**: §1 Phân tích lỗi gốc rễ; §2 Bốn trụ cột nâng cấp kỹ thuật; §3 Năm (05) nhiệm vụ TDD chi tiết; §4 Tiêu chuẩn nghiệm thu (Definition of Done).
-- **References**: [docs/PURPOSE.md](docs/PURPOSE.md), [docs/phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md](docs/phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md), [docs/phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md](docs/phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md).
+- **References**: [docs/PURPOSE.md](../PURPOSE.md), [docs/phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md](../phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md), [docs/phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md](../phases/PHASE_02_DINOVIT_HARD_SAMPLE_MINING_SPEC.md).
 - **Created**: 2026-11-09T18:20:00+07:00
 - **Last Updated**: 2026-11-09T18:20:00+07:00
 

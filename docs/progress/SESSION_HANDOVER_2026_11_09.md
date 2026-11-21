@@ -4,7 +4,7 @@
 - **Purpose**: Serve as the authoritative single-source handover document for pair-programming agents operating on the `uth-cv-coursework` workspace.
 - **Overview Pipeline**: Problem Diagnosis & Root Causes -> 9-Channel Inpaint Checkpoint Integration -> Pipeline Bug Remediation -> Multi-Mode Evolutionary Execution & Proof-of-Utility Benchmark -> Repository State & Clear Next Steps.
 - **Detailed Plan**: §1 Executive Summary; §2 Root Cause Audit of All Remedied Bugs; §3 Official Inpainting Checkpoint Setup & Verification; §4 Multi-Stage Evolutionary Results & Dual Benchmark Tables; §5 Test Suite & Code Quality Status; §6 Actionable Next Steps for Future Sessions.
-- **References**: [GEMINI.md](GEMINI.md), [docs/PURPOSE.md](docs/PURPOSE.md), [configs/dataset_factory.yaml](configs/dataset_factory.yaml), [docs/plans/2026_11_09_DEEP_INPAINTING_SETUP_AND_ITERATIVE_PIPELINE_PLAN.md](docs/plans/2026_11_09_DEEP_INPAINTING_SETUP_AND_ITERATIVE_PIPELINE_PLAN.md), [experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md](experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md).
+- **References**: [GEMINI.md](../../AGENTS.md), [docs/PURPOSE.md](../PURPOSE.md), [configs/dataset_factory.yaml](../../configs/dataset_factory.yaml), [docs/plans/2026_11_09_DEEP_INPAINTING_SETUP_AND_ITERATIVE_PIPELINE_PLAN.md](../plans/2026_11_09_DEEP_INPAINTING_SETUP_AND_ITERATIVE_PIPELINE_PLAN.md), [experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md](../../experiments/reports/ITERATIVE_PROOF_OF_UTILITY.md).
 - **Created**: 2026-11-09T19:38:00+07:00
 - **Last Updated**: 2026-11-09T21:12:00+07:00
 

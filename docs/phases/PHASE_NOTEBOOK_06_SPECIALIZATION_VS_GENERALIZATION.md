@@ -4,7 +4,7 @@
 - **Purpose**: Specify the mathematical formulation, multi-vault comparison dashboard, cascaded defense simulation architecture, and dedicated Coursework Notebook 06.
 - **Overview Pipeline**: Cross-vault metric extraction (Challenge Vault, Master Frozen Vault, External 6k Benchmark) -> Multi-panel radar/bar comparison visualizer (`plot_tri_vault_tradeoff_analysis`) -> Cascaded defense simulation module (`simulate_cascaded_defense`) -> Scripted generation and pre-rendering of `notebooks/coursework/06_specialization_vs_generalization_synthesis.ipynb` -> Unit tests and verification.
 - **Detailed Plan**: §1 Scope & Intent; §2 Mathematical Formulation of the Trade-off; §3 Multi-Vault Architectural Comparison; §4 Cascaded Defense System Specification; §5 Coursework Notebook 06 Specification; §6 Definition of Done (DoD).
-- **References**: `GEMINI.md`, `experiments/logs/model_comparison_benchmark.json`, `experiments/logs/legacy_6k_benchmark_results.json`, `experiments/logs/legacy_6k_predictions.npz`, `src/common/visualizer.py`.
+- **References**: [`AGENTS.md`](../../AGENTS.md), [`experiments/logs/model_comparison_benchmark.json`](../../experiments/logs/model_comparison_benchmark.json), [`experiments/logs/legacy_6k_benchmark_results.json`](../../experiments/logs/legacy_6k_benchmark_results.json), [`experiments/logs/legacy_6k_predictions.npz`](../../experiments/logs/legacy_6k_predictions.npz), [`src/common/visualizer.py`](../../src/common/visualizer.py).
 - **Created**: 2026-11-11T08:38:00+07:00
 - **Last Updated**: 2026-11-11T08:38:00+07:00
 
@@ -16,12 +16,12 @@
 Provide a rigorous, publication-grade academic synthesis demonstrating why $M_2$ is our superior adversarial detector despite displaying a higher bypass rate at standard threshold $\tau = 0.50$ on unseen SD 5.1 images. Formalize how Active Learning Round 1 expands feature boundaries (generalization) while Round 2 refines decision boundaries around subtle inpainting and blending masks (specialization), and how an industrial two-stage cascaded architecture harnesses both models.
 
 ### 1.2 Goals
-1. Implement `plot_tri_vault_tradeoff_analysis` in [`src/common/visualizer.py`](src/common/visualizer.py) comparing all 3 vaults:
+1. Implement `plot_tri_vault_tradeoff_analysis` in [`src/common/visualizer.py`](../../src/common/visualizer.py) comparing all 3 vaults:
    - Vault 1 (Adversarial Hard Samples): Accuracy, ROC-AUC, Hard Recall, Loss.
    - Vault 2 (Balanced Master Test): Precision, Recall, Accuracy.
    - Vault 3 (External 6k Synthetic OOD): Fake Recall at $\tau=0.50$, Fake Recall at $\tau=0.30$, Mean Confidence.
-2. Implement `simulate_cascaded_defense` in [`src/common/metrics.py`](src/common/metrics.py) evaluating a two-stage screening pipeline ($M_1$ screening + $M_2$ verification).
-3. Generate and pre-render [`notebooks/coursework/06_specialization_vs_generalization_synthesis.ipynb`](notebooks/coursework/06_specialization_vs_generalization_synthesis.ipynb) with rich base64 PNG figures, markdown tables, interactive simulation widgets, and committee presentation guidelines.
+2. Implement `simulate_cascaded_defense` in [`src/common/metrics.py`](../../src/common/metrics.py) evaluating a two-stage screening pipeline ($M_1$ screening + $M_2$ verification).
+3. Archive reference: [`notebooks/coursework/legacy_v1/06_specialization_vs_generalization_synthesis.ipynb`](../../notebooks/coursework/legacy_v1/06_specialization_vs_generalization_synthesis.ipynb) (merged into unified `03_champion_m3_and_universal_benchmark.ipynb`) with base64 PNG figures, markdown tables, and committee presentation guidelines.
 4. Validate with unit tests in `tests/test_visualizer.py` and `tests/test_metrics.py`.
 
 ---

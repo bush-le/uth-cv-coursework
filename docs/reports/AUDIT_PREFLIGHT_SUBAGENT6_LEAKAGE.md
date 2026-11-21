@@ -13,15 +13,15 @@
   - §7 Production Code Remediations & Concrete Patches
   - §8 Pre-Execution Verification Protocol & Contract Sign-Off
 - **References**:
-  - [`GEMINI.md`](GEMINI.md)
-  - [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](.agents/rules/ZERO_MOCK_DATA_RULE.md)
-  - [`src/data/splits.py`](src/data/splits.py)
-  - [`src/data/provenance.py`](src/data/provenance.py)
-  - [`src/data/image_datamodule.py`](src/data/image_datamodule.py)
-  - [`src/pipelines/run_block1_baseline.py`](src/pipelines/run_block1_baseline.py)
-  - [`src/pipelines/run_closed_loop_active_learning.py`](src/pipelines/run_closed_loop_active_learning.py)
-  - [`scripts/run_clean_10k_production_pipeline.py`](scripts/run_clean_10k_production_pipeline.py)
-  - [`data/partitions/`](data/partitions/)
+  - [`GEMINI.md`](../../AGENTS.md)
+  - [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](../../.agents/rules/ZERO_MOCK_DATA_RULE.md)
+  - [`src/data/splits.py`](../../src/data/splits.py)
+  - [`src/data/provenance.py`](../../src/data/provenance.py)
+  - [`src/data/image_datamodule.py`](../../src/data/image_datamodule.py)
+  - [`src/pipelines/run_block1_baseline.py`](../../src/pipelines/run_block1_baseline.py)
+  - [`src/pipelines/run_closed_loop_active_learning.py`](../../src/pipelines/run_closed_loop_active_learning.py)
+  - [`scripts/run_clean_10k_production_pipeline.py`](../../scripts/run_clean_10k_production_pipeline.py)
+  - [`data/partitions/`](../../data/partitions)
 - **Created**: 2026-11-10T08:35:00+07:00
 - **Last Updated**: 2026-11-10T08:35:00+07:00
 
@@ -52,7 +52,7 @@ A forensic audit of dataset partitioning, seed provenance, benchmark vault packa
 Let $\mathcal{D} = \{ m_1, m_2, \dots, m_N \}$ denote the universe of real image metadata records ($N = 4,000$).
 
 #### Definition 1: Identity Equivalence Relation
-Define the identity extraction mapping $g: \mathcal{D} \to \mathcal{K}$ implemented by `get_group_key(m)` in [`src/data/splits.py`](src/data/splits.py):
+Define the identity extraction mapping $g: \mathcal{D} \to \mathcal{K}$ implemented by `get_group_key(m)` in [`src/data/splits.py`](../../src/data/splits.py):
 $$g(m) = \begin{cases} \text{str}(m.\text{source\_real\_id}) & \text{if } m.\text{source\_real\_id} \neq \text{None} \\ \text{str}(m.\text{demographics}[\text{"identity\_id"}]) & \text{else if } m.\text{demographics} \text{ has } \text{"identity\_id"} \\ \text{str}(m.\text{image\_id}) & \text{otherwise} \end{cases}$$
 where $\mathcal{K}$ is the set of unique biometric identities ($|\mathcal{K}| = 3,169$).
 
@@ -118,7 +118,7 @@ In CelebA-HQ, celebrities have multiple photographs. An audit of multi-frame clu
 
 ### 3.1 Block 1 Seed Traceability
 
-In [`src/pipelines/run_block1_baseline.py`](src/pipelines/run_block1_baseline.py):
+In [`src/pipelines/run_block1_baseline.py`](../../src/pipelines/run_block1_baseline.py):
 
 ```
                         [data/raw/manifest.jsonl] (N=4,000)
@@ -152,7 +152,7 @@ In [`src/pipelines/run_block1_baseline.py`](src/pipelines/run_block1_baseline.py
 
 ### 3.2 Active Learning Candidate Generation Seed Traceability
 
-In [`src/pipelines/run_closed_loop_active_learning.py`](src/pipelines/run_closed_loop_active_learning.py):
+In [`src/pipelines/run_closed_loop_active_learning.py`](../../src/pipelines/run_closed_loop_active_learning.py):
 
 ```python
 # Lines 394-406
@@ -235,7 +235,7 @@ The Cumulative Challenge Test Set (`data/active_learning/cumulative_challenge_te
 
 ### 5.2 Slicing & Pairing Architecture
 
-In [`src/pipelines/run_closed_loop_active_learning.py`](src/pipelines/run_closed_loop_active_learning.py) lines 506–529:
+In [`src/pipelines/run_closed_loop_active_learning.py`](../../src/pipelines/run_closed_loop_active_learning.py) lines 506–529:
 ```python
 # 9. Dual-Benchmark Split: 85% Train / 15% Cumulative Challenge Test
 h_train, h_test = split_hard_samples(mined_hard, test_ratio=0.15, seed=seed + r)
@@ -387,7 +387,7 @@ def verify_partition_disjointness(
 
 ### Remediation 2: Integrate Pre-Generation Assertion in `run_block1_baseline.py`
 
-In `run_block1_pipeline` in [`src/pipelines/run_block1_baseline.py`](src/pipelines/run_block1_baseline.py):
+In `run_block1_pipeline` in [`src/pipelines/run_block1_baseline.py`](../../src/pipelines/run_block1_baseline.py):
 
 ```python
     # 1. Identity-Disjoint Partitioning

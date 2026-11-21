@@ -4,7 +4,7 @@
 - **Purpose**: Provide a rigorous, step-by-step technical blueprint and execution protocol to download, verify, wire, execute, and benchmark the complete synthetic dataset factory, adversarial hard-sample mining loops, and detector validation stages without mock data or test leakage.
 - **Overview Pipeline**: Inpainting Checkpoint Pre-fetch & Verification -> Multi-Mode Real-Face Generation (`sd_img2img`, `sd_inpaint`, `sd_text2img`) -> Identity-Disjoint Partitioning & Curation -> Active Neural Hard-Sample Mining ($H_1, H_2$) -> Balanced Multi-Stage Model Training ($M_0, M_{\text{rand}}, M_1, M_2$) -> Dual-Table Benchmark Verification (Frozen Test Vault + $H_2$ Adversarial Stress Test) -> Deliverables & Documentation.
 - **Detailed Plan**: §1 System Architecture & Global Constraints; §2 Checkpoint Pre-fetch & UNet Verification; §3 Multi-Mode Generation Protocol; §4 Identity-Disjoint Partition & Quality Curation; §5 Neural Hard Mining Engine; §6 Calibrated 4-Way Model Training; §7 Dual Benchmark Reporting & Proof of Utility; §8 Task-by-Task Implementation Steps.
-- **References**: [GEMINI.md](GEMINI.md), [docs/PURPOSE.md](docs/PURPOSE.md), [configs/dataset_factory.yaml](configs/dataset_factory.yaml), [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), [src/pipelines/generate_deepfake_images.py](src/pipelines/generate_deepfake_images.py), [scripts/run_iterative_auto_pipeline.py](scripts/run_iterative_auto_pipeline.py).
+- **References**: [GEMINI.md](../../AGENTS.md), [docs/PURPOSE.md](../PURPOSE.md), [configs/dataset_factory.yaml](../../configs/dataset_factory.yaml), [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), [src/pipelines/generate_deepfake_images.py](../../src/pipelines/generate_deepfake_images.py), [scripts/run_iterative_auto_pipeline.py](../../scripts/run_iterative_auto_pipeline.py).
 - **Created**: 2026-11-09T19:00:00+07:00
 - **Last Updated**: 2026-11-09T19:00:00+07:00
 
@@ -13,7 +13,7 @@
 ## 1. 🎯 System Architecture & Global Constraints
 
 ### 1.1 Topic 11 Core Objectives & Deliverables
-Under [docs/PURPOSE.md](docs/PURPOSE.md), the project deliverable is **Dataset-First**:
+Under [docs/PURPOSE.md](../PURPOSE.md), the project deliverable is **Dataset-First**:
 1. **Primary Deliverable**: A high-fidelity, demographically balanced synthetic face dataset generated via Stable Diffusion, curated by an objective quality filter, and enriched with actively mined hard negative samples ($H_1, H_2$).
 2. **Proof of Utility**: An iterative detector (DINOv2 backbone with a Linear Probe) demonstrating that models trained on hard-augmented and adaptive feedback sets ($D_2, D_3$) achieve superior generalization and eliminate bypass rates compared to naive random augmentation ($D_1$) or baseline ($D_0$).
 
