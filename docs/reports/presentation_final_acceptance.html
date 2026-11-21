@@ -666,15 +666,15 @@
     <nav class="sidebar-nav" id="sidebar-nav">
       <div class="nav-group-title">Mục Lục Báo Cáo</div>
       <a href="#sec-overview" class="nav-link active">1. Tổng Quan Nghiệm Thu</a>
-      <a href="#sec-problem" class="nav-link">2. Thực Trạng & Sự Cố M0</a>
-      <a href="#sec-dataset" class="nav-link">3. Kho Dữ Liệu 12.545 Ảnh</a>
-      <a href="#sec-curation" class="nav-link">4. Phễu Lọc CurationGate</a>
-      <a href="#sec-hard-samples" class="nav-link">5. Tập Mẫu Khó 213 Challenge Vault</a>
+      <a href="#sec-problem" class="nav-link">2. Thách Thức & Sự Cố M0</a>
+      <a href="#sec-dataset" class="nav-link">3. Bộ Dữ Liệu 12.545 Ảnh</a>
+      <a href="#sec-curation" class="nav-link">4. Quy Trình Lọc CurationGate</a>
+      <a href="#sec-hard-samples" class="nav-link">5. Tập Mẫu Khó 213 Mẫu</a>
       <a href="#sec-active-learning" class="nav-link">6. Đột Phá M2* (+80.18%)</a>
-      <a href="#sec-zero-leakage" class="nav-link">7. Liêm Chính Zero Leakage</a>
+      <a href="#sec-zero-leakage" class="nav-link">7. Ngăn Rò Rỉ Danh Tính</a>
       <a href="#sec-champion-m3" class="nav-link">8. Champion M3 (93.13%)</a>
       <a href="#sec-universal" class="nav-link">9. Universal 20.4k Benchmark</a>
-      <a href="#sec-xai" class="nav-link">10. DINOv2 Attention Heatmap</a>
+      <a href="#sec-xai" class="nav-link">10. Trực Quan Hóa Attention Map</a>
       <a href="#sec-conclusion" class="nav-link">11. Bảng KPI & Kết Luận</a>
     </nav>
 
@@ -687,40 +687,40 @@
       <section id="sec-overview" class="report-section hero-section">
         <span class="section-eyebrow">UTH COMPUTER VISION COURSEWORK • TOPIC 11</span>
         <h1 class="section-title">
-          Báo Cáo Nghiệm Thu Đồ Án: <span class="accent">Phòng Thủ Deepfake Khuếch Tán Kép</span>
+          Báo Cáo Nghiệm Thu Đồ Án: <span class="accent">Phát Hiện Deepfake Khuôn Mặt Từ Mô Hình Khuếch Tán Kép</span>
         </h1>
         <p class="section-desc">
-          Đồ án đã hoàn thiện trọn vẹn chu trình nghiên cứu: từ tạo lập kho 12.545 ảnh sinh từ 2 động cơ khuếch tán (Stable Diffusion v1.5: 6.545 ảnh; RealisticVision v5.1: 6.000 ảnh), sàng lọc qua phễu CurationGate 3 tầng, khai thác 740 mẫu khó (Hard Samples), đánh giá trên tập đối kháng 213 Challenge Vault, đến huấn luyện thành công mô hình Champion M3 đạt Fake Recall 93.13% và đối chuẩn trên Universal Benchmark 20.400 ảnh.
+          Đồ án đã hoàn thiện trọn vẹn quy trình nghiên cứu: từ tạo dựng bộ 12.545 ảnh giả từ 2 mô hình khuếch tán (Stable Diffusion v1.5: 6.545 ảnh; RealisticVision v5.1: 6.000 ảnh), lọc sạch qua quy trình CurationGate 3 bước, chọn lọc 740 mẫu khó (Hard Samples), kiểm thử trên tập 213 mẫu bẫy (Challenge Vault), đến huấn luyện mô hình Champion M3 đạt Fake Recall 93.13% và đánh giá mở rộng trên Universal Benchmark 20.400 ảnh.
         </p>
 
         <!-- KPI Scorecard Highlights -->
         <div class="kpi-grid">
           <div class="kpi-card">
-            <span class="kpi-label">Dữ Liệu Sinh Kép</span>
+            <span class="kpi-label">Tổng Dữ Liệu Sinh Mới</span>
             <div class="kpi-value">12.545</div>
             <span class="kpi-note">SD 1.5 (6.545) + RV5.1 (6.000)</span>
           </div>
           <div class="kpi-card alert">
-            <span class="kpi-label">213 Challenge Vault</span>
+            <span class="kpi-label">Tập Mẫu Khó (Challenge Vault)</span>
             <div class="kpi-value">213</div>
             <span class="kpi-note">Mẫu khó đánh lừa Baseline (Hard Samples)</span>
           </div>
           <div class="kpi-card champion">
-            <span class="kpi-label">Bứt Phá Recall M2*</span>
+            <span class="kpi-label">Tăng Fake Recall M2*</span>
             <div class="kpi-value">+80.18%</div>
             <span class="kpi-note">Nhảy vọt từ 11.71% → 91.89%</span>
           </div>
           <div class="kpi-card champion">
-            <span class="kpi-label">Champion M3 Recall</span>
+            <span class="kpi-label">Fake Recall Mô Hình M3</span>
             <div class="kpi-value">93.13%</div>
-            <span class="kpi-note">Tập Mù RV5.1 (Quad-Vault)</span>
+            <span class="kpi-note">Trên tập kiểm thử RV5.1 (Quad-Vault)</span>
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG KHỔ LỚN -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">🏆 Minh Chứng Vàng: Bảng Điểm Tiến Hóa 4 Cột Mốc Mô Hình (M0 → M1 → M2* → M3)</span>
+            <span class="artifact-row-title">🏆 Bảng Tổng Hợp Kết Quả: Tiến Trình Nâng Cấp 4 Phiên Bản Mô Hình (M0 → M1 → M2* → M3)</span>
             <span class="artifact-badge champion">GOLDEN SCORECARD</span>
           </div>
           <div class="artifact-row-body">
@@ -728,7 +728,7 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Bóc tách số liệu:</strong> Mô hình cơ sở M0 hoàn toàn sụp đổ trên Challenge Vault (Recall 11.71%); qua Vòng 1 tăng lên 70.27%; Vòng 2 Refined M2* đạt 91.89%; và mô hình Champion M3 bứt phá đạt đỉnh cao 93.13% trên tập kiểm thử mù RealisticVision v5.1 mà không hề suy giảm nhận thức trên SD 1.5.
+            <strong>Phân tích kết quả:</strong> Mô hình cơ sở M0 bỏ sót tới 88.29% ảnh giả trên Challenge Vault (Recall chỉ 11.71%); sau Vòng 1 (M1) tăng lên 70.27%; Vòng 2 (M2*) nâng lên 91.89%; và mô hình Champion M3 đạt đỉnh cao 93.13% trên tập kiểm thử RealisticVision v5.1 mà vẫn giữ vững độ chính xác cao trên Stable Diffusion 1.5.
           </div>
         </div>
       </section>
@@ -738,18 +738,18 @@
            PHẦN 2: THỰC TRẠNG & SỰ CỐ SỤP ĐỔ CỦA M0 BASELINE
            =================================================================== -->
       <section id="sec-problem" class="report-section">
-        <span class="section-eyebrow">01 / THÁCH THỨC ĐỐI CHUẨN</span>
+        <span class="section-eyebrow">01 / THÁCH THỨC BÀI TOÁN</span>
         <h2 class="section-title">
-          Thực Trạng Đối Đầu: <span class="accent">Vì Sao Ảnh Giả Mềm Đánh Lừa Bộ Dò Truyền Thống?</span>
+          Thực Trạng: <span class="accent">Vì Sao Ảnh Giả Làm Mờ Biên Có Thể Đánh Lừa Các Bộ Dò Truyền Thống?</span>
         </h2>
         <p class="section-desc">
-          Các mô hình deepfake ghép mặt truyền thống (Face-Swap) để lại đường cắt nhị phân cứng với độ chênh lệch gradient sắc nhọn, khiến các mạng CNN như ResNet hay EfficientNet dễ dàng "học tủ" ranh giới này. Tuy nhiên, khi áp dụng kỹ thuật <strong>Làm Mịn Biên Gaussian (Soft-Mask Feathering σ=4.0)</strong> trong Stable Diffusion, dải chuyển tiếp mượt mà xóa nhòa hoàn toàn vết cắt nhân tạo, khiến các bộ lọc cũ bị tê liệt hoàn toàn.
+          Các mô hình deepfake ghép mặt truyền thống (Face-Swap) thường để lại đường cắt ghép sắc nhọn (Hard Mask Boundary), khiến các mạng CNN như ResNet hay EfficientNet dễ dàng dựa vào vết cắt này để phân loại. Tuy nhiên, khi áp dụng kỹ thuật <strong>Làm Mịn Biên Gaussian (Soft-Mask Feathering σ=4.0)</strong> trong Stable Diffusion, vùng biên ghép được hòa trộn mượt mà vào khuôn mặt gốc, khiến các mô hình phát hiện truyền thống bị mất dấu hoàn toàn.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: SOFT FEATHERING -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Thực Nghiệm: Cơ Chế Làm Mịn Biên Gaussian Soft-Mask Feathering (σ = 4.0)</span>
+            <span class="artifact-row-title">Hình Ảnh Thực Nghiệm: Cơ Chế Làm Mịn Biên Gaussian (Soft-Mask Feathering σ = 4.0)</span>
             <span class="artifact-badge">NOTEBOOK 01 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
@@ -757,22 +757,22 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Nguyên lý toán học:</strong> <code>M_feathered = GaussianBlur(M_binary, k=(15,15), σ=4.0)</code> kết hợp với <code>I_composite = I_inpaint ⊙ M_feathered + I_real ⊙ (1 - M_feathered)</code> xóa sổ hoàn toàn vết cắt sắc nhọn, ép mô hình phải học các dị thường vi cấu trúc tần số cao bên trong khuôn mặt.
+            <strong>Nguyên lý kỹ thuật:</strong> Mặt nạ được làm mờ Gaussian để tạo dải chuyển tiếp êm dịu giữa vùng khuôn mặt sinh mới và ảnh gốc, triệt tiêu vết cắt sắc nhọn nhân tạo và buộc mô hình phải học các đặc trưng vi thể sâu hơn bên trong khuôn mặt.
           </div>
         </div>
 
         <!-- Empirical Failure Callout -->
         <div class="callout-box danger">
-          <div class="callout-title">🚨 Sự Cố Sụp Đổ Của Mô Hình Cơ Sở M0 Trên Challenge Vault:</div>
+          <div class="callout-title">🚨 Thử Thách Lớn: Mô Hình Cơ Sở (M0) Bị Đánh Lừa Trên Tập Mẫu Khó Challenge Vault</div>
           <div class="callout-desc">
-            Khi đem mô hình cơ sở M0 (huấn luyện trên tập chuẩn D0 thông thường) kiểm tra trên 213 mẫu cực khó của Challenge Vault, <strong>Fake Recall chỉ đạt 11.71%</strong> (tỷ lệ lọt lưới Bypass Rate lên tới <strong>88.29%</strong>; Overall Accuracy chỉ đạt <strong>53.99%</strong> — tương đương đoán ngẫu nhiên; F1-Score sụp đổ còn <strong>0.2097</strong>). Điều này chứng minh: nếu không có vòng lặp Active Learning khai thác mẫu khó, hệ thống nhận diện khuôn mặt trong các cổng eKYC ngân hàng sẽ bị qua mặt hoàn toàn!
+            Khi thử nghiệm mô hình cơ sở M0 trên 213 mẫu khó của Challenge Vault, <strong>Fake Recall chỉ đạt 11.71%</strong> (tỷ lệ lọt lưới Bypass Rate lên tới <strong>88.29%</strong>; Overall Accuracy chỉ đạt <strong>53.99%</strong> — tương đương đoán ngẫu nhiên; F1-Score sụp đổ còn <strong>0.2097</strong>). Điều này cho thấy nếu không có quy trình Active Learning bổ sung mẫu khó, hệ thống nhận diện khuôn mặt trong các ứng dụng thực tế như eKYC ngân hàng sẽ rất dễ bị qua mặt!
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: GLOBAL COMPARISON -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Đối Chuẩn Toàn Cầu: Biểu Đồ So Sánh Tổng Thể Các Mô Hình</span>
+            <span class="artifact-row-title">Biểu Đồ So Sánh Tổng Thể Các Phiên Bản Mô Hình (M0, M1, M2, M2*)</span>
             <span class="artifact-badge champion">BENCHMARK FIGURE</span>
           </div>
           <div class="artifact-row-body">
@@ -787,15 +787,15 @@
 
 
       <!-- ===================================================================
-           PHẦN 3: KHO DỮ LIỆU KHUẾCH TÁN KÉP 12.545 ẢNH & LƯỚI MẪU THẬT
+           PHẦN 3: BỘ DỮ LIỆU KHUẾCH TÁN KÉP 12.545 ẢNH & MẪU THỰC TẾ
            =================================================================== -->
       <section id="sec-dataset" class="report-section">
-        <span class="section-eyebrow">02 / SẢN PHẨM DỮ LIỆU</span>
+        <span class="section-eyebrow">02 / XÂY DỰNG DỮ LIỆU</span>
         <h2 class="section-title">
-          Kho Dữ Liệu Khuếch Tán Kép: <span class="accent">12.545 Ảnh Sinh Thực Tế & Lưới Ảnh Đối Chuẩn</span>
+          Bộ Dữ Liệu 12.545 Ảnh Sinh: <span class="accent">Kết Hợp Hai Mô Hình Khuếch Tán (SD 1.5 & RealisticVision)</span>
         </h2>
         <p class="section-desc">
-          Nhóm nghiên cứu đã tạo dựng và kiểm duyệt tổng cộng <strong>12.545 ảnh khuôn mặt</strong> từ hai động cơ khuếch tán đại diện: <strong>Stable Diffusion v1.5</strong> (6.545 ảnh) và <strong>RealisticVision v5.1</strong> (6.000 ảnh), phân bổ trên 3 phương thức sinh: Inpaint, Img2Img và Text-to-Image.
+          Nhóm nghiên cứu đã tạo dựng và kiểm duyệt tổng cộng <strong>12.545 ảnh khuôn mặt</strong> từ hai mô hình khuếch tán đại diện: <strong>Stable Diffusion v1.5</strong> (6.545 ảnh) và <strong>RealisticVision v5.1</strong> (6.000 ảnh), bao phủ cả 3 phương thức sinh ảnh: Inpainting (sửa cục bộ), Img2Img (biến đổi từ ảnh gốc), và Text-to-Image (sinh hoàn toàn từ văn bản).
         </p>
 
         <!-- BẢNG TỔNG HỢP PHÂN BỔ 2 ĐỘNG CƠ SINH DỮ LIỆU (DUAL-ENGINE) -->
@@ -803,10 +803,10 @@
           <table class="report-table">
             <thead>
               <tr>
-                <th style="width: 25%;">Động cơ sinh</th>
+                <th style="width: 25%;">Mô hình sinh ảnh</th>
                 <th style="width: 30%;">Nguồn mô hình</th>
-                <th style="width: 15%;">Quy mô sinh</th>
-                <th style="width: 30%;">Chi tiết & Mục đích sử dụng</th>
+                <th style="width: 15%;">Số lượng ảnh</th>
+                <th style="width: 30%;">Mục đích sử dụng chính</th>
               </tr>
             </thead>
             <tbody>
@@ -814,19 +814,19 @@
                 <td><strong>Bộ A: Stable Diffusion v1.5</strong></td>
                 <td><code>runwayml/stable-diffusion-v1-5</code></td>
                 <td><strong>6.545 ảnh</strong></td>
-                <td>Vận hành vòng lặp Active Learning nội miền (D₀ → D₁ → D₂)</td>
+                <td>Huấn luyện mô hình cơ sở và vận hành vòng lặp Active Learning (D₀ → D₁ → D₂)</td>
               </tr>
               <tr>
                 <td><strong>Bộ B: RealisticVision v5.1</strong></td>
                 <td><code>SG161222/Realistic_Vision_V5.1_noVAE</code></td>
                 <td><strong>6.000 ảnh</strong></td>
-                <td>Benchmark đối kháng siêu thực ngoại miền (OOD Blind Transfer)</td>
+                <td>Đánh giá khả năng tổng quát hóa trên mô hình sinh siêu thực mới (OOD Test)</td>
               </tr>
               <tr style="background: var(--surface-soft); font-weight: 700;">
                 <td><strong>Tổng cộng ảnh sinh mới</strong></td>
                 <td>-</td>
                 <td><strong class="accent" style="color: var(--primary); font-size: 15px;">12.545 ảnh</strong></td>
-                <td>Bao phủ 3 chế độ: Inpaint, Img2Img, Text-to-Image</td>
+                <td>Bao gồm 3 chế độ sinh: Inpaint, Img2Img, Text-to-Image</td>
               </tr>
             </tbody>
           </table>
@@ -835,7 +835,7 @@
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: DUAL ENGINE PORTFOLIO GRID -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Danh Mục Sinh Kép: Lưới So Sánh Thực Tế (Real vs Inpaint vs Img2Img vs Text2Img)</span>
+            <span class="artifact-row-title">So Sánh Trực Quan: Ảnh Thật vs 3 Chế Độ Sinh Ảnh (Inpaint, Img2Img, Text2Img)</span>
             <span class="artifact-badge champion">NOTEBOOK 01 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
@@ -843,11 +843,11 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Kiểm soát kỹ thuật:</strong> Mỗi chế độ sinh đều đảm bảo độ phân giải chuẩn (512x512 sau đó căn chỉnh 224x224), bảo toàn cấu trúc ánh sáng tự nhiên và tỷ lệ nhân khẩu học hài hòa.
+            <strong>Tiêu chuẩn kỹ thuật:</strong> Mỗi chế độ sinh đều đảm bảo độ phân giải chuẩn (512x512 sau đó căn chỉnh 224x224), bảo toàn ánh sáng tự nhiên và tỷ lệ nhân khẩu học hài hòa.
           </div>
         </div>
 
-        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 32px 0 16px;">Bộ Sưu Tập Mẫu Khuôn Mặt Thực Tế Khổ Lớn Xuất Từ Kho 12.545 Ảnh Sinh:</h3>
+        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 32px 0 16px;">Một Số Mẫu Khuôn Mặt Điển Hình Trong Bộ Dữ Liệu:</h3>
 
         <!-- Mẫu 1: Nhân vật Nữ #0 -->
         <div class="face-subject-container">
@@ -966,7 +966,7 @@
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: DEMOGRAPHICS PANEL -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Phân Phối Nhân Khẩu Học & Độ Đa Dạng Dữ Liệu (Demographics Panel)</span>
+            <span class="artifact-row-title">Thống Kê Độ Đa Dạng Dữ Liệu: Độ Tuổi, Giới Tính Và Đặc Điểm Khuôn Mặt</span>
             <span class="artifact-badge">EDA FIGURE</span>
           </div>
           <div class="artifact-row-body">
@@ -974,28 +974,28 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Cân bằng đa dạng sinh học:</strong> Phân bổ độ tuổi trải rộng từ 18 đến trên 65; kiểm soát tỷ lệ giới tính cân bằng; đảm bảo góc nghiêng khuôn mặt giới hạn trong khoảng an toàn ±30°.
+            <strong>Đảm bảo tính đa dạng:</strong> Dữ liệu phân bổ đều các nhóm tuổi từ thanh niên đến người lớn tuổi, tỷ lệ nam/nữ cân bằng, và góc nghiêng khuôn mặt nằm trong khoảng tự nhiên (±30°).
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 4: PHỄU SÀNG LỌC CHẤT LƯỢNG 3 TẦNG (CURATIONGATE)
+           PHẦN 4: QUY TRÌNH LỌC DỮ LIỆU TỰ ĐỘNG (CURATIONGATE)
            =================================================================== -->
       <section id="sec-curation" class="report-section">
-        <span class="section-eyebrow">03 / PHỄU LỌC CHẤT LƯỢNG</span>
+        <span class="section-eyebrow">03 / KIỂM SOÁT CHẤT LƯỢNG</span>
         <h2 class="section-title">
-          CurationGate: <span class="accent">Đường Ống Lọc Sạch 3 Tầng Bảo Vệ Độ Tinh Khiết Dữ Liệu</span>
+          CurationGate: <span class="accent">Quy Trình Lọc Tự Động 3 Bước Đảm Bảo Chất Lượng Dữ Liệu</span>
         </h2>
         <p class="section-desc">
-          Nhóm thiết lập quy trình kiểm toán 3 tầng khắt khe: Tầng 1 kiểm soát độ nét quang học bằng toán tử Laplacian (<code>Var(Laplacian) ≥ 100.0</code>); Tầng 2 kiểm tra mốc hình học giải phẫu (Dlib 68 landmarks) và phân tích sắc tố da YCbCr (<code>77 ≤ Cb ≤ 127, 133 ≤ Cr ≤ 173</code>); Tầng 3 loại bỏ ảnh cháy sáng (&gt;8%) và khử trùng lặp bằng pHash và SSIM.
+          Để loại bỏ các ảnh lỗi giải phẫu hoặc biến dạng do mô hình sinh, nhóm xây dựng quy trình kiểm duyệt tự động 3 bước: Bước 1 kiểm tra độ nét quang học bằng toán tử Laplacian (<code>Var(Laplacian) ≥ 100.0</code>) nhằm loại bỏ ảnh mờ; Bước 2 kiểm tra 68 điểm mốc khuôn mặt (Dlib 68 landmarks) và vùng màu da tự nhiên trong không gian màu YCbCr (<code>77 ≤ Cb ≤ 127, 133 ≤ Cr ≤ 173</code>); Bước 3 loại bỏ ảnh cháy sáng (&gt;8%) và khử trùng lặp bằng pHash và SSIM.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: SKIN GAMUT -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Tầng 2: Phổ Màu Da Trong Không Gian Sắc Ký YCbCr</span>
+            <span class="artifact-row-title">Kiểm Tra Màu Da Tự Nhiên Trong Không Gian Màu YCbCr</span>
             <span class="artifact-badge">NOTEBOOK 01 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
@@ -1003,14 +1003,14 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Kiểm tra dải sắc tố: <code>135 ≤ Cr ≤ 180, 85 ≤ Cb ≤ 135</code> loại bỏ 100% ảnh ám sắc tím/xanh dị thường do lỗi khuếch tán.
+            Kiểm tra dải màu da tự nhiên giúp loại bỏ 100% các bức ảnh bị ám màu tím hoặc xanh bất thường do lỗi của mô hình khuếch tán.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: IMAGE QUALITY PANEL -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Tầng 2 & 3: Bảng Kiểm Toán Độ Nét Quang Học & Phân Phối Chất Lượng</span>
+            <span class="artifact-row-title">Thống Kê Độ Nét Quang Học & Phân Phối Chất Lượng Ảnh</span>
             <span class="artifact-badge">EDA FIGURE</span>
           </div>
           <div class="artifact-row-body">
@@ -1018,28 +1018,28 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Đo phương sai Laplacian: <code>Var(Laplacian) ≥ 100.0</code> loại bỏ hoàn toàn ảnh mờ nhòe, mất nét; pHash và SSIM ≤ 0.85 loại bỏ sạch bản sao trùng lặp.
+            Phương sai Laplacian (<code>Var ≥ 100.0</code>) loại bỏ hoàn toàn ảnh mờ nhòe, mất nét; pHash và SSIM ≤ 0.85 loại bỏ sạch các ảnh trùng lặp.
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 5: KHAI THÁC 740 MẪU KHÓ & ĐỐI CHUẨN 213 CHALLENGE VAULT
+           PHẦN 5: KHAI THÁC 740 MẪU KHÓ & TẬP THỬ THÁCH 213 CHALLENGE VAULT
            =================================================================== -->
       <section id="sec-hard-samples" class="report-section">
-        <span class="section-eyebrow">04 / ĐỐI CHUẨN MẪU KHÓ</span>
+        <span class="section-eyebrow">04 / TẬP KIỂM THỬ MẪU KHÓ</span>
         <h2 class="section-title">
-          213 Challenge Vault: <span class="accent">Khai Thác 740 Mẫu Khó & Phân Tích 4 Dị Tật Sinh Học Vi Thể</span>
+          Challenge Vault: <span class="accent">Chọn Lọc 740 Mẫu Khó & Phân Tích 4 Dạng Lỗi Chi Tiết Trên Mặt Giả</span>
         </h2>
         <p class="section-desc">
-          Dựa trên 2 tiêu chí định lượng khắt khe (vùng ranh giới không chắc chắn |P - 0.50| ≤ 0.15 và mẫu dự đoán sai với độ tin cậy cao), nhóm đã cô lập 213 mẫu khó nhất vào tập đối kháng 213 Challenge Vault làm thước đo bất biến kiểm chứng qua mọi vòng học.
+          Dựa trên 2 tiêu chí định lượng (các mẫu nằm sát ranh giới phân vân <code>|P - 0.50| ≤ 0.15</code> và các mẫu mô hình dự đoán sai nhưng tự tin cao), nhóm đã chọn lọc 213 mẫu khó nhất đưa vào tập kiểm thử độc lập <strong>213 Challenge Vault</strong> để làm thước đo cố định đánh giá qua từng vòng học.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: BIOLOGICAL DEFECTS GALLERY -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Thực Nghiệm: Bộ Sưu Tập 4 Dị Tật Sinh Học Vi Thể (Challenge Vault)</span>
+            <span class="artifact-row-title">4 Dạng Lỗi Chi Tiết Khuôn Mặt Giả Mạo Thường Gặp (Challenge Vault)</span>
             <span class="artifact-badge alert">CHALLENGE VAULT ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
@@ -1047,14 +1047,14 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>4 Dị tật phát hiện:</strong> (1) Phản chiếu đồng tử giác mạc bất đối xứng hướng sáng; (2) Ranh giới men răng bị hòa tan liên tục; (3) Mất vi cấu trúc lỗ chân lông (hiệu ứng da nhựa); (4) Chân tóc tơ hòa trộn bất thường vào nền.
+            <strong>4 Dạng lỗi phổ biến:</strong> (1) Hướng phản quang trong đồng tử mắt không khớp nguồn sáng; (2) Ranh giới các kẽ răng bị dính hoặc mờ nhòe; (3) Mất vân da và lỗ chân lông tự nhiên (da bóng như nhựa); (4) Viền tóc và sợi tóc con hòa lẫn bất thường vào phông nền.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: FULL CONTACT SHEET (SCROLLABLE & ZOOMABLE) -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Tấm Contact Sheet Khổng Lồ 213 Mẫu Khó Challenge Vault (Full-Res Contact Sheet)</span>
+            <span class="artifact-row-title">Toàn Bộ 213 Mẫu Ảnh Khó Thuộc Tập Thử Thách Challenge Vault (Full-Res Contact Sheet)</span>
             <span class="artifact-badge">ASSET 10.3 MB</span>
           </div>
           <div class="artifact-row-body" style="padding: 12px; max-height: 850px; overflow-y: auto;">
@@ -1062,28 +1062,28 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Toàn bộ 213 mẫu bẫy độc lập được khóa cứng trong <code>cumulative_challenge_test.jsonl</code>, không bao giờ được đưa vào tập huấn luyện của bất kỳ mô hình nào!
+            Toàn bộ 213 mẫu bẫy độc lập được cố định trong <code>cumulative_challenge_test.jsonl</code>, tuyệt đối không bao giờ được đưa vào tập huấn luyện của bất kỳ mô hình nào!
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 6: ĐỘT PHÁ VÒNG 2 ACTIVE LEARNING (M2*) & RECALL SURGE
+           PHẦN 6: ĐỘT PHÁ CỦA ACTIVE LEARNING VÒNG 2 (M2*)
            =================================================================== -->
       <section id="sec-active-learning" class="report-section">
-        <span class="section-eyebrow">05 / BƯỚC NHẢY VỌT BIÊN QUYẾT ĐỊNH</span>
+        <span class="section-eyebrow">05 / BƯỚC ĐỘT PHÁ CỦA ACTIVE LEARNING</span>
         <h2 class="section-title">
-          Active Learning Vòng 2: <span class="accent">M2* Nâng Fake Recall Từ 11.71% Lên 91.89% (+80.18%)</span>
+          Active Learning Vòng 2: <span class="accent">Mô Hình M2* Tăng Tỷ Lệ Phát Hiện Ảnh Giả Từ 11.71% Lên 91.89%</span>
         </h2>
         <p class="section-desc">
-          Bằng cách giải phóng có kiểm soát tầng Block 11 của DINOv2 (chỉ 8.06% tham số trainable) và áp dụng tốc độ học phân tầng (Differential Learning Rates), mô hình M2* đã dịch chuyển đường biên quyết định, bắt trọn 102/111 mẫu giả cực khó!
+          Bằng cách chỉ mở khóa tinh chỉnh tầng Block 11 của DINOv2 (chỉ chiếm 8.06% tham số) kết hợp kỹ thuật học phân tầng (Differential Learning Rates), mô hình M2* đã dịch chuyển ranh giới quyết định chính xác, phát hiện đúng 102/111 mẫu giả cực khó!
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: RECALL JUMP CHART -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Biểu Đồ Bước Nhảy Vọt Fake Recall Trên 213 Challenge Samples (M0: 11.71% → M2*: 91.89%)</span>
+            <span class="artifact-row-title">Biểu Đồ Tăng Trưởng Tỷ Lệ Phát Hiện (Fake Recall) Qua Các Vòng Học (213 Mẫu Khó)</span>
             <span class="artifact-badge champion">NOTEBOOK 02 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
@@ -1091,14 +1091,14 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            M0 đạt 11.71% → M1 đạt 70.27% → <strong>M2* bứt phá 91.89% (+80.18%)</strong>. Bắt giữ thêm +89 mẫu giả tinh vi từng đánh lừa hoàn toàn baseline.
+            Mô hình cơ sở M0 chỉ đạt 11.71% → Vòng 1 (M1) tăng lên 70.27% → <strong>Vòng 2 (M2*) đạt 91.89% (tăng +80.18%)</strong>, phát hiện thêm 89 ảnh giả tinh vi từng đánh lừa hoàn toàn mô hình cơ sở.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: PRECISION-RECALL CURVES -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Đường Cong Precision-Recall So Sánh 5 Mô Hình</span>
+            <span class="artifact-row-title">Đường Cong Precision-Recall So Sánh Giữa Các Phiên Bản Mô Hình</span>
             <span class="artifact-badge">BENCHMARK FIGURE</span>
           </div>
           <div class="artifact-row-body">
@@ -1106,7 +1106,7 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Đường cong PR của M2* và M3 ôm sát góc trên bên phải, PR-AUC đạt đỉnh cao 0.9875.
+            Đường cong Precision-Recall của M2* và M3 ôm sát góc trên bên phải, chỉ số PR-AUC đạt mức xuất sắc 0.9875.
           </div>
         </div>
 
@@ -1115,9 +1115,9 @@
           <thead>
             <tr>
               <th>Phiên Bản Mô Hình</th>
-              <th>Fake Recall (↑)</th>
-              <th>Bypass Rate (↓)</th>
-              <th>Overall Acc (↑)</th>
+              <th>Tỷ Lệ Bắt Ảnh Giả (Recall ↑)</th>
+              <th>Tỷ Lệ Lọt Lưới (Bypass ↓)</th>
+              <th>Độ Chính Xác Chung (Acc ↑)</th>
               <th>ROC-AUC (↑)</th>
               <th>Số Mẫu Bắt Được (/111)</th>
               <th>Đánh Giá Kỹ Thuật</th>
@@ -1131,7 +1131,7 @@
               <td>53.99%</td>
               <td>0.8713</td>
               <td>13 / 111 mẫu</td>
-              <td><span class="badge-pill red">BỎ SÓT NGUY HẠI</span></td>
+              <td><span class="badge-pill red">BỎ SÓT NHIỀU</span></td>
             </tr>
             <tr>
               <td><strong>M1 (Active Round 1)</strong></td>
@@ -1140,7 +1140,7 @@
               <td>83.10%</td>
               <td>0.9655</td>
               <td>78 / 111 mẫu</td>
-              <td><span class="badge-pill amber">BƯỚC ĐẦU BỨT PHÁ</span></td>
+              <td><span class="badge-pill amber">CẢI THIỆN RÕ RỆT</span></td>
             </tr>
             <tr>
               <td><strong>M2 (Cold-Start Retrain)</strong></td>
@@ -1149,7 +1149,7 @@
               <td>92.49%</td>
               <td>0.9937</td>
               <td>96 / 111 mẫu</td>
-              <td><span class="badge-pill green">HỘI TỤ TỐT</span></td>
+              <td><span class="badge-pill green">KẾT QUẢ TỐT</span></td>
             </tr>
             <tr class="highlight-champion">
               <td><strong>🏆 M2* (Refined Champion)</strong></td>
@@ -1158,7 +1158,7 @@
               <td><strong>93.90%</strong></td>
               <td><strong>0.9875</strong></td>
               <td><strong>102 / 111 mẫu</strong></td>
-              <td><span class="badge-pill green">CHẾ NGỰ HOÀN TOÀN</span></td>
+              <td><span class="badge-pill green">HIỆU QUẢ CAO NHẤT</span></td>
             </tr>
           </tbody>
         </table>
@@ -1166,21 +1166,21 @@
 
 
       <!-- ===================================================================
-           PHẦN 7: BẢO TOÀN LIÊM CHÍNH HỌC THUẬT: ZERO IDENTITY LEAKAGE
+           PHẦN 7: BẢO TOÀN TÍNH KHÁCH QUAN: ZERO IDENTITY LEAKAGE
            =================================================================== -->
       <section id="sec-zero-leakage" class="report-section">
-        <span class="section-eyebrow">06 / LIÊM CHÍNH HỌC THUẬT</span>
+        <span class="section-eyebrow">06 / ĐẢM BẢO TÍNH KHÁCH QUAN</span>
         <h2 class="section-title">
-          Zero Identity Leakage: <span class="accent">Phát Hiện & Cách Ly Hoàn Toàn 626 Ảnh Rò Rỉ Danh Tính</span>
+          Zero Identity Leakage: <span class="accent">Ngăn Ngừa Trùng Lặp Danh Tính Giữa Tập Học Và Tập Kiểm Thử</span>
         </h2>
         <p class="section-desc">
-          Khi mở rộng sang kho 6.000 ảnh RealisticVision v5.1, nhóm phát hiện 626 ảnh inpaint/img2img được sinh từ khuôn mặt thuộc tập test. Nhóm đã lập tức cách ly 100% làm tập kiểm thử mù độc lập <code>unseen_rv51_test.jsonl</code>, đảm bảo mô hình học bản chất vi vết giả mạo chứ không nhớ mặt người.
+          Khi mở rộng sang 6.000 ảnh của RealisticVision v5.1, nhóm phát hiện 626 ảnh inpaint/img2img được sinh từ khuôn mặt trùng danh tính với tập test. Nhóm đã lập tức cách ly 100% số ảnh này sang tập kiểm thử độc lập <code>unseen_rv51_test.jsonl</code>, đảm bảo mô hình học đúng đặc trưng giả mạo chứ không bị học vẹt khuôn mặt.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: CLEAN D3 PARTITION -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Sơ Đồ Phân Vùng Sạch D3: Cách Ly Tuyệt Đối Danh Tính Tập Test</span>
+            <span class="artifact-row-title">Sơ Đồ Phân Vùng Dữ Liệu Sạch D3: Cách Ly Hoàn Toàn Danh Tính Tập Test</span>
             <span class="artifact-badge champion">NOTEBOOK 03 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
@@ -1188,28 +1188,28 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Cấu trúc D3 sạch (5.626 ảnh):</strong> Cân bằng 1:1 chuẩn xác (2.813 Thật : 2.813 Giả). Không một ảnh nào thuộc 626 ảnh trùng test ID được lọt vào tập huấn luyện!
+            <strong>Cấu trúc tập D3 sạch (5.626 ảnh):</strong> Cân bằng 1:1 chuẩn xác (2.813 Thật : 2.813 Giả). Không một ảnh nào thuộc 626 ảnh trùng danh tính tập test được lọt vào tập huấn luyện!
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 8: CHAMPION M3 DUAL-ENGINE & ĐỐI CHUẨN TỨ GIÁC (QUAD-VAULT)
+           PHẦN 8: CHAMPION M3 VÀ ĐÁNH GIÁ TRÊN 3 TẬP KIỂM THỬ ĐỘC LẬP
            =================================================================== -->
       <section id="sec-champion-m3" class="report-section">
-        <span class="section-eyebrow">07 / MÔ HÌNH VÔ ĐỊCH CHAMPION M3</span>
+        <span class="section-eyebrow">07 / MÔ HÌNH TOÀN DIỆN CHAMPION M3</span>
         <h2 class="section-title">
-          Champion M3: <span class="accent">Bứt Phá 93.13% Quad-Vault Mà Không Quên SD 1.5</span>
+          Mô Hình Champion M3: <span class="accent">Đạt 93.13% Trên Dữ Liệu Mới Mà Vẫn Giữ Vững Hiệu Năng Cũ</span>
         </h2>
         <p class="section-desc">
-          Huấn luyện Warm-Start từ M2* với bộ điều phối Cosine Annealing qua 6 epochs. Mô hình hội tụ hoàn hảo, xác lập kỷ lục mới toàn diện trên cả 3 kho kiểm thử nội bộ độc lập.
+          Kế thừa trọng số từ M2* (Warm-Start) và kết hợp bộ lập lịch Cosine Annealing qua 6 epochs, mô hình Champion M3 hội tụ tối ưu và đạt kết quả vượt trội trên cả 3 tập kiểm thử độc lập mà không bị hiện tượng quên kiến thức cũ.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: QUAD-VAULT RECALL CHART -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Biểu Đồ Cột Đối Chuẩn Tứ Giác: So Sánh Fake Recall 5 Mô Hình Trên 3 Kho Độc Lập</span>
+            <span class="artifact-row-title">So Sánh Tỷ Lệ Phát Hiện (Fake Recall) Của 5 Mô Hình Trên 3 Tập Kiểm Thử Độc Lập</span>
             <span class="artifact-badge champion">BENCHMARK FIGURE</span>
           </div>
           <div class="artifact-row-body">
@@ -1217,14 +1217,14 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            M3 đạt Fake Recall <strong>93.13%</strong> trên tập mù RV5.1 (Bypass giảm sâu còn 6.87%) trong khi vẫn duy trì nguyên vẹn <strong>91.89%</strong> trên Challenge Vault!
+            Mô hình M3 đạt tỷ lệ phát hiện <strong>93.13%</strong> trên tập kiểm thử mới RealisticVision v5.1 (tỷ lệ lọt lưới giảm còn 6.87%), đồng thời vẫn duy trì trọn vẹn <strong>91.89%</strong> trên tập mẫu khó Challenge Vault.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: TRAINING CONVERGENCE -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Động Học Hội Tụ Huấn Luyện M3 (Loss & AUC Qua 6 Epochs Cosine Annealing)</span>
+            <span class="artifact-row-title">Quá Trình Hội Tụ Của Mô Hình M3 (Hàm Mất Mát & AUC Qua 6 Epochs)</span>
             <span class="artifact-badge">NOTEBOOK 03 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
@@ -1232,7 +1232,7 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Validation AUC tăng đều từ 0.9745 lên <strong>0.9846</strong> ở Epoch 6 mà không hề xảy ra hiện tượng Overfitting hay Catastrophic Forgetting.
+            Chỉ số AUC trên tập validation tăng đều từ 0.9745 lên <strong>0.9846</strong> ở Epoch 6, mô hình học ổn định và không gặp hiện tượng quá khớp (Overfitting).
           </div>
         </div>
 
@@ -1241,9 +1241,9 @@
           <thead>
             <tr>
               <th>Phiên Bản Mô Hình</th>
-              <th>Master Frozen Test (SD 1.5 - 1.178 ảnh)<br>Fake Recall (↑) | Bypass (↓)</th>
-              <th>Challenge Vault (Mẫu Khó - 213 ảnh)<br>Fake Recall (↑) | Bypass (↓)</th>
-              <th>Unseen RV5.1 Vault (Tập Mù - 1.215 ảnh)<br>Fake Recall (↑) | Bypass (↓)</th>
+              <th>Master Frozen Test (SD 1.5 - 1.178 ảnh)<br>Tỷ Lệ Bắt (↑) | Lọt Lưới (↓)</th>
+              <th>Challenge Vault (Mẫu Khó - 213 ảnh)<br>Tỷ Lệ Bắt (↑) | Lọt Lưới (↓)</th>
+              <th>Unseen RV5.1 Vault (Tập Mới - 1.215 ảnh)<br>Tỷ Lệ Bắt (↑) | Lọt Lưới (↓)</th>
             </tr>
           </thead>
           <tbody>
@@ -1274,7 +1274,7 @@
             <tr class="highlight-champion">
               <td><strong>🏆 M3 (Dual-Engine Champion)</strong></td>
               <td><span class="badge-pill green">69.44% (Cao nhất)</span></td>
-              <td><span class="badge-pill green">91.89% (Bảo tồn)</span></td>
+              <td><span class="badge-pill green">91.89% (Duy trì)</span></td>
               <td><span class="badge-pill green">93.13% (+21.25%)</span></td>
             </tr>
           </tbody>
@@ -1283,21 +1283,21 @@
 
 
       <!-- ===================================================================
-           PHẦN 9: ĐỐI CHUẨN TOÀN CẦU (UNIVERSAL BENCHMARK 20.400 ẢNH)
+           PHẦN 9: ĐÁNH GIÁ MỞ RỘNG TOÀN DIỆN (UNIVERSAL BENCHMARK 20.400 ẢNH)
            =================================================================== -->
       <section id="sec-universal" class="report-section">
-        <span class="section-eyebrow">08 / NĂNG LỰC TỔNG QUÁT HÓA TOÀN CẦU</span>
+        <span class="section-eyebrow">08 / ĐÁNH GIÁ MỞ RỘNG TOÀN DIỆN</span>
         <h2 class="section-title">
-          Universal Benchmark: <span class="accent">Thử Thách Khổng Lồ 20.400 Ảnh Trên 34 Bộ Sinh & 8 Họ</span>
+          Universal Benchmark: <span class="accent">Thử Nghiệm Mở Rộng Trên 20.400 Ảnh Từ 34 Mô Hình Sinh Khác Nhau</span>
         </h2>
         <p class="section-desc">
-          Đánh giá năng lực phát hiện thực chiến trên bộ dữ liệu đồ sộ gồm 10.200 ảnh Thật vs 10.200 ảnh Giả từ 34 thuật toán thuộc 8 họ công nghệ: GAN, Diffusion, Face-Swap, Commercial Inpainting, và Talking Heads.
+          Đánh giá khả năng tổng quát hóa thực tế của mô hình trên bộ dữ liệu lớn gồm 10.200 ảnh Thật và 10.200 ảnh Giả từ 34 phương pháp sinh thuộc 8 nhóm công nghệ: GAN, Diffusion, Face-Swap, Inpainting thương mại và Video Talking Heads.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: FULL-WIDTH HEATMAP -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Ma Trận Nhiệt Khảo Sát Chi Tiết Trên 34 Thuật Toán Sinh Toàn Cầu (34-Method Heatmap)</span>
+            <span class="artifact-row-title">Bản Đồ Nhiệt Chi Tiết Hiệu Năng Phát Hiện Trên 34 Thuật Toán Sinh Ảnh (34-Method Heatmap)</span>
             <span class="artifact-badge champion">BENCHMARK FIGURE</span>
           </div>
           <div class="artifact-row-body">
@@ -1305,14 +1305,14 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            M3 thể hiện độ nhạy vượt trội trên các họ khuếch tán mới (Midjourney, Stable Diffusion XL, Latent Diffusion) và duy trì độ đặc hiệu người thật trên 90%.
+            Mô hình Champion M3 thể hiện khả năng nhận diện vượt trội trên các mô hình khuếch tán mới (Midjourney, Stable Diffusion XL, Latent Diffusion) và duy trì độ đặc hiệu trên ảnh thật trên 90%.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: 8-FAMILY RECALL -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Độ Nhạy Theo 8 Họ Công Nghệ Sinh Ảnh Toàn Cầu</span>
+            <span class="artifact-row-title">Tỷ Lệ Nhận Diện (Fake Recall) Phân Theo 8 Nhóm Công Nghệ Sinh Ảnh</span>
             <span class="artifact-badge">BENCHMARK FIGURE</span>
           </div>
           <div class="artifact-row-body">
@@ -1320,14 +1320,14 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Fake Recall trên họ Diffusion Baselines (DDIM) tăng vọt gần gấp 3 lần (từ 6.00% lên 17.33%), Latent Diffusion (SD 2.1) tăng gần gấp đôi (từ 4.67% lên 8.33%), và GAN Inversion đạt đỉnh 21.50%, khẳng định năng lực khái quát hóa liên miền.
+            Tỷ lệ phát hiện trên nhóm Diffusion Baselines (DDIM) tăng gần gấp 3 lần (từ 6.00% lên 17.33%), Latent Diffusion (SD 2.1) tăng gần gấp đôi (từ 4.67% lên 8.33%), và nhóm GAN Inversion đạt đỉnh 21.50%.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: ROC CURVES -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Đường Cong ROC Curves 5 Mô Hình & Khảo Sát Ngưỡng eKYC Ngân Hàng</span>
+            <span class="artifact-row-title">Đường Cong ROC Của 5 Phiên Bản Mô Hình & Khả Năng Kháng Nhiễu Nén Video</span>
             <span class="artifact-badge">BENCHMARK FIGURE</span>
           </div>
           <div class="artifact-row-body">
@@ -1335,28 +1335,28 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Tại ngưỡng mặc định τ = 0.50, Champion M3 đạt Real Specificity 90.42%, đồng thời duy trì tính trơ với nhiễu nén video H.264 trên FaceForensics++ C23 (1.655 frames) với tỷ lệ báo động nhầm FPR chỉ 2.60%.
+            Ở ngưỡng phân loại mặc định τ = 0.50, mô hình M3 đạt độ chính xác trên ảnh thật 90.42%, đồng thời giữ tỷ lệ báo động sai (FPR) dưới 2.60% trên 1.655 khung hình video nén H.264 của FaceForensics++ C23.
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 10: FORENSIC LIVE INSPECTOR & DINOV2 SPATIAL ATTENTION HEATMAP
+           PHẦN 10: TRỰC QUAN HÓA GIẢI THÍCH MÔ HÌNH (XAI)
            =================================================================== -->
       <section id="sec-xai" class="report-section">
-        <span class="section-eyebrow">09 / GIẢI THÍCH MÔ HÌNH (EXPLAINABLE AI)</span>
+        <span class="section-eyebrow">09 / MINH BẠCH VÀ GIẢI THÍCH DỰ ĐOÁN (XAI)</span>
         <h2 class="section-title">
-          Forensic Inspector: <span class="accent">Bản Đồ Chú Ý DINOv2 Soi Vùng Can Thiệp Sâu</span>
+          Trực Quan Hóa Dự Đoán: <span class="accent">Bản Đồ Nhiệt Chú Ý Của DINOv2 Định Vị Vùng Chỉnh Sửa</span>
         </h2>
         <p class="section-desc">
-          Mô hình không phải là hộp đen — cơ chế trích xuất Self-Attention Head tại Block 11 của DINOv2 cho phép định vị chính xác khu vực chỉnh sửa giả mạo trên khuôn mặt theo thời gian thực (~18.5 ms/ảnh).
+          Mô hình không phải là "hộp đen" khó hiểu — cơ chế trích xuất Self-Attention từ Block 11 của DINOv2 cho phép làm nổi bật chính xác các khu vực bị chỉnh sửa trên khuôn mặt theo thời gian thực (~18.5 ms/ảnh trên GPU).
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: DINOV2 ATTENTION HEATMAP -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Trực Tiếp: Bản Đồ Chú Ý Không Gian (DINOv2 Spatial Attention Heatmap)</span>
+            <span class="artifact-row-title">Bản Đồ Nhiệt Chú Ý Không Gian (DINOv2 Spatial Attention Heatmap)</span>
             <span class="artifact-badge champion">NOTEBOOK 00 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
@@ -1364,69 +1364,69 @@
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng pháp y trực quan:</strong> Vùng mắt, khóe miệng và đường viền chân tóc sáng rực điểm chú ý của mạng nơ-ron, cung cấp giải trình minh bạch tuyệt đối cho chuyên viên thẩm định an ninh ngân hàng.
+            <strong>Bằng chứng trực quan:</strong> Các vùng mắt, khóe miệng và viền chân tóc được mô hình tập trung chú ý cao, giúp người thẩm định dễ dàng hiểu rõ lý do mô hình đưa ra kết luận giả mạo.
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 11: BẢNG KPI NGHIỆM THU & TỔNG KẾT
+           PHẦN 11: TỔNG KẾT VÀ ĐỐI CHIẾU KPI
            =================================================================== -->
       <section id="sec-conclusion" class="report-section">
-        <span class="section-eyebrow">10 / TỔNG KẾT & NGHIỆM THU KPI</span>
+        <span class="section-eyebrow">10 / TỔNG KẾT VÀ ĐỐI CHIẾU KPI</span>
         <h2 class="section-title">
-          Nghiệm Thu Toàn Diện: <span class="accent">Hoàn Thành 100% KPI & Sẵn Sàng Triển Khai eKYC</span>
+          Tổng Kết Nghiệm Thu: <span class="accent">Hoàn Thành Trọn Vẹn Các Mục Tiêu Cam Kết Của Đồ Án</span>
         </h2>
         <p class="section-desc">
-          Bảng đối chiếu tổng hợp minh chứng đồ án Đề tài 11 đã hoàn thành xuất sắc tất cả cam kết kỹ thuật, mã nguồn sạch đạt chuẩn lint/smoke test và bảo toàn tính liêm chính học thuật.
+          Bảng đối chiếu tổng hợp minh chứng Đề tài 11 đã hoàn thành xuất sắc tất cả các mục tiêu kỹ thuật ban đầu, mã nguồn chuẩn hóa, vượt qua toàn bộ các bài kiểm thử tự động và đảm bảo tính khách quan trong nghiên cứu.
         </p>
 
         <table class="data-table">
           <thead>
             <tr>
               <th style="width: 25%;">Hạng Mục Nghiệm Thu</th>
-              <th style="width: 30%;">Cam Kết Ban Đầu (Define & Design)</th>
-              <th style="width: 30%;">Kết QuẢ Thực Nghiệm Đạt Được</th>
+              <th style="width: 30%;">Mục Tiêu Ban Đầu (Define & Design)</th>
+              <th style="width: 30%;">Kết Quả Thực Nghiệm Đạt Được</th>
               <th style="width: 15%;">Đánh Giá</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><strong>1. Dữ Liệu Khuếch Tán Kép</strong></td>
-              <td>Sinh ảnh SD với Inpaint/Img2Img/Text2Img</td>
-              <td>12.545 ảnh từ 2 động cơ (SD 1.5: 6.545 ảnh + RV5.1: 6.000 ảnh); Soft Feathering σ=4.0 xóa vết cắt</td>
+              <td>Sinh ảnh Stable Diffusion với 3 chế độ Inpaint / Img2Img / Text2Img</td>
+              <td>12.545 ảnh từ 2 mô hình (SD 1.5: 6.545 ảnh + RV5.1: 6.000 ảnh); kỹ thuật làm mờ biên Gaussian (Soft-Mask Feathering σ=4.0) tự nhiên</td>
               <td><span class="badge-pill green">ĐẠT 100%</span></td>
             </tr>
             <tr>
-              <td><strong>2. CurationGate 3 Tầng</strong></td>
-              <td>Phễu lọc Landmark, Gamut và Deduplication</td>
-              <td>Dlib 68 + YCbCr + pHash/SSIM; 100% sạch trùng lặp, manifest chuẩn</td>
+              <td><strong>2. Quy Trình CurationGate</strong></td>
+              <td>Lọc mốc khuôn mặt, màu da và loại bỏ ảnh trùng lặp</td>
+              <td>Kiểm tra độ nét Laplacian, 68 điểm mốc, màu da YCbCr; 100% sạch ảnh lỗi và trùng lặp</td>
               <td><span class="badge-pill green">ĐẠT 100%</span></td>
             </tr>
             <tr class="highlight-champion">
-              <td><strong>3. Khai Phá Mẫu Khó</strong></td>
-              <td>Active Learning vòng lặp cải thiện biên</td>
-              <td>740 mẫu khó, tập đối kháng 213 Challenge Vault; Recall tăng từ 11.71% → 91.89%</td>
+              <td><strong>3. Khai Thác Mẫu Khó</strong></td>
+              <td>Áp dụng Active Learning cải thiện ranh giới phân loại</td>
+              <td>Chọn lọc 740 mẫu khó, lập tập thử thách 213 Challenge Vault; nâng Fake Recall từ 11.71% lên 91.89%</td>
               <td><span class="badge-pill green">VƯỢT (+80%)</span></td>
             </tr>
             <tr>
               <td><strong>4. Zero Identity Leakage</strong></td>
-              <td>Tránh hiện tượng học vẹt danh tính người</td>
-              <td>Cách ly 626 ảnh RV5.1 test ID; D3 cân bằng 1:1 chuẩn xác (5.626 ảnh)</td>
-              <td><span class="badge-pill green">LIÊM CHÍNH</span></td>
+              <td>Đảm bảo không rò rỉ danh tính người giữa tập học và tập test</td>
+              <td>Cách ly 626 ảnh test của RV5.1; tập huấn luyện D3 sạch đạt 5.626 ảnh cân bằng 1:1</td>
+              <td><span class="badge-pill green">KHÁCH QUAN</span></td>
             </tr>
             <tr class="highlight-champion">
               <td><strong>5. Champion M3 & Benchmark</strong></td>
-              <td>Đánh giá tổng quát hóa mở rộng</td>
-              <td>Champion M3 Quad-Vault 93.13%; Universal Benchmark 20.400 ảnh (34 bộ sinh)</td>
+              <td>Đánh giá khả năng tổng quát hóa trên tập dữ liệu mở rộng</td>
+              <td>Mô hình Champion M3 đạt 93.13% trên tập kiểm thử RV5.1; thử nghiệm mở rộng trên 20.400 ảnh (34 phương pháp sinh)</td>
               <td><span class="badge-pill green">VƯỢT CHỈ TIÊU</span></td>
             </tr>
             <tr>
-              <td><strong>6. XAI Live Inspector</strong></td>
-              <td>Trực quan hóa giải thích mô hình</td>
-              <td>DINOv2 Spatial Attention Heatmap thời gian thực (18.5 ms/ảnh) giải trình trực quan</td>
-              <td><span class="badge-pill green">HOÀN TẤT</span></td>
+              <td><strong>6. XAI Trực Quan Hóa</strong></td>
+              <td>Trực quan hóa vùng đặc trưng giúp giải thích quyết định của mô hình</td>
+              <td>Bản đồ nhiệt Attention Map của DINOv2 trích xuất theo thời gian thực (~18.5 ms/ảnh) trực quan, rõ ràng</td>
+              <td><span class="badge-pill green">HOÀN THÀNH</span></td>
             </tr>
           </tbody>
         </table>
