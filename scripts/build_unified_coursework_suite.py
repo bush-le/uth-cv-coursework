@@ -647,8 +647,8 @@ grad_hard = np.abs(np.gradient(hard_blend[profile_y, :, 0]))
 grad_soft = np.abs(np.gradient(soft_blend[profile_y, :, 0]))
 grad_real = np.abs(np.gradient(real_mat[profile_y, :, 0]))
 
-fig, axes = plt.subplots(1, 5, figsize=(15, 3.4), gridspec_kw={"width_ratios": [1, 1, 1, 1, 1.3]})
-plt.subplots_adjust(wspace=0.25)
+fig, axes = plt.subplots(1, 5, figsize=(16.5, 4.1), gridspec_kw={"width_ratios": [1, 1, 1, 1, 1.45]})
+plt.subplots_adjust(wspace=0.45, top=0.80, bottom=0.14)
 
 axes[0].imshow(real_mat)
 axes[0].set_title("[1] Chân Dung Thật\\n(FFHQ #00000)", fontsize=9, fontweight="bold")
@@ -674,7 +674,8 @@ axes[4].set_title("[5] Gradient Viền Biên\\n(Triệt tiêu Artifact tần s�
 axes[4].set_xlabel("Tọa độ pixel X (ngang má)", fontsize=8)
 axes[4].set_ylabel("Biên độ gradient", fontsize=8)
 axes[4].set_xlim(w // 2 - 80, w // 2 + 80)
-axes[4].legend(fontsize=7.5, loc="upper right")
+axes[4].set_ylim(-0.005, float(max(grad_hard.max(), grad_soft.max(), grad_real.max())) * 1.28)
+axes[4].legend(fontsize=7.5, loc="upper left")
 axes[4].grid(True, linestyle="--", alpha=0.4)
 axes[4].spines["top"].set_visible(False)
 axes[4].spines["right"].set_visible(False)
@@ -1711,7 +1712,7 @@ axes[0].legend(fontsize=9, loc="upper right")
 axes[0].grid(axis="y", linestyle="--", alpha=0.4)
 
 labels_donut = [
-    "RV5.1 Sạch ID\\n(1,384 ảnh - 49.2%)",
+    "RV5.1 Sạch ID\\n(1.384 ảnh - 49.2%)",
     "SD 1.5 Baseline\\n(800 ảnh - 28.4%)",
     "AL Hard Samples\\n(629 ảnh - 22.4%)"
 ]
@@ -2177,7 +2178,16 @@ ax3.axvline(0.5, color="black", linestyle="--", linewidth=1.2, label="Ngưỡng 
 
 # Highlight point at tau = 0.5
 ax3.scatter([0.5], [5.49], color="red", s=80, zorder=5)
-ax3.text(0.52, 6.5, "τ=0.5: Recall=5.49%\\nSpec=90.42%", fontsize=8, fontweight="bold", color="#2c3e50")
+ax3.annotate(
+    "τ=0.5: Recall=5.49%\\nSpec=90.42%",
+    xy=(0.5, 5.49),
+    xytext=(0.56, 28.0),
+    bbox=dict(boxstyle="round,pad=0.35", fc="#ffffff", ec="#94a3b8", lw=1.0),
+    arrowprops=dict(arrowstyle="->", color="#475569", lw=1.2),
+    fontsize=8.5,
+    fontweight="bold",
+    color="#1e293b",
+)
 
 ax3.set_xlabel("Ngưỡng Quyết Định τ (Decision Threshold)", fontsize=9)
 ax3.set_ylabel("Tỷ Lệ Phần Trăm (%)", fontsize=9)
@@ -2614,6 +2624,10 @@ for idx, sample in enumerate(inspector_samples):
     w_new = max(14, (w_orig // 14) * 14)
     norm_x_interp = F.interpolate(norm_x, size=(h_new, w_new), mode="bilinear", align_corners=False)
     
+    # Bao dam Eager Attention truoc khi trich xuat attention maps
+    if getattr(detector.extractor.backbone.config, "_attn_implementation", None) != "eager":
+        detector.extractor.backbone.set_attn_implementation("eager")
+
     # Thuc thi Forward Pass va trich xuat Attention
     with torch.no_grad():
         out = detector.extractor.backbone(pixel_values=norm_x_interp, output_attentions=True)

@@ -177,7 +177,8 @@ def regenerate_clean_d3_audit() -> None:
     b1 = axes[0].bar(x - w / 2, reals_counts, w, label="Ảnh Thật (Real, y=0)", color="#27ae60", edgecolor="black", linewidth=0.8)
     b2 = axes[0].bar(x + w / 2, fakes_counts, w, label="Ảnh Giả (Fake, y=1)", color="#e74c3c", edgecolor="black", linewidth=0.8)
     for b in list(b1) + list(b2):
-        axes[0].text(b.get_x() + b.get_width() / 2, b.get_height() + 55, f"{int(b.get_height()):,}", ha="center", va="bottom", fontsize=9, fontweight="bold")
+        val_txt = f"{int(b.get_height()):,}".replace(",", ".")
+        axes[0].text(b.get_x() + b.get_width() / 2, b.get_height() + 55, val_txt, ha="center", va="bottom", fontsize=9, fontweight="bold")
 
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(splits, fontsize=9.5, fontweight="bold")
@@ -190,7 +191,7 @@ def regenerate_clean_d3_audit() -> None:
     axes[0].spines["right"].set_visible(False)
 
     labels_donut = [
-        "RV5.1 Sạch ID\n(1,384 ảnh - 49.2%)",
+        "RV5.1 Sạch ID\n(1.384 ảnh - 49.2%)",
         "SD 1.5 Baseline\n(800 ảnh - 28.4%)",
         "AL Hard Samples\n(629 ảnh - 22.4%)",
     ]
@@ -881,19 +882,6 @@ def build_vertical_report_html() -> str:
       box-shadow: 0 10px 30px rgba(30, 43, 250, 0.15);
       border-color: var(--primary);
     }
-    .zoom-hint-banner {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--primary);
-      background: var(--primary-soft);
-      padding: 5px 12px;
-      border-radius: 20px;
-      margin-top: 10px;
-      cursor: pointer;
-    }
     .artifact-row-footer {
       background: var(--surface-soft);
       padding: 14px 22px;
@@ -1049,27 +1037,6 @@ def build_vertical_report_html() -> str:
     }
 
     /* Buttons */
-    .btn-action {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 16px;
-      border-radius: var(--radius-sm);
-      font-weight: 700;
-      font-size: 13px;
-      text-decoration: none;
-      transition: all 0.15s ease;
-      cursor: pointer;
-    }
-    .btn-action.primary {
-      background: var(--primary);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(30, 43, 250, 0.25);
-    }
-    .btn-action.primary:hover {
-      background: var(--primary-hover);
-      transform: translateY(-1px);
-    }
     .btn-outline {
       display: inline-flex;
       align-items: center;
@@ -1356,7 +1323,6 @@ def build_vertical_report_html() -> str:
     }
     .eng-pill.sd { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .eng-pill.rv { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-    .eng-pill.shared { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
     .flow-arrow {
       display: flex;
       align-items: center;
@@ -1383,46 +1349,6 @@ def build_vertical_report_html() -> str:
         transform: rotate(90deg);
         height: 18px;
       }
-    }
-    .mode-trio-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-      margin: 22px 0;
-    }
-    .mode-card {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-top: 4px solid var(--primary);
-      border-radius: var(--radius-md);
-      padding: 18px 20px;
-      box-shadow: var(--shadow-sm);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .mode-card.i2i { border-top-color: #7e22ce; }
-    .mode-card.inp { border-top-color: #1d4ed8; }
-    .mode-card.t2i { border-top-color: #c2410c; }
-    .mode-card-title {
-      font-family: var(--font-display);
-      font-size: 16px;
-      font-weight: 800;
-      color: var(--text);
-    }
-    .mode-card-meta {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      background: var(--surface-soft);
-      padding: 6px 10px;
-      border-radius: 6px;
-      line-height: 1.5;
-    }
-    .mode-card-body {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.6;
     }
     .prompt-pair-grid {
       display: grid;
@@ -1492,6 +1418,34 @@ def build_vertical_report_html() -> str:
       align-items: center;
     }
 
+    /* Reading Progress Bar & Section Counter */
+    .scroll-progress-wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      background: rgba(226, 232, 240, 0.7);
+      overflow: hidden;
+    }
+    .scroll-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), #10b981);
+      transition: width 0.08s linear;
+    }
+    .sec-counter-pill {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border: 1px solid var(--primary-border);
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
     @media (max-width: 900px) {
       .layout-wrapper {
         grid-template-columns: 1fr;
@@ -1505,13 +1459,13 @@ def build_vertical_report_html() -> str:
       .face-strip-row {
         grid-template-columns: 1fr 1fr;
       }
-      .mode-trio-grid, .prompt-pair-grid {
+      .prompt-pair-grid {
         grid-template-columns: 1fr;
       }
     }
 
     @media print {
-      .top-header, .sidebar-nav, .zoom-hint-banner, .lightbox-modal {
+      .top-header, .sidebar-nav, .lightbox-modal {
         display: none !important;
       }
       .layout-wrapper {
@@ -1524,7 +1478,7 @@ def build_vertical_report_html() -> str:
         margin-bottom: 20px;
         break-inside: avoid-page;
       }
-      .artifact-row-card, .face-subject-container, .mode-card, .prompt-card, .flow-track {
+      .artifact-row-card, .face-subject-container, .prompt-card, .flow-track {
         box-shadow: none;
         break-inside: avoid;
       }
@@ -1546,9 +1500,13 @@ def build_vertical_report_html() -> str:
       </div>
     </div>
     <div class="header-actions">
+      <span class="sec-counter-pill" id="sec-counter-pill">Mục 1 / 12</span>
       <button class="btn-outline" id="prev-sec-btn" title="Mục trước (Alt + ↑)">▲ Trước</button>
       <button class="btn-outline" id="next-sec-btn" title="Mục tiếp theo (Alt + ↓)">▼ Tiếp</button>
       <button class="btn-outline" id="print-report-btn" title="In hoặc Xuất PDF báo cáo">🖨️ In / PDF</button>
+    </div>
+    <div class="scroll-progress-wrap" aria-hidden="true">
+      <div class="scroll-progress-bar" id="scroll-progress-bar"></div>
     </div>
   </header>
 
@@ -1566,7 +1524,7 @@ def build_vertical_report_html() -> str:
       <a href="#sec-zero-leakage" class="nav-link">7. Profiling 6k &amp; Zero Leakage</a>
       <a href="#sec-champion-m3" class="nav-link">8. Champion M3 (93.13%)</a>
       <a href="#sec-universal" class="nav-link">9. Universal 20.4k Benchmark</a>
-      <a href="#sec-xai" class="nav-link">10. Trực Quan Hóa Attention Map</a>
+      <a href="#sec-xai" class="nav-link">10. Kiến Trúc &amp; XAI Heatmap</a>
       <a href="#sec-conclusion" class="nav-link">11. Bảng KPI & Kết Luận</a>
     </nav>
 
@@ -1763,7 +1721,7 @@ def build_vertical_report_html() -> str:
               </tr>
               <tr>
                 <td><strong>Bộ A: Stable Diffusion v1.5</strong></td>
-                <td><code>runwayml/stable-diffusion-v1-5</code></td>
+                <td><code>configs/dataset_factory.yaml → generation.model_id</code> (SD v1.5 Base)</td>
                 <td><strong>6.545 thô</strong> (<a href="#sec-curation" style="color: var(--primary); font-weight: 700;">5.251 sạch</a>)</td>
                 <td>Khởi tạo D₀ (2.200 sạch) + AL 2 vòng (1.484 R1 + 1.567 R2 sạch) — <a href="#sec-curation" style="color: var(--primary); font-weight: 600;">xem phễu lọc ở Mục 4</a></td>
               </tr>
@@ -1777,7 +1735,7 @@ def build_vertical_report_html() -> str:
                 <td><strong>Tổng cộng ảnh giả sinh mới</strong></td>
                 <td>Dual-Engine Diffusion</td>
                 <td><strong style="color: var(--primary); font-size: 15px;">12.545 ảnh giả</strong></td>
-                <td>Tổng kho toàn dự án: <strong>16.545 ảnh</strong> (4.000 Real + 12.545 Fake thô / 11.251 Fake sau lọc; riêng nhánh SD 1.5 đạt chuẩn <strong>10.000 ảnh</strong> trong <code>clean_10k_production_report.json</code>)</td>
+                <td>Tổng kho toàn dự án: <strong>16.545 ảnh</strong> (4.000 Real + 12.545 Fake thô / 11.251 Fake sau lọc; mốc <strong>10.000 ảnh</strong> trong <code>clean_10k_production_report.json</code> = 4.000 Real + 6.000 Fake SD 1.5 gồm 2.200 D₀ + 1.900 R1 + 1.900 R2)</td>
               </tr>
             </tbody>
           </table>
@@ -1838,7 +1796,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/extracted_nb/01_diffusion_dataset_and_curation_cell10_img3.png" class="artifact-img-full" alt="Dual Engine Portfolio Grid" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Tiêu chuẩn kỹ thuật:</strong> Ảnh được sinh và chuẩn hóa ở độ phân giải <code>512×512</code> (pipeline huấn luyện/đánh giá chính của DINOv2 tự động nội suy về <code>504×504</code> bội số patch 14; riêng các bài stress-test legacy 6k và universal benchmark chạy ở <code>224×224</code>), bảo toàn ánh sáng tự nhiên và tỷ lệ nhân khẩu học hài hòa.
+            <strong>Tiêu chuẩn kỹ thuật:</strong> Ảnh được sinh và chuẩn hóa ở độ phân giải <code>512×512</code> (<code>configs/detector_training.yaml</code> khai báo target chuẩn DINOv2 là <code>518×518</code> / <code>37×37 = 1.369</code> patches, còn khi nạp ảnh <code>512×512</code> vào <code>MetaDinoV2Wrapper.forward()</code> thì hàm nội suy tự động snap về bội 14 gần nhất dưới mức gốc là <code>504×504</code> / <code>36×36 = 1.296</code> patches; riêng các bài stress-test legacy 6k và universal benchmark chạy ở <code>224×224</code>), bảo toàn ánh sáng tự nhiên và tỷ lệ nhân khẩu học hài hòa.
           </div>
         </div>
 
@@ -1847,8 +1805,8 @@ def build_vertical_report_html() -> str:
         <!-- Mẫu 1: Nhân vật Nữ #0 -->
         <div class="face-subject-container">
           <div class="face-subject-header">
-            <span class="face-subject-title">Mẫu 1: Đối Chứng Khuôn Mặt Nữ (CelebA-HQ #0) Qua 4 Chế Độ Sinh</span>
-            <span class="artifact-badge">CHỦ THỂ NỮ</span>
+            <span class="face-subject-title">Mẫu 1: Đối Chứng Khuôn Mặt Nữ (CelebA-HQ #0 → Bộ RV5.1 6k)</span>
+            <span class="artifact-badge">CHỦ THỂ NỮ • RV5.1</span>
           </div>
           <div class="face-strip-row">
             <div class="face-strip-card">
@@ -1859,24 +1817,24 @@ def build_vertical_report_html() -> str:
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/inpaint_0.png" alt="Inpaint 0" title="Nhấp để phóng to">
+              <img src="assets/samples/inpaint_0.png" alt="RV5.1 Inpaint 0" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag inpaint">SD INPAINT</span>
-                <div class="face-name">0_inpaint.png (Soft Biên)</div>
+                <span class="face-tag inpaint">RV5.1 INPAINT</span>
+                <div class="face-name">0_inpaint.png (Chỉnh Miệng)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/img2img_0.png" alt="Img2Img 0" title="Nhấp để phóng to">
+              <img src="assets/samples/img2img_0.png" alt="RV5.1 Img2Img 0" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag img2img">SD IMG2IMG</span>
-                <div class="face-name">0_img2img.png (Biến Đổi)</div>
+                <span class="face-tag img2img">RV5.1 IMG2IMG</span>
+                <div class="face-name">0_img2img.png (Strength=0.55)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/text2img_0.png" alt="Text2Img 0" title="Nhấp để phóng to">
+              <img src="assets/samples/text2img_0.png" alt="RV5.1 Text2Img 0" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag text2img">SD TEXT2IMG</span>
-                <div class="face-name">0_text2img.png (Sinh Hoàn Toàn)</div>
+                <span class="face-tag text2img">RV5.1 TEXT2IMG</span>
+                <div class="face-name">0_text2img.png (T2I Độc Lập #0)</div>
               </div>
             </div>
           </div>
@@ -1885,8 +1843,8 @@ def build_vertical_report_html() -> str:
         <!-- Mẫu 2: Nhân vật Nam #9 -->
         <div class="face-subject-container">
           <div class="face-subject-header">
-            <span class="face-subject-title">Mẫu 2: Đối Chứng Khuôn Mặt Nam (CelebA-HQ #9) Khớp Râu & Cằm Tự Nhiên</span>
-            <span class="artifact-badge">CHỦ THỂ NAM</span>
+            <span class="face-subject-title">Mẫu 2: Đối Chứng Khuôn Mặt Nam (CelebA-HQ #9 → Bộ RV5.1 6k)</span>
+            <span class="artifact-badge">CHỦ THỂ NAM • RV5.1</span>
           </div>
           <div class="face-strip-row">
             <div class="face-strip-card">
@@ -1897,24 +1855,24 @@ def build_vertical_report_html() -> str:
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/inpaint_9.png" alt="Inpaint 9" title="Nhấp để phóng to">
+              <img src="assets/samples/inpaint_9.png" alt="RV5.1 Inpaint 9" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag inpaint">SD INPAINT</span>
-                <div class="face-name">9_inpaint.png (Khớp Râu/Cằm)</div>
+                <span class="face-tag inpaint">RV5.1 INPAINT</span>
+                <div class="face-name">9_inpaint.png (Biến Đổi Vùng Mặt)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/img2img_9.png" alt="Img2Img 9" title="Nhấp để phóng to">
+              <img src="assets/samples/img2img_9.png" alt="RV5.1 Img2Img 9" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag img2img">SD IMG2IMG</span>
-                <div class="face-name">9_img2img.png (Biến Đổi Da)</div>
+                <span class="face-tag img2img">RV5.1 IMG2IMG</span>
+                <div class="face-name">9_img2img.png (Strength=0.55)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/text2img_9.png" alt="Text2Img 9" title="Nhấp để phóng to">
+              <img src="assets/samples/text2img_9.png" alt="RV5.1 Text2Img 9" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag text2img">SD TEXT2IMG</span>
-                <div class="face-name">9_text2img.png (Sinh Hoàn Toàn)</div>
+                <span class="face-tag text2img">RV5.1 TEXT2IMG</span>
+                <div class="face-name">9_text2img.png (T2I Độc Lập #9)</div>
               </div>
             </div>
           </div>
@@ -1923,8 +1881,8 @@ def build_vertical_report_html() -> str:
         <!-- Mẫu 3: Nhân vật Thiếu Sáng / Ngược Sáng #107 -->
         <div class="face-subject-container">
           <div class="face-subject-header">
-            <span class="face-subject-title">Mẫu 3: Đối Chứng Điều Kiện Ánh Sáng Yếu & Tương Phản Cao (CelebA-HQ #107)</span>
-            <span class="artifact-badge alert">ÁNH SÁNG PHỨC TẠP</span>
+            <span class="face-subject-title">Mẫu 3: Đối Chứng Ánh Sáng Phức Tạp (CelebA-HQ #107 → Bộ RV5.1 6k)</span>
+            <span class="artifact-badge alert">ÁNH SÁNG PHỨC TẠP • RV5.1</span>
           </div>
           <div class="face-strip-row">
             <div class="face-strip-card">
@@ -1935,24 +1893,24 @@ def build_vertical_report_html() -> str:
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/inpaint_107.png" alt="Inpaint 107" title="Nhấp để phóng to">
+              <img src="assets/samples/inpaint_107.png" alt="RV5.1 Inpaint 107" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag inpaint">SD INPAINT</span>
-                <div class="face-name">107_inpaint.png (Ánh Sáng Yếu)</div>
+                <span class="face-tag inpaint">RV5.1 INPAINT</span>
+                <div class="face-name">107_inpaint.png (Chỉnh Vùng Mặt)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/img2img_107.png" alt="Img2Img 107" title="Nhấp để phóng to">
+              <img src="assets/samples/img2img_107.png" alt="RV5.1 Img2Img 107" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag img2img">SD IMG2IMG</span>
-                <div class="face-name">107_img2img.png (Tương Phản)</div>
+                <span class="face-tag img2img">RV5.1 IMG2IMG</span>
+                <div class="face-name">107_img2img.png (Strength=0.55)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/text2img_107.png" alt="Text2Img 107" title="Nhấp để phóng to">
+              <img src="assets/samples/text2img_107.png" alt="RV5.1 Text2Img 107" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag text2img">SD TEXT2IMG</span>
-                <div class="face-name">107_text2img.png (Studio Lighting)</div>
+                <span class="face-tag text2img">RV5.1 TEXT2IMG</span>
+                <div class="face-name">107_text2img.png (T2I Độc Lập #107)</div>
               </div>
             </div>
           </div>
@@ -1969,6 +1927,20 @@ def build_vertical_report_html() -> str:
           </div>
           <div class="artifact-row-footer">
             <strong>Đảm bảo tính đa dạng:</strong> Dữ liệu phân bổ đều các nhóm tuổi từ thanh niên đến người lớn tuổi, tỷ lệ nam/nữ cân bằng, và góc nghiêng khuôn mặt nằm trong khoảng tự nhiên (±30°).
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: DATASET BIAS COMPARISON (FFHQ vs CELEBA-HQ) -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Đối Chiếu Phân Phối Miền Thực: FFHQ vs CelebA-HQ (Z-Score Độ Nét, Độ Sáng &amp; Kênh RGB)</span>
+            <span class="artifact-badge">EDA COMPARISON</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/eda/05_dataset_comparison_bias.png" class="artifact-img-full" alt="FFHQ vs CelebA-HQ Dataset Comparison Bias" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Lý do hợp nhất 2 bộ nguồn thật:</strong> Biểu đồ Z-Score cho thấy <strong>CelebA-HQ</strong> nổi trội về độ nét trung bình &amp; tương phản studio, trong khi <strong>FFHQ</strong> cân bằng ánh sáng đời thực và kênh màu xanh tự nhiên hơn → ghép <code>2.000 + 2.000</code> giúp detector không bị lệ thuộc thiên kiến nền (domain shortcut).
           </div>
         </div>
       </section>
@@ -2631,7 +2603,7 @@ def build_vertical_report_html() -> str:
           <div class="callout-title">🛡️ Giải Trình Khoa Học: Vì Sao Con Số "740 Mẫu Khó" Không Gộp 6.000 Ảnh RealisticVision v5.1?</div>
           <div class="callout-desc">
             1) <strong>Đúng phân vai của Đề tài (docs/PURPOSE.md):</strong> <code>740 mẫu khó</code> là sản phẩm Active Learning nội miền của <strong>SD 1.5</strong> (553 vòng 1 + 187 vòng 2), chứng minh Proof of Utility cấp độ 1 trên <code>D0 → D1 → D2</code>.<br>
-            2) <strong>RV5.1 đóng vai trò Thử Nghiệm Đối Kháng Ngoại Miền (OOD cho M₀–M₂*):</strong> Ở độ phân giải chuẩn <code>512×512</code>, <code>M₀</code> bỏ lọt <strong>33.55%</strong> và <code>M₂*</code> vẫn bỏ lọt <strong>28.12%</strong> trên RV5.1; còn ở kịch bản giảm phân giải <code>224×224</code> trên toàn bộ 6.000 ảnh (<code>benchmark_legacy_6k.py</code>), <code>M₀</code> bỏ lọt tới <strong>98.00%</strong> (5.880/6.000 ảnh) và <code>M₂</code> bỏ lọt <strong>29.87%</strong> (1.792/6.000 ảnh).<br>
+            2) <strong>RV5.1 đóng vai trò Thử Nghiệm Đối Kháng Ngoại Miền (OOD cho M₀–M₂*):</strong> Ở độ phân giải chuẩn <code>512×512</code>, <code>M₀</code> bỏ lọt <strong>33.55%</strong> và <code>M₂*</code> vẫn bỏ lọt <strong>28.12%</strong> trên RV5.1; còn ở kịch bản giảm phân giải <code>224×224</code> trên toàn bộ 6.000 ảnh (<code>legacy_6k_benchmark_results.json</code>), <code>M₀</code> bỏ lọt tới <strong>98.00%</strong> (5.880/6.000 ảnh) và <code>M₂*</code> (checkpoint <code>active_learning_m2_best.pt</code>, key <code>M2_active_round2</code> trong JSON) bỏ lọt <strong>29.87%</strong> (1.792/6.000 ảnh).<br>
             3) <strong>Chống rò rỉ danh tính tuyệt đối:</strong> Nếu gộp bừa ảnh RV5.1 bị bỏ lọt vào tập train, 626 ảnh có khuôn mặt trùng <code>test_reals.jsonl</code> sẽ rò rỉ vào tập học. Việc cách ly 626 ảnh này theo nguồn gốc danh tính giúp kiểm chứng <code>M₃</code> thích nghi đa động cơ trên <strong>danh tính hoàn toàn độc lập</strong> (93.13% Recall).
           </div>
         </div>
@@ -2862,7 +2834,7 @@ def build_vertical_report_html() -> str:
             <span class="artifact-badge champion">5-MODEL HEATMAP</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/benchmarks/benchmark_5models_method_heatmap.png" class="artifact-img-full" alt="Universal Benchmark 5-Model 34-Method Heatmap" title="Nhấp để phóng to toàn màn hình">
+            <img src="assets/benchmarks/benchmark_5models_method_heatmap.png" class="artifact-img-full" style="max-height: none;" alt="Universal Benchmark 5-Model 34-Method Heatmap" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
             <strong>Phân tích chi tiết trên 34 phương pháp:</strong> So với M₀–M₂*, mô hình <strong>Champion M₃</strong> cải thiện rõ rệt trên <code>e4e</code> (42.3%), <code>styleclip</code> (35.7%), <code>StyleGAN2</code> (26.0%), <code>stargan</code> (19.7%), <code>ddim</code> (17.3%), <code>pixart</code> (13.0%) và <code>sd2.1</code> (8.3%), đồng thời giữ Real Specificity ở mức <strong>90.42%</strong>.
@@ -2922,6 +2894,48 @@ def build_vertical_report_html() -> str:
           </div>
           <div class="artifact-row-footer">
             <strong>Đánh giá khoa học trung thực:</strong> Vì tập huấn luyện chỉ gồm ảnh khuôn mặt tĩnh từ Diffusion (SD 1.5 + RV5.1) và bài test này chạy ở <code>224×224</code> trên đa số phương pháp ngoài Diffusion (FaceSwap, Talking Head, GAN, VAE), chỉ số ROC-AUC tổng hợp hiện chỉ đạt <strong>0.3820</strong> (PR-AUC 0.4233). Điều này chứng minh rõ ràng giới hạn chuyên biệt theo họ sinh ảnh và mở ra hướng nâng cấp bổ sung dữ liệu GAN/FaceSwap/Video ở giai đoạn tiếp theo.
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: PRECISION-RECALL CURVES -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Đường Cong Precision–Recall Của 5 Mô Hình Trên Universal Benchmark (20.400 Ảnh)</span>
+            <span class="artifact-badge">PR-AUC DIAGNOSTIC</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img-full" alt="Precision-Recall Curves Across 5 Detector Models" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            Bổ trợ cho biểu đồ ROC: Đường Precision–Recall cho thấy mức baseline ngẫu nhiên (<code>0.5000</code>) và minh họa đánh đổi Precision/Recall trên 34 phương pháp ngoài miền khi ngưỡng thay đổi.
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: UNIVERSAL OPTICAL QUALITY BY FAMILY -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Chênh Lệch Chất Lượng Quang Học Giữa 8 Họ Công Nghệ Trong Tập Benchmark 20.400 Ảnh</span>
+            <span class="artifact-badge">EDA UNIVERSAL</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/eda/universal_quality_by_family.png" class="artifact-img-full" alt="Optical Quality Comparison Across 8 Families" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Lý giải sự phân hóa Recall giữa các họ:</strong> Nhóm <code>DiT</code> và <code>Real Faces</code> giữ phương sai Laplacian cao vượt trội so với <code>AutoEncoders/VAEs</code> hoặc <code>Talking Head</code> nén mờ — trực tiếp tạo nên độ khó khác biệt khi quét zero-shot.
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: RESOLUTION DEGRADATION 504 VS 224 -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Giải Mã Nguyên Nhân Suy Giảm Khi Giảm Phân Giải 504×504 → 224×224 (Mất 80.25% Mật Độ Patch DINOv2)</span>
+            <span class="artifact-badge alert">RESOLUTION GAP PROOF</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/resolution_504_vs_224_degradation.png" class="artifact-img-full" alt="Resolution Degradation 504px vs 224px on DINOv2 ViT-S/14" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Cơ chế kỹ thuật từ <code>MetaDinoV2Wrapper.forward()</code>:</strong> DINOv2 ViT-S/14 chia ảnh thành lưới patch <code>14×14px</code>. Khi suy luận ở chuẩn <code>512→504px</code>, mô hình nhìn <strong>1.296 patch tokens</strong> (<code>36×36</code>), giúp bắt rõ lỗ chân lông và đạt <strong>93.13%</strong> trên Unseen RV5.1; nhưng khi ép về <code>224×224</code> chỉ còn <strong>256 tokens</strong> (<code>16×16</code>, giảm <strong>5.06×</strong> độ phân giải không gian), kéo Fake Recall tụt thẳng xuống <code>2.00%</code> (M₀ 6k) và <code>5.49%</code> (M₃ Universal).
           </div>
         </div>
 
@@ -3001,13 +3015,32 @@ def build_vertical_report_html() -> str:
            PHẦN 10: TRỰC QUAN HÓA GIẢI THÍCH MÔ HÌNH (XAI)
            =================================================================== -->
       <section id="sec-xai" class="report-section">
-        <span class="section-eyebrow">10 / MINH BẠCH VÀ GIẢI THÍCH DỰ ĐOÁN (XAI)</span>
+        <span class="section-eyebrow">10 / KIẾN TRÚC DETECTOR &amp; GIẢI THÍCH MÔ HÌNH (XAI)</span>
         <h2 class="section-title">
-          Giải Thích Mô Hình (XAI): <span class="accent">Attention Heatmap Của DINOv2 Định Vị Vùng Chỉnh Sửa</span>
+          Kiến Trúc <code>DeepfakeImageDetector</code>: <span class="accent">DINOv2 ViT-S/14 (8.06% Fine-Tune) &amp; Attention Heatmap</span>
         </h2>
         <p class="section-desc">
-          Mô hình không phải là "hộp đen" khó hiểu — trên nền kiến trúc gọn nhẹ <strong>DINOv2 ViT-S/14 (22.06M tham số; chỉ mở khóa tinh chỉnh 1.78M tham số ở Block 11 + Head = 8.06%)</strong>, cơ chế trích xuất bản đồ Self-Attention từ Block 11 cho phép định vị trực quan các vùng bị chỉnh sửa trên khuôn mặt.
+          Trái tim phát hiện được cài đặt trong <code>DeepfakeImageDetector</code> (<code>src/models/detector/image_detector.py</code>): sử dụng xương sống <strong>Meta DINOv2 ViT-S/14</strong> (<code>22.06M</code> tham số), kết hợp đóng băng 11 tầng đầu (<code>Blocks 0–10</code>) và chỉ mở khóa <strong>Block 11 + LayerNorm + Head</strong> (<code>1.78M</code> tham số = <strong>8.06%</strong>) cùng hiệu chuẩn xác suất hậu kiểm <code>TemperatureScaler</code> để vừa chống quên kiến thức vừa xuất được bản đồ nhiệt Attention định vị vùng giả mạo.
         </p>
+
+        <!-- SƠ ĐỒ KIẾN TRÚC DETECTOR TRỰC QUAN (TỪ LƯỚI PATCH 504PX ĐẾN TEMPERATURESCALER) -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Sơ Đồ Kiến Trúc DeepfakeImageDetector: Lưới Patch 14×14, Đóng Băng 11 Block &amp; Hiệu Chuẩn L-BFGS</span>
+            <span class="artifact-badge champion">DETECTOR ARCHITECTURE DIAGRAM</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/dinov2_detector_architecture.png" class="artifact-img-full" alt="Kiến trúc DeepfakeImageDetector DINOv2 ViT-S/14" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Chuỗi xử lý 5 giai đoạn từ đầu vào đến xác suất:</strong>
+            (1) <code>MetaDinoV2Wrapper</code> đưa ảnh <code>512×512</code> về bội 14 (<code>504×504</code> theo <code>(h // 14) * 14</code>, trong khi <code>configs/detector_training.yaml</code> khai báo target chuẩn DINOv2 là <code>518×518</code>) và chuẩn hóa ImageNet;
+            (2) chia lưới <code>36×36 = 1.296 patches</code> (<code>14×14px</code>) + 1 token <code>[CLS]</code> chiều <code>384</code>;
+            (3) đóng băng <strong>Blocks 0–10</strong> (91.94%) chống overfitting;
+            (4) mở khóa <strong>Block 11 + LayerNorm + Classifier Head</strong> (<code>LayerNorm(384) → Dropout(0.3) → Linear(384, 1)</code> [<code>1.153</code> params], tổng học <code>1.78M</code> = 8.06%, Differential LR 10:1, AMP <code>bfloat16</code>);
+            (5) hiệu chuẩn hậu kiểm qua <code>TemperatureScaler</code> (<code>P = σ(logit / T)</code>, <code>T = 1.9831</code> ở R2, ngưỡng mining <code>τ = 0.50</code>).
+          </div>
+        </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: DINOV2 ATTENTION HEATMAP -->
         <div class="artifact-row-card">
@@ -3088,22 +3121,6 @@ def build_vertical_report_html() -> str:
           </table>
         </div>
 
-        <div class="callout-box success">
-          <div class="callout-title">🧪 Engineering Rigor &amp; Tính Tái Lập (Reproducibility)</div>
-          <div class="callout-desc">
-            • <strong>Thời gian thực thi thực nghiệm:</strong> Pipeline 10.000 mẫu SD 1.5 (sinh ảnh + CurationGate + Active Learning 2 vòng) hoàn tất trong <strong>183.71 phút</strong> (<code>clean_10k_production_report.json</code>); huấn luyện <code>Champion M₃</code> 6 epochs với PyTorch AMP hết <strong>24.7 phút</strong> (<code>1.483,3s</code>, <code>m3_training_evaluation_summary.json</code>).<br>
-            • <strong>Kiểm soát tái lập &amp; kiểm thử tự động:</strong> Khóa cố định <code>seed = 42</code> qua <code>seed_everything(42)</code>; toàn bộ codebase được bảo vệ bởi <strong>198 unit tests</strong> trong <code>tests/</code> (trong đó <strong>41 smoke tests</strong> chạy xác minh dưới 5 giây).
-          </div>
-        </div>
-
-        <div class="callout-box info">
-          <div class="callout-title">🔭 Giới Hạn Nghiên Cứu &amp; Hướng Phát Triển Tiếp Theo</div>
-          <div class="callout-desc">
-            • <strong>Khoảng trống ngoài Diffusion:</strong> Kết quả Universal Benchmark 20.400 ảnh cho thấy mô hình chuyên sâu Diffusion chưa bao phủ tốt các kỹ thuật GAN/Face-Swap/Video Talking Head (AUC tổng 0.3820). Giai đoạn tiếp theo sẽ mở rộng vòng Active Learning sang các họ mô hình không phải Diffusion và bổ sung đặc trưng tần số (FFT/DCT) cũng như tính nhất quán thời gian (temporal consistency) cho video.<br>
-            • <strong>Chuẩn hóa độ phân giải đầu vào:</strong> Suy luận ở <code>224×224</code> làm mờ vi vết tần số cao so với <code>512×512</code>; các hệ thống triển khai thực tế nên giữ nguyên độ phân giải bản địa ≥ 504×504 của DINOv2.
-          </div>
-        </div>
-
         <div style="background: #fdfae7; border: 2px solid var(--primary); border-radius: var(--radius-md); padding: 24px; text-align: center; margin-top: 28px;">
           <h3 style="font-family: var(--font-display); font-size: 18px; color: var(--primary); margin-bottom: 8px;">
             KÍNH CẢM ƠN HỘI ĐỒNG GIẢNG VIÊN BỘ MÔN THỊ GIÁC MÁY TÍNH — TRƯỜNG ĐH GIAO THÔNG VẬN TẢI TP.HCM!
@@ -3158,6 +3175,9 @@ def build_vertical_report_html() -> str:
         return activeIdx;
       }
 
+      const progressBar = document.getElementById('scroll-progress-bar');
+      const counterPill = document.getElementById('sec-counter-pill');
+
       function updateActiveNav() {
         const activeIdx = getCurrentSectionIndex();
         const currentId = sections[activeIdx] ? sections[activeIdx].getAttribute('id') : '';
@@ -3167,6 +3187,14 @@ def build_vertical_report_html() -> str:
             link.classList.add('active');
           }
         });
+        if (counterPill) {
+          counterPill.textContent = `Mục ${activeIdx + 1} / ${sections.length}`;
+        }
+        if (progressBar) {
+          const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+          const pct = Math.min(100, Math.max(0, (window.scrollY / maxScroll) * 100));
+          progressBar.style.width = `${pct.toFixed(1)}%`;
+        }
       }
 
       window.addEventListener('scroll', updateActiveNav, { passive: true });
@@ -3192,14 +3220,10 @@ def build_vertical_report_html() -> str:
       const lightboxCaption = document.getElementById('lightbox-caption');
       const lightboxClose = document.getElementById('lightbox-close');
 
-      const clickableImages = document.querySelectorAll('.artifact-img-full, .face-strip-card img, .flow-mini-thumb, .zoom-hint-banner');
+      const clickableImages = document.querySelectorAll('.artifact-img-full, .face-strip-card img, .flow-mini-thumb');
       clickableImages.forEach(el => {
         el.addEventListener('click', () => {
-          let targetImg = el;
-          if (el.classList.contains('zoom-hint-banner')) {
-            const body = el.closest('.artifact-row-body');
-            targetImg = body ? body.querySelector('img') : el.previousElementSibling;
-          }
+          const targetImg = el;
           if (targetImg && targetImg.tagName === 'IMG') {
             lightboxImg.src = targetImg.src;
             lightboxCaption.textContent = targetImg.alt || targetImg.title || 'Artifact Khảo Sát Chi Tiết';

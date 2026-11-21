@@ -324,13 +324,17 @@ def main() -> None:
     for i, cfg in enumerate(MODEL_CONFIGS):
         key = cfg["key"]
         vals = [family_results[fam][f"{key}_recall"] * 100 for fam in fake_families]
-        ax.bar(x + (i - 2) * width, vals, width, label=cfg["display_name"], color=cfg["color"], edgecolor="black", linewidth=0.8, alpha=0.9)
+        bars = ax.bar(x + (i - 2) * width, vals, width, label=cfg["display_name"], color=cfg["color"], edgecolor="black", linewidth=0.8, alpha=0.9)
+        if key == "M3_dual_engine":
+            for b in bars:
+                h = b.get_height()
+                ax.text(b.get_x() + b.get_width() / 2, h + 0.5, f"{h:.1f}%", ha="center", va="bottom", fontsize=8.5, fontweight="bold", color="#4c1d95")
 
     ax.set_ylabel("Fake Recall (%)", fontsize=11, fontweight="bold")
-    ax.set_title("Family Recall Breakdown Across 5 Detector Models (20,400 Images)", fontsize=13, fontweight="bold", pad=12)
+    ax.set_title("Family Recall Breakdown Across 5 Detector Models (20,400 Images • Zoomed Y: 0–30%)", fontsize=13, fontweight="bold", pad=12)
     ax.set_xticks(x)
     ax.set_xticklabels([f.replace(" / ", "\n") for f in fake_families], rotation=20, ha="right", fontsize=9)
-    ax.set_ylim(0, 100)
+    ax.set_ylim(0, 30)
     ax.grid(axis="y", linestyle="--", alpha=0.5)
     ax.legend(loc="upper right", fontsize=9, frameon=True)
     plt.tight_layout()

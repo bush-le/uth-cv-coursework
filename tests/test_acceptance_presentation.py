@@ -86,6 +86,14 @@ def test_acceptance_presentation_scientific_metrics():
         "CALIBRATED_NEGATIVE_PROMPT",
         "2.000",
         "blur_radius",
+        "1.296",
+        "DeepfakeImageDetector",
+        "TemperatureScaler",
+        "05_dataset_comparison_bias.png",
+        "benchmark_5models_precision_recall_curves.png",
+        "resolution_504_vs_224_degradation.png",
+        "dinov2_detector_architecture.png",
+        "scroll-progress-bar",
     ):
         assert term in content, f"Missing generation mechanics technical detail: {term}"
 

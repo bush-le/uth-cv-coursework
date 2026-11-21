@@ -41,7 +41,7 @@ Four rigorous `@pytest.mark.smoke` test functions were implemented:
    - Verifies that 100% of relative links (including paths into `../../src/`, `../../docs/`, `../../scripts/`, and sister `.ipynb` notebooks) resolve to existing, readable files on disk.
    - Validates that at least 15 relative links, $\ge 4$ `src/` links, $\ge 4$ `docs/` links, and $\ge 8$ sister notebook links are present and verified.
 4. `test_coursework_suite_execution_integrity_and_privacy`:
-   - Verifies privacy and portability: zero occurrences of `/home/bush` or `file:///` schemes.
+   - Verifies privacy and portability: zero occurrences of local home directory paths or `file:///` schemes.
    - Verifies that every code cell has valid execution outputs with zero errors (`output_type != "error"`).
    - Verifies that zero code cells leak `SyntaxWarning` messages in stream outputs.
    - Verifies presence of rich visual `display_data` (matplotlib PNG) and text `stream` outputs.
@@ -76,7 +76,7 @@ The repository's notebook governance guide was rewritten to provide a comprehens
 - [x] Cell 0 institutional header (Topic 11, UTH) and Cell 1 Roadmap Table verified across all 4 notebooks.
 - [x] All relative markdown links across all notebook cells resolve on disk (0 missing links).
 - [x] Zero execution errors (`output_type != "error"`) and zero `SyntaxWarning` occurrences.
-- [x] Zero leakage of `/home/bush` or `file:///` schemes.
+- [x] Zero leakage of local home directory paths or `file:///` schemes.
 - [x] `notebooks/README.md` updated with complete 4-part narrative, legacy archive provenance, and builder engine instructions.
 - [x] `make test-smoke` passes (37 passed in 5.42s).
 - [x] `make lint` passes with 0 syntax/compilation errors.
