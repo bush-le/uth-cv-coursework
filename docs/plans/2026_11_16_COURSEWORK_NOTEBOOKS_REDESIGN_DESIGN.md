@@ -1,5 +1,8 @@
 # DESIGN DOC: TÁI CẤU TRÚC BỘ NOTEBOOK COURSEWORK ĐỒ ÁN 11 THÀNH CHUỖI 4 CHƯƠNG TÍCH HỢP
 
+> [!NOTE]
+> **Historical Redesign Spec (Pre-Step-A Audit & 504px Refactor):** This design document captures the 2026-11-16 transition plan before the subsequent 504px `MetaDinoV2Wrapper` standardization, `ImageCurationGate` OpenCV Haar/Laplacian `q05 >= 1.25` alignment, and removal of deprecated RetinaFace/CLIP references in the 4 final unified notebooks (`00..03`). See [docs/reports/MASTER_PROJECT_CROSSCHECK_AND_FACTCHECK_REPORT.md](../reports/MASTER_PROJECT_CROSSCHECK_AND_FACTCHECK_REPORT.md) for verified canonical metrics.
+
 - **Motivation/Background**: Hệ thống 9 notebook coursework hiện tại (~50MB) đang gặp vấn đề nghiêm trọng về trải nghiệm người dùng: các code cell bị đóng hộp đen trong các hàm vẽ tĩnh (`plot_xyz(); plt.show()`), dung lượng phình to do nhúng base64 làm đơ giật giao diện, và nội dung bị xé nhỏ rời rạc qua 9 file khiến giảng viên và hội đồng khó theo dõi được toàn bộ câu chuyện khoa học của Đề tài 11.
 - **Purpose**: Thiết kế bản đặc tả kiến trúc kỹ thuật toàn diện để tái cấu trúc và chuẩn hóa bộ notebook thành chuỗi 4 chương tích hợp (The 4-Part Unified Narrative Suite), đảm bảo 100% code tương tác thực tế, trực quan sinh động, bao quát đầy đủ mọi thành quả của dự án mà không bỏ sót bất kỳ chi tiết nào.
 - **Overview Pipeline**: Khảo sát hiện trạng & Bóc tách tài nguyên -> Thiết kế cấu trúc 4 Notebook -> Chuẩn hóa mã tương tác (DataModule, Tensor, DINOv2, Checkpoints) -> Tích hợp bảng đối chiếu chuẩn vàng ($M_0 \to M_3$, 6k OOD, 20.4k Universal) -> Kiểm thử thực thi tự động (Zero error, Zero blank cells).

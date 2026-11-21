@@ -1798,14 +1798,10 @@ def plot_landmarks_heatmap_and_inpaint_roi(
                         break
 
     if not all_landmarks:
-        # High-fidelity synthesis based on standard 68 landmarks geometry
-        np.random.seed(42)
-        base_x = np.linspace(0.35, 0.65, 68)
-        base_y = np.linspace(0.30, 0.70, 68)
-        for _ in range(num_samples):
-            noise = np.random.normal(0, 0.03, (68, 2))
-            pts = np.stack([base_x, base_y], axis=1) + noise
-            all_landmarks.append(pts)
+        raise FileNotFoundError(
+            f"FFHQ landmark metadata missing or contained no face_landmarks at {p}. "
+            "Synthetic fallback landmarks are forbidden."
+        )
 
     pts_arr = np.array(all_landmarks)  # (N, 68, 2)
     x_pts = pts_arr[:, :, 0].flatten()
@@ -1938,10 +1934,9 @@ def plot_optical_characteristics_distribution(
                     pass
 
     if not sharpness_vals:
-        np.random.seed(42)
-        sharpness_vals = list(np.random.normal(78.5, 14.2, 150).clip(25, 160))
-        contrast_vals = list(np.random.normal(59.88, 8.4, 150).clip(30, 95))
-        luminance_vals = list(np.random.normal(114.1, 19.6, 150).clip(50, 190))
+        raise FileNotFoundError(
+            f"No readable images found from manifest {p}. Synthetic optical fallback is forbidden."
+        )
 
     q05_s = float(np.percentile(sharpness_vals, 5))
     mean_c = float(np.mean(contrast_vals))
@@ -1994,54 +1989,168 @@ def plot_dual_engine_curation_audit(
     curation_report_path: str | Path = "data/synthetic/d0_train_curation_report_att0.json",
     output_path: str | Path | None = None,
 ) -> Any:
-    """Plot dual-engine generation and curation gate audit: Funnel, Rejection Breakdown, and Sharpness."""
+    """Plot dual-engine generation and curation gate audit from real curation report and manifests."""
+    from collections import Counter
     import matplotlib.pyplot as plt
+    from PIL import Image
+    import torch
+    from src.common.metrics import compute_laplacian_sharpness
+
+    rep_path = Path(curation_report_path)
+    if not rep_path.exists():
+        raise FileNotFoundError(f"Curation report not found: {rep_path}")
+
+    with open(rep_path, "r", encoding="utf-8") as f:
+        records = [json.loads(line) for line in f if line.strip()]
+    if not records:
+        raise ValueError(f"Curation report is empty: {rep_path}")
+
+    total_n = len(records)
+    valid_records = [r for r in records if r.get("is_valid")]
+    rej_records = [r for r in records if not r.get("is_valid")]
+    valid_n = len(valid_records)
+    rej_n = len(rej_records)
+
+    no_landmark = sum(
+        1 for r in rej_records if any("No valid face landmark" in m for m in r.get("rejection_reasons", []))
+    )
+    landmark_pass_n = total_n - no_landmark
+
+    framing_fail = sum(
+        1
+        for r in rej_records
+        if any(
+            k in m
+            for m in r.get("rejection_reasons", [])
+            for k in ("too small", "too large", "off-center", "Multiple faces", "amputated")
+        )
+    )
+    framing_pass_n = max(valid_n, landmark_pass_n - framing_fail)
+
+    reason_counts: Counter[str] = Counter()
+    reason_label_map = {
+        "Face occupies too small area of frame": "Khuôn mặt quá nhỏ (<20%)",
+        "No valid face landmark detected": "Không tìm thấy landmark",
+        "Forehead / scalp amputated by top canvas border": "Cắt mất vùng trán/đỉnh đầu",
+        "Face occupies too large area of frame": "Khuôn mặt quá lớn (>65%)",
+        "Severe highlight blowout on face": "Cháy sáng vùng mặt",
+        "Face is severely off-center": "Lệch tâm nghiêm trọng",
+        "Multiple faces detected": "Đa khuôn mặt",
+        "Chin / jaw amputated by bottom canvas border": "Cắt mất vùng cằm",
+    }
+    for r in rej_records:
+        for msg in r.get("rejection_reasons", []):
+            key = msg.split(":")[0].split("(")[0].strip()
+            reason_counts[reason_label_map.get(key, key)] += 1
+
+    # Top 4 causes + Khác (Other)
+    top_reasons = reason_counts.most_common(4)
+    other_sum = sum(cnt for _, cnt in reason_counts.most_common()[4:])
+    if other_sum > 0:
+        top_reasons.append(("Nguyên nhân khác", other_sum))
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5.2))
     fig.patch.set_facecolor("#ffffff")
 
-    # Panel 1: Curation Gate Funnel
-    stages = ["1. Raw Generated\n(2,758 samples)", "2. Sharpness Filter\n(Laplacian >= 15.0)", "3. Face Area Check\n(Min 256x256)", "4. Curation Approved\n(2,200 samples)"]
-    pcts = [100.0, 88.4, 82.1, 79.8]
+    # Panel 1: Curation Gate Funnel (100% real counts from curation report)
+    stages = [
+        f"1. Raw Generated\n({total_n:,} samples)",
+        f"2. Landmark Gate\n({landmark_pass_n:,} samples)",
+        f"3. Geometry & Area (20–65%)\n({framing_pass_n:,} samples)",
+        f"4. Curation Approved\n({valid_n:,} samples)",
+    ]
+    pcts = [
+        100.0,
+        100.0 * landmark_pass_n / total_n,
+        100.0 * framing_pass_n / total_n,
+        100.0 * valid_n / total_n,
+    ]
     colors = ["#34495e", "#2980b9", "#8e44ad", "#27ae60"]
 
     ax = axes[0]
     bars = ax.barh(stages[::-1], pcts[::-1], color=colors[::-1], edgecolor="black", height=0.55)
-    ax.set_xlim(0, 115)
+    ax.set_xlim(0, 118)
     ax.set_xlabel("Tỷ lệ vượt qua (%)", fontsize=10, fontweight="bold")
-    ax.set_title("Phễu Sàng Lọc Tự Động ImageCurationGate\n(Tỷ Lệ Đào Thải: 20.2% Dữ Liệu Thô)", fontsize=11, fontweight="bold", pad=10)
+    rej_rate = 100.0 * rej_n / total_n
+    ax.set_title(
+        f"Phễu Sàng Lọc ImageCurationGate\n(Loại {rej_n:,}/{total_n:,} = {rej_rate:.1f}% trong {rep_path.name})",
+        fontsize=10.5,
+        fontweight="bold",
+        pad=10,
+    )
     ax.grid(axis="x", linestyle="--", alpha=0.5)
     for b in bars:
-        ax.text(b.get_width() + 1.5, b.get_y() + b.get_height() / 2, f"{b.get_width():.1f}%", va="center", ha="left", fontsize=9.5, fontweight="bold")
+        ax.text(
+            b.get_width() + 1.5,
+            b.get_y() + b.get_height() / 2,
+            f"{b.get_width():.1f}%",
+            va="center",
+            ha="left",
+            fontsize=9.5,
+            fontweight="bold",
+        )
 
-    # Panel 2: Rejection Causes Breakdown
-    reasons = ["Diện tích mặt < 256px", "Nhòe chuyển động / Mờ", "Lỗi tiếp giáp mặt nạ", "Đa khuôn mặt (Multi-face)", "Cháy sáng (Overexposed)"]
-    rej_pcts = [38.2, 27.5, 16.4, 11.2, 6.7]
+    # Panel 2: Real Rejection Causes Breakdown
     ax = axes[1]
-    wedges, texts, autotexts = ax.pie(
-        rej_pcts,
-        labels=reasons,
+    labels = [lbl for lbl, _ in top_reasons]
+    vals = [cnt for _, cnt in top_reasons]
+    ax.pie(
+        vals,
+        labels=labels,
         autopct="%1.1f%%",
         startangle=140,
-        colors=["#e74c3c", "#e67e22", "#f39c12", "#95a5a6", "#34495e"],
+        colors=["#e74c3c", "#e67e22", "#f39c12", "#95a5a6", "#34495e"][: len(vals)],
         textprops=dict(fontsize=8.5, fontweight="bold"),
         wedgeprops=dict(width=0.6, edgecolor="white", linewidth=1.5),
     )
-    ax.set_title("Cơ Cấu 5 Nguyên Nhân Lỗi Bị Loại Trừ\n(558 Mẫu Bị Đào Thải Trong att0)", fontsize=11, fontweight="bold", pad=10)
+    ax.set_title(
+        f"Cơ Cấu Nguyên Nhân Bị Loại Trừ\n({rej_n:,} Mẫu Bị Đào Thải Thực Tế)",
+        fontsize=10.5,
+        fontweight="bold",
+        pad=10,
+    )
 
-    # Panel 3: Sharpness Comparison SD 1.5 vs RealImage 5.1
+    # Panel 3: Real Sharpness Comparison from manifests or curation report
+    def _sample_manifest_sharpness(manifest_p: Path, max_n: int = 40) -> list[float]:
+        if not manifest_p.exists():
+            return []
+        with open(manifest_p, "r", encoding="utf-8") as mf:
+            items = [json.loads(line) for line in mf if line.strip()]
+        if not items:
+            return []
+        step = max(1, len(items) // max_n)
+        chosen = items[::step][:max_n]
+        scores: list[float] = []
+        for it in chosen:
+            fp_str = it.get("file_path") or it.get("image_path") or ""
+            fp = Path(fp_str)
+            if fp_str and fp.exists():
+                with Image.open(fp) as im:
+                    arr = np.array(im.convert("RGB"), dtype=np.float32) / 255.0
+                t = torch.from_numpy(arr).permute(2, 0, 1)
+                scores.append(float(compute_laplacian_sharpness(t)))
+        return scores
+
+    s_a = _sample_manifest_sharpness(Path(curated_manifest), max_n=40)
+    s_b = _sample_manifest_sharpness(Path(realimage_manifest), max_n=40)
+    if not s_a or not s_b:
+        s_a = [float(r["sharpness_score"]) for r in valid_records if r.get("sharpness_score") is not None]
+        s_b = [float(r["sharpness_score"]) for r in rej_records if r.get("sharpness_score") is not None]
+        label_a = f"Đạt chuẩn att0 (μ = {np.mean(s_a):.2f})"
+        label_b = f"Bị loại att0 (μ = {np.mean(s_b):.2f})"
+    else:
+        label_a = f"Engine A: SD 1.5 (μ = {np.mean(s_a):.2f}, n={len(s_a)})"
+        label_b = f"Engine B: RV5.1 (μ = {np.mean(s_b):.2f}, n={len(s_b)})"
+
     ax = axes[2]
-    np.random.seed(42)
-    s_a = np.random.normal(7.91, 3.69, 200).clip(2.5, 28)
-    s_b = np.random.normal(9.76, 5.74, 200).clip(2.0, 33)
-    ax.hist(s_a, bins=20, alpha=0.6, color="#2980b9", label=f"Engine A: SD 1.5 (μ = 7.91)", edgecolor="black")
-    ax.hist(s_b, bins=20, alpha=0.6, color="#e67e22", label=f"Engine B: RealImage 5.1 (μ = 9.76)", edgecolor="black")
-    ax.axvline(7.91, color="#1b4f72", linestyle="--", linewidth=2)
-    ax.axvline(9.76, color="#b9770e", linestyle="--", linewidth=2)
-    ax.set_title("Phân Bố Độ Sắc Nét Quang Học\nSD 1.5 vs Realistic Vision v5.1 SOTA", fontsize=11, fontweight="bold", pad=10)
+    ax.hist(s_a, bins=18, alpha=0.6, color="#2980b9", label=label_a, edgecolor="black")
+    ax.hist(s_b, bins=18, alpha=0.6, color="#e67e22", label=label_b, edgecolor="black")
+    ax.axvline(float(np.mean(s_a)), color="#1b4f72", linestyle="--", linewidth=2)
+    ax.axvline(float(np.mean(s_b)), color="#b9770e", linestyle="--", linewidth=2)
+    ax.set_title("Phân Bố Độ Sắc Nét Quang Học Thực Tế\nSD 1.5 Curated vs Realistic Vision v5.1", fontsize=10.5, fontweight="bold", pad=10)
     ax.set_xlabel("Laplacian Score")
     ax.set_ylabel("Số lượng mẫu")
-    ax.legend(fontsize=9.5)
+    ax.legend(fontsize=8.5)
     ax.grid(axis="y", linestyle="--", alpha=0.5)
 
     plt.suptitle("Kiểm Toán Danh Mục Khuếch Tán Kép (Dual-Engine) & Hiệu Lực Curation Gate", fontsize=13.5, fontweight="bold", y=0.98)
@@ -2142,62 +2251,116 @@ def plot_dual_engine_gallery(
 
 def plot_manifold_tsne_pca(
     output_path: str | Path | None = None,
+    real_manifest: str | Path = "data/raw/manifest.jsonl",
+    synthetic_manifest: str | Path = "data/synthetic/curated_manifest.jsonl",
+    hard_manifest: str | Path = "data/hard_samples/hard_samples_manifest.jsonl",
+    max_per_group: int = 60,
 ) -> Any:
-    """Plot 2D PCA projection of real vs easy fake vs hard samples demonstrating Manifold Intrusion."""
+    """Plot 2D SVD-PCA projection of real, curated fake, and mined hard image feature descriptors."""
     import matplotlib.pyplot as plt
+    from PIL import Image
+    import torch
+    from src.common.metrics import compute_laplacian_sharpness
 
-    np.random.seed(42)
-    # 1. Real Faces: Compact cluster around origin
-    n_real = 250
-    real_features = np.random.normal(loc=[0.0, 0.0], scale=[0.6, 0.5], size=(n_real, 2))
+    def _extract_group_features(manifest_p: Path, limit: int) -> np.ndarray:
+        if not manifest_p.exists():
+            raise FileNotFoundError(f"Manifold manifest not found: {manifest_p}")
+        with open(manifest_p, "r", encoding="utf-8") as f:
+            entries = [json.loads(line) for line in f if line.strip()]
+        if not entries:
+            raise ValueError(f"Empty manifest: {manifest_p}")
+        step = max(1, len(entries) // limit)
+        feats: list[list[float]] = []
+        for entry in entries[::step][:limit]:
+            fp_str = entry.get("file_path") or entry.get("image_path") or ""
+            fp = Path(fp_str)
+            if not fp_str or not fp.exists():
+                continue
+            with Image.open(fp) as im:
+                rgb = im.convert("RGB").resize((128, 128))
+                arr = np.asarray(rgb, dtype=np.float32) / 255.0
+            gray = 0.299 * arr[:, :, 0] + 0.587 * arr[:, :, 1] + 0.114 * arr[:, :, 2]
+            sharp = float(compute_laplacian_sharpness(torch.from_numpy(arr).permute(2, 0, 1)))
+            center = gray[32:96, 32:96]
+            feats.append([
+                float(np.mean(arr[:, :, 0])),
+                float(np.mean(arr[:, :, 1])),
+                float(np.mean(arr[:, :, 2])),
+                float(np.std(gray)),
+                float(np.std(center)),
+                sharp,
+            ])
+        if not feats:
+            raise FileNotFoundError(f"No readable images resolved in {manifest_p}")
+        return np.asarray(feats, dtype=np.float32)
 
-    # 2. Easy Synthetic Faces (SD 1.5 Text2Img/Img2Img): Distant cluster
-    n_easy = 200
-    easy_features = np.random.normal(loc=[2.8, 1.8], scale=[0.7, 0.7], size=(n_easy, 2))
+    real_raw = _extract_group_features(Path(real_manifest), max_per_group)
+    easy_raw = _extract_group_features(Path(synthetic_manifest), max_per_group)
+    hard_raw = _extract_group_features(Path(hard_manifest), max_per_group)
 
-    # 3. Hard Inpaint / Img2Img Samples: Intrudes directly into real cluster
-    n_hard = 120
-    hard_features = np.random.normal(loc=[0.35, 0.25], scale=[0.45, 0.40], size=(n_hard, 2))
+    stacked = np.vstack([real_raw, easy_raw, hard_raw])
+    mean_v = stacked.mean(axis=0, keepdims=True)
+    std_v = np.where(stacked.std(axis=0, keepdims=True) > 1e-6, stacked.std(axis=0, keepdims=True), 1.0)
+    z = (stacked - mean_v) / std_v
+    _, _, vt = np.linalg.svd(z, full_matrices=False)
+    proj = z @ vt[:2].T
+
+    n_r = len(real_raw)
+    n_e = len(easy_raw)
+    real_features = proj[:n_r]
+    easy_features = proj[n_r : n_r + n_e]
+    hard_features = proj[n_r + n_e :]
 
     fig, ax = plt.subplots(figsize=(10, 7.5))
     fig.patch.set_facecolor("#ffffff")
 
-    # Plot Real
-    ax.scatter(real_features[:, 0], real_features[:, 1], c=PALETTE["real"], alpha=0.65, s=35, label="Ảnh Thật Chuẩn Mực (Real Manifold $\\mathcal{M}_{\\text{real}}$)", edgecolors="none")
-
-    # Plot Easy Fake
-    ax.scatter(easy_features[:, 0], easy_features[:, 1], c=PALETTE["fake"], alpha=0.65, s=35, label="Ảnh Giả Dễ (Easy Fake: Text2Img / Img2Img)", edgecolors="none")
-
-    # Plot Hard Samples
-    ax.scatter(hard_features[:, 0], hard_features[:, 1], c=PALETTE["hard_sample"], alpha=0.95, s=55, label="Mẫu Khó Đối Kháng (Mined Hard Inpaint $\\mathbf{x}_{\\text{hard}}$)", edgecolors="black", linewidths=0.6)
-
-    # Decision Boundary of M0 (Separates Real and Easy Fake, but slices through Hard Samples)
-    x_db = np.linspace(-1.5, 3.5, 100)
-    y_db = -0.8 * x_db + 1.6
-    ax.plot(x_db, y_db, color="#7F7F7F", linestyle="--", linewidth=2.2, label="Siêu phẳng phân loại ban đầu $M_0$ (Bị đâm xuyên)")
-
-    # Epsilon margin circle around real manifold
-    circle = plt.Circle((0.0, 0.0), 1.35, color=PALETTE["real"], fill=False, linestyle=":", linewidth=2, label="Bao lồi Đa tạp thật $\\mathcal{M}_{\\text{real}}$")
-    ax.add_patch(circle)
-
-    ax.annotate(
-        "Hien Tuong Xam Lan Da Tap (Manifold Intrusion)\n$\\min_{\\mathbf{z}_r \\in \\mathcal{M}_{\\mathrm{real}}} \\|\\mathbf{z}_{\\mathrm{hard}} - \\mathbf{z}_r\\|_2 \\leq \\epsilon$",
-        xy=(0.4, 0.3),
-        xytext=(1.2, -1.2),
-        arrowprops=dict(facecolor=PALETTE["hard_sample"], shrink=0.08, width=1.5, headwidth=8),
-        fontsize=9.5,
-        fontweight="bold",
-        color="#2c3e50",
-        bbox=dict(boxstyle="round,pad=0.5", facecolor="#fff2f2", edgecolor=PALETTE["hard_sample"], alpha=0.95),
+    ax.scatter(
+        real_features[:, 0],
+        real_features[:, 1],
+        c=PALETTE["real"],
+        alpha=0.70,
+        s=42,
+        label=f"Ảnh Thật (Real FFHQ/CelebA, n={n_r})",
+        edgecolors="none",
+    )
+    ax.scatter(
+        easy_features[:, 0],
+        easy_features[:, 1],
+        c=PALETTE["fake"],
+        alpha=0.70,
+        s=42,
+        label=f"Ảnh Giả Curated (SD 1.5, n={n_e})",
+        edgecolors="none",
+    )
+    ax.scatter(
+        hard_features[:, 0],
+        hard_features[:, 1],
+        c=PALETTE["hard_sample"],
+        alpha=0.92,
+        s=62,
+        label=f"Mẫu Khó Khai Thác (Mined Hard, n={len(hard_features)})",
+        edgecolors="black",
+        linewidths=0.6,
     )
 
-    ax.set_title("Không Gian Vector Nhúng DINOv2 $\\mathbb{S}^{d-1}$ & Cơ Chế Manifold Intrusion", fontsize=12.5, fontweight="bold", pad=12)
-    ax.set_xlabel("Thành phần chính 1 (Principal Component 1)", fontsize=10, fontweight="semibold")
-    ax.set_ylabel("Thành phần chính 2 (Principal Component 2)", fontsize=10, fontweight="semibold")
+    real_center = real_features.mean(axis=0)
+    real_radius = float(np.percentile(np.linalg.norm(real_features - real_center, axis=1), 90))
+    circle = plt.Circle(
+        tuple(real_center),
+        real_radius,
+        color=PALETTE["real"],
+        fill=False,
+        linestyle=":",
+        linewidth=2,
+        label="Bao 90% Phân Cụm Ảnh Thật",
+    )
+    ax.add_patch(circle)
+
+    ax.set_title("Chiếu SVD-PCA 2D Đặc Trưng Quang Học & Xâm Lấn Đa Tạp (Real Data)", fontsize=12.5, fontweight="bold", pad=12)
+    ax.set_xlabel("Thành phần chính 1 (PC1)", fontsize=10, fontweight="semibold")
+    ax.set_ylabel("Thành phần chính 2 (PC2)", fontsize=10, fontweight="semibold")
     ax.legend(loc="upper right", fontsize=9.5, framealpha=0.95)
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.set_xlim(-1.8, 4.2)
-    ax.set_ylim(-1.8, 3.5)
 
     plt.tight_layout()
     if output_path:
@@ -2773,38 +2936,73 @@ def plot_attribute_correlation_matrix(
 
 
 def plot_3d_head_pose_distribution(
-    manifest_path: str | Path = "data/raw/manifest.jsonl",
+    manifest_path: str | Path = "experiments/eda/tables/demo_head_pose.csv",
     output_path: str | Path | None = None,
 ) -> Any:
-    """Plot 3D head pose distributions (Yaw, Pitch, Roll) and demonstrate frontal invariance."""
+    """Plot 3D head pose summary telemetry (Yaw, Pitch, Roll) from real EDA table."""
+    import csv
+    import matplotlib.pyplot as plt
+
+    pose_csv = Path(manifest_path)
+    if not pose_csv.is_dir() and pose_csv.suffix != ".csv":
+        pose_csv = Path("experiments/eda/tables/demo_head_pose.csv")
+    if not pose_csv.exists():
+        raise FileNotFoundError(f"Head pose telemetry CSV not found: {pose_csv}")
+
+    with open(pose_csv, "r", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    if not rows:
+        raise ValueError(f"Empty head pose telemetry CSV: {pose_csv}")
+
+    angles = [r["angle"].capitalize() for r in rows]
+    means = [float(r["mean_deg"]) for r in rows]
+    stds = [float(r["std_deg"]) for r in rows]
+    mins = [float(r["min_deg"]) for r in rows]
+    maxs = [float(r["max_deg"]) for r in rows]
+    gt15 = [float(r["extreme_pose_gt15_pct"]) for r in rows]
+    within15 = [100.0 - g for g in gt15]
+    sample_count = int(rows[0]["count"])
+
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.2))
     fig.patch.set_facecolor("#ffffff")
 
-    np.random.seed(42)
-    yaw = np.random.normal(0, 8.5, 4000).clip(-25, 25)
-    pitch = np.random.normal(2.1, 7.2, 4000).clip(-20, 20)
-
-    # Panel 1: Histogram
-    axes[0].hist(yaw, bins=30, color=PALETTE["real"], alpha=0.7, edgecolor="black", label=f"Yaw (μ={np.mean(yaw):.1f}°)")
-    axes[0].hist(pitch, bins=30, color="#2980b9", alpha=0.7, edgecolor="black", label=f"Pitch (μ={np.mean(pitch):.1f}°)")
-    axes[0].axvline(-20, color="#e74c3c", linestyle="--", linewidth=1.5)
-    axes[0].axvline(20, color="#e74c3c", linestyle="--", linewidth=1.5, label="Giới hạn chính diện ±20°")
-    axes[0].set_title("Phân Bố Góc Xoay 3D (Yaw / Pitch Distribution)", fontsize=11, fontweight="bold")
-    axes[0].set_xlabel("Độ (°)")
-    axes[0].set_ylabel("Số lượng mẫu")
+    x = np.arange(len(angles))
+    axes[0].errorbar(
+        x,
+        means,
+        yerr=stds,
+        fmt="o",
+        color="#1B9E77",
+        ecolor="#2c3e50",
+        elinewidth=2.5,
+        capsize=8,
+        markersize=9,
+        label="Mean ± Std (°)",
+    )
+    for idx, (lo, hi) in enumerate(zip(mins, maxs)):
+        axes[0].vlines(idx, lo, hi, colors="#95a5a6", linestyles=":", linewidth=1.8, label="Min–Max Range" if idx == 0 else None)
+    axes[0].axhline(15, color="#e74c3c", linestyle="--", linewidth=1.3, label="Ngưỡng ±15°")
+    axes[0].axhline(-15, color="#e74c3c", linestyle="--", linewidth=1.3)
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(angles, fontsize=10, fontweight="bold")
+    axes[0].set_ylabel("Góc xoay (°)")
+    axes[0].set_title(f"Thống Kê Góc Xoay 3D FFHQ (n={sample_count:,})", fontsize=11, fontweight="bold")
     axes[0].legend(fontsize=9)
     axes[0].grid(axis="y", linestyle="--", alpha=0.5)
 
-    # Panel 2: Scatter
-    axes[1].scatter(yaw[:400], pitch[:400], c=PALETTE["real"], alpha=0.5, s=20, edgecolors="none")
-    axes[1].axvline(0, color="gray", linestyle=":")
-    axes[1].axhline(0, color="gray", linestyle=":")
-    axes[1].set_title("Tán Xạ Góc Xoay 2D (Yaw vs Pitch Scatter)", fontsize=11, fontweight="bold")
-    axes[1].set_xlabel("Yaw Angle (°)")
-    axes[1].set_ylabel("Pitch Angle (°)")
-    axes[1].grid(True, linestyle="--", alpha=0.4)
+    axes[1].bar(x, within15, color="#1B9E77", edgecolor="black", label="Chính diện (|angle| ≤ 15°)")
+    axes[1].bar(x, gt15, bottom=within15, color="#D95F02", edgecolor="black", label="Góc nghiêng lớn (|angle| > 15°)")
+    for idx, g in enumerate(gt15):
+        axes[1].text(idx, 50, f"{within15[idx]:.1f}%\n(≤15°)", ha="center", va="center", color="white", fontweight="bold", fontsize=9)
+    axes[1].set_xticks(x)
+    axes[1].set_xticklabels(angles, fontsize=10, fontweight="bold")
+    axes[1].set_ylim(0, 105)
+    axes[1].set_ylabel("Tỷ lệ (%)")
+    axes[1].set_title("Tỷ Lệ Ảnh Chính Diện vs Góc Nghiêng >15°", fontsize=11, fontweight="bold")
+    axes[1].legend(fontsize=9)
+    axes[1].grid(axis="y", linestyle="--", alpha=0.5)
 
-    plt.suptitle("Kiểm Định Tính Chính Diện: Đa Tạp Đạt 99.8% Góc Xoay Trong Khoảng ±20°", fontsize=13, fontweight="bold", y=0.98)
+    plt.suptitle(f"Kiểm Định Góc Xoay 3D Trên Tập Dữ Liệu Thật FFHQ (n={sample_count:,})", fontsize=13, fontweight="bold", y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     if output_path:
         out = Path(output_path)
@@ -2816,36 +3014,76 @@ def plot_3d_head_pose_distribution(
 def plot_skin_color_gamut(
     manifest_path: str | Path = "data/raw/manifest.jsonl",
     output_path: str | Path | None = None,
+    sample_size: int = 80,
 ) -> Any:
-    """Plot skin color gamut in RGB and HSV space."""
+    """Plot real RGB channel intensity and HSV saturation histograms from genuine dataset images."""
+    import cv2
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    p = Path(manifest_path)
+    if not p.exists():
+        raise FileNotFoundError(f"Manifest not found: {p}")
+
+    with open(p, "r", encoding="utf-8") as f:
+        items = [json.loads(line) for line in f if line.strip()]
+    if not items:
+        raise ValueError(f"Manifest is empty: {p}")
+
+    step = max(1, len(items) // sample_size)
+    r_hist = np.zeros(256, dtype=np.float64)
+    g_hist = np.zeros(256, dtype=np.float64)
+    b_hist = np.zeros(256, dtype=np.float64)
+    sat_hist = np.zeros(100, dtype=np.float64)
+    loaded = 0
+
+    for item in items[::step][:sample_size]:
+        fp_str = item.get("file_path") or item.get("image_path") or ""
+        fp = Path(fp_str)
+        if not fp_str or not fp.exists():
+            continue
+        with Image.open(fp) as im:
+            arr = np.asarray(im.convert("RGB").resize((128, 128)), dtype=np.uint8)
+        r_hist += np.bincount(arr[:, :, 0].ravel(), minlength=256)
+        g_hist += np.bincount(arr[:, :, 1].ravel(), minlength=256)
+        b_hist += np.bincount(arr[:, :, 2].ravel(), minlength=256)
+        hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV)
+        sat_vals = hsv[:, :, 1].astype(np.float32) / 255.0
+        s_cnt, _ = np.histogram(sat_vals, bins=100, range=(0.0, 1.0))
+        sat_hist += s_cnt
+        loaded += 1
+
+    if loaded == 0:
+        raise FileNotFoundError(f"No readable images found in {p}")
+
+    r_hist /= max(1.0, r_hist.sum())
+    g_hist /= max(1.0, g_hist.sum())
+    b_hist /= max(1.0, b_hist.sum())
+    sat_hist /= max(1.0, sat_hist.sum())
+
     fig, axes = plt.subplots(1, 2, figsize=(14, 4.8))
     fig.patch.set_facecolor("#ffffff")
 
-    x_val = np.linspace(0, 255, 256)
-    r_hist = np.exp(-((x_val - 145) ** 2) / (2 * 45 ** 2))
-    g_hist = np.exp(-((x_val - 110) ** 2) / (2 * 42 ** 2))
-    b_hist = np.exp(-((x_val - 95) ** 2) / (2 * 40 ** 2))
-
-    axes[0].plot(x_val, r_hist, color="#e74c3c", linewidth=2.5, label="Kênh Đỏ (Red)")
-    axes[0].plot(x_val, g_hist, color="#27ae60", linewidth=2.5, label="Kênh Xanh Lá (Green)")
-    axes[0].plot(x_val, b_hist, color="#2980b9", linewidth=2.5, label="Kênh Xanh Dương (Blue)")
-    axes[0].set_title("Histogram Kênh Màu RGB Đa Tạp Da Người Chuẩn", fontsize=11, fontweight="bold")
+    x_val = np.arange(256)
+    axes[0].plot(x_val, r_hist, color="#e74c3c", linewidth=2.2, label="Kênh Đỏ (Red)")
+    axes[0].plot(x_val, g_hist, color="#27ae60", linewidth=2.2, label="Kênh Xanh Lá (Green)")
+    axes[0].plot(x_val, b_hist, color="#2980b9", linewidth=2.2, label="Kênh Xanh Dương (Blue)")
+    axes[0].set_title(f"Histogram Kênh Màu RGB Thực Tế (n={loaded} ảnh)", fontsize=11, fontweight="bold")
     axes[0].set_xlabel("Cường độ mức xám [0, 255]")
-    axes[0].set_ylabel("Mật độ phổ chuẩn hóa")
+    axes[0].set_ylabel("Mật độ xác suất")
     axes[0].legend(fontsize=9.5)
     axes[0].grid(True, linestyle="--", alpha=0.5)
 
-    sat = np.linspace(0, 1, 100)
-    sat_curve = np.exp(-((sat - 0.38) ** 2) / (2 * 0.12 ** 2))
-    axes[1].plot(sat, sat_curve, color="#d35400", linewidth=2.5, label="Độ Bão Hòa Da (Saturation μ=0.38)")
-    axes[1].fill_between(sat, 0, sat_curve, color="#d35400", alpha=0.2)
-    axes[1].set_title("Dải Độ Bão Hòa Sắc Màu Da Chuẩn (HSV Saturation)", fontsize=11, fontweight="bold")
+    sat_bins = np.linspace(0.0, 1.0, 100)
+    axes[1].plot(sat_bins, sat_hist, color="#d35400", linewidth=2.2, label="Độ Bão Hòa HSV Saturation")
+    axes[1].fill_between(sat_bins, 0, sat_hist, color="#d35400", alpha=0.2)
+    axes[1].set_title(f"Phân Bố Độ Bão Hòa HSV Saturation (n={loaded} ảnh)", fontsize=11, fontweight="bold")
     axes[1].set_xlabel("Độ bão hòa (Saturation [0, 1])")
-    axes[1].set_ylabel("Mật độ phân bố")
+    axes[1].set_ylabel("Mật độ xác suất")
     axes[1].legend(fontsize=9.5)
     axes[1].grid(True, linestyle="--", alpha=0.5)
 
-    plt.suptitle("Dải Động Quang Học & Phổ Màu Da Người Đa Tạp Gốc", fontsize=13, fontweight="bold", y=0.98)
+    plt.suptitle(f"Phổ Màu RGB & Độ Bão Hòa Thực Tế Từ {p.name}", fontsize=13, fontweight="bold", y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     if output_path:
         out = Path(output_path)
@@ -2996,14 +3234,13 @@ def plot_feature_calibration_and_density(
 ) -> Any:
     """Plot probability density shift and conservative calibration zone."""
     p = Path(npz_path)
-    if p.exists():
-        data = np.load(p)
-        m1 = data["m1_probs"]
-        m2 = data["m2_probs"]
-    else:
-        np.random.seed(42)
-        m1 = np.random.beta(2, 3, 6000)
-        m2 = np.random.beta(4, 3, 6000)
+    if not p.exists():
+        raise FileNotFoundError(
+            f"Prediction artifact not found: {p}. Synthetic probability fallback is forbidden."
+        )
+    data = np.load(p)
+    m1 = data["m1_probs"]
+    m2 = data["m2_probs"]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5.2))
     fig.patch.set_facecolor("#ffffff")

@@ -332,7 +332,7 @@ def main():
             print(f"[*] Đang khởi tạo và nạp trọng số: {cfg['display_name']} từ {ckpt_path.name}...")
             model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
             model.unfreeze_backbone(unfreeze_last_n_blocks=1)
-            state = torch.load(ckpt_path, map_location="cpu")
+            state = torch.load(ckpt_path, map_location="cpu", weights_only=False)
             if "model_state_dict" in state:
                 model.load_state_dict(state["model_state_dict"])
             elif isinstance(state, dict):

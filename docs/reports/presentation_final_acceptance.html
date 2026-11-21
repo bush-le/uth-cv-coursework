@@ -1288,7 +1288,7 @@
             <img src="assets/extracted_nb/01_diffusion_dataset_and_curation_cell10_img3.png" class="artifact-img-full" alt="Dual Engine Portfolio Grid" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Tiêu chuẩn kỹ thuật:</strong> Ảnh được sinh và chuẩn hóa ở độ phân giải <code>512×512</code> (<code>configs/detector_training.yaml</code> khai báo target chuẩn DINOv2 là <code>518×518</code> / <code>37×37 = 1.369</code> patches, còn khi nạp ảnh <code>512×512</code> vào <code>MetaDinoV2Wrapper.forward()</code> thì hàm nội suy tự động snap về bội 14 gần nhất dưới mức gốc là <code>504×504</code> / <code>36×36 = 1.296</code> patches; riêng các bài stress-test legacy 6k và universal benchmark chạy ở <code>224×224</code>), bảo toàn ánh sáng tự nhiên và tỷ lệ nhân khẩu học hài hòa.
+            <strong>Tiêu chuẩn kỹ thuật:</strong> Ảnh được sinh và chuẩn hóa ở độ phân giải <code>512×512</code> (tương ứng cấu hình <code>configs/detector_training.yaml</code>; khi nạp vào <code>MetaDinoV2Wrapper.forward()</code> thì hàm nội suy tự động snap về bội 14 gần nhất dưới mức gốc là <code>504×504</code> / <code>36×36 = 1.296</code> patches; riêng các bài stress-test legacy 6k và universal benchmark chạy ở <code>224×224</code>), bảo toàn ánh sáng tự nhiên và tỷ lệ nhân khẩu học hài hòa.
           </div>
         </div>
 
@@ -2025,6 +2025,7 @@
         </div>
 
         <!-- Empirical Table -->
+        <div class="table-responsive">
         <table class="data-table">
           <thead>
             <tr>
@@ -2076,6 +2077,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
 
@@ -2526,7 +2528,7 @@
           </div>
           <div class="artifact-row-footer">
             <strong>Chuỗi xử lý 5 giai đoạn từ đầu vào đến xác suất:</strong>
-            (1) <code>MetaDinoV2Wrapper</code> đưa ảnh <code>512×512</code> về bội 14 (<code>504×504</code> theo <code>(h // 14) * 14</code>, trong khi <code>configs/detector_training.yaml</code> khai báo target chuẩn DINOv2 là <code>518×518</code>) và chuẩn hóa ImageNet;
+            (1) <code>MetaDinoV2Wrapper</code> đưa ảnh <code>512×512</code> (khai báo trong <code>configs/detector_training.yaml</code>) về bội 14 gần nhất (<code>504×504</code> theo <code>(h // 14) * 14</code>) và chuẩn hóa ImageNet;
             (2) chia lưới <code>36×36 = 1.296 patches</code> (<code>14×14px</code>) + 1 token <code>[CLS]</code> chiều <code>384</code>;
             (3) đóng băng <strong>Blocks 0–10</strong> (91.94%) chống overfitting;
             (4) mở khóa <strong>Block 11 + LayerNorm + Classifier Head</strong> (<code>LayerNorm(384) → Dropout(0.3) → Linear(384, 1)</code> [<code>1.153</code> params], tổng học <code>1.78M</code> = 8.06%, Differential LR 10:1, AMP <code>bfloat16</code>);
@@ -2630,7 +2632,7 @@
   <div id="image-lightbox" class="lightbox-modal">
     <span class="lightbox-close" id="lightbox-close" title="Đóng phóng to (hoặc nhấn Esc)">&times;</span>
     <div class="lightbox-content-box">
-      <img class="lightbox-img" id="lightbox-img" src="" alt="Full size artifact">
+      <img class="lightbox-img" id="lightbox-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Full size artifact">
       <div class="lightbox-caption" id="lightbox-caption"></div>
     </div>
   </div>

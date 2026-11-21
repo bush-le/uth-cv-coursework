@@ -70,7 +70,9 @@ def generation_params(
     overrides = overrides or {}
 
     model_key = "inpaint_model_id" if mode == "sd_inpaint" else "model_id"
-    default_model = gen_cfg.get(model_key, gen_cfg.get("model_id", "runwayml/stable-diffusion-v1-5"))
+    default_model = gen_cfg.get(
+        model_key, gen_cfg.get("model_id", "stable-diffusion-v1-5/stable-diffusion-v1-5")
+    )
 
     model_id = overrides.get("model_id", default_model)
     steps = int(overrides.get("steps", gen_cfg.get("steps", 30)))

@@ -1,5 +1,8 @@
 # PHASE_EXTERNAL_6K_BENCHMARK.md — Design Specification for External 6k Legacy Synthetic Benchmark
 
+> [!NOTE]
+> **Historical Phase Spec (Pre-Unified 504px Refactor):** Written on 2026-11-11 when inference still used `(224, 224)` and the legacy `notebooks/coursework/legacy_v1/04_...` layout. Current production evaluation uses `512→504×504` (`MetaDinoV2Wrapper`) and the 4-notebook suite (`notebooks/coursework/00..03*.ipynb`). See [docs/reports/LEGACY_6K_OOD_BENCHMARK_REPORT.md](../reports/LEGACY_6K_OOD_BENCHMARK_REPORT.md).
+
 - **Motivation/Background**: The user provided an external independent synthetic face dataset (`synthetic_face_dataset_6k.zip`, containing 6,000 images across inpaint, img2img, and text2img) to stress-test the generalization and out-of-distribution adversarial robustness of detector models ($M_0, M_1, M_2$).
 - **Purpose**: Define the technical architecture, data extraction layout, evaluation metric contracts, and visualization additions for benchmarking the 6,000 external fake images.
 - **Overview Pipeline**: Unpack zip to `data/external_benchmarks/` -> Rebase manifest paths -> Batch GPU inference on $M_0, M_1, M_2$ -> Compute Recall & Bypass Rate (overall, by task, by region) -> Log metrics -> Render visual chart in `src/common/visualizer.py` & Notebook 04.

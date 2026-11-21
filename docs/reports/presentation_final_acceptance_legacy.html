@@ -909,7 +909,7 @@
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Deepfake Diffusion áp dụng Soft-Mask Feathering σ=4.0 xóa nhòa hoàn toàn ranh giới ghép; Thực nghiệm chứng minh Baseline M0 bỏ sót tới 88.29% mẫu khó.
+              Deepfake Diffusion áp dụng Soft-Mask Feathering (blur_radius = 18–20, σ = 9.0–10.0) xóa nhòa hoàn toàn ranh giới ghép; Thực nghiệm chứng minh Baseline M0 bỏ sót tới 88.29% mẫu khó.
             </div>
           </div>
         </header>
@@ -961,7 +961,7 @@
                   </div>
                   <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">
                     <span style="color: #9f1239; font-weight: 700;">Tỷ lệ lọt lưới (Bypass Rate): 88.29%</span>
-                    <span style="color: var(--text-muted);">ROC-AUC: 0.6124 (Đoán mò)</span>
+                    <span style="color: var(--text-muted);">ROC-AUC: 0.8713 (Lệch ngưỡng τ=0.50)</span>
                   </div>
                   <p style="font-size: 12px; color: #881337; margin-top: 6px;">
                     <strong>Nguy hại an ninh eKYC:</strong> Gần 9/10 khuôn mặt giả tinh vi dễ dàng vượt qua cổng nhận diện ngân hàng nếu chỉ dựa vào mô hình cơ sở không qua Active Learning!
@@ -986,7 +986,7 @@
                 <span class="intent-role">TRIỆT TIÊU ĐƯỜNG CẮT</span>
               </div>
               <h3>Xóa Sổ Biên Giả Bằng Gaussian</h3>
-              <p>Soft-Mask Feathering σ=4.0 tạo chuyển tiếp mượt mà, vô hiệu hóa các thuật toán dò tìm cạnh sắc nét.</p>
+              <p>Soft-Mask Feathering (blur_radius = 18–20, σ = 9.0–10.0) tạo chuyển tiếp mượt mà, vô hiệu hóa các thuật toán dò tìm cạnh sắc nét.</p>
             </div>
             <div class="intent-card">
               <div class="intent-card-top">
@@ -1048,7 +1048,7 @@
                   <tr>
                     <td><strong>1. Sinh Dữ Liệu</strong></td>
                     <td>SD Inpaint/Img2Img/Text2Img</td>
-                    <td>6.000 ảnh 2 động cơ SD 1.5 + RV5.1; Soft Feathering σ=4.0</td>
+                    <td>6.000 ảnh 2 động cơ SD 1.5 + RV5.1; Soft Feathering (blur_radius = 18–20)</td>
                     <td><span class="badge-success">✓ ĐẠT 100%</span></td>
                   </tr>
                   <tr>

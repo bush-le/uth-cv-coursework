@@ -9,7 +9,7 @@ model:
   pretrained: true
   num_classes: 1
   dropout: 0.3
-  image_size: 518                    # DINOv2 native pretraining resolution (37x14=518)
+  image_size: 512                    # Training input size; MetaDinoV2Wrapper snaps floor-14 to 504x504 (36x36 patches)
   patch_size: 14
 
 training_stages:
@@ -28,7 +28,7 @@ training_stages:
     learning_rate: 2.0e-4            # Classifier head learning rate
     backbone_learning_rate: 2.0e-5   # 10x smaller differential learning rate for Layer 11
     weight_decay: 1.0e-4
-    hard_sample_loss_weight: 2.0     # Focused gradient descent on bypassed fakes
+    hard_sample_loss_weight: 1.15     # Calibrated conservative boost for mined hard samples (M2*/M3)
     hard_sample_oversample_factor: 1 # Strictly 1 to avoid double-dipping skew
     batch_size: 16
     device: "cuda"
@@ -38,7 +38,7 @@ training_stages:
     loss_epsilon: 1.0e-8             # Safeguard against division by zero in loss normalization
 
 data:
-  target_size: [518, 518]            # Eliminates runtime interpolation in MetaDinoV2Wrapper
+  target_size: [512, 512]            # Matches standard pipeline generation/training canvas (snaps to 504x504)
   batch_size: 16
   num_workers: 2
   pin_memory: true

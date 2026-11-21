@@ -64,10 +64,10 @@
 
 ## 3. Động Cơ Khuếch Tán Kép & Làm Mịn Biên Gaussian (Dual-Engine Synthesis)
 
-Nhằm khắc phục triệt để hiện tượng bộ dò chỉ học được đường viền cắt ghép nhân tạo thay vì bản chất giả mạo sinh học, hệ thống áp dụng kỹ thuật **Làm Mịn Biên Gaussian Mềm (Soft-Mask Feathering $\sigma=4.0$)**:
+Nhằm khắc phục triệt để hiện tượng bộ dò chỉ học được đường viền cắt ghép nhân tạo thay vì bản chất giả mạo sinh học, hệ thống áp dụng kỹ thuật **Làm Mịn Biên Gaussian Mềm (Soft-Mask Feathering `blur_radius = 18–20`, $\sigma = 9.0\text{–}10.0$)**:
 
 ```
-[ Binary Landmark Mask (0/1) ] ──► [ Gaussian Blur (k=15x15, σ=4.0) ] ──► [ Feathered Soft Alpha ]
+[ Binary Landmark Mask (0/1) ] ──► [ Gaussian Blur (k=37x37..41x41, σ=9.0..10.0) ] ──► [ Feathered Soft Alpha ]
                                                                                    │
 [ Inpainted Face Patch ] ──────────── ( x Alpha ) ─────────────┐                   │
                                                                ▼                   ▼

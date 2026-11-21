@@ -17,7 +17,7 @@ manipulation_modes:
     default_prompt: "a photorealistic headshot portrait of a person, studio lighting, high resolution, 8k"
   inpaint:
     default_prompt: "a realistic face with smiling expression and natural skin texture"
-    mask_blur: 4
+    mask_blur: 18
   img2img:
     strength: 0.65
     default_prompt: "a photorealistic portrait of an altered face, natural skin"
