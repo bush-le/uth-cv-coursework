@@ -301,7 +301,7 @@ def main() -> None:
         pr_auc = global_results[key]["metrics"]["pr_auc"]
         plt.plot(recall_pts, prec_pts, color=cfg["color"], linestyle=cfg["style"], linewidth=2.2, label=f"{cfg['display_name']} (PR-AUC = {pr_auc:.4f})")
 
-    plt.axhline(y=0.5, color="gray", linestyle=":", linewidth=1.5, label="Baseline Prevalance (0.5000)")
+    plt.axhline(y=0.5, color="gray", linestyle=":", linewidth=1.5, label="Baseline Prevalence (0.5000)")
     plt.xlim([-0.02, 1.02])
     plt.ylim([-0.02, 1.02])
     plt.xlabel("Recall", fontsize=11, fontweight="bold")
@@ -338,6 +338,87 @@ def main() -> None:
     plt.savefig(fam_fig_path, bbox_inches="tight")
     plt.close()
     logger.info("Saved family recall figure to %s", fam_fig_path)
+
+    # 8. Generate Global 5-Model Comparison Bar Chart (fixed ylims, no clipped bars)
+    fig, axes = plt.subplots(1, 4, figsize=(20, 5.8), dpi=300)
+    metrics_to_plot = [
+        ("accuracy", "Accuracy (%)", "%", 100.0, (0, 105)),
+        ("fake_recall", "Fake Recall (% ↑)", "%", 100.0, (0, 105)),
+        ("bypass_rate", "Bypass Rate (% ↓)", "%", 100.0, (0, 118)),
+        ("roc_auc", "ROC-AUC (↑)", "", 1.0, (0.0, 1.05)),
+    ]
+    short_labels = ["M₀", "M₁", "M₂ (Cold)", "M₂*", "M₃ (Champ)"]
+    model_colors = [cfg["color"] for cfg in MODEL_CONFIGS]
+
+    for ax, (m_key, title, unit, mult, ylim) in zip(axes, metrics_to_plot):
+        vals = [global_results[cfg["key"]]["metrics"][m_key] * mult for cfg in MODEL_CONFIGS]
+        bars = ax.bar(short_labels, vals, color=model_colors, edgecolor="black", width=0.58, alpha=0.9)
+        ax.set_title(title, fontsize=12, fontweight="bold", pad=10)
+        ax.set_ylim(ylim)
+        ax.grid(axis="y", linestyle="--", alpha=0.5)
+        ax.tick_params(axis="x", labelsize=9.5)
+        for tick in ax.get_xticklabels():
+            tick.set_rotation(18)
+            tick.set_horizontalalignment("right")
+            tick.set_fontweight("bold")
+        for bar in bars:
+            h = bar.get_height()
+            label_text = f"{h:.2f}{unit}" if unit else f"{h:.4f}"
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                h + (ylim[1] - ylim[0]) * 0.02,
+                label_text,
+                ha="center",
+                va="bottom",
+                fontsize=9,
+                fontweight="bold",
+            )
+
+    plt.suptitle(
+        "Universal Multi-Method Benchmark (20,400 Images, Zero-Shot Cross-Family): 5-Model Comparison",
+        fontsize=14,
+        fontweight="bold",
+        y=1.02,
+    )
+    plt.tight_layout()
+    global_fig_path = fig_dir / "benchmark_5models_global_comparison.png"
+    plt.savefig(global_fig_path, bbox_inches="tight")
+    plt.close()
+    logger.info("Saved global 5-model comparison figure to %s", global_fig_path)
+
+    # 9. Generate 34-Method Heatmap Across All 5 Models (M0..M3)
+    distinct_fake_methods = sorted([m for m in set(methods_arr.tolist()) if m != "real"])
+    heatmap_matrix = []
+    for m in distinct_fake_methods:
+        m_mask = methods_arr == m
+        row = []
+        for cfg in MODEL_CONFIGS:
+            m_probs = np.array(model_predictions[cfg["key"]])[m_mask]
+            row.append(float(np.mean(m_probs >= 0.50)) * 100.0 if len(m_probs) > 0 else 0.0)
+        heatmap_matrix.append(row)
+    heatmap_arr = np.array(heatmap_matrix)
+
+    fig, ax = plt.subplots(figsize=(11.5, 15.5), dpi=220)
+    cax = ax.imshow(heatmap_arr, cmap="RdYlGn", aspect="auto", vmin=0, vmax=100)
+    ax.set_xticks(np.arange(len(MODEL_CONFIGS)))
+    ax.set_xticklabels([cfg["display_name"] for cfg in MODEL_CONFIGS], rotation=22, ha="right", fontsize=10, fontweight="bold")
+    ax.set_yticks(np.arange(len(distinct_fake_methods)))
+    ax.set_yticklabels([f"{m} ({METHOD_TAXONOMY.get(m, '').split(' (')[0][:18]})" for m in distinct_fake_methods], fontsize=9)
+    ax.set_title("Fake Recall (%) Heatmap Across 34 Deepfake Methods (5 Models)", fontsize=14, fontweight="bold", pad=14)
+
+    for i in range(len(distinct_fake_methods)):
+        for j in range(len(MODEL_CONFIGS)):
+            val = heatmap_arr[i, j]
+            text_color = "black" if (25 < val < 75) else "white"
+            ax.text(j, i, f"{val:.1f}", ha="center", va="center", color=text_color, fontsize=8.5, fontweight="bold")
+
+    cbar = fig.colorbar(cax, orientation="vertical", pad=0.02)
+    cbar.set_label("Fake Recall (%)", fontsize=11, fontweight="bold")
+    plt.tight_layout()
+    heatmap_fig_path = fig_dir / "benchmark_5models_method_heatmap.png"
+    plt.savefig(heatmap_fig_path, bbox_inches="tight")
+    plt.close()
+    logger.info("Saved 5-model 34-method heatmap figure to %s", heatmap_fig_path)
 
     logger.info("=== UNIVERSAL BENCHMARK 5 MÔ HÌNH HOÀN TẤT THÀNH CÔNG ===")
 

@@ -78,3 +78,10 @@ def test_acceptance_presentation_scientific_metrics():
     assert "Soft-Mask Feathering" in content or "Soft Feathering" in content
     assert "CurationGate" in content
     assert "DINOv2" in content
+
+    # Verify visual flow & absence of debunked factual errors
+    assert "pipeline-flow-grid" in content, "Missing interactive visual pipeline flow map"
+    assert "Dlib 68" not in content, "Outdated Dlib 68 claim must not appear (uses opencv_haar)"
+    assert "Midjourney" not in content, "Midjourney is not in the 34 universal benchmark methods"
+    assert "Stable Diffusion XL" not in content, "SDXL is not in the 34 universal benchmark methods"
+    assert "benchmark_4models_global_comparison.png" not in content, "Broken 4-model global chart must not be embedded"
