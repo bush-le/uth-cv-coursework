@@ -297,7 +297,7 @@ def main() -> None:
     for cfg in MODEL_CONFIGS:
         key = cfg["key"]
         probs = np.array(model_predictions[key])
-        recall_pts, prec_pts, _ = compute_pr_curve_vectorized(y_true, probs)
+        prec_pts, recall_pts, _ = compute_pr_curve_vectorized(y_true, probs)
         pr_auc = global_results[key]["metrics"]["pr_auc"]
         plt.plot(recall_pts, prec_pts, color=cfg["color"], linestyle=cfg["style"], linewidth=2.2, label=f"{cfg['display_name']} (PR-AUC = {pr_auc:.4f})")
 
