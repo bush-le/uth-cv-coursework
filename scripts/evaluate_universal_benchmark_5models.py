@@ -15,6 +15,7 @@ import csv
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 import time
 from typing import Any, Dict, List, Tuple
@@ -501,6 +502,14 @@ def main() -> None:
     plt.savefig(heatmap_fig_path, bbox_inches="tight")
     plt.close()
     logger.info("Saved 5-model 34-method heatmap figure to %s", heatmap_fig_path)
+
+    # 10. Synchronize figures to docs/reports/assets/benchmarks/
+    docs_asset_dir = root_dir / "docs/reports/assets/benchmarks"
+    if docs_asset_dir.exists():
+        for fig_p in [roc_fig_path, pr_fig_path, fam_fig_path, global_fig_path, heatmap_fig_path]:
+            if fig_p.exists():
+                shutil.copy2(fig_p, docs_asset_dir / fig_p.name)
+        logger.info("Synchronized benchmark figures to %s", docs_asset_dir)
 
     logger.info("=== UNIVERSAL BENCHMARK 5 MÔ HÌNH HOÀN TẤT THÀNH CÔNG ===")
 

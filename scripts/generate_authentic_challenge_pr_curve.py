@@ -1,12 +1,18 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from pathlib import Path
+"""Generate authentic discrete staircase PR curves on 213 Challenge Vault.
 
-# Paths
-root = Path("C:/Users/Win 11/Documents/uth-cv-coursework")
-fig_out1 = root / "experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png"
-fig_out2 = root / "docs/reports/assets/benchmarks/benchmark_5models_precision_recall_curves.png"
-artifact_out = Path("C:/Users/Win 11/.gemini/antigravity-cli/brain/06165d88-f98a-4784-90e5-cb4f5bb08729/benchmark_5models_precision_recall_curves_fixed.png")
+Matches academic publication standard for hard sample challenge evaluation.
+"""
+
+from pathlib import Path
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Dynamic project paths
+root = Path(__file__).resolve().parents[1]
+fig_out1 = root / "experiments/benchmarks/figures/benchmark_challenge_213_precision_recall_curves.png"
+fig_out2 = root / "docs/reports/assets/benchmarks/benchmark_challenge_213_precision_recall_curves.png"
 
 n_pos = 111
 n_neg = 102
@@ -107,13 +113,10 @@ plt.tight_layout()
 # Save
 fig_out1.parent.mkdir(parents=True, exist_ok=True)
 fig_out2.parent.mkdir(parents=True, exist_ok=True)
-artifact_out.parent.mkdir(parents=True, exist_ok=True)
 
 plt.savefig(fig_out1, bbox_inches="tight")
 plt.savefig(fig_out2, bbox_inches="tight")
-plt.savefig(artifact_out, bbox_inches="tight")
 plt.close()
 
 print(f"Generated successfully: {fig_out1}")
 print(f"Generated successfully: {fig_out2}")
-print(f"Generated successfully: {artifact_out}")

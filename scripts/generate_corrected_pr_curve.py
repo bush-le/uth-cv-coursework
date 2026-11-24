@@ -1,13 +1,16 @@
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-from pathlib import Path
+"""Utility to re-orient Precision-Recall curves (Recall on X, Precision on Y)."""
 
-# Paths
-root = Path("C:/Users/Win 11/Documents/uth-cv-coursework")
+from pathlib import Path
+import cv2
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Dynamic project paths
+root = Path(__file__).resolve().parents[1]
 fig_out1 = root / "experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png"
 fig_out2 = root / "docs/reports/assets/benchmarks/benchmark_5models_precision_recall_curves.png"
-artifact_out = Path("C:/Users/Win 11/.gemini/antigravity-cli/brain/06165d88-f98a-4784-90e5-cb4f5bb08729/benchmark_5models_precision_recall_curves_fixed.png")
 
 # Load original high-res image from origin/main
 img = cv2.imread(str(root / "experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png"))
@@ -84,13 +87,10 @@ plt.tight_layout()
 # Save all copies
 fig_out1.parent.mkdir(parents=True, exist_ok=True)
 fig_out2.parent.mkdir(parents=True, exist_ok=True)
-artifact_out.parent.mkdir(parents=True, exist_ok=True)
 
 plt.savefig(fig_out1, bbox_inches="tight")
 plt.savefig(fig_out2, bbox_inches="tight")
-plt.savefig(artifact_out, bbox_inches="tight")
 plt.close()
 
 print(f"Generated successfully: {fig_out1}")
 print(f"Generated successfully: {fig_out2}")
-print(f"Generated successfully: {artifact_out}")
