@@ -1114,15 +1114,15 @@ def build_vertical_report_html() -> str:
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: PRECISION-RECALL CURVES -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Đường Cong Precision-Recall So Sánh 5 Mô Hình</span>
-            <span class="artifact-badge">BENCHMARK FIGURE</span>
+            <span class="artifact-row-title">Đường Cong Precision-Recall So Sánh 5 Thế Hệ Mô Hình (213 Challenge Vault)</span>
+            <span class="artifact-badge">CHALLENGE VAULT BENCHMARK</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img-full" alt="PR Curves 5 Models" title="Nhấp để phóng to toàn màn hình">
+            <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img-full" alt="PR Curves 5 Models Challenge Vault" title="Nhấp để phóng to toàn màn hình">
             <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Đường cong PR của M2* và M3 ôm sát góc trên bên phải, PR-AUC đạt đỉnh cao 0.9875.
+            Đường cong PR của M2* và M3 ôm sát góc trên bên phải, PR-AUC đạt đỉnh cao 0.9875 (Bắt trúng 91.89% mẫu khó với Precision > 95%).
           </div>
         </div>
 

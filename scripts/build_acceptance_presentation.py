@@ -772,12 +772,12 @@ def build_presentation_html() -> str:
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Artifact Đường Cong Precision-Recall: So Sánh 5 Mô Hình
+                  Artifact Đường Cong Precision-Recall: So Sánh 5 Thế Hệ Mô Hình (213 Challenge Vault)
                 </div>
-                <span class="panel-badge badge-success">BENCHMARK FIGURE</span>
+                <span class="panel-badge badge-success">CHALLENGE VAULT</span>
               </div>
               <div class="artifact-img-box">
-                <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img" alt="Precision-Recall Curves 5 Models">
+                <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img" alt="Precision-Recall Curves 5 Models Challenge Vault">
               </div>
             </div>
           </div>
