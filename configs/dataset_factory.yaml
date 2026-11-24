@@ -19,7 +19,7 @@ paths:
   gallery_image: "experiments/predictions/real_vs_synthetic_gallery.png"
 
 generation:
-  model_id: "runwayml/stable-diffusion-v1-5"
+  model_id: "stable-diffusion-v1-5/stable-diffusion-v1-5"
   inpaint_model_id: "stable-diffusion-v1-5/stable-diffusion-inpainting"
   modes:
     - "sd_img2img"
@@ -56,7 +56,7 @@ hardness:
   backbone_id: "facebook/dinov2-small"
   k_neighbors: 5
   reference_quantile: 0.50
-  detector_checkpoint: "experiments/checkpoints/baseline_detector_best.pt"
+  detector_checkpoint: "experiments/checkpoints/baseline_d0_best.pt"
   detector_tau: 0.50
   batch_size: 16
   max_real_reference: 150

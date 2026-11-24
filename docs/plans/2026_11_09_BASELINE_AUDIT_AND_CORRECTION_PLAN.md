@@ -100,6 +100,6 @@ Qua quá trình rà soát toàn bộ mã nguồn, cấu hình và dữ liệu, c
 4. Chạy `evaluate.py` so sánh 3 mô hình trên tập Test chuẩn $\to$ Xuất báo cáo số liệu `experiments/logs/benchmark_comparison.json`.
 
 ### Task 6: Cập Nhật Visual Gallery, Coursework Notebooks & Tài Liệu
-- Cập nhật [experiments/predictions/real_vs_synthetic_gallery.png](experiments/predictions/real_vs_synthetic_gallery.png) với các mẫu khó thật sự đã vượt qua $D_0$.
-- Cập nhật 3 Notebooks trong [notebooks/coursework/](notebooks/coursework/) phản ánh chính xác kết quả huấn luyện.
+- Cập nhật [experiments/predictions/real_vs_synthetic_gallery.png](../../experiments/predictions/real_vs_synthetic_gallery.png) với các mẫu khó thật sự đã vượt qua $D_0$.
+- Cập nhật 3 Notebooks trong [notebooks/coursework/](../../notebooks/coursework) phản ánh chính xác kết quả huấn luyện.
 - Chạy toàn bộ test suite (`pytest tests/ -v`, `make test-smoke`) xác nhận 100% pass.

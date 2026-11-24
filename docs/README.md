@@ -1,9 +1,9 @@
 # README.md — Danh Mục Toàn Diện Hệ Thống Tài Liệu Đề Tài 11 (Nhóm 4)
 
-- **Motivation/Background**: Cung cấp bản đồ điều hướng toàn diện (Master Navigation Sitemap) cho toàn bộ hệ thống tài liệu, kế hoạch kỹ thuật, báo cáo thực nghiệm và bộ 8 notebook giảng dạy của Đề tài 11.
+- **Motivation/Background**: Cung cấp bản đồ điều hướng toàn diện (Master Navigation Sitemap) cho toàn bộ hệ thống tài liệu, kế hoạch kỹ thuật, báo cáo thực nghiệm và bộ 4 unified coursework notebooks của Đề tài 11.
 - **Purpose**: Định vị chính xác vị trí, vai trò và mối liên kết logic giữa tất cả các thành phần trong thư mục `docs/`, `notebooks/` và `.agents/`.
-- **Overview Pipeline**: Mục tiêu nghiên cứu ([PURPOSE.md](PURPOSE.md)) -> Thiết kế hệ thống ([OVERVIEW.md](OVERVIEW.md)) -> 8 Coursework Notebooks ([notebooks/coursework/](../notebooks/coursework/)) -> Đặc tả giai đoạn (`docs/phases/`) -> Kế hoạch kỹ thuật (`docs/plans/`) -> Báo cáo & Slide bảo vệ (`docs/reports/`).
-- **Detailed Plan**: §1 Tài liệu cốt lõi; §2 Bộ 8 Coursework Notebooks; §3 Đặc tả kỹ thuật các giai đoạn; §4 Kế hoạch kỹ thuật chi tiết; §5 Báo cáo thực nghiệm & kiểm toán; §6 Slide thuyết trình & bảo vệ đồ án.
+- **Overview Pipeline**: Mục tiêu nghiên cứu ([PURPOSE.md](PURPOSE.md)) -> Thiết kế hệ thống ([OVERVIEW.md](OVERVIEW.md)) -> 4 Unified Coursework Notebooks ([notebooks/coursework/](../notebooks/coursework/)) -> Đặc tả giai đoạn (`docs/phases/`) -> Kế hoạch kỹ thuật (`docs/plans/`) -> Báo cáo & Slide bảo vệ (`docs/reports/`).
+- **Detailed Plan**: §1 Tài liệu cốt lõi; §2 Bộ 4 Coursework Notebooks chuẩn hóa; §3 Đặc tả kỹ thuật các giai đoạn; §4 Kế hoạch kỹ thuật chi tiết; §5 Báo cáo thực nghiệm & kiểm toán; §6 Slide thuyết trình & bảo vệ đồ án.
 - **References**: [PURPOSE.md](PURPOSE.md), [OVERVIEW.md](OVERVIEW.md), `reports/MASTER_PROJECT_CROSSCHECK_AND_FACTCHECK_REPORT.md`.
 - **Created**: 2026-11-02T07:30:00+07:00
 - **Last Updated**: 2026-11-11T23:25:00+07:00
@@ -15,24 +15,20 @@
 - **[PURPOSE.md](PURPOSE.md)**: Đặc tả yêu cầu chính thức của giảng viên UTH, mục tiêu của **Nhóm 4** và luồng kiến trúc 3 bước.
 - **[OVERVIEW.md](OVERVIEW.md)**: Tổng quan kiến trúc hệ thống từ sinh ảnh khuếch tán kép đến Active Learning và DINOv2.
 - **[progress/PROJECT_ROADMAP.md](progress/PROJECT_ROADMAP.md)**: Lộ trình tiến hóa toàn diện qua 12 mốc từ $M_0$ đến $M_{12}$.
-- **[progress/TASK_PROGRESS.md](progress/TASK_PROGRESS.md)**: Bảng theo dõi tiến độ chi tiết từng nhiệm vụ kỹ thuật.
+- **[progress/SESSION_HANDOVER_2026_11_09.md](progress/SESSION_HANDOVER_2026_11_09.md)**: Biên bản bàn giao tiến độ và trạng thái các nhiệm vụ kỹ thuật.
 
 ---
 
-## 2. Danh Mục Bộ 8 Coursework Notebooks Chuẩn Mực (`notebooks/coursework/`)
+## 2. Danh Mục Bộ 4 Coursework Notebooks Chuẩn Hóa (`notebooks/coursework/`)
 
-Toàn bộ 8 notebooks đã được chuẩn hóa theo kiến trúc mô-đun hóa (Clean Architecture), 100% cell chứa code thực thi từ `src.common.visualizer` và đã được thực thi kiểm chứng (Verified Pre-rendered Outputs):
+Toàn bộ 4 notebooks hợp nhất đã được chuẩn hóa theo kiến trúc mô-đun hóa (Clean Architecture), sử dụng cấu hình từ `configs/*.yaml` và đã được thực thi kiểm chứng (Verified Pre-rendered Outputs); bản lưu trữ 8+ notebooks gốc nằm tại [`notebooks/coursework/legacy_v1/README.md`](../notebooks/coursework/legacy_v1/README.md):
 
 | Notebook | Tên Khoa Học | Mục Tiêu & Trực Quan Hóa Chính |
 | :--- | :--- | :--- |
-| **[00_master_deepfake_defense_coursework.ipynb](../notebooks/coursework/00_master_deepfake_defense_coursework.ipynb)** | **Master Deepfake Defense Showcase** | **Toàn cảnh đồ án từ A-Z (67 cells): Đa tạp ảnh thật, SD kép, 213 mẫu khó, tiến hóa DINOv2, OOD 6k, Universal 20.4k, Live Inspector** |
-| **[01_eda_faces_demographics.ipynb](../notebooks/coursework/01_eda_faces_demographics.ipynb)** | Exploratory Data Analysis on Real Faces | Khảo sát 10.000 ảnh thật FFHQ/CelebA-HQ, phân bố tuổi/giới tính/kính mắt, góc xoay đầu 3D, phổ màu da |
-| **[02_sd_generation_and_curation.ipynb](../notebooks/coursework/02_sd_generation_and_curation.ipynb)** | Dual-Engine Synthesis & Multi-Stage Curation | Phân tích quy trình sinh ảnh SD 1.5 & RealisticVision v5.1, làm mềm biên Gaussian $\sigma=4.0$, phễu lọc 3 tầng |
-| **[03_hard_samples_and_benchmark_comparison.ipynb](../notebooks/coursework/03_hard_samples_and_benchmark_comparison.ipynb)** | Hard-Sample Mining & Boundary Ambiguity | Khai thác 213 mẫu cực khó, t-SNE Manifold Intrusion, phân tích dị tật sinh học mắt/tai/da/răng |
-| **[04_active_learning_production_visualizer.ipynb](../notebooks/coursework/04_active_learning_production_visualizer.ipynb)** | DINOv2 Architecture & Active Learning Evolution | Tiến hóa $M_0 \to M_1 \to M_2 \to M_2^*$, sơ đồ khối DINOv2, động học hội tụ, ROC, ma trận nhầm lẫn |
-| **[05_synthetic_face_6k_realimage_benchmark.ipynb](../notebooks/coursework/05_synthetic_face_6k_realimage_benchmark.ipynb)** | OOD Blind Transfer on 6k RealisticVision Faces | Thử thách khái quát hóa ngoại lai trên 6.000 ảnh siêu thực, bước nhảy độ chính xác $68.4\% \to 89.1\%$ |
-| **[06_specialization_vs_generalization_synthesis.ipynb](../notebooks/coursework/06_specialization_vs_generalization_synthesis.ipynb)** | Specialization vs Generalization Analysis | Phân tích cân bằng Pareto giữa độ chuyên biệt hóa (In-Distribution) và độ tổng quát hóa (OOD) |
-| **[07_universal_deepfake_benchmark.ipynb](../notebooks/coursework/07_universal_deepfake_benchmark.ipynb)** | Universal Multi-Family Defense Benchmark | Đánh giá toàn cầu trên 20.400 ảnh, 34 thuật toán sinh, 5 họ mô hình (GAN, Diffusion, Swap, Inpaint, Talking Head) |
+| **[00_master_deepfake_defense_showcase.ipynb](../notebooks/coursework/00_master_deepfake_defense_showcase.ipynb)** | **Master Deepfake Defense Showcase** | **Toàn cảnh đồ án từ A-Z: Golden Scorecard $M_0 \to M_3$, Live Forensic Attention Inspector, Dual-Engine & Active Learning** |
+| **[01_diffusion_dataset_and_curation.ipynb](../notebooks/coursework/01_diffusion_dataset_and_curation.ipynb)** | Real Manifold & Dual-Engine Curation | Khảo sát 4.000 chân dung FFHQ/CelebA-HQ, SD 1.5 & RV5.1, làm mềm biên Gaussian $\sigma=4.0$, phễu lọc 3 tầng CurationGate |
+| **[02_hard_samples_and_active_learning.ipynb](../notebooks/coursework/02_hard_samples_and_active_learning.ipynb)** | Hard-Sample Mining & Active Learning | Khai thác mẫu khó biên mơ hồ ($|P-0.5| \le 0.15$), 213 Challenge Vault, tiến hóa Recall $11.71\% \to 91.89\%$ |
+| **[03_champion_m3_and_universal_benchmark.ipynb](../notebooks/coursework/03_champion_m3_and_universal_benchmark.ipynb)** | Champion $M_3$ & Universal Benchmark | Phân vùng $D_3$ sạch cách ly 626 test, Warm-Start $M_3$ (93.13% Unseen RV5.1), Universal Benchmark 20.400 ảnh (34 thuật toán) |
 
 ---
 
@@ -49,9 +45,9 @@ Toàn bộ 8 notebooks đã được chuẩn hóa theo kiến trúc mô-đun hó
 ## 4. Kế Hoạch Triển Khai Kỹ Thuật (`docs/plans/`)
 
 - **[plans/2026_11_09_BASELINE_AUDIT_AND_CORRECTION_PLAN.md](plans/2026_11_09_BASELINE_AUDIT_AND_CORRECTION_PLAN.md)**: Kế hoạch kiểm toán và chuẩn hóa mô hình cơ sở $M_0$.
-- **[plans/2026_11_10_ACTIVE_LEARNING_D2_PLAN.md](plans/2026_11_10_ACTIVE_LEARNING_D2_PLAN.md)**: Kế hoạch triển khai vòng lặp Active Learning $D_2$ và tinh chỉnh $M_2^*$.
+- **[plans/2026_11_09_DETECTOR_GUIDED_CLOSED_LOOP_ACTIVE_LEARNING_PLAN.md](plans/2026_11_09_DETECTOR_GUIDED_CLOSED_LOOP_ACTIVE_LEARNING_PLAN.md)**: Kế hoạch triển khai vòng lặp Active Learning khép kín và tinh chỉnh bộ dò.
 - **[plans/2026_11_10_SYSTEM_REMEDIATION_AND_SCALING_PLAN.md](plans/2026_11_10_SYSTEM_REMEDIATION_AND_SCALING_PLAN.md)**: Kế hoạch tối ưu hóa hiệu năng, triệt tiêu mock data và mở rộng quy mô.
-- **[plans/2026_11_10_UNIVERSAL_BENCHMARK_PLAN.md](plans/2026_11_10_UNIVERSAL_BENCHMARK_PLAN.md)**: Kế hoạch tích hợp và đánh giá Universal Benchmark 20.400 ảnh.
+- **[plans/2026_11_16_COURSEWORK_NOTEBOOKS_REDESIGN_PLAN.md](plans/2026_11_16_COURSEWORK_NOTEBOOKS_REDESIGN_PLAN.md)**: Kế hoạch tái cấu trúc bộ 4 Coursework Notebooks hợp nhất và benchmark.
 
 ---
 

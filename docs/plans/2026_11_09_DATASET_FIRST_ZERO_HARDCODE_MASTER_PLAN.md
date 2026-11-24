@@ -4,7 +4,7 @@
 - **Purpose**: Kế hoạch thực thi từng task để đưa repo về đúng hướng Dataset-First, mọi tham số nằm trong một file cấu hình duy nhất, không có số liệu hay tên model ghi cứng trong code mặc định và tài liệu.
 - **Overview Pipeline**: Task 1 (cấu hình tập trung) → Task 2 (gỡ mọi fallback mock) → Task 3 (sinh ảnh đa dạng, chống trùng, lưu provenance) → Task 4 (Curation Gate dùng metric thật, ngưỡng hiệu chỉnh từ ảnh thật) → Task 5 (đánh giá độ khó thiết kế lại) → Task 6 (đóng gói dataset + file thống kê tự sinh) → Task 7 (gallery & notebooks đọc từ config/stats) → Task 8 (viết lại tài liệu theo hướng Dataset-First, không hardcode) → Task 9 (sinh lại dataset end-to-end và nghiệm thu).
 - **Detailed Plan**: §0 Quyết định đã chốt; §1 Lỗi đã xác minh; §2 Cấu trúc file; §3 Task 1–9; §4 Quyết định còn mở.
-- **References**: [../PURPOSE.md](../PURPOSE.md), [../../GEMINI.md](../../GEMINI.md), [../../.agents/rules/ZERO_MOCK_DATA_RULE.md](../../.agents/rules/ZERO_MOCK_DATA_RULE.md), [2026_11_09_DATASET_FACTORY_AND_DINOV2_MINING_PLAN.md](2026_11_09_DATASET_FACTORY_AND_DINOV2_MINING_PLAN.md) (được thay thế bởi kế hoạch này).
+- **References**: [../PURPOSE.md](../PURPOSE.md), [../../GEMINI.md](../../AGENTS.md), [../../.agents/rules/ZERO_MOCK_DATA_RULE.md](../../.agents/rules/ZERO_MOCK_DATA_RULE.md), [2026_11_09_DATASET_FACTORY_AND_DINOV2_MINING_PLAN.md](2026_11_09_DATASET_FACTORY_AND_DINOV2_MINING_PLAN.md) (được thay thế bởi kế hoạch này).
 - **Created**: 2026-11-09T14:35:00+07:00
 - **Last Updated**: 2026-11-09T14:35:00+07:00
 
@@ -20,7 +20,7 @@
 
 **Tech Stack:** Python ≥3.10, PyTorch, Hugging Face `diffusers` + `transformers`, OpenCV, PyYAML, pytest.
 
-**Spec:** §0 bên dưới (các quyết định người dùng đã chốt trong phiên này) + [../../GEMINI.md](../../GEMINI.md).
+**Spec:** §0 bên dưới (các quyết định người dùng đã chốt trong phiên này) + [../../GEMINI.md](../../AGENTS.md).
 
 ## §0. Quyết Định Đã Chốt (Người Dùng)
 

@@ -129,7 +129,7 @@ def assemble_demo_batch(
     if missing:
         logger.info("Replenishing missing samples: %s on %s...", missing, device)
         engine = StableDiffusionEngine(
-            model_name="runwayml/stable-diffusion-v1-5",
+            model_name="stable-diffusion-v1-5/stable-diffusion-v1-5",
             inpaint_model_name="stable-diffusion-v1-5/stable-diffusion-inpainting",
             device=device,
             torch_dtype=torch.float16 if device.startswith("cuda") else torch.float32,

@@ -23,7 +23,7 @@
 Stable Diffusion là mô hình khuếch tán tiềm ẩn, hỗ trợ tạo **3 dạng dữ liệu khuôn mặt**:
 - **Dạng 1 (`sd_text2img`)**: Sinh mặt người mới 100% từ mô tả chữ (Prompt), mở rộng độ phong phú danh tính.
 - **Dạng 2 (`sd_inpainting`)**: Chỉ sửa cục bộ mắt/miệng trên mặt thật, giữ nguyên đầu và tóc. Dạng này tinh vi nhất, đánh trúng điểm mù của mô hình.
-- **Dạng 3 (`sd_img2img`)**: Biến đổi diện mạo trên khung 5 điểm mốc của ảnh gốc, tạo cặp đối chứng Gốc – Biến đổi.
+- **Dạng 3 (`sd_img2img`)**: Biến đổi diện mạo bảo toàn cấu trúc khung mặt gốc (`OpenCV Haar` ROI), tạo cặp đối chứng Gốc – Biến đổi.
 
 ### 1.3. Bộ 3 Tầng Luận Cứ
 - **Problem (Vấn đề)**: Sự dịch chuyển từ ảnh cắt dán sang ảnh khuếch tán khiến các mô hình phát hiện cũ bị "mù".
@@ -35,7 +35,7 @@ Stable Diffusion là mô hình khuếch tán tiềm ẩn, hỗ trợ tạo **3 d
 ## 2. Chi Tiết Quy Trình 3 Bước Khép Kín
 
 ### Bước 1: Sinh dữ liệu khuôn mặt giả bằng Stable Diffusion (`Phase 1`)
-1. Từ ảnh khuôn mặt thật, hệ thống tìm 5 điểm mốc (2 mắt, mũi, 2 khóe miệng) để căn chỉnh khuôn mặt và tạo vùng mặt nạ che mắt/miệng.
+1. Từ ảnh khuôn mặt thật, hệ thống định vị bounding box khuôn mặt bằng `OpenCV Haar` để căn chỉnh và tạo vùng mặt nạ elip che mắt/miệng.
 2. Dùng **Stable Diffusion** sinh ra ảnh giả theo 3 cách:
    - **`Text-to-Image` (`sd_text2img`)**: Vẽ khuôn mặt mới hoàn toàn từ câu chữ mô tả.
    - **`Facial Inpainting` (`sd_inpaint`)**: Chỉ sửa vùng mắt hoặc miệng trên nền khuôn mặt thật.

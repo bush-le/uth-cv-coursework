@@ -16,7 +16,7 @@ Task 4 of the Coursework Notebooks Redesign has been completed following strict 
 - Added 3 `@pytest.mark.smoke` test cases to `tests/test_notebook_outputs.py`:
   1. `test_notebook_02_exists_and_size`: Checks file existence and validates that file size is strictly `< 2.5 MB` and `> 10 KB`.
   2. `test_notebook_02_schema_and_navigation`: Verifies valid nbformat v4 schema, institutional Cell 0 header (Topic 11, UTH, Part 2), and Cell 1 roadmap table highlighting Part 2 (`🎯 / (Đang xem)`).
-  3. `test_notebook_02_execution_outputs`: Verifies zero execution errors, zero `SyntaxWarning` occurrences, presence of both stream logs and `display_data` figures, and zero leakage of local usernames (`/home/bush`) or `file:///` schemes.
+  3. `test_notebook_02_execution_outputs`: Verifies zero execution errors, zero `SyntaxWarning` occurrences, presence of both stream logs and `display_data` figures, and zero leakage of local home directory paths or local file URI schemes.
 - Ran `.venv/bin/pytest tests/test_notebook_outputs.py -k test_notebook_02 -v`:
   - Result: **3 failed** as expected (`Notebook 02 file does not exist`).
 

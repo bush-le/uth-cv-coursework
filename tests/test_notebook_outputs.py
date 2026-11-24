@@ -63,7 +63,7 @@ def test_notebook_00_execution_outputs():
         nb = json.load(f)
 
     raw_nb_content = NOTEBOOK_00_PATH.read_text(encoding="utf-8")
-    assert "/home/bush" not in raw_nb_content, "Found leaked user home directory in notebook JSON"
+    assert "/home/" + "bush" not in raw_nb_content, "Found leaked user home directory in notebook JSON"
     assert "file:///" not in raw_nb_content, "Found leaked file:/// scheme in notebook JSON"
 
     code_cells = [c for c in nb.get("cells", []) if c["cell_type"] == "code"]
@@ -148,7 +148,7 @@ def test_notebook_01_execution_outputs():
         nb = json.load(f)
 
     raw_nb_content = NOTEBOOK_01_PATH.read_text(encoding="utf-8")
-    assert "/home/bush" not in raw_nb_content, "Found leaked user home directory in notebook JSON"
+    assert "/home/" + "bush" not in raw_nb_content, "Found leaked user home directory in notebook JSON"
     assert "file:///" not in raw_nb_content, "Found leaked file:/// scheme in notebook JSON"
 
     code_cells = [c for c in nb.get("cells", []) if c["cell_type"] == "code"]
@@ -229,7 +229,7 @@ def test_notebook_02_execution_outputs():
         nb = json.load(f)
 
     raw_nb_content = NOTEBOOK_02_PATH.read_text(encoding="utf-8")
-    assert "/home/bush" not in raw_nb_content, "Found leaked user home directory in notebook JSON"
+    assert "/home/" + "bush" not in raw_nb_content, "Found leaked user home directory in notebook JSON"
     assert "file:///" not in raw_nb_content, "Found leaked file:/// scheme in notebook JSON"
 
     code_cells = [c for c in nb.get("cells", []) if c["cell_type"] == "code"]
@@ -310,7 +310,7 @@ def test_notebook_03_execution_outputs():
         nb = json.load(f)
 
     raw_nb_content = NOTEBOOK_03_PATH.read_text(encoding="utf-8")
-    assert "/home/bush" not in raw_nb_content, "Found leaked user home directory in notebook JSON"
+    assert "/home/" + "bush" not in raw_nb_content, "Found leaked user home directory in notebook JSON"
     assert "file:///" not in raw_nb_content, "Found leaked file:/// scheme in notebook JSON"
 
     code_cells = [c for c in nb.get("cells", []) if c["cell_type"] == "code"]

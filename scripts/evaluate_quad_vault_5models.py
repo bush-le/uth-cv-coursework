@@ -100,7 +100,7 @@ def main() -> None:
 
         logger.info("=== Loading and Evaluating %s ===", model_name)
         detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
-        state = torch.load(ckpt_path, map_location=device)
+        state = torch.load(ckpt_path, map_location=device, weights_only=False)
         if "model_state_dict" in state:
             detector.load_state_dict(state["model_state_dict"])
         elif isinstance(state, dict):

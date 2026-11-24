@@ -4,7 +4,7 @@
 - **Purpose**: Bàn giao hàng đợi inference thật, ghi nhận lỗi và khôi phục kết quả; phân biệt rõ phần đã kiểm thử với phần chưa chạy GPU.
 - **Overview Pipeline**: Chuẩn bị ảnh → lập queue → worker riêng từng cấu hình → kiểm tra artifacts → gallery/log → xuất ZIP → restore/resume.
 - **Detailed Plan**: Phạm vi, cách chạy, resume, bằng chứng kiểm thử, giới hạn và nguồn tham khảo.
-- **References**: [Notebook](../../notebooks/SD_ALL_BENCHMARK_KAGGLE.ipynb), [suite](../../configs/generation/sd_all_benchmark.yaml), [catalog](../../configs/generation/sd_benchmark_catalog.yaml), [pilot](KAGGLE_SD_IMAGE_DEMO.md).
+- **References**: `SD_ALL_BENCHMARK_KAGGLE.ipynb` (gói Kaggle ZIP), [pipeline](../../src/pipelines/sd_all_benchmark.py), [suite](../../configs/generation/sd_all_benchmark.yaml), [catalog](../../configs/generation/sd_benchmark_catalog.yaml), [pilot](KAGGLE_SD_IMAGE_DEMO.md).
 - **Created**: 2026-11-09T14:20:00+07:00
 - **Last Updated**: 2026-11-09T14:20:00+07:00
 

@@ -91,4 +91,4 @@ Trước khi chuyển từ giai đoạn này sang giai đoạn tiếp theo, hệ
 5. **Gate 5 (Document & Delivery Gate)**:
    - **Báo cáo chuyên sâu (`docs/`)**: Đã có đủ cặp tệp Markdown báo cáo và HTML trực quan tương tác, tích hợp đầy đủ Sơ đồ Luồng toàn diện và Mục Tài liệu Tham khảo (References) 4 nhóm chuẩn chưa?
    - **Jupyter Notebook (`notebooks/**/*.ipynb`)**: Đã tinh gọn theo chuẩn (Cell 0: Mục tiêu, Cell 1: Bảng Roadmap 4 cột kèm Quick Links tới các tài liệu liên quan), tuyệt đối KHÔNG chứa sơ đồ workflow diagram hay references học thuật chưa?
-   - **Bảo mật & Điều hướng (`Ctrl + Click`)**: 100% liên kết nội bộ là đường dẫn tương đối (`../../src/...`), tuyệt đối KHÔNG chứa đường dẫn tuyệt đối chứa thông tin người dùng (`file:///home/...`) chưa?
+   - **Bảo mật & Điều hướng (`Ctrl + Click`)**: 100% liên kết nội bộ là đường dẫn tương đối (`../../src/...`), tuyệt đối KHÔNG chứa đường dẫn tuyệt đối hoặc thông tin username hệ thống chưa?

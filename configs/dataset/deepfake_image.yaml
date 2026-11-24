@@ -6,7 +6,7 @@ baseline_manifest_path: "data/raw/manifest.jsonl"
 synthetic_manifest_path: "data/synthetic/curated_manifest.jsonl"
 hard_samples_manifest_path: "data/hard_samples/hard_samples_manifest.jsonl"
 benchmarks_dir: "data/benchmarks"
-sample_manifest_path: "data/samples/sample_manifest.jsonl"
+sample_manifest_path: "data/benchmarks/D3_clean/unseen_rv51_test.jsonl"
 
 image:
   size: [512, 512] # [H, W]

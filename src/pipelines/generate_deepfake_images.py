@@ -411,7 +411,9 @@ def run_image_generation(
     in_manifest_path = Path(_res(input_manifest, "paths.raw_manifest", "data/raw/manifest.jsonl"))
     out_manifest_path = Path(_res(output_manifest, "paths.fake_manifest", "data/synthetic/fake_manifest.jsonl"))
     out_dir_path = Path(_res(output_dir, "paths.synthetic_dir", "data/synthetic"))
-    model_name_val = str(_res(model_name, "generation.model_id", "runwayml/stable-diffusion-v1-5"))
+    model_name_val = str(
+        _res(model_name, "generation.model_id", "stable-diffusion-v1-5/stable-diffusion-v1-5")
+    )
     inpaint_model_val = str(_res(None, "generation.inpaint_model_id", "stable-diffusion-v1-5/stable-diffusion-inpainting"))
     num_per_real_val = int(_res(num_per_real, "generation.num_per_real", 1))
     max_samples_val = _res(max_samples, "generation.max_real_samples", None)
@@ -751,7 +753,7 @@ def main() -> None:
         "--model",
         type=str,
         default=None,
-        help="Model checkpoint or ID (e.g. runwayml/stable-diffusion-v1-5)",
+        help="Model checkpoint or ID (e.g. stable-diffusion-v1-5/stable-diffusion-v1-5)",
     )
     parser.add_argument(
         "--mock",

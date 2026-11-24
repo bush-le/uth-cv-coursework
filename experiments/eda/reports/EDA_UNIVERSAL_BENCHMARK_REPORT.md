@@ -4,7 +4,7 @@
 - **Purpose**: Provide authoritative empirical documentation on class balance, method taxonomy, optical properties, image dimensions, and domain distributions across 34 distinct generation methods, with precise pruning criteria for excluding uncurated or geometrically distorted data.
 - **Overview Pipeline**: Ingestion of metadata splits -> Statistical aggregation across 8 technology families -> Optical image sampling (Laplacian variance, brightness, contrast) -> Publication-ready visualization generation -> Synthesis of findings for detector benchmarking.
 - **Detailed Plan**: §1 Executive Overview & Zero-Leakage Guarantee; §2 Technological Family Taxonomy; §3 Full 34-Method Empirical Table; §4 Optical & Resolution Characteristics; §5 Data Pruning Strategy & Excluded Methods Audit; §6 Artifacts & Visualization References.
-- **References**: [Universal Methods Summary](../../experiments/eda/tables/universal_methods_summary.csv), [Universal Families Summary](../../experiments/eda/tables/universal_families_summary.csv), [Universal Resolution Summary](../../experiments/eda/tables/universal_resolution_summary.csv), [Distribution Figure](../../experiments/eda/figures/universal_method_distribution.png), [Taxonomy Donut](../../experiments/eda/figures/universal_method_families.png), [Optical Quality Comparison](../../experiments/eda/figures/universal_quality_by_family.png), [Representative Gallery](../../experiments/eda/figures/universal_representative_gallery.png).
+- **References**: [Universal Methods Summary](../tables/universal_methods_summary.csv), [Universal Families Summary](../tables/universal_families_summary.csv), [Universal Resolution Summary](../tables/universal_resolution_summary.csv), [Distribution Figure](../figures/universal_method_distribution.png), [Taxonomy Donut](../figures/universal_method_families.png), [Optical Quality Comparison](../figures/universal_quality_by_family.png), [Representative Gallery](../figures/universal_representative_gallery.png).
 - **Created**: 2026-11-11T20:13:00+07:00
 - **Last Updated**: 2026-11-11T20:34:00+07:00
 
@@ -65,10 +65,10 @@ gồm **20,400 mẫu** (10,200 Real vs 10,200 Fake trên đúng 34 phương phá
 ## 4. Generated Visualizations & Tables Summary
 
 Tất cả bảng biểu và đồ thị trực quan hóa đã được lưu trữ sẵn sàng:
-- Bảng tổng hợp phương pháp: [universal_methods_summary.csv](../../experiments/eda/tables/universal_methods_summary.csv)
-- Bảng tổng hợp công nghệ: [universal_families_summary.csv](../../experiments/eda/tables/universal_families_summary.csv)
-- Bảng kích thước ảnh: [universal_resolution_summary.csv](../../experiments/eda/tables/universal_resolution_summary.csv)
-- Đồ thị phân bố 34 methods: [universal_method_distribution.png](../../experiments/eda/figures/universal_method_distribution.png)
-- Đồ thị hình vành khăn họ công nghệ: [universal_method_families.png](../../experiments/eda/figures/universal_method_families.png)
-- Đồ thị so sánh quang học: [universal_quality_by_family.png](../../experiments/eda/figures/universal_quality_by_family.png)
-- Bộ sưu tập 12 phương pháp đại diện: [universal_representative_gallery.png](../../experiments/eda/figures/universal_representative_gallery.png)
+- Bảng tổng hợp phương pháp: [universal_methods_summary.csv](../tables/universal_methods_summary.csv)
+- Bảng tổng hợp công nghệ: [universal_families_summary.csv](../tables/universal_families_summary.csv)
+- Bảng kích thước ảnh: [universal_resolution_summary.csv](../tables/universal_resolution_summary.csv)
+- Đồ thị phân bố 34 methods: [universal_method_distribution.png](../figures/universal_method_distribution.png)
+- Đồ thị hình vành khăn họ công nghệ: [universal_method_families.png](../figures/universal_method_families.png)
+- Đồ thị so sánh quang học: [universal_quality_by_family.png](../figures/universal_quality_by_family.png)
+- Bộ sưu tập 12 phương pháp đại diện: [universal_representative_gallery.png](../figures/universal_representative_gallery.png)

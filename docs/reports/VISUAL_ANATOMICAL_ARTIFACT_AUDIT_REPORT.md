@@ -4,7 +4,7 @@
 - **Purpose**: Provide empirical defect rates, identify root failure modes across generative pipelines (`sd_img2img`, `sd_inpaint`, `sd_text2img`), document specific representative failure cases with exact filenames, and formulate concrete, actionable architectural hardening protocols prior to mass synthesis.
 - **Overview Pipeline**: Physical Image Ingestion -> 30-Sample Multi-Modal Spot-Check -> 600-Sample Stratified Metric Extraction -> Real FFHQ Baseline Calibration -> 5-Point Defect Attribution -> Scaling Action Plan.
 - **Detailed Plan**: §1 Executive Summary & Key Metrics; §2 Audit Methodology & Calibration Baseline; §3 Detailed Spot-Check Analysis (30 Selected Samples); §4 Anatomical Distortion Audit; §5 Artifact Boundaries & Inpainting Seam Analysis; §6 Skin Texture vs Waxy/Plastic Look; §7 Organ Closeups & Canvas Framing; §8 Demographic Chimeras & Prompt Incongruence Bug; §9 Actionable Recommendations for 10,000 Scale-Up.
-- **References**: [docs/phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md](docs/phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md), [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py), [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py), [src/pipelines/curate_image_dataset.py](src/pipelines/curate_image_dataset.py).
+- **References**: [docs/phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md](../phases/PHASE_03_AUDIT_RISK_AND_QUALITY_SPEC.md), [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py), [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py), [src/pipelines/curate_image_dataset.py](../../src/pipelines/curate_image_dataset.py).
 - **Created**: 2026-11-10T07:35:00+07:00
 - **Last Updated**: 2026-11-10T07:35:00+07:00
 
@@ -150,7 +150,7 @@ A stratified set of 30 physical images was inspected across splits (`master_test
 ## 8. Demographic Chimeras & Prompt Incongruence Bug
 
 ### Critical Discovery: Systematic Demographic Prompt Incongruence
-During code inspection of [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py#L201-L217), an architectural logic bug was uncovered:
+During code inspection of [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py#L201-L217), an architectural logic bug was uncovered:
 
 ```python
 # Lines 201-217 in src/models/diffusion/prompt_engine.py
@@ -197,7 +197,7 @@ flowchart TD
 ```
 
 ### Protocol 1: Fix Demographic Age/Gender Prompt Engine Disjunction
-- **Target**: [src/models/diffusion/prompt_engine.py](src/models/diffusion/prompt_engine.py#L210)
+- **Target**: [src/models/diffusion/prompt_engine.py](../../src/models/diffusion/prompt_engine.py#L210)
 - **Action**: Introduce age-conditioned gender tags:
   ```python
   if age in ["0-2", "3-6"]:
@@ -210,14 +210,14 @@ flowchart TD
 - **Expected Impact**: Completely eliminates demographic chimera artifacts across all pediatric and adolescent cohorts.
 
 ### Protocol 2: Color Transfer & Multi-Band Pyramidal Blending for Inpainting
-- **Target**: [src/models/diffusion/stable_diffusion_engine.py](src/models/diffusion/stable_diffusion_engine.py#L368)
+- **Target**: [src/models/diffusion/stable_diffusion_engine.py](../../src/models/diffusion/stable_diffusion_engine.py#L368)
 - **Action**: Prior to blending, apply Reinhard color transfer in Lab space to align the generated face's mean and covariance with the surrounding source skin:
   $$\mu_{\text{inpaint}} \leftarrow \mu_{\text{source}}, \quad \sigma_{\text{inpaint}} \leftarrow \sigma_{\text{source}}$$
   Follow with 3-level Laplacian pyramid blending rather than linear alpha compositing.
 - **Expected Impact**: Reduces inpainting seam failure rate from $26.0\%$ to $< 2.0\%$, eliminating $\Delta E$ boundary jumps.
 
 ### Protocol 3: Add Dental Separation & Ocular Symmetry Gates
-- **Target**: [src/common/metrics.py](src/common/metrics.py) & [src/pipelines/curate_image_dataset.py](src/pipelines/curate_image_dataset.py)
+- **Target**: [src/common/metrics.py](../../src/common/metrics.py) & [src/pipelines/curate_image_dataset.py](../../src/pipelines/curate_image_dataset.py)
 - **Action**: Add two new hard verification checks to `verify_facial_geometry()`:
   1. *Dental Separation Check*: In mouth regions containing high-intensity white patches ($>215$), require vertical edge gradient $\ge 14.0$. Reject unitooth porcelain strips.
   2. *Ocular Asymmetry Check*: Require eye area ratio $\le 2.2$ and $|\theta_{\text{eye}} - \theta_{\text{roll}}| \le 15^\circ$. Reject strabismus and severe ptosis.
@@ -229,6 +229,6 @@ flowchart TD
 - **Expected Impact**: Reduces $T2I$ Laplacian variance from an artificial $1113.8$ back into the natural human photographic regime ($150 - 350$).
 
 ### Protocol 5: Tighten Portrait Framing Bounds
-- **Target**: [src/common/metrics.py](src/common/metrics.py#L376)
+- **Target**: [src/common/metrics.py](../../src/common/metrics.py#L376)
 - **Action**: Narrow the acceptable facial area occupancy window from $[20\%, 65\%]$ to $[25\%, 55\%]$ for frontal portraits, and enforce a minimum crown margin of $\ge 5\%$ of canvas height.
 - **Expected Impact**: Completely eliminates runaway zoom, amputated foreheads, and truncated chins.

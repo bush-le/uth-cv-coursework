@@ -35,7 +35,7 @@ class StandardCVDataset:
             image = Image.open(image_path).convert("RGB")
         except Exception:
             # Fallback synthetic dummy image (H, W, 3)
-            image = np.zeros((224, 224, 3), dtype=np.uint8)
+            image = np.zeros((512, 512, 3), dtype=np.uint8)
 
         if self.transform is not None:
             image = self.transform(image)

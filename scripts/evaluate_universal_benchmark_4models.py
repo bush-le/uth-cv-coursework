@@ -5,6 +5,7 @@ Generates detailed metrics, CSV tables, ROC/PR curves, family/method breakdowns,
 Zero external sklearn dependencies — pure vectorized NumPy and PyTorch.
 """
 
+import argparse
 import csv
 import json
 import os
@@ -180,10 +181,17 @@ def compute_pr_curve_vectorized(y_true: np.ndarray, y_prob: np.ndarray, num_pts:
 class UniversalBenchmarkDataset(Dataset):
     """Fast dataset loader for the 20,400 universal deepfake benchmark images."""
 
-    def __init__(self, records: List[Dict[str, str]], base_img_dir: Path, target_size: Tuple[int, int] = (224, 224)):
+    def __init__(
+        self,
+        records: List[Dict[str, str]],
+        base_img_dir: Path,
+        target_size: Tuple[int, int] = (512, 512),
+        resampling: Image.Resampling = Image.Resampling.LANCZOS,
+    ):
         self.records = records
         self.base_img_dir = base_img_dir
         self.target_size = target_size
+        self.resampling = resampling
 
     def __len__(self) -> int:
         return len(self.records)
@@ -196,8 +204,8 @@ class UniversalBenchmarkDataset(Dataset):
         try:
             with Image.open(full_path) as img:
                 img_rgb = img.convert("RGB")
-                if img_rgb.size != self.target_size:
-                    img_rgb = img_rgb.resize(self.target_size, Image.Resampling.BILINEAR)
+                if img_rgb.size != (self.target_size[1], self.target_size[0]):
+                    img_rgb = img_rgb.resize((self.target_size[1], self.target_size[0]), self.resampling)
                 arr = np.array(img_rgb, dtype=np.float32) / 255.0
                 tensor_img = torch.from_numpy(arr).permute(2, 0, 1).contiguous()
         except Exception:
@@ -264,8 +272,14 @@ def compute_comprehensive_metrics(y_true: np.ndarray, y_prob: np.ndarray, thresh
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Evaluate 4 detector models on Universal Benchmark")
+    parser.add_argument("--target-size", type=int, default=512, help="Square resize resolution before ViT forward (default: 512 -> 504px)")
+    parser.add_argument("--batch-size", type=int, default=32, help="Evaluation batch size")
+    parser.add_argument("--force-recompute", action="store_true", help="Ignore existing npz cache and re-run GPU inference")
+    args = parser.parse_args()
+
     print("=" * 80)
-    print("🚀 BẮT ĐẦU ĐÁNH GIÁ ĐỐI CHỨNG 4 MÔ HÌNH TRÊN BỘ BENCHMARK 20.400 ẢNH")
+    print(f"🚀 BẮT ĐẦU ĐÁNH GIÁ ĐỐI CHỨNG 4 MÔ HÌNH TRÊN BỘ BENCHMARK 20.400 ẢNH (@ {args.target_size}x{args.target_size} LANCZOS)")
     print("=" * 80)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -288,10 +302,10 @@ def main():
     total_samples = len(records)
     print(f"[*] Nạp thành công {total_samples:,} mẫu kiểm thử chuẩn hóa.")
 
-    dataset = UniversalBenchmarkDataset(records, base_img_dir=base_img_dir, target_size=(224, 224))
+    dataset = UniversalBenchmarkDataset(records, base_img_dir=base_img_dir, target_size=(args.target_size, args.target_size))
     dataloader = DataLoader(
         dataset,
-        batch_size=32,
+        batch_size=args.batch_size,
         shuffle=False,
         num_workers=4,
         pin_memory=torch.cuda.is_available(),
@@ -299,7 +313,7 @@ def main():
     )
 
     npz_path = log_dir / "benchmark_4models_predictions.npz"
-    if npz_path.exists():
+    if npz_path.exists() and not args.force_recompute:
         print(f"[*] Tìm thấy cache dự đoán đã có: {npz_path.name}, đang nạp lại...")
         loaded = np.load(npz_path)
         y_true = loaded["y_true"]
@@ -318,7 +332,7 @@ def main():
             print(f"[*] Đang khởi tạo và nạp trọng số: {cfg['display_name']} từ {ckpt_path.name}...")
             model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
             model.unfreeze_backbone(unfreeze_last_n_blocks=1)
-            state = torch.load(ckpt_path, map_location="cpu")
+            state = torch.load(ckpt_path, map_location="cpu", weights_only=False)
             if "model_state_dict" in state:
                 model.load_state_dict(state["model_state_dict"])
             elif isinstance(state, dict):

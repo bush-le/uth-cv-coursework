@@ -15,11 +15,11 @@
 1. **Ba cách tạo ảnh khuôn mặt giả (`Slide 04`)**:
    - **Cách 1 — `Text-to-Image` (`sd_text2img`)**: Từ câu chữ mô tả, vẽ ra một khuôn mặt nhân tạo hoàn toàn mới.
    - **Cách 2 — `Facial Inpainting` (`sd_inpaint`)**: Che vùng mắt hoặc miệng trên ảnh thật rồi vẽ lại vùng đó (nền và khung mặt thật giữ nguyên nên rất khó nhận ra).
-   - **Cách 3 — `Image-to-Image` (`sd_img2img`)**: Dựa trên 5 điểm mốc mắt-mũi-miệng của ảnh thật, biến đổi làn da, độ tuổi hoặc ánh sáng.
+   - **Cách 3 — `Image-to-Image` (`sd_img2img`)**: Dựa trên khung khuôn mặt thật (`OpenCV Haar` ROI), biến đổi làn da, độ tuổi hoặc ánh sáng mà vẫn giữ cấu trúc gốc.
 
 2. **Đường ống 6 giai đoạn & Lọc ảnh lỗi 3 bước (`Slide 05` & `Slide 06`)**:
-   - Quy trình đi thẳng qua 6 khâu: Thu thập ảnh gốc $\rightarrow$ Căn chỉnh mặt & tạo mặt nạ che $\rightarrow$ Sinh ảnh bằng Stable Diffusion $\rightarrow$ Lọc bỏ ảnh lỗi $\rightarrow$ Gán nhãn lưu thông tin $\rightarrow$ Xuất dữ liệu.
-   - Bộ lọc tự động loại bỏ ngay những ảnh bị mờ nhòe, ảnh méo mặt (sai lệch 5 điểm mốc) hoặc ảnh không khớp câu mô tả.
+   - Quy trình đi thẳng qua 6 khâu: Thu thập ảnh gốc $\rightarrow$ Định vị khung mặt & tạo mặt nạ che $\rightarrow$ Sinh ảnh bằng Stable Diffusion $\rightarrow$ Lọc bỏ ảnh lỗi $\rightarrow$ Gán nhãn lưu thông tin $\rightarrow$ Xuất dữ liệu.
+   - Bộ lọc tự động loại bỏ ngay những ảnh bị mờ nhòe (`Laplacian q=5%`), ảnh dị tật/méo mặt (`verify_facial_geometry` bằng `OpenCV Haar`) hoặc ảnh trùng lặp (`SHA-256`).
 
 ---
 

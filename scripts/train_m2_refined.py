@@ -110,7 +110,7 @@ def main():
 
     logger.info("Initializing DeepfakeImageDetector with Warm-Start from M1: %s", m1_ckpt_path)
     model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
-    m1_state = torch.load(m1_ckpt_path, map_location="cpu")
+    m1_state = torch.load(m1_ckpt_path, map_location="cpu", weights_only=False)
     if "model_state_dict" in m1_state:
         model.load_state_dict(m1_state["model_state_dict"])
     else:

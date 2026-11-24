@@ -4,7 +4,7 @@
 - **Purpose**: Serve as the implementation plan and execution guide for high-fidelity facial diffusion generation, curation gates, and controlled 3-way utility benchmarking.
 - **Overview Pipeline**: Partition Real Identities (80% Train, 20% Test) -> High-Fidelity Diffusion Generation -> Multi-Tier Curation Gate -> Baseline Training -> Hard-Sample Mining -> Proof-of-Utility Benchmark.
 - **Detailed Plan**: §1 Zero-Leakage Identity-Disjoint Partitioning; §2 High-Fidelity Diffusion Engine; §3 Multi-Tier Curation Gate; §4 Supervised Hard Sample Mining; §5 3-Way Controlled Proof-of-Utility Benchmark.
-- **References**: [docs/PURPOSE.md](docs/PURPOSE.md), [.agents/rules/ZERO_MOCK_DATA_RULE.md](.agents/rules/ZERO_MOCK_DATA_RULE.md), [configs/dataset_factory.yaml](configs/dataset_factory.yaml).
+- **References**: [docs/PURPOSE.md](../PURPOSE.md), [.agents/rules/ZERO_MOCK_DATA_RULE.md](../../.agents/rules/ZERO_MOCK_DATA_RULE.md), [configs/dataset_factory.yaml](../../configs/dataset_factory.yaml).
 - **Created**: 2026-11-09T14:00:00+07:00
 - **Last Updated**: 2026-11-11T18:35:00+07:00
 

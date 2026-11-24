@@ -30,7 +30,7 @@
 3. **Mã Nguồn Mở, Tự Động Hoá & Khả Năng Tái Lập Tuyệt Đối**:
    - Toàn bộ suite được biên dịch và chạy suy luận tự động bằng công cụ biên dịch `scripts/build_unified_coursework_suite.py`.
    - 100% dữ liệu suy luận và kiểm thử là dữ liệu thực từ các tập dữ liệu chuẩn (FFHQ, CelebA-HQ, Challenge Vault, Universal Benchmark 20.4k ảnh). Tuyệt đối không dùng dữ liệu giả lập (mock data) hay trọng số ngẫu nhiên uninitialized.
-   - Tuyệt đối không chứa đường dẫn tuyệt đối cục bộ (`/home/...`, `file:///`) hay tên tài khoản cá nhân. Tất cả liên kết đều sử dụng đường dẫn tương đối (relative paths).
+   - Tuyệt đối không chứa đường dẫn tuyệt đối cục bộ (home directory paths, local URI schemes) hay tên tài khoản cá nhân. Tất cả liên kết đều sử dụng đường dẫn tương đối (relative paths).
 
 ---
 

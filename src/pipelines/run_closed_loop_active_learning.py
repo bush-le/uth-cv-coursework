@@ -490,13 +490,13 @@ def run_active_learning_loop(
         logger.info("Round %d Curated Candidates: %d", r, len(curated_candidates))
 
         # 5. Load Previous Detector M_{r-1} for Inference
-        detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
+        detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
         if not current_detector_ckpt.exists():
             raise FileNotFoundError(
                 f"Zero-Mock Invariant Violation: Checkpoint {current_detector_ckpt} not found! "
                 f"Refusing to mine hard samples without a verified trained model checkpoint."
             )
-        ckpt = torch.load(current_detector_ckpt, map_location=device)
+        ckpt = torch.load(current_detector_ckpt, map_location=device, weights_only=False)
         if "model_state_dict" in ckpt:
             detector.load_state_dict(ckpt["model_state_dict"])
         logger.info("Loaded detector weights from %s", current_detector_ckpt.name)
@@ -646,7 +646,7 @@ def run_active_learning_loop(
         # 11. Dual-Benchmark Evaluation
         m_best_ckpt = ckpt_dir / f"active_learning_m{r}_best.pt"
         if m_best_ckpt.exists():
-            state = torch.load(m_best_ckpt, map_location=device)
+            state = torch.load(m_best_ckpt, map_location=device, weights_only=False)
             if "model_state_dict" in state:
                 round_detector.load_state_dict(state["model_state_dict"])
 

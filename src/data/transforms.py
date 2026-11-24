@@ -21,7 +21,7 @@ def get_face_cascade() -> cv2.CascadeClassifier:
 def crop_face_tensor(
     image: torch.Tensor,
     bbox: Optional[Tuple[float, float, float, float]] = None,
-    target_size: Tuple[int, int] = (224, 224),
+    target_size: Tuple[int, int] = (512, 512),
 ) -> torch.Tensor:
     """Crop the facial region from an image tensor and resize to target_size.
 
@@ -93,7 +93,7 @@ def normalize_image(
 
 
 def get_base_transforms(
-    image_size: tuple[int, int] = (224, 224),
+    image_size: tuple[int, int] = (512, 512),
     is_training: bool = False,
 ) -> Callable[[Any], Any]:
     """Get standardized torchvision transforms for training or evaluation.
@@ -107,9 +107,10 @@ def get_base_transforms(
     """
     try:
         from torchvision import transforms
+        from torchvision.transforms import InterpolationMode
 
         transform_list = []
-        transform_list.append(transforms.Resize(image_size))
+        transform_list.append(transforms.Resize(image_size, interpolation=InterpolationMode.LANCZOS))
 
         if is_training:
             transform_list.append(transforms.RandomHorizontalFlip(p=0.5))

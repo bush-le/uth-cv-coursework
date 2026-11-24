@@ -425,11 +425,11 @@ def run_block1_pipeline(
     )
     dm.setup()
 
-    m0_detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=True)
     m0_best = ckpt_dir / "baseline_d0_best.pt"
+    m0_detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=not m0_best.exists())
     if m0_best.exists():
         logger.info(">>> Found pre-existing Baseline Detector M0 checkpoint at %s, skipping retraining and reusing.", m0_best)
-        st = torch.load(m0_best, map_location=device)
+        st = torch.load(m0_best, map_location=device, weights_only=False)
         if "model_state_dict" in st:
             m0_detector.load_state_dict(st["model_state_dict"])
     else:
@@ -447,7 +447,7 @@ def run_block1_pipeline(
     # 7. Evaluate M0 on Master Frozen Test Vault
     m0_best = ckpt_dir / "baseline_d0_best.pt"
     if m0_best.exists():
-        st = torch.load(m0_best, map_location=device)
+        st = torch.load(m0_best, map_location=device, weights_only=False)
         if "model_state_dict" in st:
             m0_detector.load_state_dict(st["model_state_dict"])
 

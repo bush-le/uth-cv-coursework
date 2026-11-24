@@ -4,7 +4,7 @@
 - **Purpose**: Provide comprehensive empirical findings, theoretical root-cause analysis, and actionable architectural blueprints for robust active learning at scale.
 - **Overview Pipeline**: Checkpoint Inspection -> Parameter & Memory Profiling -> Gradient Scaling Audit -> Training Curve Divergence Analysis -> Scaling Recommendations.
 - **Detailed Plan**: §1 Executive Summary & Audit Scorecard; §2 Backbone Unfreezing & Parameter Dynamics; §3 Training Curves, Validation Divergence & Regularization; §4 Hard Sample Weighting & Boundary Distortion; §5 AMP & Gradient Scaling Audit; §6 Production Recommendations for 10k Scaling; §7 Code Refactoring Blueprint.
-- **References**: [GEMINI.md](GEMINI.md), [src/models/detector/image_detector.py](src/models/detector/image_detector.py), [src/pipelines/train_image_detector.py](src/pipelines/train_image_detector.py), [experiments/logs/closed_loop_metrics.json](experiments/logs/closed_loop_metrics.json).
+- **References**: [GEMINI.md](../../AGENTS.md), [src/models/detector/image_detector.py](../../src/models/detector/image_detector.py), [src/pipelines/train_image_detector.py](../../src/pipelines/train_image_detector.py), [experiments/logs/closed_loop_metrics.json](../../experiments/logs/closed_loop_metrics.json).
 - **Created**: 2026-11-10T07:35:00+07:00
 - **Last Updated**: 2026-11-10T07:35:00+07:00
 
@@ -60,7 +60,7 @@ Allocating **3,552,385 trainable parameters** to absorb forensic signals when th
 
 ### 2.4 Critical Logic Defect in `unfreeze_backbone`
 
-In [src/models/detector/image_detector.py](src/models/detector/image_detector.py#L263-L290):
+In [src/models/detector/image_detector.py](../../src/models/detector/image_detector.py#L263-L290):
 ```python
 if (
     unfreeze_last_n_blocks is not None
@@ -109,7 +109,7 @@ xychart-beta
 ### 3.2 Four Root Causes of Validation Divergence
 
 1. **Zero Data Augmentation**:
-   [src/data/image_dataset.py](src/data/image_dataset.py) loads images with `self.transform = None`. Every image is presented at fixed $512 \times 512$ with zero spatial jitter, zero horizontal flipping, zero color variation, and zero compression noise. The 3.55M unfrozen parameters memorize exact spatial coordinates of high-frequency pixels.
+   [src/data/image_dataset.py](../../src/data/image_dataset.py) loads images with `self.transform = None`. Every image is presented at fixed $512 \times 512$ with zero spatial jitter, zero horizontal flipping, zero color variation, and zero compression noise. The 3.55M unfrozen parameters memorize exact spatial coordinates of high-frequency pixels.
 2. **Missing Input Normalization (Feature Distortion)**:
    Images are scaled to $[0.0, 1.0]$ float, but **never normalized** with ImageNet mean `[0.485, 0.456, 0.406]` and std `[0.229, 0.224, 0.225]`.
    - **Empirical Test**: Cosine similarity between raw $[0, 1]$ and normalized DINOv2 feature embeddings is only **0.784** (21.6% angular distortion).
@@ -119,7 +119,7 @@ xychart-beta
    - Dropout is $0.3$ in the classification head, but the unfrozen DINOv2 transformer layers have internal dropout set to $0.0$.
    - No learning rate scheduler is utilized; learning rate remains pinned at $2 \times 10^{-4}$ throughout training.
 4. **AUC-Biased Checkpoint Selection Mechanism**:
-   [src/pipelines/train_image_detector.py](src/pipelines/train_image_detector.py#L182) selects best checkpoints via:
+   [src/pipelines/train_image_detector.py](../../src/pipelines/train_image_detector.py#L182) selects best checkpoints via:
    ```python
    is_best = (val_auc > best_auc + 1e-4) or (abs(val_auc - best_auc) <= 1e-4 and val_loss < best_loss)
    ```
@@ -132,8 +132,8 @@ xychart-beta
 ### 4.1 The $4\times$ Compound Double-Dipping Effect
 
 Hard samples undergo two simultaneous amplification mechanisms:
-1. **Oversampling Factor ($2\times$)**: In [src/data/image_datamodule.py](src/data/image_datamodule.py#L177-L184), every sample with `is_hard_sample=True` is duplicated in the dataset list, appearing twice per epoch.
-2. **Loss Weighting ($2.0\times$)**: In [src/pipelines/train_image_detector.py](src/pipelines/train_image_detector.py#L138-L143), hard sample losses are multiplied by `hard_sample_loss_weight = 2.0`.
+1. **Oversampling Factor ($2\times$)**: In [src/data/image_datamodule.py](../../src/data/image_datamodule.py#L177-L184), every sample with `is_hard_sample=True` is duplicated in the dataset list, appearing twice per epoch.
+2. **Loss Weighting ($2.0\times$)**: In [src/pipelines/train_image_detector.py](../../src/pipelines/train_image_detector.py#L138-L143), hard sample losses are multiplied by `hard_sample_loss_weight = 2.0`.
 
 $$\text{Effective Gradient Volume per Epoch} = 2 \times 2.0 = 4.0\times$$
 
@@ -150,7 +150,7 @@ Because the loss function penalizes false negatives on hard synthetic faces with
 
 ### 4.3 Batch Loss Reduction Defect
 
-In [src/pipelines/train_image_detector.py](src/pipelines/train_image_detector.py#L138-L143):
+In [src/pipelines/train_image_detector.py](../../src/pipelines/train_image_detector.py#L138-L143):
 ```python
 hard_mask = is_hard.to(dev).float().view(-1, 1)
 weights = 1.0 + (hard_sample_loss_weight - 1.0) * hard_mask
@@ -169,7 +169,7 @@ $$\mathcal{L} = \frac{\sum_{i=1}^B w_i \cdot \ell_i}{\sum_{i=1}^B w_i}$$
 
 ### 5.1 GradScaler Order of Operations
 
-In [src/pipelines/train_image_detector.py](src/pipelines/train_image_detector.py#L145-L149):
+In [src/pipelines/train_image_detector.py](../../src/pipelines/train_image_detector.py#L145-L149):
 ```python
 scaler.scale(loss).backward()
 scaler.unscale_(optimizer)

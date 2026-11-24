@@ -70,7 +70,7 @@ case "${STAGE}" in
         ;;
     "infer"|"inference")
         echo "Launching dinoViT inference pipeline..."
-        ${PYTHON} -m src.pipelines.infer --config "${CONFIG}"
+        ${PYTHON} -m src.pipelines.infer --config "${CONFIG}" "${@:3}"
         ;;
     *)
         echo "Error: Unknown stage '${STAGE}'. Allowed: clean-10k, block1, active-learning, generate, curate, mine, train, eval, infer."

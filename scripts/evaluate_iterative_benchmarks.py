@@ -193,10 +193,10 @@ def main() -> None:
         return
 
     models_to_eval = [
-        ("M0_baseline", ["experiments/checkpoints/baseline_d0_best.pt", "experiments/checkpoints/baseline_detector_best.pt"]),
-        ("M_rand", ["experiments/checkpoints/augmented_d1_best.pt", "experiments/checkpoints/detector_D1_random_best.pt"]),
-        ("M1_hard", ["experiments/checkpoints/hard_boosted_d2_best.pt", "experiments/checkpoints/detector_D2_hard_best.pt"]),
-        ("M2_adaptive", ["experiments/checkpoints/adaptive_d3_best.pt", "experiments/checkpoints/adaptive_d3.pt"]),
+        ("M0_baseline", ["experiments/checkpoints/baseline_d0_best.pt"]),
+        ("M_rand", ["experiments/checkpoints/active_learning_m1_best.pt", "experiments/checkpoints/augmented_d1_best.pt"]),
+        ("M1_hard", ["experiments/checkpoints/active_learning_m2_best.pt", "experiments/checkpoints/hard_boosted_d2_best.pt"]),
+        ("M2_adaptive", ["experiments/checkpoints/active_learning_m3_best.pt", "experiments/checkpoints/adaptive_d3_best.pt"]),
     ]
 
     metrics_dict: Dict[str, Dict[str, float]] = {}

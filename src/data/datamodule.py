@@ -17,7 +17,7 @@ class CVDataModule:
         batch_size: int = 32,
         num_workers: int = 4,
         pin_memory: bool = True,
-        image_size: tuple[int, int] = (224, 224),
+        image_size: tuple[int, int] = (512, 512),
     ) -> None:
         """Initialize CVDataModule.
 

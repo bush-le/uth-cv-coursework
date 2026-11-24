@@ -4,7 +4,7 @@
 <li><strong>Purpose</strong>: Hướng dẫn demo pretrained trên Kaggle, ghi rõ bằng chứng đã kiểm tra và phần chưa triển khai.</li>
 <li><strong>Overview Pipeline</strong>: Drive/local sources → chọn 3 ảnh → xem mask → ba native Diffusers pipelines → PNG + manifest + technical QA + gallery.</li>
 <li><strong>Detailed Plan</strong>: Chuẩn bị môi trường, dữ liệu, inference, kiểm tra artifacts, giới hạn và bước tiếp theo.</li>
-<li><strong>References</strong>: <a href="../PURPOSE.md">DEFINE</a>, <a href="../phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md">Phase 1</a>, <a href="../../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb">notebook</a>, <a href="../../configs/generation/kaggle_image_demo.yaml">config</a>.</li>
+<li><strong>References</strong>: <a href="../PURPOSE.md">DEFINE</a>, <a href="../phases/PHASE_01_DIFFUSION_SYNTHESIS_SPEC.md">Phase 1</a>, <code>SD_IMAGE_DEMO_KAGGLE.ipynb</code> (gói Kaggle ZIP), <a href="../../configs/generation/kaggle_image_demo.yaml">config</a>.</li>
 <li><strong>Created</strong>: 2026-11-09T13:24:35+07:00</li>
 <li><strong>Last Updated</strong>: 2026-11-09T13:24:35+07:00</li>
 </ul>
@@ -25,7 +25,7 @@
 <ol>
 <li>Tạo Kaggle Notebook Python, bật <strong>GPU</strong> và <strong>Internet</strong>.</li>
 <li>Upload gói <code>SD_IMAGE_DEMO_KAGGLE.zip</code> được bàn giao thành một <strong>Kaggle Dataset riêng tư</strong>, rồi attach Dataset vào notebook. Gói này chỉ chứa code/config/docs/notebook, không chứa weights hay ảnh thật.</li>
-<li>Import <a href="../../notebooks/SD_IMAGE_DEMO_KAGGLE.ipynb">SD_IMAGE_DEMO_KAGGLE.ipynb</a>.</li>
+<li>Import <code>SD_IMAGE_DEMO_KAGGLE.ipynb</code> (từ gói <code>SD_IMAGE_DEMO_KAGGLE.zip</code>).</li>
 <li>Chạy phần môi trường và chuẩn bị dữ liệu. Notebook giải nén source rồi chỉ cài <a href="../../requirements/notebook.txt">requirements/notebook.txt</a> vào kernel; <a href="../../src/pipelines/sd_demo_launcher.py">launcher</a> cài/chạy model trong venv worker, giữ torch/torchvision CUDA. Nếu đã chạy cell cũ cài generation.txt vào kernel, lưu outputs và tạo session Kaggle mới; restart kernel không hoàn tác pip. Không còn ép protobuf xuống dưới 6.</li>
 <li>Xem contact sheet nguồn/mask. Mask trắng là vùng sửa. Nếu lệch vùng miệng, sửa <code>mask_box_xyxy_normalized</code> hoặc thêm <code>mask_path</code> cho từng ảnh vào manifest trước khi inference.</li>
 <li>Chạy inference, xem gallery và tải ZIP artifacts ở cell cuối. Thời gian thật và GPU peak memory được ghi sau chạy; chưa có số đo tốc độ Kaggle trong báo cáo này.</li>

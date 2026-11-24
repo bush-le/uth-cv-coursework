@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 import torch
 import yaml
 
+from src.common.config import load_yaml_with_defaults
 from src.common.logger import get_logger
 from src.common.seed import seed_everything
 from src.data.image_datamodule import DeepfakeImageDataModule
@@ -67,9 +68,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_config(config_path: str) -> dict[str, Any]:
-    """Load YAML config safely."""
-    with open(config_path, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    """Load YAML config safely and resolve top-level Hydra-style defaults if present."""
+    return load_yaml_with_defaults(config_path)
 
 
 def build_stage_dataset(
@@ -183,7 +183,7 @@ def train_single_stage(
         "D0": "baseline_d0",
         "D1": "augmented_d1",
         "D2": "hard_boosted_d2",
-        "D3": "adaptive_d3",
+        "D3": "active_learning_m3",
     }
     ckpt_prefix = stage_prefix_map.get(stage_name, stage_name.lower())
 
@@ -265,7 +265,7 @@ def train_single_stage(
     if best_file.exists():
         import shutil
         shutil.copy2(best_file, alias_file)
-        ckpt = torch.load(best_file, map_location=device)
+        ckpt = torch.load(best_file, map_location=device, weights_only=False)
         if "model_state_dict" in ckpt:
             model.load_state_dict(ckpt["model_state_dict"])
 
@@ -298,7 +298,7 @@ def train_pipeline(
     pretrained = bool(cfg.get("detection", {}).get("model", {}).get("pretrained_backbone", True))
 
     paths_cfg = cfg.get("paths", {})
-    baseline_path = Path(paths_cfg.get("baseline_manifest", "data/01_raw_faces/raw_faces_manifest.jsonl"))
+    baseline_path = Path(paths_cfg.get("baseline_manifest", "data/raw/manifest.jsonl"))
     if not baseline_path.exists():
         baseline_path = Path("data/raw/manifest.jsonl")
 
@@ -313,9 +313,10 @@ def train_pipeline(
     log_dir.mkdir(parents=True, exist_ok=True)
 
     if stage_choice in ["D0", "D1", "D2"]:
-        hw = 2.0 if stage_choice == "D2" else 1.0
-        hof = 2 if stage_choice == "D2" else 1
-        unfreeze = 0 if stage_choice == "D0" else (1 if stage_choice == "D1" else 2)
+        t_cfg = cfg.get("training", {})
+        hw = float(t_cfg.get("hard_sample_loss_weight", 2.0)) if stage_choice == "D2" else 1.0
+        hof = int(t_cfg.get("hard_sample_oversample_factor", 2)) if stage_choice == "D2" else 1
+        unfreeze = 0 if stage_choice == "D0" else (1 if stage_choice == "D1" else int(t_cfg.get("unfreeze_last_n_blocks", 2)))
         meta_list = build_stage_dataset(stage_choice, baseline_path, syn_path, hard_path, max_real_samples)
         metrics = train_single_stage(
             stage_choice,

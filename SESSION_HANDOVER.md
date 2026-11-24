@@ -4,7 +4,7 @@
 - **Purpose**: Direct developers and AI pair programmers to the latest session blueprint at [docs/progress/SESSION_HANDOVER_2026_11_09.md](docs/progress/SESSION_HANDOVER_2026_11_09.md).
 - **Overview Pipeline**: See [docs/progress/SESSION_HANDOVER_2026_11_09.md](docs/progress/SESSION_HANDOVER_2026_11_09.md).
 - **Detailed Plan**: See [docs/progress/SESSION_HANDOVER_2026_11_09.md](docs/progress/SESSION_HANDOVER_2026_11_09.md).
-- **References**: [docs/progress/SESSION_HANDOVER_2026_11_09.md](docs/progress/SESSION_HANDOVER_2026_11_09.md), [GEMINI.md](GEMINI.md), [docs/PURPOSE.md](docs/PURPOSE.md).
+- **References**: [docs/progress/SESSION_HANDOVER_2026_11_09.md](docs/progress/SESSION_HANDOVER_2026_11_09.md), [AGENTS.md](AGENTS.md), [docs/PURPOSE.md](docs/PURPOSE.md).
 - **Created**: 2026-11-09T19:38:00+07:00
 - **Last Updated**: 2026-11-09T21:12:00+07:00
 
@@ -20,4 +20,4 @@
 3. **Hardened Curation Gate**: Enforces single-face detection and $0.20 \le \text{face\_area\_ratio} \le 0.80$, catching and rejecting 100% of miniature melted faces and framing artifacts.
 4. **Active Curation Replenishment**: Automatically regenerates replacement candidates with deterministic offsets until exact quota targets are fulfilled.
 5. **Block 1 Live Baseline Verified on CUDA**: Master Frozen Test Vault (identity-disjoint) and initial $D_0$ benchmark successfully packaged; Baseline Detector $M_0$ (DINOv2) fine-tuned and evaluated on RTX 3050.
-6. **Test Suite Status**: **125 / 125 unit tests passing** cleanly in 15.41s (`taskset -c 0-3 pytest`).
+6. **Test & Benchmark Status (2026-11-21 Update)**: **201 / 201 unit tests passing** cleanly via `make test` (`41 / 41` smoke tests via `make test-smoke`), and all official Quad-Vault / 6k RV5.1 / 20.4k Universal benchmarks standardized on `512→504px LANCZOS` (`M₃` achieves 93.13% Unseen RV5.1 Recall and 21.15% Universal Recall).

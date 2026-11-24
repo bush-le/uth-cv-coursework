@@ -96,4 +96,4 @@ python3 scripts/create_coursework_notebooks.py
 
 ## Kaggle image pilot
 
-[Notebook](notebooks/coursework/celeba-hq-df.ipynb) · [Guide](docs/reports/KAGGLE_SD_IMAGE_DEMO.md) · [HTML report](docs/reports/KAGGLE_SD_IMAGE_DEMO.html). Real T2I / img2img / inpainting; detector evaluation remains separate.
+[Legacy Kaggle Notebook](notebooks/coursework/legacy_v1/generator_realistic_vision_kaggle.ipynb) · [Guide](docs/reports/KAGGLE_SD_IMAGE_DEMO.md) · [HTML report](docs/reports/KAGGLE_SD_IMAGE_DEMO.html). Real T2I / img2img / inpainting; detector evaluation remains separate.

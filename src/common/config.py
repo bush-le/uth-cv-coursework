@@ -90,6 +90,32 @@ def cfg_get(cfg: Dict[str, Any], dotted_key: str) -> Any:
     return curr
 
 
+def load_yaml_with_defaults(path: Union[str, Path]) -> Dict[str, Any]:
+    """Load YAML config and recursively resolve Hydra-style top-level `defaults` entries."""
+    cfg_file = Path(path)
+    if not cfg_file.exists():
+        raise FileNotFoundError(f"Configuration file not found at: {cfg_file}")
+
+    with open(cfg_file, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+
+    defaults = cfg.get("defaults")
+    if not isinstance(defaults, list):
+        return cfg
+
+    merged: Dict[str, Any] = {}
+    for item in defaults:
+        if isinstance(item, dict):
+            for group, name in item.items():
+                sub_path = cfg_file.parent / str(group) / f"{name}.yaml"
+                if sub_path.is_file():
+                    merged[str(group)] = load_yaml_with_defaults(sub_path)
+    for k, v in cfg.items():
+        if k != "defaults":
+            merged[k] = v
+    return merged
+
+
 def resolve(cli_value: Optional[Any], cfg: Dict[str, Any], dotted_key: str) -> Any:
     """Resolve parameter precedence: use CLI override if provided, else fallback to config.
 

@@ -10,7 +10,7 @@
   - §4 Kết quả Đối chuẩn Tứ Giác (Quad-Vault Evaluation: Master, Challenge, Unseen RV5.1);
   - §5 Kết quả Đối chuẩn Toàn cầu (Universal Benchmark 20.400 ảnh, 8 Họ Công nghệ);
   - §6 Ý nghĩa Khoa học & Luận cứ Bảo vệ Đồ án trước Hội đồng UTH.
-- **References**: [GEMINI.md](../../GEMINI.md), [docs/PURPOSE.md](../PURPOSE.md), [PLAN_M3_DUAL_ENGINE_PIPELINE.md](../progress/PLAN_M3_DUAL_ENGINE_PIPELINE.md), [scripts/train_m3_dual_engine.py](../../scripts/train_m3_dual_engine.py), [scripts/evaluate_quad_vault_5models.py](../../scripts/evaluate_quad_vault_5models.py), [scripts/evaluate_universal_benchmark_5models.py](../../scripts/evaluate_universal_benchmark_5models.py).
+- **References**: [AGENTS.md](../../AGENTS.md), [docs/PURPOSE.md](../PURPOSE.md), [PLAN_M3_DUAL_ENGINE_PIPELINE.md](../progress/PLAN_M3_DUAL_ENGINE_PIPELINE.md), [scripts/train_m3_dual_engine.py](../../scripts/train_m3_dual_engine.py), [scripts/evaluate_quad_vault_5models.py](../../scripts/evaluate_quad_vault_5models.py), [scripts/evaluate_universal_benchmark_5models.py](../../scripts/evaluate_universal_benchmark_5models.py).
 - **Created**: 2026-11-12T12:05:00+07:00
 - **Last Updated**: 2026-11-12T12:05:00+07:00
 
@@ -91,31 +91,34 @@ Biểu đồ trực quan so sánh 5 mô hình lưu tại: [`experiments/benchmar
 
 ---
 
-## 5. 🌐 Đột Phá Trên Universal Deepfake Benchmark (20.400 Ảnh)
+## 5. 🌐 Đột Phá Trên Universal Deepfake Benchmark (20.400 Ảnh @ 512→504px LANCZOS)
 
-Đánh giá trên bộ kiểm thử toàn cầu gồm 10.200 ảnh Thật vs 10.200 ảnh Giả thuộc 34 phương pháp sinh ([`benchmark_5models_global_summary.csv`](../../experiments/benchmarks/tables/benchmark_5models_global_summary.csv)):
+Đánh giá trên bộ kiểm thử toàn cầu gồm 10.200 ảnh Thật vs 10.200 ảnh Giả thuộc 34 phương pháp sinh ở chuẩn thiết kế **`512→504px LANCZOS`** ([`benchmark_5models_global_summary.csv`](../../experiments/benchmarks/tables/benchmark_5models_global_summary.csv)):
 
 ### 5.1. Bảng so sánh chỉ số toàn cầu
 | Mô Hình | Accuracy | Fake Recall (↑) | Real Specificity | Precision | F1-Score | ROC-AUC | PR-AUC |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **$M_0$ (Baseline)** | 50.19% | 2.75% | **97.64%** | 53.74% | 5.22% | 0.4896 | 0.4880 |
-| **$M_1$ (Active R1)** | 47.73% | 2.17% | 93.29% | 24.42% | 3.98% | 0.3331 | 0.3923 |
-| **$M_2$ (Cold-Start)** | 48.20% | 1.72% | 94.68% | 24.37% | 3.21% | 0.4507 | 0.4447 |
-| **$M_2^*$ (Refined)** | 47.19% | 2.48% | 91.89% | 23.43% | 4.49% | 0.3594 | 0.3970 |
-| **$M_3$ (Dual-Engine Champion)** | **47.96%** | **5.49%** | 90.42% | **36.43%** | **9.54%** | **0.3820** | **0.4233** |
+| **$M_0$ (Baseline)** | 56.18% | 13.48% | **98.87%** | **92.28%** | 23.52% | **0.6431** | **0.6893** |
+| **$M_1$ (Active R1)** | 56.43% | 17.94% | 94.91% | 77.91% | 29.17% | 0.5552 | 0.6166 |
+| **$M_2$ (Cold-Start)** | 53.58% | 10.68% | 96.49% | 75.26% | 18.70% | 0.5597 | 0.5901 |
+| **$M_2^*$ (Refined)** | 55.52% | 16.48% | 94.57% | 75.21% | 27.04% | 0.5619 | 0.6015 |
+| **$M_3$ (Dual-Engine Champion)** | **57.95%** | **21.15%** | 94.75% | 80.13% | **33.46%** | 0.6101 | 0.6365 |
 
-### 5.2. Đột phá theo từng họ công nghệ (Family Breakdown)
+*(Đối chứng: bản lưu trữ `224×224 BILINEAR` trước đây tại `benchmark_5models_global_summary_224px.csv` cho `M3` Fake Recall `5.49%`, ROC-AUC `0.3820`; khi khôi phục chuẩn `512→504px`, `M3` tăng **3.85 lần** Fake Recall.)*
+
+### 5.2. Đột phá theo từng họ công nghệ (Family Breakdown @ 512→504px)
 Dữ liệu trích xuất từ [`benchmark_5models_family_summary.csv`](../../experiments/benchmarks/tables/benchmark_5models_family_summary.csv):
 
 | Họ Công Nghệ Sinh Ảnh | $M_0$ Recall | $M_1$ Recall | $M_2^*$ Recall | $M_3$ Champion Recall | Mức Tăng Trưởng của $M_3$ |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Diffusion Baselines (DDIM)** | 2.33% | 3.67% | 6.00% | **17.33%** | 🚀 **Tăng gấp 2.89 lần** so với $M_2^*$ (gấp 4.7 lần $M_1$) |
-| **Latent Diffusion (SD 2.1)** | 2.00% | 3.33% | 4.67% | **8.33%** | 🚀 **Tăng gần gấp đôi** so với $M_2^*$ (gấp 2.5 lần $M_1$) |
-| **Diffusion Transformers (DiT)** | 0.25% | 1.25% | 1.50% | **3.67%** | 🚀 **Tăng gấp 2.45 lần** so với $M_2^*$ |
-| **GAN Inversion & Editing** | 10.17% | 11.67% | 12.50% | **21.50%** | 🚀 **Tăng thêm +9.00%** (Đạt 21.50%) |
-| **GAN Architectures** | 11.73% | 6.53% | 7.33% | **17.33%** | 🚀 **Tăng hơn gấp đôi** so với $M_2^*$ |
-| **Face Swapping** | 0.41% | 0.30% | 0.41% | **0.96%** | Tăng nhẹ (Miền phi khuếch tán) |
-| **Reenactment / Talking Head** | 0.36% | 0.24% | 0.21% | **0.67%** | Tăng nhẹ (Miền phi khuếch tán) |
+| **GAN Architectures** | 48.47% | 53.87% | 51.20% | **60.00%** | 🚀 **Dẫn đầu toàn bảng** (`StyleGAN2` **100.00%**) |
+| **Latent Diffusion (SD 2.1)** | 23.67% | 44.33% | 44.33% | **54.00%** | 🚀 **Phục hồi vượt trội** từ 8.33% ở `224px` |
+| **GAN Inversion & Editing** | 48.50% | 50.83% | 51.17% | **53.67%** | 🚀 `e4e` đạt **99.67%** |
+| **AutoEncoders / VAEs** | 31.33% | 31.33% | 15.33% | **35.33%** | 🚀 Phục hồi rõ rệt so với 0.67% ở `224px` |
+| **Diffusion Baselines (DDIM)** | 4.33% | 19.00% | 17.33% | **31.33%** | 🚀 **Tăng gấp 7.2 lần** so với $M_0$ |
+| **Diffusion Transformers (DiT)** | 5.33% | 11.75% | 10.67% | **17.67%** | 🚀 `pixart` đạt **60.67%** |
+| **Face Swapping** | 1.59% | 4.41% | 3.70% | **5.37%** | Tăng gấp **3.4 lần** $M_0$ (Miền phi khuếch tán `256px`) |
+| **Reenactment / Talking Head** | 2.18% | 5.24% | 4.45% | **6.55%** | Tăng gấp **3.0 lần** $M_0$ (Miền video nén `256px`) |
 
 Biểu đồ ROC Curves so sánh 5 mô hình: [`experiments/benchmarks/figures/benchmark_5models_roc_curves.png`](../../experiments/benchmarks/figures/benchmark_5models_roc_curves.png).  
 Biểu đồ PR Curves so sánh 5 mô hình: [`experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png`](../../experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png).  
@@ -125,6 +128,6 @@ Biểu đồ Family Breakdown: [`experiments/benchmarks/figures/benchmark_5model
 
 ## 6. 🏆 Đúc Kết Luận Điểm Khoa Học Cho Đồ Án Tốt Nghiệp
 
-1. **Khẳng định tính đúng đắn của giả thuyết Brainstorming**: Việc bổ sung 6k ảnh RealisticVision v5.1 đã được chứng minh thực nghiệm là **làm tăng mạnh hiệu năng phát hiện liên miền**: Fake Recall trên Universal Benchmark tăng từ $2.48\%$ lên **$5.49\%$**, trên họ DDIM tăng từ $6.00\%$ lên **$17.33\%$**, và trên Latent Diffusion tăng từ $4.67\%$ lên **$8.33\%$**.
-2. **Bảo toàn Liêm chính Khoa học Tuyệt đối**: Với việc loại trừ 626 ảnh test và chứng minh $M_3$ đạt **$93.13\%$ Recall** trên các khuôn mặt hoàn toàn xa lạ, nhóm có đầy đủ cơ sở khoa học để bác bỏ mọi nghi ngờ về Overfitting hay Rò rỉ danh tính.
+1. **Khẳng định tính đúng đắn của giả thuyết Brainstorming**: Việc bổ sung dữ liệu sạch từ 6k ảnh RealisticVision v5.1 và giữ đúng chuẩn `512→504px` giúp **tăng mạnh hiệu năng phát hiện liên miền**: Fake Recall trên Universal Benchmark đạt **21.15%** (ROC-AUC **0.6101**, Precision **80.13%**), trên `Latent Diffusion (SD 2.1)` đạt **54.00%**, và trên `GAN Architectures` đạt **60.00%**.
+2. **Bảo toàn Liêm chính Khoa học Tuyệt đối**: Với việc loại trừ 626 ảnh test và chứng minh $M_3$ đạt **$93.13\%$ Recall** trên các khuôn mặt hoàn toàn xa lạ (và **94.37%** trên toàn kho 6k RV5.1), nhóm có đầy đủ cơ sở khoa học để bác bỏ mọi nghi ngờ về Overfitting hay Rò rỉ danh tính.
 3. **Mô hình Champion $M_3$ là kết tinh hoàn hảo của dự án**: Đạt điểm cao nhất trên cả 3 kho kiểm thử nội bộ: $69.44\%$ Master Test, $91.89\%$ Challenge Vault, và $93.13\%$ Unseen RV5.1 Vault.

@@ -11,14 +11,14 @@
   - §5 Code Remediations & Production Hardening Patches
   - §6 Verification Checklist & Pre-Execution Run Command
 - **References**:
-  - [`GEMINI.md`](GEMINI.md)
-  - [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](.agents/rules/ZERO_MOCK_DATA_RULE.md)
-  - [`scripts/run_clean_10k_production_pipeline.py`](scripts/run_clean_10k_production_pipeline.py)
-  - [`scripts/run_pipeline.sh`](scripts/run_pipeline.sh)
-  - [`Makefile`](Makefile)
-  - [`src/pipelines/generate_deepfake_images.py`](src/pipelines/generate_deepfake_images.py)
-  - [`src/models/diffusion/stable_diffusion_engine.py`](src/models/diffusion/stable_diffusion_engine.py)
-  - [`src/common/device.py`](src/common/device.py)
+  - [`GEMINI.md`](../../AGENTS.md)
+  - [`.agents/rules/ZERO_MOCK_DATA_RULE.md`](../../.agents/rules/ZERO_MOCK_DATA_RULE.md)
+  - [`scripts/run_clean_10k_production_pipeline.py`](../../scripts/run_clean_10k_production_pipeline.py)
+  - [`scripts/run_pipeline.sh`](../../scripts/run_pipeline.sh)
+  - [`Makefile`](../../Makefile)
+  - [`src/pipelines/generate_deepfake_images.py`](../../src/pipelines/generate_deepfake_images.py)
+  - [`src/models/diffusion/stable_diffusion_engine.py`](../../src/models/diffusion/stable_diffusion_engine.py)
+  - [`src/common/device.py`](../../src/common/device.py)
 - **Created**: 2026-11-10T08:30:00+07:00
 - **Last Updated**: 2026-11-10T08:30:00+07:00
 
@@ -92,7 +92,7 @@ flowchart TD
    - **`PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"`**:
      In PyTorch 2.0+, `expandable_segments:True` utilizes the CUDA Virtual Memory Management API (`cuMemCreate`, `cuMemMap`). Rather than requiring contiguous physical allocations, PyTorch maps non-contiguous physical pages into contiguous virtual memory addresses, completely eliminating virtual fragmentation crashes.
    - **Cadenced Cache Flushing**:
-     In [`src/pipelines/generate_deepfake_images.py`](src/pipelines/generate_deepfake_images.py), garbage collection and cache clearance are currently only invoked once after *all* samples finish (line 434).
+     In [`src/pipelines/generate_deepfake_images.py`](../../src/pipelines/generate_deepfake_images.py), garbage collection and cache clearance are currently only invoked once after *all* samples finish (line 434).
      Enforce a cadence of `gc.collect()` and `torch.cuda.empty_cache()` every **50 samples** in the loop.
 
 ### 2.3 Guaranteeing Zero Progress Loss at Sample 4,500
@@ -165,7 +165,7 @@ tmpfs           6.8G  777M  6.0G  12% /tmp (User Quota: 5,526 MB)
 A forensic scan of the codebase and standard deep learning dependencies revealed 5 distinct leakage vectors into `/tmp`:
 
 1. **Python `tempfile` Module Initialization Order**:
-   In [`scripts/run_clean_10k_production_pipeline.py`](scripts/run_clean_10k_production_pipeline.py) lines 39–41:
+   In [`scripts/run_clean_10k_production_pipeline.py`](../../scripts/run_clean_10k_production_pipeline.py) lines 39–41:
    ```python
    cache_tmp = Path(".cache/tmp").resolve()
    cache_tmp.mkdir(parents=True, exist_ok=True)
@@ -193,7 +193,7 @@ A forensic scan of the codebase and standard deep learning dependencies revealed
    Matplotlib defaults to `$HOME/.config/matplotlib` or `/tmp`.
    *Remediation*: Export `MPLCONFIGDIR="${WORKSPACE_DIR}/.cache/tmp/matplotlib"`.
 5. **Makefile Invocations**:
-   The current [`Makefile`](Makefile) executes `pytest tests/` and `bash scripts/run_pipeline.sh` without setting `TMPDIR`. Running pytest generates temporary test directories in `/tmp/pytest-of-<user>/`.
+   The current [`Makefile`](../../Makefile) executes `pytest tests/` and `bash scripts/run_pipeline.sh` without setting `TMPDIR`. Running pytest generates temporary test directories in `/tmp/pytest-of-<user>/`.
    *Remediation*: Prepend `export TMPDIR` to the Makefile configuration.
 
 ---
@@ -302,7 +302,7 @@ torch.set_num_threads(4)
 
 ### 5.2 Patch for `scripts/run_pipeline.sh`
 
-Update [`scripts/run_pipeline.sh`](scripts/run_pipeline.sh) to include full path hardening, thread constraints, memory allocator configuration, and process niceness:
+Update [`scripts/run_pipeline.sh`](../../scripts/run_pipeline.sh) to include full path hardening, thread constraints, memory allocator configuration, and process niceness:
 
 ```bash
 #!/usr/bin/env bash
@@ -336,7 +336,7 @@ RUN_PREFIX="nice -n 10 taskset -c 0-3"
 
 ### 5.3 Patch for `Makefile`
 
-Update [`Makefile`](Makefile) to export `TMPDIR` and thread variables across all test and run recipes:
+Update [`Makefile`](../../Makefile) to export `TMPDIR` and thread variables across all test and run recipes:
 
 ```makefile
 export TMPDIR := $(CURDIR)/.cache/tmp
@@ -354,7 +354,7 @@ run-clean-10k:
 
 ### 5.4 Patch for `src/pipelines/generate_deepfake_images.py`
 
-Modify candidate generation in [`src/pipelines/generate_deepfake_images.py`](src/pipelines/generate_deepfake_images.py):
+Modify candidate generation in [`src/pipelines/generate_deepfake_images.py`](../../src/pipelines/generate_deepfake_images.py):
 1. **Periodic VRAM cleanup**: Call `gc.collect()` and `torch.cuda.empty_cache()` every 50 iterations.
 2. **Atomic file saves**: Save to `.tmp.png` and rename via `os.replace`.
 3. **Streaming manifest flush**: Open manifest in append mode and flush per sample.

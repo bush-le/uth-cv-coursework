@@ -15,7 +15,8 @@ Generates docs/reports/presentation_final_acceptance.html with embedded real vis
 from pathlib import Path
 import re
 
-OUTPUT_PATH = Path("docs/reports/presentation_final_acceptance.html")
+# Legacy presentation builder; keep separate from active presentation_final_acceptance.html
+OUTPUT_PATH = Path("docs/reports/presentation_final_acceptance_legacy.html")
 
 def build_presentation_html() -> str:
     base_file = Path("docs/reports/presentation_5min_define_and_design.html")
@@ -341,7 +342,7 @@ def build_presentation_html() -> str:
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
                   <span style="font-weight: 700; font-size: 13px; color: var(--primary);">🎯 Hướng giải quyết của Đề Tài 11:</span>
                   <p style="font-size: 12px; color: var(--text); margin-top: 4px;">
-                    Thiết lập chu trình <strong>Active Learning khép kín</strong>: Khai phá 740 ca biên khó $\to$ Tinh chỉnh phân tầng Block 11 DINOv2 $\to$ Đẩy lùi đường biên quyết định $\to$ Chế ngự toàn diện các mẫu giả mạo tinh vi.
+                    Thiết lập chu trình <strong>Active Learning khép kín</strong>: Khai phá 740 ca biên khó → Tinh chỉnh phân tầng Block 11 DINOv2 → Đẩy lùi đường biên quyết định → Chế ngự toàn diện các mẫu giả mạo tinh vi.
                   </p>
                 </div>
               </div>
@@ -423,8 +424,8 @@ def build_presentation_html() -> str:
                   </tr>
                   <tr>
                     <td><strong>2. CurationGate</strong></td>
-                    <td>Lọc 3 tầng Landmark/Gamut</td>
-                    <td>Dlib 68 + YCbCr + pHash/SSIM; 100% sạch trùng lặp</td>
+                    <td>Lọc 3 tầng Hình học/Quang học/Hash</td>
+                    <td>OpenCV Haar + Laplacian phân vị 5% + SHA-256; 100% sạch trùng lặp</td>
                     <td><span class="badge-success">✓ ĐẠT 100%</span></td>
                   </tr>
                   <tr class="highlight-champion">
@@ -462,7 +463,7 @@ def build_presentation_html() -> str:
                 <span class="panel-badge badge-champion">BENCHMARK FIGURE</span>
               </div>
               <div class="artifact-img-box">
-                <img src="assets/benchmarks/benchmark_4models_global_comparison.png" class="artifact-img" alt="Global Comparison Benchmark Chart">
+                <img src="assets/benchmarks/benchmark_5models_global_comparison.png" class="artifact-img" alt="Global Comparison Benchmark Chart">
               </div>
             </div>
           </div>
@@ -620,24 +621,24 @@ def build_presentation_html() -> str:
                 <span class="intent-index">TẦNG 1</span>
                 <span class="intent-role">HÌNH HỌC KHUÔN MẶT</span>
               </div>
-              <h3>Dlib 68 Facial Landmarks</h3>
-              <p>Lọc ảnh không tìm thấy mặt, lệch góc nghiêng > ±45°, chuẩn hóa kích thước 224x224.</p>
+              <h3>OpenCV Haar &amp; Kiểm Định Hình Học</h3>
+              <p>Lọc ảnh không thấy mặt hoặc đa mặt, tỷ lệ mặt 20%–65% khung, chuẩn hóa kích thước 512×512 (DINOv2 snap 504×504).</p>
             </div>
             <div class="intent-card">
               <div class="intent-card-top">
                 <span class="intent-index">TẦNG 2</span>
-                <span class="intent-role">SẮC KÝ & ĐỘ NÉT</span>
+                <span class="intent-role">QUANG HỌC &amp; ĐỘ NÉT</span>
               </div>
-              <h3>YCbCr & Laplacian Variance</h3>
-              <p>135 ≤ Cr ≤ 180, 85 ≤ Cb ≤ 135; Var ≥ 100 loại trừ 100% ảnh mờ nhòe và sai giải phẫu da.</p>
+              <h3>Laplacian Adaptive Quantile (q=5%)</h3>
+              <p>Đo biến sai Laplacian (×1000 ≥ 1.25) hiệu chỉnh theo phân vị 5% ảnh thật, kiểm tra cháy sáng &amp; vết cắt ngang.</p>
             </div>
             <div class="intent-card">
               <div class="intent-card-top">
                 <span class="intent-index">TẦNG 3</span>
                 <span class="intent-role">CHỐNG TRÙNG LẶP</span>
               </div>
-              <h3>pHash & SSIM ≤ 0.85</h3>
-              <p>Khoảng cách Hamming pHash ≥ 8, SSIM ≤ 0.85 đảm bảo 0 bản sao trùng lặp trong tập huấn luyện.</p>
+              <h3>SHA-256 Exact &amp; Embedding Diversity</h3>
+              <p>Khử trùng lặp băm SHA-256 kết hợp khoảng cách Cosine ≥ 0.05 đảm bảo 0 bản sao trùng lặp trong tập huấn luyện.</p>
             </div>
           </div>
         </div>
@@ -720,7 +721,7 @@ def build_presentation_html() -> str:
                 </div>
 
                 <div style="text-align: center; font-size: 11px; color: var(--text-muted);">
-                  Tổng số mẫu khó khai phá: <strong>740 mẫu</strong> $\to$ Khóa cứng <strong>213 mẫu độc lập</strong> làm Challenge Vault!
+                  Tổng số mẫu khó khai phá: <strong>740 mẫu</strong> → Khóa cứng <strong>213 mẫu độc lập</strong> làm Challenge Vault!
                 </div>
               </div>
             </div>
@@ -1046,7 +1047,7 @@ def build_presentation_html() -> str:
                 <span class="panel-badge badge-champion">34-METHOD HEATMAP FIGURE</span>
               </div>
               <div class="artifact-img-box">
-                <img src="assets/benchmarks/benchmark_4models_method_heatmap.png" class="artifact-img" alt="Universal Benchmark 34-Method Heatmap">
+                <img src="assets/benchmarks/benchmark_5models_method_heatmap.png" class="artifact-img" alt="Universal Benchmark 34-Method Heatmap">
               </div>
             </div>
 
@@ -1065,10 +1066,10 @@ def build_presentation_html() -> str:
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
-                  <span style="font-weight: 700; font-size: 12px; color: var(--primary);">Khảo sát ngưỡng vận hành eKYC Ngân hàng (FPR ≤ 1.0%):</span>
+                  <span style="font-weight: 700; font-size: 12px; color: var(--primary);">Khảo sát ngưỡng vận hành eKYC Ngân hàng (@ 512→504px):</span>
                   <div style="font-size: 11px; color: var(--text); margin-top: 4px; line-height: 1.5;">
-                    • Tại ngưỡng khắt khe chỉ cho phép tối đa 1% người thật bị giữ lại xác minh, mô hình Champion M3 đạt Fake Recall <strong>74.2%</strong> (gấp 2.3 lần mức 31.8% của M0 Baseline).<br>
-                    • Duy trì Real Specificity toàn cục đạt <strong>90.42%</strong>, đảm bảo trải nghiệm thông suốt cho khách hàng thật.
+                    • Tại ngưỡng mặc định <code>τ = 0.50</code>: M3 đạt Fake Recall toàn cầu <strong>21.15%</strong> (SD 2.1: <strong>54.00%</strong>, GAN: <strong>60.00%</strong>), Real Spec <strong>94.75%</strong>; nâng ngưỡng <code>τ = 0.85</code> hạ FPR trên video FF++ C23 còn <strong>2.54%</strong>.<br>
+                    • Tại ngưỡng cực gắt <code>FPR ≤ 1.0%</code> (<code>τ = 0.971</code>): Fake Recall đạt <strong>13.38%</strong> (M0 tại <code>τ = 0.573</code>: 13.07%) — thể hiện trung thực khoảng trống miền Zero-Shot ngoài Diffusion.
                   </div>
                 </div>
               </div>
@@ -1143,7 +1144,7 @@ def build_presentation_html() -> str:
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; font-family: var(--font-mono); font-size: 11px;">
                     <div style="background: var(--surface-soft); padding: 8px; border-radius: 4px;">Tốc Độ: ~18.5 ms/ảnh</div>
                     <div style="background: var(--surface-soft); padding: 8px; border-radius: 4px;">Bộ Nhớ: &lt; 1.2 GB VRAM</div>
-                    <div style="background: var(--surface-soft); padding: 8px; border-radius: 4px;">Độ Phân Giải: 224x224</div>
+                    <div style="background: var(--surface-soft); padding: 8px; border-radius: 4px;">Độ Phân Giải: 512→504px</div>
                     <div style="background: var(--surface-soft); padding: 8px; border-radius: 4px;">Kích Thước: 22M Params</div>
                   </div>
                 </div>

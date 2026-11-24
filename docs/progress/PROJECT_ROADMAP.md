@@ -15,24 +15,24 @@
 | Mốc | Tên Công Việc | Nội Dung Thực Hiện Kỹ Thuật | Sản Phẩm Đầu Ra | Trạng Thái |
 | :--- | :--- | :--- | :--- | :---: |
 | **`M0`** | Chốt đề bài & thiết kế hệ thống | Tiếp thu phản hồi hội đồng UTH: Chuyển dịch trọng tâm sang SD Inpainting $\to$ DINOv2 $\to$ Hard Mining $\to$ Active Learning. | Tài liệu thiết kế & Slide thuyết trình | `[x]` Đạt |
-| **`M1`** | Chuẩn bị đa tạp ảnh thật (Real Manifold) | Tuyển chọn 10.000 ảnh từ FFHQ & CelebA-HQ, trích xuất 68 landmarks, kiểm định tính chính diện và phổ màu da. | Manifest ảnh thật 4.000 mẫu chuẩn (`manifest.jsonl`) | `[x]` Đạt |
-| **`M2`** | Động cơ sinh ảnh Stable Diffusion v1.5 | Triển khai 3 phương thái sinh: `sd_inpaint`, `sd_img2img`, `sd_text2img`, áp dụng Soft-Mask Feathering ($\sigma=4.0$). | 2.745 ảnh sinh thô | `[x]` Đạt |
-| **`M3`** | Lọc chất lượng tự động 3 tầng (CurationGate) | Áp dụng Face Detection ($\ge 0.85$), Laplacian Sharpness ($\ge 15.0$), CLIP-IQA ($\ge 0.60$) để triệt tiêu dị tật thô. | 2.200 ảnh sinh đạt chuẩn (`curated_manifest.jsonl`) | `[x]` Đạt |
-| **`M4`** | Khai thác mẫu cực khó (Hard Sample Mining) | Cô lập các mẫu nằm sát ranh giới quyết định ($|P-0.5| \le 0.15$) và các mẫu vi phạm độ tự tin cao. | 740 mẫu khó khai thác, 213 mẫu Challenge Vault | `[x]` Đạt |
+| **`M1`** | Chuẩn bị đa tạp ảnh thật (Real Manifold) | Tuyển chọn 4.000 ảnh từ FFHQ & CelebA-HQ, kiểm định hình học khuôn mặt (`OpenCV Haar`) và phổ màu da. | Manifest ảnh thật 4.000 mẫu chuẩn (`manifest.jsonl`) | `[x]` Đạt |
+| **`M2`** | Động cơ sinh ảnh Stable Diffusion v1.5 | Triển khai 3 phương thái sinh: `sd_inpaint`, `sd_img2img`, `sd_text2img`, áp dụng Soft-Mask Feathering (`blur_radius = 18–20`). | 2.745 ảnh thô $D_0$ (tổng 6.545 thô SD 1.5) | `[x]` Đạt |
+| **`M3`** | Lọc chất lượng tự động 3 tầng (`CurationGate`) | Áp dụng `OpenCV Haar` + `verify_facial_geometry`, Laplacian hiệu chỉnh phân vị `q=5%` (`≥ 1.25`), và băm nội dung `SHA-256`. | 2.200 ảnh $D_0$ (tổng 5.251 ảnh sạch SD 1.5) | `[x]` Đạt |
+| **`M4`** | Khai thác mẫu cực khó (Hard Sample Mining) | Cô lập các mẫu bỏ lọt FN và ranh giới mơ hồ ($|P-0.5| \le 0.10$) sau hiệu chuẩn nhiệt độ `T = 1.9831`. | 740 mẫu khó (629 train + 111 vào 213 Challenge Vault) | `[x]` Đạt |
 | **`M5`** | Phân vùng dữ liệu khóa danh tính (Identity-Disjoint) | Chia tập Train (2.813), Val (598), Test (589) đảm bảo cùng một người không bao giờ xuất hiện ở cả hai bên. | 100% Zero Leakage Asserted | `[x]` Đạt |
-| **`M6`** | Huấn luyện mô hình cơ sở & tiến hóa $M_0 \to M_1$ | Huấn luyện DINOv2 trên $D_0$ (AUC: 0.9327), nạp 120 mẫu khó huấn luyện $M_1$ (AUC: 0.9445). | Checkpoints `baseline_d0_best.pt`, `active_learning_m1_best.pt` | `[x]` Đạt |
+| **`M6`** | Huấn luyện mô hình cơ sở & tiến hóa $M_0 \to M_1$ | Huấn luyện DINOv2 trên $D_0$ (Master Recall 49.07%), nạp mẫu khó huấn luyện $M_1$ (Challenge Recall 70.27%, AUC 0.9655). | Checkpoints `baseline_d0_best.pt`, `active_learning_m1_best.pt` | `[x]` Đạt |
 | **`M7`** | Báo cáo kiến trúc ban đầu & Slide 5 phút | Tổng hợp báo cáo kiến trúc hệ thống 3 bước và slide HTML tương tác tỷ lệ 16:9. | Bộ slide HTML và kịch bản bảo vệ | `[x]` Đạt |
-| **`M8`** | Triệt tiêu Mock Data & Tích hợp DINOv2 Production | Xóa bỏ hoàn toàn mã giả/mock data, xác thực 15 checkpoint PyTorch thực tế, huấn luyện mô hình Champion $M_2^*$. | Checkpoint $M_2^*$ (Challenge Acc: 94.84%) | `[x]` Đạt |
-| **`M9`** | Đa tạp khuếch tán kép (Dual-Engine Diffusion) | Tích hợp RealisticVision v5.1 làm động cơ thứ hai, đối đầu kết cấu vi thể da với SD 1.5. | Danh mục ảnh kép & bảng so sánh danh mục | `[x]` Đạt |
-| **`M10`** | Kiểm định ngoại lai 6.000 ảnh (OOD Blind Transfer) | Kiểm thử mù detectors trên 6.000 ảnh RealisticVision v5.1: $M_0$ đạt 68.4%, $M_2^*$ nhảy vọt lên 89.1%. | `experiments/logs/legacy_6k_benchmark_results.json` | `[x]` Đạt |
-| **`M11`** | Universal Deepfake Benchmark (20.400 ảnh) | Sát hạch trên 34 thuật toán sinh, 5 họ mô hình (GAN, Diffusion, Swap, Inpaint, Talking Head). | $M_2^*$ đạt 82.4% Accuracy, 0.897 AUC | `[x]` Đạt |
-| **`M12`** | Chuẩn hóa bộ 8 Notebook & Master Visual Showcase | Xây dựng Notebook 00 Master Showcase (67 cells) và tái cấu trúc toàn bộ 8 notebooks chạy 100% không lỗi. | 8 Coursework Notebooks hoàn hảo không cell rỗng | `[x]` Đạt |
+| **`M8`** | Triệt tiêu Mock Data & Tích hợp DINOv2 Production | Xóa bỏ hoàn toàn mã giả/mock data, xác thực 15 checkpoint PyTorch thực tế, huấn luyện mô hình Warm-Start $M_2^*$. | Checkpoint $M_2^*$ (Challenge Recall: 91.89%, Acc: 93.90%) | `[x]` Đạt |
+| **`M9`** | Đa tạp khuếch tán kép (Dual-Engine Diffusion) | Tích hợp RealisticVision v5.1 làm động cơ thứ hai, cách ly 626 test + 600 val, huấn luyện Champion $M_3$ trên $D_3$ (5.626 ảnh). | Checkpoint $M_3$ (Unseen RV5.1 Recall: 93.13%, AUC: 0.9828) | `[x]` Đạt |
+| **`M10`** | Kiểm định ngoại lai 6.000 ảnh RV5.1 (`512→504px`) | Kiểm thử mù 5 model trên 6.000 ảnh RealisticVision v5.1: $M_0$ 75.20%, $M_2^*$ 80.13%, $M_3$ **94.37%**. | `experiments/logs/legacy_6k_benchmark_results.json` | `[x]` Đạt |
+| **`M11`** | Universal Deepfake Benchmark (20.400 ảnh @ `504px`) | Sát hạch trên 34 thuật toán sinh, **8 họ công nghệ** (`StyleGAN2` 100%, `SD 2.1` 54.00%, `GAN` 60.00%). | $M_3$ đạt 21.15% Fake Recall, 94.75% Spec, 0.6101 AUC | `[x]` Đạt |
+| **`M12`** | Chuẩn hóa Bộ 4 Unified Coursework Notebooks | Hợp nhất kho notebook thành 4 chương chuẩn `00..03` (< 2.5 MB/file, lưu `legacy_v1/` riêng) với output thực chứng 100%. | 4 Unified Coursework Notebooks (0 cell lỗi) | `[x]` Đạt |
 
 ---
 
 ## 2. Tiêu Chuẩn Nghiệm Thu & Kiểm Chuẩn Chất Lượng Kỹ Thuật
 
-1. **Kiểm thử tự động:** `make test-smoke` (12/12 passing trong < 6 giây) và `make test` (100% passing).
+1. **Kiểm thử tự động:** `make test-smoke` (`41 passed` trong ~5 giây) và `make test` (`201 passed`, 100% passing).
 2. **Toàn vẹn số liệu:** 100% không mock data, không uninitialized random weights, 15 checkpoint PyTorch thực tế.
 3. **Tiêu chuẩn Notebook:** 0 cell code rỗng, 0 cell thiếu output, 0 bare `plt.show()`, 100% hàm gọi từ `src.common.visualizer`.
 4. **Tiêu chuẩn Markdown:** 100% file `.md` đặt tên UPPERCASE/UPPER_SNAKE_CASE, mở đầu bằng header 7 trường bắt buộc, không chứa đường dẫn tuyệt đối hệ thống cá nhân.

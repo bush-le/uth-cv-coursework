@@ -41,7 +41,7 @@ Trong đề tài này, **Nhóm 4** khai thác Stable Diffusion để tạo ra 3 
    - Dùng mặt nạ nhị phân khoanh vùng mắt, mũi hoặc miệng trên ảnh mặt người thật, sau đó dùng Stable Diffusion vẽ lại riêng vùng đó theo biểu cảm mới.
    - *Tác dụng*: Giữ nguyên 100% hình dáng đầu, tóc và nền thật, chỉ làm giả một phần khuôn mặt. Đây là dạng dữ liệu giả tinh vi nhất, đánh trúng điểm mù của các mô hình phát hiện.
 3. **Dạng 3: `Image-to-Image (Img2Img)` — Biến đổi diện mạo giữ khung hình học (`sd_img2img`)**:
-   - Đưa ảnh khuôn mặt thật vào không gian tiềm ẩn, cộng thêm nhiễu nhẹ và hướng dẫn Stable Diffusion thay đổi thuộc tính (trẻ hóa, già đi, đổi ánh sáng) nhưng giữ nguyên khung 5 điểm mốc (2 mắt, mũi, 2 khóe miệng).
+   - Đưa ảnh khuôn mặt thật vào không gian tiềm ẩn, cộng thêm nhiễu nhẹ và hướng dẫn Stable Diffusion thay đổi thuộc tính (trẻ hóa, già đi, đổi ánh sáng) nhưng giữ nguyên cấu trúc khung khuôn mặt gốc (`OpenCV Haar` ROI).
    - *Tác dụng*: Tạo ra các cặp ảnh đối chứng (Gốc vs. Biến đổi), giúp mô hình học cách phân biệt sự thay đổi cấu trúc bề mặt da.
 
 ---

@@ -25,9 +25,9 @@ training:
   pin_memory: true
   learning_rate: 2.0e-4
   weight_decay: 1.0e-5
-  hard_sample_loss_weight: 2.0
+  hard_sample_loss_weight: 1.15
   hard_sample_oversample_factor: 2
-  unfreeze_last_n_blocks: 2
+  unfreeze_last_n_blocks: 1
   mixed_precision: true # torch.cuda.amp.autocast
   deterministic: true
 
@@ -37,11 +37,11 @@ paths:
   synthetic_data: "data/synthetic"
   hard_samples_data: "data/hard_samples"
   benchmarks_dir: "data/benchmarks"
-  samples_dir: "data/samples"
+  samples_dir: "data/benchmarks/D3_clean"
   baseline_manifest: "data/raw/manifest.jsonl"
   synthetic_manifest: "data/synthetic/curated_manifest.jsonl"
   hard_samples_manifest: "data/hard_samples/hard_samples_manifest.jsonl"
-  sample_manifest: "data/samples/sample_manifest.jsonl"
+  sample_manifest: "data/benchmarks/D3_clean/unseen_rv51_test.jsonl"
   checkpoints_dir: "experiments/checkpoints"
   logs_dir: "experiments/logs"
   predictions_dir: "experiments/predictions"

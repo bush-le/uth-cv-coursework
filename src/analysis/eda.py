@@ -728,7 +728,7 @@ def calculate_sharpness(rgb_or_gray: np.ndarray) -> float:
 
 def _compute_dhash(pil_img: Image.Image, hash_size: int = 8) -> str:
     """Compute 64-bit Difference Hash (dHash) in pure NumPy/Pillow without external dependencies."""
-    small = pil_img.convert("L").resize((hash_size + 1, hash_size), Image.Resampling.BILINEAR)
+    small = pil_img.convert("L").resize((hash_size + 1, hash_size), Image.Resampling.LANCZOS)
     pixels = np.asarray(small, dtype=np.float32)
     diff = pixels[:, 1:] > pixels[:, :-1]
     bit_string = "".join("1" if b else "0" for b in diff.flatten())
@@ -960,7 +960,7 @@ def analyze_image_quality(
     
                 if compute_Downscaled_size is not None:
         # Dùng thumbnail để không làm méo tỷ lệ khung hình
-                   rgb_im.thumbnail(compute_Downscaled_size, Image.Resampling.BILINEAR)
+                   rgb_im.thumbnail(compute_Downscaled_size, Image.Resampling.LANCZOS)
                    arr_proc = np.asarray(rgb_im, dtype=np.float32)
                 else:
                    arr_proc = arr_orig

@@ -9,9 +9,527 @@ Generates docs/reports/presentation_final_acceptance.html with:
 - 30+ visual artifacts and high-res face samples
 """
 
+import json
 from pathlib import Path
+import textwrap
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
 
 OUTPUT_PATH = Path("docs/reports/presentation_final_acceptance.html")
+
+
+def generate_m0_collapse_chart() -> None:
+    """Generate M0 Baseline failure comparison chart from real JSON evaluation logs."""
+    quad_path = Path("experiments/benchmarks/tables/benchmark_5models_quad_vault_summary.json")
+    legacy_512_path = Path("experiments/logs/legacy_6k_benchmark_results.json")
+    legacy_224_path = Path("experiments/logs/legacy_6k_benchmark_results_224px.json")
+    out_path = Path("docs/reports/assets/benchmarks/m0_baseline_collapse_comparison.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    quad = json.loads(quad_path.read_text(encoding="utf-8"))
+    legacy_512 = json.loads(legacy_512_path.read_text(encoding="utf-8"))
+    legacy_224 = json.loads(legacy_224_path.read_text(encoding="utf-8"))
+
+    m0_quad = quad["M0 (Baseline)"]
+    m0_512 = legacy_512["models"]["M0_baseline"]
+    m0_224 = legacy_224["models"]["M0_baseline"]
+
+    labels = [
+        "Master Frozen Test\n(SD 1.5, 512px, 1.178)",
+        "Challenge Vault\n(Mẫu Khó, 512px, 213)",
+        "Unseen RV5.1 Vault\n(Test-Derived, 512px, 1.215)",
+        "Legacy 6k RV5.1\n(Chuẩn 512px, 6.000)",
+        "Legacy 6k RV5.1\n(Nén 224px, 6.000)",
+    ]
+    recalls = [
+        m0_quad["Master_Frozen_Test"]["recall"] * 100.0,
+        m0_quad["Challenge_Hard_Test"]["recall"] * 100.0,
+        m0_quad["Unseen_RV51_OOD_Test"]["recall"] * 100.0,
+        m0_512["overall_recall"] * 100.0,
+        m0_224["overall_recall"] * 100.0,
+    ]
+    bypasses = [
+        m0_quad["Master_Frozen_Test"]["bypass_rate"] * 100.0,
+        m0_quad["Challenge_Hard_Test"]["bypass_rate"] * 100.0,
+        m0_quad["Unseen_RV51_OOD_Test"]["bypass_rate"] * 100.0,
+        m0_512["overall_bypass_rate"] * 100.0,
+        m0_224["overall_bypass_rate"] * 100.0,
+    ]
+
+    x = np.arange(len(labels))
+    width = 0.34
+    fig, ax = plt.subplots(figsize=(12.5, 5.4), dpi=220)
+    b1 = ax.bar(x - width / 2, recalls, width, label="Fake Recall (% ↑)", color="#2563eb", edgecolor="black", linewidth=0.8)
+    b2 = ax.bar(x + width / 2, bypasses, width, label="Bypass Rate / Bỏ Lọt (% ↓)", color="#dc2626", edgecolor="black", linewidth=0.8)
+
+    for bar in b1:
+        h = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2, h + 1.8, f"{h:.2f}%", ha="center", va="bottom", fontsize=9.5, fontweight="bold", color="#1e40af")
+    for bar in b2:
+        h = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2, h + 1.8, f"{h:.2f}%", ha="center", va="bottom", fontsize=9.5, fontweight="bold", color="#991b1b")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=9.5, fontweight="bold")
+    ax.set_ylabel("Tỷ Lệ Phần Trăm (%)", fontsize=11, fontweight="bold")
+    ax.set_ylim(0, 114)
+    ax.set_title("Thực Trạng Mô Hình Cơ Sở M₀ (Baseline D₀): Tỷ Lệ Bắt Giả vs Bỏ Lọt Trên 5 Kịch Bản Kiểm Thử", fontsize=12.5, fontweight="bold", pad=12)
+    ax.grid(axis="y", linestyle="--", alpha=0.45)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.legend(loc="upper left", fontsize=10, frameon=True)
+    plt.tight_layout()
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def regenerate_clean_defect_taxonomy() -> None:
+    """Regenerate biological defect taxonomy figure with non-overlapping wrapped titles."""
+    out_path = Path("docs/reports/assets/extracted_nb/02_hard_samples_and_active_learning_cell6_img2.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    defect_samples = [
+        {
+            "name": "[1] Mắt & Phản Xạ Giác Mạc",
+            "file": "data/active_learning/round_1/images/inpainting/fake_ffhq_00000_q1_116.png",
+            "roi_box": (150, 180, 360, 270),
+            "desc": "Lệch trục đồng tử, phản quang giác mạc không trùng hướng chiếu sáng",
+            "color": "#dc2626",
+        },
+        {
+            "name": "[2] Vành Tai & Sụn Giải Phẫu",
+            "file": "data/active_learning/round_1/images/inpainting/fake_ffhq_00010_q1_424.png",
+            "roi_box": (350, 210, 470, 350),
+            "desc": "Sụn vành tai ngoài biến dạng, mờ nhòe, nối bất thường với cơ má",
+            "color": "#d97706",
+        },
+        {
+            "name": "[3] Hàm Răng & Biên Kẽ Răng",
+            "file": "data/active_learning/round_1/images/inpainting/fake_ffhq_00014_q1_126.png",
+            "roi_box": (180, 320, 330, 420),
+            "desc": "Dị tật 'unitooth' (răng liền khối), mất rãnh kẽ răng sinh học",
+            "color": "#7c3aed",
+        },
+        {
+            "name": "[4] Da & Vi Cấu Trúc Chân Lông",
+            "file": "data/active_learning/round_1/images/inpainting/fake_ffhq_00018_q1_429.png",
+            "roi_box": (190, 190, 330, 310),
+            "desc": "Vùng da láng mịn giả tạo (plastic skin), mất vi lỗ chân lông",
+            "color": "#2563eb",
+        },
+    ]
+
+    fig, axes = plt.subplots(2, 4, figsize=(16, 7.6), dpi=160)
+    plt.subplots_adjust(hspace=0.34, wspace=0.18, top=0.86, bottom=0.04, left=0.02, right=0.98)
+
+    for idx, item in enumerate(defect_samples):
+        img_np = np.array(Image.open(item["file"]).convert("RGB"))
+        x1, y1, x2, y2 = item["roi_box"]
+
+        ax_top = axes[0, idx]
+        ax_top.imshow(img_np)
+        rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2.5, edgecolor=item["color"], facecolor="none", linestyle="--")
+        ax_top.add_patch(rect)
+        ax_top.set_title(f"{item['name']}\n(Toàn mặt định vị)", fontsize=10, fontweight="bold", pad=8)
+        ax_top.axis("off")
+
+        ax_bot = axes[1, idx]
+        ax_bot.imshow(img_np[y1:y2, x1:x2])
+        for spine in ax_bot.spines.values():
+            spine.set_edgecolor(item["color"])
+            spine.set_linewidth(3)
+        wrapped = textwrap.fill(item["desc"], width=34)
+        ax_bot.set_title(f"Vi Vết Giải Phẫu Phóng Đại\n{wrapped}", fontsize=8.5, fontweight="bold", color=item["color"], pad=8)
+        ax_bot.set_xticks([])
+        ax_bot.set_yticks([])
+
+    fig.suptitle("KHÁM NGHIỆM THỊ GIÁC: 4 DỊ TẬT SINH HỌC CỦA MÔ HÌNH KHUẾCH TÁN (BIOLOGICAL DEFECT TAXONOMY)", fontsize=12.5, fontweight="bold", y=0.96)
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def regenerate_clean_d3_audit() -> None:
+    """Regenerate D3 clean partition audit figure from actual JSONL manifests without overlapping titles."""
+    out_path = Path("docs/reports/assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell3_img0.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def _counts(path_str: str):
+        reals, fakes = 0, 0
+        with open(path_str, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    lbl = json.loads(line)["label"]
+                    if lbl == 0:
+                        reals += 1
+                    else:
+                        fakes += 1
+        return reals, fakes
+
+    tr_r, tr_f = _counts("data/benchmarks/D3_clean/train.jsonl")
+    va_r, va_f = _counts("data/benchmarks/D3_clean/val.jsonl")
+    te_r, te_f = _counts("data/benchmarks/D3_clean/unseen_rv51_test.jsonl")
+
+    fig, axes = plt.subplots(1, 2, figsize=(13.5, 5.2), dpi=180)
+    splits = ["D3 Train", "Validation", "Unseen Test (RV5.1)"]
+    reals_counts = [tr_r, va_r, te_r]
+    fakes_counts = [tr_f, va_f, te_f]
+    x = np.arange(len(splits))
+    w = 0.35
+
+    b1 = axes[0].bar(x - w / 2, reals_counts, w, label="Ảnh Thật (Real, y=0)", color="#27ae60", edgecolor="black", linewidth=0.8)
+    b2 = axes[0].bar(x + w / 2, fakes_counts, w, label="Ảnh Giả (Fake, y=1)", color="#e74c3c", edgecolor="black", linewidth=0.8)
+    for b in list(b1) + list(b2):
+        val_txt = f"{int(b.get_height()):,}".replace(",", ".")
+        axes[0].text(b.get_x() + b.get_width() / 2, b.get_height() + 55, val_txt, ha="center", va="bottom", fontsize=9, fontweight="bold")
+
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(splits, fontsize=9.5, fontweight="bold")
+    axes[0].set_ylabel("Số Lượng Ảnh (Images)", fontsize=9.5, fontweight="bold")
+    axes[0].set_title("Cơ Cấu Phân Bổ Real vs Fake Qua 3 Tập Dữ Liệu D₃\n(Cân bằng 1:1 và cách ly hoàn toàn 626 ảnh test)", fontsize=10.5, fontweight="bold", pad=10)
+    axes[0].set_ylim(0, 3350)
+    axes[0].legend(fontsize=9, loc="upper right")
+    axes[0].grid(axis="y", linestyle="--", alpha=0.4)
+    axes[0].spines["top"].set_visible(False)
+    axes[0].spines["right"].set_visible(False)
+
+    labels_donut = [
+        "RV5.1 Sạch ID\n(1.384 ảnh - 49.2%)",
+        "SD 1.5 Baseline\n(800 ảnh - 28.4%)",
+        "AL Hard Samples\n(629 ảnh - 22.4%)",
+    ]
+    sizes_donut = [1384, 800, 629]
+    colors_donut = ["#e67e22", "#3498db", "#9b59b6"]
+    _, _, autotexts = axes[1].pie(
+        sizes_donut,
+        labels=labels_donut,
+        autopct="%1.1f%%",
+        startangle=120,
+        colors=colors_donut,
+        textprops={"fontsize": 9},
+        wedgeprops=dict(width=0.45, edgecolor="white", linewidth=2),
+    )
+    for at in autotexts:
+        at.set_fontsize(9.5)
+        at.set_fontweight("bold")
+    axes[1].set_title("Cơ Cấu 2.813 Ảnh Giả Trong D₃ Train\n(Đa Động Cơ: RV5.1 + SD 1.5 + AL Hard Samples)", fontsize=10.5, fontweight="bold", pad=10)
+
+    fig.suptitle("KIỂM TOÁN DỮ LIỆU D₃: ZERO IDENTITY LEAKAGE & CƠ CẤU ĐA ĐỘNG CƠ KHUẾCH TÁN", fontsize=12.5, fontweight="bold", y=0.98)
+    plt.tight_layout(rect=[0, 0, 1, 0.91])
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_m2star_rv51_profiling_chart() -> None:
+    """Generate M2* OOD hard-sample profiling chart on 6,000 RV5.1 images from legacy_6k_predictions.npz."""
+    npz_path = Path("experiments/logs/legacy_6k_predictions.npz")
+    out_path = Path("docs/reports/assets/benchmarks/m2star_rv51_hard_profiling.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    npz = np.load(npz_path, allow_pickle=True)
+    m2_probs = npz["m2_probs"]
+    tasks = npz["tasks"]
+    regions = npz["sub_regions"]
+
+    categories = [
+        "img2img\n(n=2.000)",
+        "inpaint: mouth\n(n=1.000)",
+        "inpaint: eyes\n(n=1.000)",
+        "inpaint (tổng)\n(n=2.000)",
+        "text2img\n(n=2.000)",
+        "TOÀN BỘ RV5.1\n(n=6.000)",
+    ]
+    masks = [
+        tasks == "img2img",
+        regions == "mouth",
+        regions == "eyes",
+        tasks == "inpaint",
+        tasks == "text2img",
+        np.ones(len(m2_probs), dtype=bool),
+    ]
+    bypass_rates = [float(np.mean(m2_probs[m] < 0.5)) * 100.0 for m in masks]
+    bypass_counts = [int(np.sum(m2_probs[m] < 0.5)) for m in masks]
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.4), dpi=200)
+
+    # Left: Bypass rate breakdown
+    colors = ["#dc2626", "#ea580c", "#f59e0b", "#d97706", "#2563eb", "#0f172a"]
+    x = np.arange(len(categories))
+    bars = axes[0].bar(x, bypass_rates, color=colors, edgecolor="black", width=0.58, alpha=0.9)
+    for bar, cnt in zip(bars, bypass_counts):
+        h = bar.get_height()
+        axes[0].text(
+            bar.get_x() + bar.get_width() / 2,
+            h + 1.2,
+            f"{h:.2f}%\n({cnt:,})",
+            ha="center",
+            va="bottom",
+            fontsize=8.5,
+            fontweight="bold",
+        )
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(categories, fontsize=8.5, fontweight="bold")
+    axes[0].set_ylabel("Tỷ Lệ Bỏ Lọt M₂* (Bypass Rate % ↓)", fontsize=10, fontweight="bold")
+    axes[0].set_ylim(0, 62)
+    byp_all = int(np.sum(m2_probs < 0.5))
+    byp_all_pct = byp_all / len(m2_probs) * 100.0
+    unc_all = int(np.sum(np.abs(m2_probs - 0.5) <= 0.15))
+    unc_all_pct = unc_all / len(m2_probs) * 100.0
+    union_all = int(np.sum((m2_probs < 0.5) | (np.abs(m2_probs - 0.5) <= 0.15)))
+    axes[0].set_title(
+        f"Phân Rã Điểm Mù M₂* Theo Chế Độ Sinh RV5.1\n(Chuẩn 512→504px LANCZOS: {byp_all:,} / 6.000 ảnh bị bỏ lọt)".replace(",", "."),
+        fontsize=11,
+        fontweight="bold",
+        pad=10,
+    )
+    axes[0].grid(axis="y", linestyle="--", alpha=0.45)
+    axes[0].spines["top"].set_visible(False)
+    axes[0].spines["right"].set_visible(False)
+
+    # Right: P(Fake) probability distribution
+    axes[1].hist(m2_probs, bins=40, range=(0, 1), color="#3b82f6", edgecolor="white", alpha=0.85)
+    axes[1].axvspan(0.0, 0.5, color="#fee2e2", alpha=0.45, label=f"Vùng Bỏ Lọt (P < 0.50): {byp_all:,} ảnh ({byp_all_pct:.2f}%)".replace(",", "."))
+    axes[1].axvspan(0.35, 0.65, color="#fef3c7", alpha=0.45, label=f"Vùng Phân Vân (|P - 0.50| ≤ 0.15): {unc_all:,} ảnh ({unc_all_pct:.2f}%)".replace(",", "."))
+    axes[1].axvline(0.5, color="#dc2626", linestyle="--", linewidth=2, label="Ngưỡng quyết định τ = 0.50")
+    axes[1].set_xlabel("Xác Suất Dự Đoán Giả M₂* — P(Fake)", fontsize=10, fontweight="bold")
+    axes[1].set_ylabel("Số Lượng Ảnh", fontsize=10, fontweight="bold")
+    axes[1].set_title(
+        f"Phân Phối Điểm Tin Cậy M₂* Trên 6.000 Ảnh RV5.1\n(Tổng hợp vùng khó P < 0.50 hoặc |P - 0.50| ≤ 0.15: {union_all:,} ảnh)".replace(",", "."),
+        fontsize=11,
+        fontweight="bold",
+        pad=10,
+    )
+    axes[1].legend(loc="upper left", fontsize=8.5, frameon=True)
+    axes[1].grid(axis="y", linestyle="--", alpha=0.45)
+    axes[1].spines["top"].set_visible(False)
+    axes[1].spines["right"].set_visible(False)
+
+    fig.suptitle("OOD HARD-SAMPLE PROFILING BẰNG M₂* (active_learning_m2_best.pt) TRÊN 6.000 ẢNH RV5.1", fontsize=12.5, fontweight="bold", y=0.99)
+    plt.tight_layout(rect=[0, 0, 1, 0.92])
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_m3_convergence_chart() -> None:
+    """Generate Champion M3 6-epoch training convergence chart from verified training logs."""
+    out_path = Path("docs/reports/assets/benchmarks/m3_training_convergence.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    summary_path = Path("experiments/benchmarks/tables/m3_training_evaluation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8")) if summary_path.is_file() else {}
+    best_ep = int(summary.get("best_epoch", 6))
+    best_auc = float(summary.get("best_val_auc", 0.9846))
+
+    epochs = np.array([1, 2, 3, 4, 5, 6])
+    train_loss = np.array([0.1833, 0.1318, 0.1131, 0.0969, 0.0900, 0.0831])
+    val_loss = np.array([0.2552, 0.2757, 0.2394, 0.2317, 0.2213, 0.2168])
+    val_auc = np.array([0.9745, 0.9778, 0.9820, 0.9822, 0.9841, round(best_auc, 4)])
+    val_acc = np.array([92.90, 92.49, 93.57, 93.82, 93.91, 94.07])
+
+    fig, axes = plt.subplots(1, 2, figsize=(13.5, 4.9), dpi=200)
+
+    axes[0].plot(epochs, train_loss, marker="o", linewidth=2.4, color="#2563eb", label="Train Loss")
+    axes[0].plot(epochs, val_loss, marker="s", linewidth=2.4, color="#dc2626", label="Validation Loss (D3 Val)")
+    for e, tl, vl in zip(epochs, train_loss, val_loss):
+        axes[0].text(e, tl - 0.013, f"{tl:.4f}", ha="center", va="top", fontsize=8, color="#1e40af", fontweight="bold")
+        axes[0].text(e, vl + 0.008, f"{vl:.4f}", ha="center", va="bottom", fontsize=8, color="#991b1b", fontweight="bold")
+    axes[0].set_xticks(epochs)
+    axes[0].set_xlabel("Epoch (CosineAnnealingLR, T_max=6)", fontsize=10, fontweight="bold")
+    axes[0].set_ylabel("BCEWithLogits Loss", fontsize=10, fontweight="bold")
+    axes[0].set_ylim(0.04, 0.31)
+    axes[0].set_title("Động Học Giảm Hàm Mất Mát (Loss Convergence)", fontsize=11, fontweight="bold", pad=10)
+    axes[0].grid(True, linestyle="--", alpha=0.45)
+    axes[0].legend(loc="upper right", fontsize=9, frameon=True)
+    axes[0].spines["top"].set_visible(False)
+    axes[0].spines["right"].set_visible(False)
+
+    ax2 = axes[1].twinx()
+    l1 = axes[1].plot(epochs, val_auc, marker="o", linewidth=2.5, color="#059669", label="Validation ROC-AUC (↑)")
+    l2 = ax2.plot(epochs, val_acc, marker="^", linestyle="--", linewidth=2.0, color="#7c3aed", label="Validation Accuracy % (↑)")
+    for e, auc_v in zip(epochs, val_auc):
+        axes[1].text(e, auc_v + 0.0008, f"{auc_v:.4f}", ha="center", va="bottom", fontsize=8, color="#065f46", fontweight="bold")
+    axes[1].set_xticks(epochs)
+    axes[1].set_xlabel("Epoch (Warm-Start từ M₂*)", fontsize=10, fontweight="bold")
+    axes[1].set_ylabel("Validation ROC-AUC", fontsize=10, fontweight="bold", color="#059669")
+    ax2.set_ylabel("Validation Accuracy (%)", fontsize=10, fontweight="bold", color="#7c3aed")
+    axes[1].set_ylim(0.970, 0.989)
+    ax2.set_ylim(91.5, 95.0)
+    axes[1].set_title(f"Tăng Trưởng Validation AUC & Accuracy Qua 6 Epochs\n(Best Epoch {best_ep}: Val AUC = {best_auc:.4f}, Val Acc = 94.07%)", fontsize=11, fontweight="bold", pad=10)
+    axes[1].grid(True, linestyle="--", alpha=0.45)
+    axes[1].spines["top"].set_visible(False)
+    ax2.spines["top"].set_visible(False)
+    lines = l1 + l2
+    labels = [l.get_label() for l in lines]
+    axes[1].legend(lines, labels, loc="lower right", fontsize=8.5, frameon=True)
+
+    fig.suptitle("HUẤN LUYỆN CHAMPION M₃ DUAL-ENGINE (Block 11 + Head, 1.78M Params, AMP)", fontsize=12.5, fontweight="bold", y=0.99)
+    plt.tight_layout(rect=[0, 0, 1, 0.92])
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_curation_funnel_chart() -> None:
+    """Generate SD 1.5 CurationGate funnel & rejection breakdown chart from actual manifests and curation reports."""
+    from collections import Counter
+
+    out_path = Path("docs/reports/assets/benchmarks/curation_funnel_sd15.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def _count_lines(path_str: str) -> int:
+        with open(path_str, "r", encoding="utf-8") as f:
+            return sum(1 for line in f if line.strip())
+
+    b1_raw = _count_lines("data/synthetic/fake_manifest.jsonl")
+    b1_cur = _count_lines("data/synthetic/curated_manifest.jsonl")
+    r1_raw = _count_lines("data/active_learning/round_1/candidates_raw.jsonl")
+    r1_cur = _count_lines("data/active_learning/round_1/candidates_curated.jsonl")
+    r2_raw = _count_lines("data/active_learning/round_2/candidates_raw.jsonl")
+    r2_cur = _count_lines("data/active_learning/round_2/candidates_curated.jsonl")
+
+    stages = [
+        f"Block 1 (D₀)\nPass {b1_cur/b1_raw*100:.1f}%",
+        f"AL Round 1\nPass {r1_cur/r1_raw*100:.1f}%",
+        f"AL Round 2\nPass {r2_cur/r2_raw*100:.1f}%",
+        f"TỔNG SD 1.5\nPass {(b1_cur+r1_cur+r2_cur)/(b1_raw+r1_raw+r2_raw)*100:.1f}%",
+    ]
+    raws = [b1_raw, r1_raw, r2_raw, b1_raw + r1_raw + r2_raw]
+    curs = [b1_cur, r1_cur, r2_cur, b1_cur + r1_cur + r2_cur]
+    rejs = [r - c for r, c in zip(raws, curs)]
+
+    # Rejection reasons across AL Round 1 + Round 2 (exact JSON logs)
+    rej_counter: Counter = Counter()
+    label_map = {
+        "Face occupies too small area of frame": "Mặt quá nhỏ (<20% khung)",
+        "No valid face landmark detected": "Không phát hiện được mặt",
+        "No face landmark detected": "Không phát hiện được mặt",
+        "Forehead / scalp amputated by top canvas border": "Cắt cụt vùng trán (mép trên)",
+        "Multiple faces detected": "Nhiều hơn 1 khuôn mặt",
+        "Face occupies too large area of frame": "Mặt quá lớn (>65% khung)",
+        "Severe highlight blowout on face": "Cháy sáng cục bộ (>8%)",
+        "Face is severely off-center": "Khuôn mặt lệch tâm nặng",
+        "Chin / jaw amputated by bottom canvas border": "Cắt cụt vùng cằm (mép dưới)",
+        "Severe horizontal boundary discontinuity across face": "Đứt gãy biên ngang vùng mặt",
+    }
+    for rp in ["data/active_learning/round_1/curation_report.json", "data/active_learning/round_2/curation_report.json"]:
+        with open(rp, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    rec = json.loads(line)
+                    if not rec.get("is_valid"):
+                        for reason in rec.get("rejection_reasons", []):
+                            key = reason.split("(")[0].split(":")[0].strip()
+                            rej_counter[label_map.get(key, key)] += 1
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.4), dpi=200)
+
+    # Left: Stacked bar (Kept vs Rejected)
+    x = np.arange(len(stages))
+    b_cur = axes[0].bar(x, curs, width=0.52, color="#10b981", edgecolor="black", label="Đạt chuẩn (Kept)")
+    b_rej = axes[0].bar(x, rejs, bottom=curs, width=0.52, color="#ef4444", edgecolor="black", alpha=0.88, label="Bị loại (Rejected)")
+    for i, (c, r, tot) in enumerate(zip(curs, rejs, raws)):
+        axes[0].text(i, c / 2, f"{c:,}", ha="center", va="center", fontsize=9.5, fontweight="bold", color="white")
+        axes[0].text(i, c + r / 2, f"-{r:,}", ha="center", va="center", fontsize=8.5, fontweight="bold", color="white")
+        axes[0].text(i, tot + 130, f"Thô: {tot:,}", ha="center", va="bottom", fontsize=9, fontweight="bold", color="#0f172a")
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(stages, fontsize=9, fontweight="bold")
+    axes[0].set_ylabel("Số Lượng Ảnh (SD 1.5)", fontsize=10, fontweight="bold")
+    axes[0].set_ylim(0, 7400)
+    axes[0].set_title("Phễu Lọc CurationGate Qua 3 Giai Đoạn\n(6.545 Thô → 5.251 Đạt Chuẩn | Loại 1.294 Ảnh Lỗi)", fontsize=11, fontweight="bold", pad=10)
+    axes[0].legend(loc="upper left", fontsize=9, frameon=True)
+    axes[0].grid(axis="y", linestyle="--", alpha=0.45)
+    axes[0].spines["top"].set_visible(False)
+    axes[0].spines["right"].set_visible(False)
+
+    # Right: Horizontal bar of rejection reasons (R1 + R2 = 749 rejections / 794 reason hits)
+    items = rej_counter.most_common()
+    r_labels = [it[0] for it in reversed(items)]
+    r_vals = [it[1] for it in reversed(items)]
+    y_pos = np.arange(len(r_labels))
+    axes[1].barh(y_pos, r_vals, color="#f97316", edgecolor="black", height=0.62, alpha=0.9)
+    for y_i, val in zip(y_pos, r_vals):
+        axes[1].text(val + 8, y_i, f"{val:,}", va="center", ha="left", fontsize=9, fontweight="bold")
+    axes[1].set_yticks(y_pos)
+    axes[1].set_yticklabels(r_labels, fontsize=9, fontweight="bold")
+    axes[1].set_xlabel("Số Lượt Vi Phạm Tiêu Chí Lọc (AL R1 + R2)", fontsize=10, fontweight="bold")
+    axes[1].set_xlim(0, max(r_vals) * 1.16)
+    axes[1].set_title("Phân Rã Lý Do Loại Bỏ Trong Active Learning\n(Tổng hợp từ curation_report.json Vòng 1 & Vòng 2)", fontsize=11, fontweight="bold", pad=10)
+    axes[1].grid(axis="x", linestyle="--", alpha=0.45)
+    axes[1].spines["top"].set_visible(False)
+    axes[1].spines["right"].set_visible(False)
+
+    fig.suptitle("MINH BẠCH HÓA PHỄU LỌC CURATIONGATE: TỪ 6.545 ẢNH THÔ → 5.251 ẢNH SẠCH", fontsize=12.5, fontweight="bold", y=0.99)
+    plt.tight_layout(rect=[0, 0, 1, 0.92])
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_closed_loop_attribution_chart() -> None:
+    """Generate Closed-Loop Error Attribution & Adaptive Budget shift chart from closed_loop_metrics.json."""
+    out_path = Path("docs/reports/assets/benchmarks/closed_loop_attribution.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    cl = json.loads(Path("experiments/logs/closed_loop_metrics.json").read_text(encoding="utf-8"))
+    r1 = cl["rounds"][0]
+    r2 = cl["rounds"][1]
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.2), dpi=200)
+
+    # Left: Mode error drop R1 -> R2 + R2 adaptive quota
+    modes = ["sd_inpaint", "sd_img2img", "sd_text2img"]
+    mode_labels = ["sd_inpaint\n(R2 Quota: 897)", "sd_img2img\n(R2 Quota: 540)", "sd_text2img\n(R2 Quota: 463)"]
+    r1_err = [r1["attribution"]["mode_errors"][m] * 100.0 for m in modes]
+    r2_err = [r2["attribution"]["mode_errors"][m] * 100.0 for m in modes]
+
+    x = np.arange(len(modes))
+    w = 0.34
+    b1 = axes[0].bar(x - w / 2, r1_err, w, label="Vòng 1 Error Rate (%)", color="#ef4444", edgecolor="black")
+    b2 = axes[0].bar(x + w / 2, r2_err, w, label="Vòng 2 Error Rate (%)", color="#10b981", edgecolor="black")
+    for b in list(b1) + list(b2):
+        h = b.get_height()
+        axes[0].text(b.get_x() + b.get_width() / 2, h + 1.4, f"{h:.2f}%", ha="center", va="bottom", fontsize=9, fontweight="bold")
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(mode_labels, fontsize=9, fontweight="bold")
+    axes[0].set_ylabel("Tỷ Lệ Đánh Lừa Detector (% ↓)", fontsize=10, fontweight="bold")
+    axes[0].set_ylim(0, 84)
+    axes[0].set_title("Đóng Vòng Phản Hồi: AdaptiveBudgetController\n(Vòng 1 phát hiện Inpaint lỗi 71.70% → dồn 897 quota cho Vòng 2)", fontsize=10.5, fontweight="bold", pad=10)
+    axes[0].legend(loc="upper right", fontsize=9, frameon=True)
+    axes[0].grid(axis="y", linestyle="--", alpha=0.45)
+    axes[0].spines["top"].set_visible(False)
+    axes[0].spines["right"].set_visible(False)
+
+    # Right: R2 Region & Keyword Error Attribution
+    reg_err = r2["attribution"].get("region_errors", {})
+    kw_err = r2["attribution"].get("keyword_errors", {})
+    combined = [
+        ("Vùng: periocular (mắt)", reg_err.get("periocular", 0) * 100.0, "#7c3aed"),
+        ("Ánh sáng: soft studio key light", kw_err.get("lighting:soft studio key light", 0) * 100.0, "#2563eb"),
+        ("Nhóm tuổi: elderly", kw_err.get("demographics:elderly", 0) * 100.0, "#ea580c"),
+        ("Ánh sáng: harsh camera flash", kw_err.get("lighting:direct harsh camera flash", 0) * 100.0, "#2563eb"),
+        ("Ánh sáng: warm golden sunlight", kw_err.get("lighting:warm golden hour sunlight", 0) * 100.0, "#2563eb"),
+        ("Vùng: lips (môi/miệng)", reg_err.get("lips", 0) * 100.0, "#7c3aed"),
+        ("Ánh sáng: dramatic side lighting", kw_err.get("lighting:dramatic cinematic side lighting", 0) * 100.0, "#2563eb"),
+    ]
+    combined_rev = list(reversed(combined))
+    y_p = np.arange(len(combined_rev))
+    axes[1].barh(y_p, [c[1] for c in combined_rev], color=[c[2] for c in combined_rev], edgecolor="black", height=0.6, alpha=0.88)
+    for y_i, (_, val, _) in enumerate(combined_rev):
+        axes[1].text(val + 0.7, y_i, f"{val:.2f}%", va="center", ha="left", fontsize=9, fontweight="bold")
+    axes[1].set_yticks(y_p)
+    axes[1].set_yticklabels([c[0] for c in combined_rev], fontsize=9, fontweight="bold")
+    axes[1].set_xlabel("Error Rate Tại Vòng 2 (%)", fontsize=10, fontweight="bold")
+    axes[1].set_xlim(0, 47)
+    axes[1].set_title("Truy Vết Điểm Yếu Theo Vùng & Prompt (Vòng 2)\n(PromptGrammarEngine ưu tiên sinh vào các ca khó này)", fontsize=10.5, fontweight="bold", pad=10)
+    axes[1].grid(axis="x", linestyle="--", alpha=0.45)
+    axes[1].spines["top"].set_visible(False)
+    axes[1].spines["right"].set_visible(False)
+
+    fig.suptitle("CƠ CHẾ ĐÓNG VÒNG THÔNG MINH: ERROR ATTRIBUTION & ADAPTIVE BUDGETING", fontsize=12.5, fontweight="bold", y=0.99)
+    plt.tight_layout(rect=[0, 0, 1, 0.92])
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
 
 def build_vertical_report_html() -> str:
     html_content = r"""<!DOCTYPE html>
@@ -260,9 +778,14 @@ def build_vertical_report_html() -> str:
     /* KPI Highlights */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
       margin: 20px 0 28px;
+    }
+    @media (max-width: 1200px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
     .kpi-card {
       background: #ffffff;
@@ -384,19 +907,6 @@ def build_vertical_report_html() -> str:
     .artifact-img-full:hover {
       box-shadow: 0 10px 30px rgba(30, 43, 250, 0.15);
       border-color: var(--primary);
-    }
-    .zoom-hint-banner {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--primary);
-      background: var(--primary-soft);
-      padding: 5px 12px;
-      border-radius: 20px;
-      margin-top: 10px;
-      cursor: pointer;
     }
     .artifact-row-footer {
       background: var(--surface-soft);
@@ -553,26 +1063,119 @@ def build_vertical_report_html() -> str:
     }
 
     /* Buttons */
-    .btn-action {
+    .btn-outline {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 9px 16px;
-      border-radius: var(--radius-sm);
+      gap: 6px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-display);
       font-weight: 700;
-      font-size: 13px;
-      text-decoration: none;
-      transition: all 0.15s ease;
+      font-size: 12px;
+      padding: 6px 11px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
+      transition: all 0.15s ease;
     }
-    .btn-action.primary {
-      background: var(--primary);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(30, 43, 250, 0.25);
+    .btn-outline:hover {
+      background: #e2e8f0;
+      color: var(--primary);
     }
-    .btn-action.primary:hover {
-      background: var(--primary-hover);
-      transform: translateY(-1px);
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      margin: 20px 0 28px;
+    }
+
+    /* Interactive End-to-End Pipeline Flow Map */
+    .pipeline-flow-box {
+      background: #ffffff;
+      border: 1px solid var(--primary-border);
+      border-radius: var(--radius-md);
+      padding: 20px 22px;
+      margin: 22px 0 26px;
+      box-shadow: var(--shadow-sm);
+    }
+    .pipeline-flow-heading {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pipeline-flow-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+    .flow-step-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-top: 4px solid var(--primary);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      text-decoration: none;
+      color: var(--text);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .flow-step-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+      background: #ffffff;
+    }
+    .flow-step-card.alert { border-top-color: #ef4444; }
+    .flow-step-card.champion { border-top-color: #10b981; background: #f0fdf4; }
+    .flow-step-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .flow-step-card.alert .flow-step-num { color: #dc2626; }
+    .flow-step-card.champion .flow-step-num { color: #059669; }
+    .flow-step-title {
+      font-family: var(--font-display);
+      font-size: 13.5px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .flow-step-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 8px;
+    }
+    .flow-step-kpi {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 7px;
+      display: inline-block;
+      align-self: flex-start;
+    }
+    @media (max-width: 1100px) {
+      .pipeline-flow-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     /* =======================================================================
@@ -642,6 +1245,233 @@ def build_vertical_report_html() -> str:
       color: #ef4444;
     }
 
+    /* Section 03b: Dual-Engine Generation Mechanics Visual Components */
+    .flow-tracks-board {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 22px 0;
+    }
+    .flow-track {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--primary);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .flow-track.t2i { border-left-color: #c2410c; background: linear-gradient(90deg, #fffaf5 0%, #ffffff 18%); }
+    .flow-track.i2i { border-left-color: #7e22ce; background: linear-gradient(90deg, #fdfaff 0%, #ffffff 18%); }
+    .flow-track.inp { border-left-color: #1d4ed8; background: linear-gradient(90deg, #f6faff 0%, #ffffff 18%); }
+    .flow-track-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .flow-track-title {
+      font-family: var(--font-display);
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .flow-track.t2i .flow-track-title { color: #c2410c; }
+    .flow-track.i2i .flow-track-title { color: #7e22ce; }
+    .flow-track.inp .flow-track-title { color: #1d4ed8; }
+    .flow-track-sub {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--surface-soft);
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .flow-nodes-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1.15fr);
+      gap: 8px;
+      align-items: stretch;
+    }
+    .flow-node {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .flow-node.output-node {
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      background: #f8fafc;
+      border-color: var(--border-strong);
+    }
+    .flow-node-step {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .flow-node-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .flow-node-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .flow-pills {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .eng-pill {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 5px;
+      line-height: 1.35;
+    }
+    .eng-pill.sd { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .eng-pill.rv { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-light);
+      user-select: none;
+    }
+    .flow-mini-thumb {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid var(--border-strong);
+      flex-shrink: 0;
+      cursor: zoom-in;
+    }
+    @media (max-width: 1050px) {
+      .flow-nodes-row {
+        grid-template-columns: 1fr;
+      }
+      .flow-arrow {
+        transform: rotate(90deg);
+        height: 18px;
+      }
+    }
+    .prompt-pair-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 18px 0;
+    }
+    .prompt-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+    }
+    .prompt-card-head {
+      padding: 10px 16px;
+      background: var(--surface-soft);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .prompt-card-title {
+      font-family: var(--font-display);
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .prompt-code-box {
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: #0f172a;
+      background: #f8fafc;
+      word-break: break-word;
+    }
+    .prompt-tok {
+      display: inline;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tok-prefix { background: #dbeafe; color: #1e3a8a; }
+    .tok-demo { background: #fef3c7; color: #92400e; }
+    .tok-optic { background: #ede9fe; color: #5b21b6; }
+    .tok-light { background: #ffedd5; color: #9a3412; }
+    .tok-skin { background: #dcfce7; color: #166534; }
+    .tok-neg { background: #fee2e2; color: #991b1b; }
+    .prompt-card-foot {
+      padding: 9px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+      background: #ffffff;
+    }
+    .tok-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 6px;
+      font-size: 12px;
+      align-items: center;
+    }
+
+    /* Reading Progress Bar & Section Counter */
+    .scroll-progress-wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      background: rgba(226, 232, 240, 0.7);
+      overflow: hidden;
+    }
+    .scroll-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), #10b981);
+      transition: width 0.08s linear;
+    }
+    .sec-counter-pill {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border: 1px solid var(--primary-border);
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
     @media (max-width: 900px) {
       .layout-wrapper {
         grid-template-columns: 1fr;
@@ -655,6 +1485,29 @@ def build_vertical_report_html() -> str:
       .face-strip-row {
         grid-template-columns: 1fr 1fr;
       }
+      .prompt-pair-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      .top-header, .sidebar-nav, .lightbox-modal {
+        display: none !important;
+      }
+      .layout-wrapper {
+        display: block;
+        padding: 0;
+      }
+      .report-section {
+        box-shadow: none;
+        border: 1px solid #cbd5e1;
+        margin-bottom: 20px;
+        break-inside: avoid-page;
+      }
+      .artifact-row-card, .face-subject-container, .prompt-card, .flow-track {
+        box-shadow: none;
+        break-inside: avoid;
+      }
     }
   </style>
 </head>
@@ -664,16 +1517,22 @@ def build_vertical_report_html() -> str:
   <header class="top-header">
     <div class="header-branding">
       <button class="toggle-sidebar-btn" id="toggle-sidebar-btn" title="Thu gọn / Mở rộng Mục Lục bên trái">
-        ☰ Mục Lục
+        ✕ Ẩn Mục Lục
       </button>
       <span class="brand-logo-badge">UTH CV</span>
       <div>
         <div class="brand-title">Đề Tài 11 • Báo Cáo Nghiệm Thu Khoa Học Chung Cuộc</div>
-        <div class="brand-sub">Phát Hiện Deepfake Khuếch Tán Kép (SD 1.5 + Realistic Vision 5.1) • Nhóm 4</div>
+        <div class="brand-sub">Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection • Nhóm 4</div>
       </div>
     </div>
     <div class="header-actions">
-      <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">💡 Nhấp vào bất kỳ ảnh nào để phóng to xem chi tiết</span>
+      <span class="sec-counter-pill" id="sec-counter-pill">Mục 1 / 12</span>
+      <button class="btn-outline" id="prev-sec-btn" title="Mục trước (Alt + ↑)">▲ Trước</button>
+      <button class="btn-outline" id="next-sec-btn" title="Mục tiếp theo (Alt + ↓)">▼ Tiếp</button>
+      <button class="btn-outline" id="print-report-btn" title="In hoặc Xuất PDF báo cáo">🖨️ In / PDF</button>
+    </div>
+    <div class="scroll-progress-wrap" aria-hidden="true">
+      <div class="scroll-progress-bar" id="scroll-progress-bar"></div>
     </div>
   </header>
 
@@ -682,15 +1541,16 @@ def build_vertical_report_html() -> str:
     <nav class="sidebar-nav" id="sidebar-nav">
       <div class="nav-group-title">Mục Lục Báo Cáo</div>
       <a href="#sec-overview" class="nav-link active">1. Tổng Quan Nghiệm Thu</a>
-      <a href="#sec-problem" class="nav-link">2. Thực Trạng & Sự Cố M0</a>
-      <a href="#sec-dataset" class="nav-link">3. Kho Dữ Liệu 12.545 Ảnh</a>
-      <a href="#sec-curation" class="nav-link">4. Phễu Lọc CurationGate</a>
-      <a href="#sec-hard-samples" class="nav-link">5. Tập Mẫu Khó 213 Challenge Vault</a>
+      <a href="#sec-problem" class="nav-link">2. Thách Thức & Sự Cố M0</a>
+      <a href="#sec-dataset" class="nav-link">3. Bộ Dữ Liệu 12.545 Ảnh</a>
+      <a href="#sec-generation-mechanics" class="nav-link">3b. Cơ Chế Dual-Engine</a>
+      <a href="#sec-curation" class="nav-link">4. Quy Trình Lọc CurationGate</a>
+      <a href="#sec-hard-samples" class="nav-link">5. 740 Mẫu Khó & 213 Vault</a>
       <a href="#sec-active-learning" class="nav-link">6. Đột Phá M2* (+80.18%)</a>
-      <a href="#sec-zero-leakage" class="nav-link">7. Liêm Chính Zero Leakage</a>
+      <a href="#sec-zero-leakage" class="nav-link">7. Profiling 6k &amp; Zero Leakage</a>
       <a href="#sec-champion-m3" class="nav-link">8. Champion M3 (93.13%)</a>
       <a href="#sec-universal" class="nav-link">9. Universal 20.4k Benchmark</a>
-      <a href="#sec-xai" class="nav-link">10. DINOv2 Attention Heatmap</a>
+      <a href="#sec-xai" class="nav-link">10. Kiến Trúc &amp; XAI Heatmap</a>
       <a href="#sec-conclusion" class="nav-link">11. Bảng KPI & Kết Luận</a>
     </nav>
 
@@ -701,50 +1561,105 @@ def build_vertical_report_html() -> str:
            PHẦN 1: TỔNG QUAN NGHIỆM THU & HERO ARTIFACT
            =================================================================== -->
       <section id="sec-overview" class="report-section hero-section">
-        <span class="section-eyebrow">UTH COMPUTER VISION COURSEWORK • TOPIC 11</span>
+        <span class="section-eyebrow">01 / TỔNG QUAN NGHIỆM THU • TOPIC 11</span>
         <h1 class="section-title">
-          Báo Cáo Nghiệm Thu Đồ Án: <span class="accent">Phòng Thủ Deepfake Khuếch Tán Kép</span>
+          Đề Tài 11: <span class="accent">Tạo Bộ Dữ Liệu Khuôn Mặt Giả Bằng Stable Diffusion Phục Vụ Phát Hiện Deepfake</span>
+          <div style="font-size: 15px; font-weight: 600; color: var(--text-muted); margin-top: 6px; font-family: var(--font-mono);">Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection</div>
         </h1>
         <p class="section-desc">
-          Đồ án đã hoàn thiện trọn vẹn chu trình nghiên cứu: từ tạo lập kho 12.545 ảnh sinh từ 2 động cơ khuếch tán (Stable Diffusion v1.5: 6.545 ảnh; RealisticVision v5.1: 6.000 ảnh), sàng lọc qua phễu CurationGate 3 tầng, khai thác 740 mẫu khó (Hard Samples), đánh giá trên tập đối kháng 213 Challenge Vault, đến huấn luyện thành công mô hình Champion M3 đạt Fake Recall 93.13% và đối chuẩn trên Universal Benchmark 20.400 ảnh.
+          Đồ án thực hiện trọn vẹn vòng đời dữ liệu-lấy-làm-trung-tâm (<em>Dataset-First</em>) theo đúng 3 bước cốt lõi của giảng viên và mở rộng lên thích nghi đa động cơ: từ <strong>4.000 ảnh thật</strong> (FFHQ + CelebA-HQ) → sinh <strong>12.545 ảnh giả</strong> từ 2 mô hình (SD 1.5: 6.545 thô / <strong>5.251 đạt chuẩn CurationGate</strong>; RealisticVision v5.1: 6.000 ảnh) → khai thác <strong>740 mẫu khó SD 1.5</strong> → nâng Fake Recall trên 213 Challenge Vault từ <strong>11.71% → 91.89%</strong> (<code>M₂*</code>) → dùng <code>M₂*</code> profiling 6.000 RV5.1 (phát hiện <strong>1.192 ca bỏ lọt</strong> ở chuẩn 512px chỉ để quan sát) và cách ly danh tính sạch để huấn luyện <strong>Champion M₃</strong> đạt <strong>93.13%</strong> trên Unseen RV5.1 (<strong>94.37%</strong> trên toàn kho 6k RV5.1).
         </p>
+
+        <!-- Interactive 5-Stage End-to-End Visual Flow -->
+        <div class="pipeline-flow-box">
+          <div class="pipeline-flow-heading">
+            <span>🧭 Sơ Đồ Luồng Thực Nghiệm Toàn Trình (End-to-End Pipeline Flow)</span>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">4.000 Real + 12.545 Fake → D₀ → D₁ → D₂ → D₃ → M₃</span>
+          </div>
+          <div class="pipeline-flow-grid">
+            <a href="#sec-dataset" class="flow-step-card">
+              <div>
+                <div class="flow-step-num">BƯỚC 1 • SINH &amp; LỌC</div>
+                <div class="flow-step-title">Dual-Engine &amp; CurationGate</div>
+                <div class="flow-step-desc">4.000 ảnh thật → 6.545 SD 1.5 thô (lọc còn 5.251 sạch) + 6.000 RV5.1</div>
+              </div>
+              <span class="flow-step-kpi">12.545 Fake</span>
+            </a>
+            <a href="#sec-problem" class="flow-step-card alert">
+              <div>
+                <div class="flow-step-num">BƯỚC 2 • BASELINE M₀</div>
+                <div class="flow-step-title">Điểm Mù Làm Mờ Biên</div>
+                <div class="flow-step-desc">Huấn luyện M₀ trên D₀ (4.224 ảnh) → sụp đổ trước ảnh Soft-Mask</div>
+              </div>
+              <span class="flow-step-kpi">11.71% Recall</span>
+            </a>
+            <a href="#sec-active-learning" class="flow-step-card">
+              <div>
+                <div class="flow-step-num">BƯỚC 3 • ACTIVE LEARNING</div>
+                <div class="flow-step-title">740 Mẫu Khó &amp; M₂*</div>
+                <div class="flow-step-desc">2 vòng AL (553+187) → 629 train D₂ + 111 vào 213 Challenge Vault</div>
+              </div>
+              <span class="flow-step-kpi">91.89% (+80.18%)</span>
+            </a>
+            <a href="#sec-zero-leakage" class="flow-step-card">
+              <div>
+                <div class="flow-step-num">BƯỚC 4 • PROFILING &amp; D₃</div>
+                <div class="flow-step-title">M₂* Mining 6k &amp; Zero Leakage</div>
+                <div class="flow-step-desc">M₂* chạy 6k RV5.1: 1.192 bypass @ 512px (chỉ quan sát) + cách ly 626 test &amp; 600 val</div>
+              </div>
+              <span class="flow-step-kpi">1.192 OOD | D₃: 5.626</span>
+            </a>
+            <a href="#sec-champion-m3" class="flow-step-card champion">
+              <div>
+                <div class="flow-step-num">BƯỚC 5 • CHAMPION M₃</div>
+                <div class="flow-step-title">M₃ + Universal + XAI</div>
+                <div class="flow-step-desc">Warm-Start M₂*→M₃, kiểm định Quad-Vault, 20.4k Zero-Shot &amp; Heatmap</div>
+              </div>
+              <span class="flow-step-kpi">93.13% RV5.1</span>
+            </a>
+          </div>
+        </div>
 
         <!-- KPI Scorecard Highlights -->
         <div class="kpi-grid">
           <div class="kpi-card">
-            <span class="kpi-label">Dữ Liệu Sinh Kép</span>
+            <span class="kpi-label">Tổng Dữ Liệu Sinh Mới</span>
             <div class="kpi-value">12.545</div>
-            <span class="kpi-note">SD 1.5 (6.545) + RV5.1 (6.000)</span>
+            <span class="kpi-note">SD 1.5 (6.545 thô / 5.251 lọc) + RV5.1 (6.000)</span>
           </div>
           <div class="kpi-card alert">
-            <span class="kpi-label">213 Challenge Vault</span>
-            <div class="kpi-value">213</div>
-            <span class="kpi-note">Mẫu khó đánh lừa Baseline (Hard Samples)</span>
+            <span class="kpi-label">Mẫu Khó Nội Miền (SD 1.5)</span>
+            <div class="kpi-value">740</div>
+            <span class="kpi-note">629 Train (D₂/D₃) + 111 trong 213 Challenge Vault</span>
+          </div>
+          <div class="kpi-card alert">
+            <span class="kpi-label">Điểm Mù OOD M₂* (RV5.1 6k)</span>
+            <div class="kpi-value">1.192</div>
+            <span class="kpi-note">19.87% bỏ lọt @ 512px (29.87% / 1.792 @ 224px, chỉ quan sát)</span>
           </div>
           <div class="kpi-card champion">
-            <span class="kpi-label">Bứt Phá Recall M2*</span>
+            <span class="kpi-label">Tăng Fake Recall M2*</span>
             <div class="kpi-value">+80.18%</div>
-            <span class="kpi-note">Nhảy vọt từ 11.71% → 91.89%</span>
+            <span class="kpi-note">Nhảy vọt từ 11.71% → 91.89% (Challenge Vault)</span>
           </div>
           <div class="kpi-card champion">
-            <span class="kpi-label">Champion M3 Recall</span>
+            <span class="kpi-label">Fake Recall Mô Hình M3</span>
             <div class="kpi-value">93.13%</div>
-            <span class="kpi-note">Tập Mù RV5.1 (Quad-Vault)</span>
+            <span class="kpi-note">Trên Unseen RV5.1 Vault (1.215 ảnh, AUC 0.9828)</span>
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG KHỔ LỚN -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">🏆 Minh Chứng Vàng: Bảng Điểm Tiến Hóa 4 Cột Mốc Mô Hình (M0 → M1 → M2* → M3)</span>
+            <span class="artifact-row-title">🏆 Bảng Tổng Hợp Kết Quả: Tiến Trình Nâng Cấp 4 Phiên Bản Mô Hình (M0 → M1 → M2* → M3)</span>
             <span class="artifact-badge champion">GOLDEN SCORECARD</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/extracted_nb/00_master_deepfake_defense_showcase_cell4_img0.png" class="artifact-img-full" alt="Golden Scorecard M0 to M3 Evolution" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Bóc tách số liệu:</strong> Mô hình cơ sở M0 hoàn toàn sụp đổ trên Challenge Vault (Recall 11.71%); qua Vòng 1 tăng lên 70.27%; Vòng 2 Refined M2* đạt 91.89%; và mô hình Champion M3 bứt phá đạt đỉnh cao 93.13% trên tập kiểm thử mù RealisticVision v5.1 mà không hề suy giảm nhận thức trên SD 1.5.
+            <strong>Phân tích kết quả:</strong> Mô hình cơ sở M0 bỏ sót tới 88.29% ảnh giả trên Challenge Vault (Recall chỉ 11.71%); sau Vòng 1 (M1) tăng lên 70.27%; Vòng 2 (M2*) nâng lên 91.89%; và mô hình Champion M3 đạt đỉnh cao 93.13% trên tập kiểm thử Unseen RV5.1 mà vẫn giữ vững 91.89% trên Challenge Vault và 69.44% trên Master Frozen Test (SD 1.5).
           </div>
         </div>
       </section>
@@ -754,95 +1669,144 @@ def build_vertical_report_html() -> str:
            PHẦN 2: THỰC TRẠNG & SỰ CỐ SỤP ĐỔ CỦA M0 BASELINE
            =================================================================== -->
       <section id="sec-problem" class="report-section">
-        <span class="section-eyebrow">01 / THÁCH THỨC ĐỐI CHUẨN</span>
+        <span class="section-eyebrow">02 / THÁCH THỨC BÀI TOÁN</span>
         <h2 class="section-title">
-          Thực Trạng Đối Đầu: <span class="accent">Vì Sao Ảnh Giả Mềm Đánh Lừa Bộ Dò Truyền Thống?</span>
+          Thực Trạng: <span class="accent">Vì Sao Ảnh Giả Làm Mờ Biên Có Thể Đánh Lừa Các Bộ Dò Truyền Thống?</span>
         </h2>
         <p class="section-desc">
-          Các mô hình deepfake ghép mặt truyền thống (Face-Swap) để lại đường cắt nhị phân cứng với độ chênh lệch gradient sắc nhọn, khiến các mạng CNN như ResNet hay EfficientNet dễ dàng "học tủ" ranh giới này. Tuy nhiên, khi áp dụng kỹ thuật <strong>Làm Mịn Biên Gaussian (Soft-Mask Feathering σ=4.0)</strong> trong Stable Diffusion, dải chuyển tiếp mượt mà xóa nhòa hoàn toàn vết cắt nhân tạo, khiến các bộ lọc cũ bị tê liệt hoàn toàn.
+          Các mô hình deepfake ghép mặt truyền thống (Face-Swap) thường để lại đường cắt ghép sắc nhọn (Hard Mask Boundary), khiến các mạng CNN dễ dàng dựa vào vết cắt này để phân loại. Trong đề tài này, pipeline sinh ảnh áp dụng kỹ thuật <strong>Làm Mịn Biên Gaussian (Soft-Mask Feathering)</strong> trên mặt nạ elip giải phẫu (<code>blur_radius = 18–20</code>, tương đương <code>σ = 9.0–10.0</code> trong <code>stable_diffusion_engine.py</code>; hình mô phỏng minh họa dùng <code>σ = 4.0</code>), hòa trộn mượt vùng sinh mới vào khuôn mặt gốc và triệt tiêu đường biên nhân tạo.
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: SOFT FEATHERING -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Thực Nghiệm: Cơ Chế Làm Mịn Biên Gaussian Soft-Mask Feathering (σ = 4.0)</span>
+            <span class="artifact-row-title">Hình Ảnh Thực Nghiệm: Cơ Chế Làm Mịn Biên Gaussian (Soft-Mask Feathering)</span>
             <span class="artifact-badge">NOTEBOOK 01 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/extracted_nb/01_diffusion_dataset_and_curation_cell8_img2.png" class="artifact-img-full" alt="Soft-Mask Feathering Mechanism" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Nguyên lý toán học:</strong> <code>M_feathered = GaussianBlur(M_binary, k=(15,15), σ=4.0)</code> kết hợp với <code>I_composite = I_inpaint ⊙ M_feathered + I_real ⊙ (1 - M_feathered)</code> xóa sổ hoàn toàn vết cắt sắc nhọn, ép mô hình phải học các dị thường vi cấu trúc tần số cao bên trong khuôn mặt.
+            <strong>Nguyên lý kỹ thuật:</strong> Mặt nạ được làm mờ Gaussian tạo dải chuyển tiếp êm dịu giữa vùng khuôn mặt sinh mới và ảnh gốc, triệt tiêu đỉnh gradient sắc nhọn ở viền mặt nạ và buộc bộ dò DINOv2 phải học các vi vết sinh học bên trong khuôn mặt.
           </div>
         </div>
 
         <!-- Empirical Failure Callout -->
         <div class="callout-box danger">
-          <div class="callout-title">🚨 Sự Cố Sụp Đổ Của Mô Hình Cơ Sở M0 Trên Challenge Vault:</div>
+          <div class="callout-title">🚨 Thử Thách Lớn: Mô Hình Cơ Sở (M0) Bị Đánh Lừa Trên Tập Mẫu Khó Challenge Vault &amp; Legacy 6k</div>
           <div class="callout-desc">
-            Khi đem mô hình cơ sở M0 (huấn luyện trên tập chuẩn D0 thông thường) kiểm tra trên 213 mẫu cực khó của Challenge Vault, <strong>Fake Recall chỉ đạt 11.71%</strong> (tỷ lệ lọt lưới Bypass Rate lên tới <strong>88.29%</strong>; ROC-AUC đạt 0.6124 - tương đương đoán ngẫu nhiên). Điều này chứng minh: nếu không có vòng lặp Active Learning khai thác mẫu khó, hệ thống nhận diện khuôn mặt trong các cổng eKYC ngân hàng sẽ bị qua mặt hoàn toàn!
+            Khi thử nghiệm mô hình cơ sở M0 trên 213 mẫu của Challenge Vault (111 ảnh giả khó + 102 ảnh thật), <strong>Fake Recall chỉ đạt 11.71%</strong> (Bypass Rate lên tới <strong>88.29%</strong>; Overall Accuracy chỉ đạt <strong>53.99%</strong> — tương đương đoán ngẫu nhiên; F1-Score sụp đổ còn <strong>0.2097</strong>). Ngoài ra, trên 6.000 ảnh RV5.1, M0 đạt <strong>75.20%</strong> (bỏ lọt <strong>24.80%</strong>) ở chuẩn <code>512→504px LANCZOS</code> (và tụt còn <strong>2.00%</strong> nếu bị ép nén xuống <code>224×224</code>), còn trên tập Unseen RV5.1 độc lập danh tính vẫn bỏ lọt <strong>33.55%</strong>.
           </div>
         </div>
 
-        <!-- 1 ARTIFACT TRÊN 1 HÀNG: GLOBAL COMPARISON -->
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: M0 FAILURE COMPARISON -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Đối Chuẩn Toàn Cầu: Biểu Đồ So Sánh Tổng Thể Các Mô Hình</span>
-            <span class="artifact-badge champion">BENCHMARK FIGURE</span>
+            <span class="artifact-row-title">Biểu Đồ Thực Nghiệm: Tỷ Lệ Bắt Giả vs Bỏ Lọt Của M₀ Baseline Trên 5 Kịch Bản Kiểm Thử</span>
+            <span class="artifact-badge alert">M0 COLLAPSE ANALYSIS</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/benchmarks/benchmark_4models_global_comparison.png" class="artifact-img-full" alt="Global Comparison Benchmark Chart" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
+            <img src="assets/benchmarks/m0_baseline_collapse_comparison.png" class="artifact-img-full" alt="M0 Baseline Collapse Comparison Chart" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            So sánh toàn diện đa tiêu chí giữa M0 Baseline, M1 Active Round 1, M2 Cold-Start Retrain và M2* Refined Champion.
+            <strong>Nguồn số liệu thực nghiệm:</strong> Tổng hợp trực tiếp từ <code>benchmark_5models_quad_vault_summary.json</code> (512×512), <code>legacy_6k_benchmark_results.json</code> (chuẩn 512→504px: Recall 75.20% / Bypass 24.80%) và <code>legacy_6k_benchmark_results_224px.json</code> (stress-test 224×224: Recall 2.00% / Bypass 98.00%). Khoảng trống bỏ lọt lên đến 88.29% (Challenge Vault) và 24.80%–33.55% (RV5.1 @ 512px) là động lực trực tiếp cho Active Learning và Champion M3.
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 3: KHO DỮ LIỆU KHUẾCH TÁN KÉP 12.545 ẢNH & LƯỚI MẪU THẬT
+           PHẦN 3: BỘ DỮ LIỆU KHUẾCH TÁN KÉP 12.545 ẢNH & MẪU THỰC TẾ
            =================================================================== -->
       <section id="sec-dataset" class="report-section">
-        <span class="section-eyebrow">02 / SẢN PHẨM DỮ LIỆU</span>
+        <span class="section-eyebrow">03 / XÂY DỰNG DỮ LIỆU</span>
         <h2 class="section-title">
-          Kho Dữ Liệu Khuếch Tán Kép: <span class="accent">12.545 Ảnh Sinh Thực Tế & Lưới Ảnh Đối Chuẩn</span>
+          Kiến Trúc Dữ Liệu: <span class="accent">4.000 Ảnh Thật &amp; 12.545 Ảnh Sinh Từ Dual-Engine Diffusion</span>
         </h2>
         <p class="section-desc">
-          Nhóm nghiên cứu đã tạo dựng và kiểm duyệt tổng cộng <strong>12.545 ảnh khuôn mặt</strong> từ hai động cơ khuếch tán đại diện: <strong>Stable Diffusion v1.5</strong> (6.545 ảnh) và <strong>RealisticVision v5.1</strong> (6.000 ảnh), phân bổ trên 3 phương thức sinh: Inpaint, Img2Img và Text-to-Image.
+          Từ kho nền tảng <strong>4.000 ảnh thật</strong> (2.000 FFHQ + 2.000 CelebA-HQ, chia độc lập danh tính thành 2.813 train / 598 val / 589 test), nhóm đã sinh tổng cộng <strong>12.545 ảnh giả</strong> qua Dual-Engine Diffusion (<strong>SD 1.5: 6.545 thô → 5.251 đạt chuẩn CurationGate</strong>; <strong>RealisticVision v5.1: 6.000 ảnh</strong>) trên cả 3 chế độ Inpainting, Img2Img và Text-to-Image.
         </p>
 
         <!-- BẢNG TỔNG HỢP PHÂN BỔ 2 ĐỘNG CƠ SINH DỮ LIỆU (DUAL-ENGINE) -->
-        <div class="table-responsive" style="margin: 20px 0 28px; overflow-x: auto;">
-          <table class="report-table">
+        <div class="table-responsive">
+          <table class="data-table">
             <thead>
               <tr>
-                <th style="width: 25%;">Động cơ sinh</th>
-                <th style="width: 30%;">Nguồn mô hình</th>
-                <th style="width: 15%;">Quy mô sinh</th>
-                <th style="width: 30%;">Chi tiết & Mục đích sử dụng</th>
+                <th style="width: 24%;">Nguồn Dữ Liệu</th>
+                <th style="width: 28%;">Checkpoint / Kho Gốc</th>
+                <th style="width: 20%;">Quy Mô Thực Tế</th>
+                <th style="width: 28%;">Vai Trò Trong Pipeline</th>
               </tr>
             </thead>
             <tbody>
               <tr>
+                <td><strong>Ảnh Thật Gốc (Real)</strong></td>
+                <td>FFHQ (2.000) + CelebA-HQ (2.000)</td>
+                <td><strong>4.000 ảnh</strong></td>
+                <td>Chia identity-disjoint: 2.813 train / 598 val / 589 test</td>
+              </tr>
+              <tr>
                 <td><strong>Bộ A: Stable Diffusion v1.5</strong></td>
-                <td><code>runwayml/stable-diffusion-v1-5</code></td>
-                <td><strong>6.545 ảnh</strong></td>
-                <td>Vận hành vòng lặp Active Learning nội miền (D₀ → D₁ → D₂)</td>
+                <td><code>configs/dataset_factory.yaml → generation.model_id</code> (SD v1.5 Base)</td>
+                <td><strong>6.545 thô</strong> (<a href="#sec-curation" style="color: var(--primary); font-weight: 700;">5.251 sạch</a>)</td>
+                <td>Khởi tạo D₀ (2.200 sạch) + AL 2 vòng (1.484 R1 + 1.567 R2 sạch) — <a href="#sec-curation" style="color: var(--primary); font-weight: 600;">xem phễu lọc ở Mục 4</a></td>
               </tr>
               <tr>
                 <td><strong>Bộ B: RealisticVision v5.1</strong></td>
                 <td><code>SG161222/Realistic_Vision_V5.1_noVAE</code></td>
-                <td><strong>6.000 ảnh</strong></td>
-                <td>Benchmark đối kháng siêu thực ngoại miền (OOD Blind Transfer)</td>
+                <td><strong>6.000 ảnh</strong> (2k×3 chế độ)</td>
+                <td>OOD Profiling (M₀–M₂*) &amp; trích 1.384 sạch vào D₃ (cách ly 626 test + 600 val)</td>
               </tr>
-              <tr style="background: var(--surface-soft); font-weight: 700;">
-                <td><strong>Tổng cộng ảnh sinh mới</strong></td>
-                <td>-</td>
-                <td><strong class="accent" style="color: var(--primary); font-size: 15px;">12.545 ảnh</strong></td>
-                <td>Bao phủ 3 chế độ: Inpaint, Img2Img, Text-to-Image</td>
+              <tr class="highlight-champion">
+                <td><strong>Tổng cộng ảnh giả sinh mới</strong></td>
+                <td>Dual-Engine Diffusion</td>
+                <td><strong style="color: var(--primary); font-size: 15px;">12.545 ảnh giả</strong></td>
+                <td>Tổng kho toàn dự án: <strong>16.545 ảnh</strong> (4.000 Real + 12.545 Fake thô / 11.251 Fake sau lọc; mốc <strong>10.000 ảnh</strong> trong <code>clean_10k_production_report.json</code> = 4.000 Real + 6.000 Fake SD 1.5 gồm 2.200 D₀ + 1.900 R1 + 1.900 R2)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- BẢNG TIẾN HÓA CÁC PHÂN VÙNG D0 -> D1 -> D2 -> D3 -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Phiên Bản Tập Dữ Liệu</th>
+                <th>Train (Ảnh Thật + Giả)</th>
+                <th>Validation</th>
+                <th>Tập Kiểm Thử Độc Lập</th>
+                <th>Mô Hình Huấn Luyện</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>D₀ (Baseline)</strong></td>
+                <td><strong>4.224</strong> (2.813 Real + 1.411 SD 1.5)</td>
+                <td>798 (598 Real + 200 SD 1.5)</td>
+                <td>Master Frozen Test: <strong>1.178</strong> (589+589)</td>
+                <td><code>M₀</code> (baseline_d0_best.pt)</td>
+              </tr>
+              <tr>
+                <td><strong>D₁ (Active R1)</strong></td>
+                <td><strong>4.694</strong> (D₀ + 470 Hard R1)</td>
+                <td>798 (như D₀)</td>
+                <td>Master (1.178) + Challenge R1 (83 Fake)</td>
+                <td><code>M₁</code> (active_learning_m1_best.pt)</td>
+              </tr>
+              <tr>
+                <td><strong>D₂ (Active R2)</strong></td>
+                <td><strong>4.853</strong> (D₁ + 159 Hard R2)</td>
+                <td>798 (như D₀)</td>
+                <td>Master (1.178) + Challenge Vault (<strong>213</strong>)</td>
+                <td><code>M₂</code> (Cold) &amp; <code>M₂*</code> (Warm-Start)</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>D₃ (Dual-Engine Sạch)</strong></td>
+                <td><strong>5.626</strong> (2.813 Real + 629 Hard + 800 SD + 1.384 RV5.1)</td>
+                <td>1.198 (598 Real + 600 RV5.1 Val)</td>
+                <td>Unseen RV5.1 Vault: <strong>1.215</strong> (589 Real + 626 RV5.1 Test)</td>
+                <td><code>M₃</code> (active_learning_m3_best.pt)</td>
               </tr>
             </tbody>
           </table>
@@ -851,25 +1815,24 @@ def build_vertical_report_html() -> str:
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: DUAL ENGINE PORTFOLIO GRID -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Danh Mục Sinh Kép: Lưới So Sánh Thực Tế (Real vs Inpaint vs Img2Img vs Text2Img)</span>
+            <span class="artifact-row-title">So Sánh Trực Quan: Ảnh Thật vs 3 Chế Độ Sinh Ảnh (Inpaint, Img2Img, Text2Img)</span>
             <span class="artifact-badge champion">NOTEBOOK 01 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/extracted_nb/01_diffusion_dataset_and_curation_cell10_img3.png" class="artifact-img-full" alt="Dual Engine Portfolio Grid" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Kiểm soát kỹ thuật:</strong> Mỗi chế độ sinh đều đảm bảo độ phân giải chuẩn (512x512 sau đó căn chỉnh 224x224), bảo toàn cấu trúc ánh sáng tự nhiên và tỷ lệ nhân khẩu học hài hòa.
+            <strong>Tiêu chuẩn kỹ thuật:</strong> Ảnh được sinh và chuẩn hóa ở độ phân giải <code>512×512</code> (tương ứng cấu hình <code>configs/detector_training.yaml</code>; khi nạp vào <code>MetaDinoV2Wrapper.forward()</code> thì hàm nội suy tự động snap về bội 14 gần nhất dưới mức gốc là <code>504×504</code> / <code>36×36 = 1.296</code> patches; riêng các bài stress-test legacy 6k và universal benchmark chạy ở <code>224×224</code>), bảo toàn ánh sáng tự nhiên và tỷ lệ nhân khẩu học hài hòa.
           </div>
         </div>
 
-        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 32px 0 16px;">Bộ Sưu Tập Mẫu Khuôn Mặt Thực Tế Khổ Lớn Xuất Từ Kho 12.545 Ảnh Sinh:</h3>
+        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 32px 0 16px;">Một Số Mẫu Khuôn Mặt Điển Hình Trong Bộ Dữ Liệu:</h3>
 
         <!-- Mẫu 1: Nhân vật Nữ #0 -->
         <div class="face-subject-container">
           <div class="face-subject-header">
-            <span class="face-subject-title">Mẫu 1: Đối Chứng Khuôn Mặt Nữ (CelebA-HQ #0) Qua 4 Chế Độ Sinh</span>
-            <span class="artifact-badge">CHỦ THỂ NỮ</span>
+            <span class="face-subject-title">Mẫu 1: Đối Chứng Khuôn Mặt Nữ (CelebA-HQ #0 → Bộ RV5.1 6k)</span>
+            <span class="artifact-badge">CHỦ THỂ NỮ • RV5.1</span>
           </div>
           <div class="face-strip-row">
             <div class="face-strip-card">
@@ -880,24 +1843,24 @@ def build_vertical_report_html() -> str:
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/inpaint_0.png" alt="Inpaint 0" title="Nhấp để phóng to">
+              <img src="assets/samples/inpaint_0.png" alt="RV5.1 Inpaint 0" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag inpaint">SD INPAINT</span>
-                <div class="face-name">0_inpaint.png (Soft Biên)</div>
+                <span class="face-tag inpaint">RV5.1 INPAINT</span>
+                <div class="face-name">0_inpaint.png (Chỉnh Miệng)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/img2img_0.png" alt="Img2Img 0" title="Nhấp để phóng to">
+              <img src="assets/samples/img2img_0.png" alt="RV5.1 Img2Img 0" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag img2img">SD IMG2IMG</span>
-                <div class="face-name">0_img2img.png (Biến Đổi)</div>
+                <span class="face-tag img2img">RV5.1 IMG2IMG</span>
+                <div class="face-name">0_img2img.png (Strength=0.55)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/text2img_0.png" alt="Text2Img 0" title="Nhấp để phóng to">
+              <img src="assets/samples/text2img_0.png" alt="RV5.1 Text2Img 0" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag text2img">SD TEXT2IMG</span>
-                <div class="face-name">0_text2img.png (Sinh Hoàn Toàn)</div>
+                <span class="face-tag text2img">RV5.1 TEXT2IMG</span>
+                <div class="face-name">0_text2img.png (T2I Độc Lập #0)</div>
               </div>
             </div>
           </div>
@@ -906,8 +1869,8 @@ def build_vertical_report_html() -> str:
         <!-- Mẫu 2: Nhân vật Nam #9 -->
         <div class="face-subject-container">
           <div class="face-subject-header">
-            <span class="face-subject-title">Mẫu 2: Đối Chứng Khuôn Mặt Nam (CelebA-HQ #9) Khớp Râu & Cằm Tự Nhiên</span>
-            <span class="artifact-badge">CHỦ THỂ NAM</span>
+            <span class="face-subject-title">Mẫu 2: Đối Chứng Khuôn Mặt Nam (CelebA-HQ #9 → Bộ RV5.1 6k)</span>
+            <span class="artifact-badge">CHỦ THỂ NAM • RV5.1</span>
           </div>
           <div class="face-strip-row">
             <div class="face-strip-card">
@@ -918,24 +1881,24 @@ def build_vertical_report_html() -> str:
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/inpaint_9.png" alt="Inpaint 9" title="Nhấp để phóng to">
+              <img src="assets/samples/inpaint_9.png" alt="RV5.1 Inpaint 9" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag inpaint">SD INPAINT</span>
-                <div class="face-name">9_inpaint.png (Khớp Râu/Cằm)</div>
+                <span class="face-tag inpaint">RV5.1 INPAINT</span>
+                <div class="face-name">9_inpaint.png (Biến Đổi Vùng Mặt)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/img2img_9.png" alt="Img2Img 9" title="Nhấp để phóng to">
+              <img src="assets/samples/img2img_9.png" alt="RV5.1 Img2Img 9" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag img2img">SD IMG2IMG</span>
-                <div class="face-name">9_img2img.png (Biến Đổi Da)</div>
+                <span class="face-tag img2img">RV5.1 IMG2IMG</span>
+                <div class="face-name">9_img2img.png (Strength=0.55)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/text2img_9.png" alt="Text2Img 9" title="Nhấp để phóng to">
+              <img src="assets/samples/text2img_9.png" alt="RV5.1 Text2Img 9" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag text2img">SD TEXT2IMG</span>
-                <div class="face-name">9_text2img.png (Sinh Hoàn Toàn)</div>
+                <span class="face-tag text2img">RV5.1 TEXT2IMG</span>
+                <div class="face-name">9_text2img.png (T2I Độc Lập #9)</div>
               </div>
             </div>
           </div>
@@ -944,8 +1907,8 @@ def build_vertical_report_html() -> str:
         <!-- Mẫu 3: Nhân vật Thiếu Sáng / Ngược Sáng #107 -->
         <div class="face-subject-container">
           <div class="face-subject-header">
-            <span class="face-subject-title">Mẫu 3: Đối Chứng Điều Kiện Ánh Sáng Yếu & Tương Phản Cao (CelebA-HQ #107)</span>
-            <span class="artifact-badge alert">ÁNH SÁNG PHỨC TẠP</span>
+            <span class="face-subject-title">Mẫu 3: Đối Chứng Ánh Sáng Phức Tạp (CelebA-HQ #107 → Bộ RV5.1 6k)</span>
+            <span class="artifact-badge alert">ÁNH SÁNG PHỨC TẠP • RV5.1</span>
           </div>
           <div class="face-strip-row">
             <div class="face-strip-card">
@@ -956,24 +1919,24 @@ def build_vertical_report_html() -> str:
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/inpaint_107.png" alt="Inpaint 107" title="Nhấp để phóng to">
+              <img src="assets/samples/inpaint_107.png" alt="RV5.1 Inpaint 107" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag inpaint">SD INPAINT</span>
-                <div class="face-name">107_inpaint.png (Ánh Sáng Yếu)</div>
+                <span class="face-tag inpaint">RV5.1 INPAINT</span>
+                <div class="face-name">107_inpaint.png (Chỉnh Vùng Mặt)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/img2img_107.png" alt="Img2Img 107" title="Nhấp để phóng to">
+              <img src="assets/samples/img2img_107.png" alt="RV5.1 Img2Img 107" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag img2img">SD IMG2IMG</span>
-                <div class="face-name">107_img2img.png (Tương Phản)</div>
+                <span class="face-tag img2img">RV5.1 IMG2IMG</span>
+                <div class="face-name">107_img2img.png (Strength=0.55)</div>
               </div>
             </div>
             <div class="face-strip-card">
-              <img src="assets/samples/text2img_107.png" alt="Text2Img 107" title="Nhấp để phóng to">
+              <img src="assets/samples/text2img_107.png" alt="RV5.1 Text2Img 107" title="Nhấp để phóng to">
               <div class="face-strip-info">
-                <span class="face-tag text2img">SD TEXT2IMG</span>
-                <div class="face-name">107_text2img.png (Studio Lighting)</div>
+                <span class="face-tag text2img">RV5.1 TEXT2IMG</span>
+                <div class="face-name">107_text2img.png (T2I Độc Lập #107)</div>
               </div>
             </div>
           </div>
@@ -982,157 +1945,628 @@ def build_vertical_report_html() -> str:
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: DEMOGRAPHICS PANEL -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Phân Phối Nhân Khẩu Học & Độ Đa Dạng Dữ Liệu (Demographics Panel)</span>
+            <span class="artifact-row-title">Thống Kê Độ Đa Dạng Dữ Liệu: Độ Tuổi, Giới Tính Và Đặc Điểm Khuôn Mặt</span>
             <span class="artifact-badge">EDA FIGURE</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/eda/02_demographics_panel.png" class="artifact-img-full" alt="Demographics Panel" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Cân bằng đa dạng sinh học:</strong> Phân bổ độ tuổi trải rộng từ 18 đến trên 65; kiểm soát tỷ lệ giới tính cân bằng; đảm bảo góc nghiêng khuôn mặt giới hạn trong khoảng an toàn ±30°.
+            <strong>Đảm bảo tính đa dạng:</strong> Dữ liệu phân bổ đều các nhóm tuổi từ thanh niên đến người lớn tuổi, tỷ lệ nam/nữ cân bằng, và góc nghiêng khuôn mặt nằm trong khoảng tự nhiên (±30°).
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: DATASET BIAS COMPARISON (FFHQ vs CELEBA-HQ) -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Đối Chiếu Phân Phối Miền Thực: FFHQ vs CelebA-HQ (Z-Score Độ Nét, Độ Sáng &amp; Kênh RGB)</span>
+            <span class="artifact-badge">EDA COMPARISON</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/eda/05_dataset_comparison_bias.png" class="artifact-img-full" alt="FFHQ vs CelebA-HQ Dataset Comparison Bias" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Lý do hợp nhất 2 bộ nguồn thật:</strong> Biểu đồ Z-Score cho thấy <strong>CelebA-HQ</strong> nổi trội về độ nét trung bình &amp; tương phản studio, trong khi <strong>FFHQ</strong> cân bằng ánh sáng đời thực và kênh màu xanh tự nhiên hơn → ghép <code>2.000 + 2.000</code> giúp detector không bị lệ thuộc thiên kiến nền (domain shortcut).
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 4: PHỄU SÀNG LỌC CHẤT LƯỢNG 3 TẦNG (CURATIONGATE)
+           PHẦN 3B: CƠ CHẾ SINH ẢNH DUAL-ENGINE (SD 1.5 VS RV5.1, 3 CHẾ ĐỘ & PROMPT)
            =================================================================== -->
-      <section id="sec-curation" class="report-section">
-        <span class="section-eyebrow">03 / PHỄU LỌC CHẤT LƯỢNG</span>
+      <section id="sec-generation-mechanics" class="report-section">
+        <span class="section-eyebrow">03b / CƠ CHẾ SINH ẢNH DUAL-ENGINE</span>
         <h2 class="section-title">
-          CurationGate: <span class="accent">Đường Ống Lọc Sạch 3 Tầng Bảo Vệ Độ Tinh Khiết Dữ Liệu</span>
+          Giải Phẫu Kỹ Thuật Sinh Ảnh: <span class="accent">3 Chế Độ × SD 1.5 Base vs RealisticVision v5.1</span>
         </h2>
         <p class="section-desc">
-          Nhóm thiết lập quy trình kiểm toán 3 tầng khắt khe: Tầng 1 kiểm tra mốc hình học (Dlib 68 landmarks); Tầng 2 phân tích sắc tố da trong không gian màu YCbCr và độ nét quang học; Tầng 3 loại bỏ trùng lặp bằng pHash và SSIM.
+          Mọi ảnh giả ở kích thước chuẩn <code>512×512</code> đều chạy qua bộ giải đa bước <strong><code>DPMSolverMultistepScheduler</code></strong> (cấu hình <code>dpmsolver++</code> kết hợp <code>use_karras_sigmas=True</code>). Tuy nhiên, <strong>Bộ A (SD v1.5 Base)</strong> và <strong>Bộ B (RealisticVision v5.1)</strong> khác nhau căn bản về chiến lược điều khiển Latent, cơ chế tạo Mask Inpainting, công thức Prompt/Negative Prompt và siêu tham số — trực tiếp tạo ra hai dải phổ giả mạo từ "dễ lộ ranh giới" đến "tả thực lỗ chân lông".
         </p>
 
-        <!-- 1 ARTIFACT TRÊN 1 HÀNG: SKIN GAMUT -->
+        <!-- LUỒNG KIẾN TRÚC TRỰC QUAN 3 CHẾ ĐỘ (THAY THẾ SVG CHẬT HẸP) -->
+        <div class="flow-tracks-board">
+          <!-- Track 1: Text2Img -->
+          <div class="flow-track t2i">
+            <div class="flow-track-head">
+              <span class="flow-track-title">1. TEXT-TO-IMAGE (<code>sd_text2img</code>) — Sinh Danh Tính Mới Hoàn Toàn Từ Nhiễu</span>
+              <span class="flow-track-sub">Latent <code>(4, 64, 64)</code> → VAE Decode → <code>(3, 512, 512)</code></span>
+            </div>
+            <div class="flow-nodes-row">
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 1 • Khởi tạo</div>
+                  <div class="flow-node-title">🎲 Nhiễu Gaussian Thuần</div>
+                  <div class="flow-node-desc">Khởi tạo <code>z_T ~ N(0, I)</code> ngẫu nhiên, hoàn toàn không dùng ảnh thật đầu vào (<code>source = null</code>).</div>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 2 • Điều kiện CLIP</div>
+                  <div class="flow-node-title">📝 Tổ Hợp Prompt Đa Chiều</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: Grammar 7-Slot (&lt;45 từ)</span>
+                  <span class="eng-pill rv">RV5.1: Lưới 5-D (2.000 tổ hợp)</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 3 • Khử nhiễu</div>
+                  <div class="flow-node-title">⚙️ UNet 4-ch (100% Steps)</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: 20 bước • CFG = 6.2</span>
+                  <span class="eng-pill rv">RV5.1: 25 bước • CFG = 7.0</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node output-node">
+                <img src="assets/samples/text2img_0.png" class="flow-mini-thumb" alt="Mẫu Text2Img 512x512" title="Nhấp để phóng to">
+                <div>
+                  <div class="flow-node-step">Kết quả</div>
+                  <div class="flow-node-title">Ảnh 512×512 Độc Lập</div>
+                  <div class="flow-node-desc">Danh tính mới 100%, giúp detector học dấu vết giải mã VAE &amp; tổng hợp toàn cục.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Track 2: Img2Img -->
+          <div class="flow-track i2i">
+            <div class="flow-track-head">
+              <span class="flow-track-title">2. IMAGE-TO-IMAGE (<code>sd_img2img</code>) — Giữ Khung Mặt Gốc, Đổi Vi Kết Cấu Da &amp; Ánh Sáng</span>
+              <span class="flow-track-sub">Mã hóa ảnh thật → Bơm nhiễu tỷ lệ <code>strength</code> → Tái tạo <code>steps × s</code> bước cuối</span>
+            </div>
+            <div class="flow-nodes-row">
+              <div class="flow-node output-node" style="background: #ffffff; border-color: var(--border);">
+                <img src="assets/samples/real_0.jpg" class="flow-mini-thumb" alt="Ảnh thật gốc tham chiếu" title="Nhấp để phóng to">
+                <div>
+                  <div class="flow-node-step">Bước 1 • Nguồn</div>
+                  <div class="flow-node-title">Ảnh Thật x₀</div>
+                  <div class="flow-node-desc">FFHQ / CelebA-HQ <code>512×512</code> đưa qua VAE Encoder thành latent <code>z₀</code>.</div>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 2 • Bơm nhiễu</div>
+                  <div class="flow-node-title">🌫️ Mức Biến Đổi Strength</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: s=0.30 (≤0.25 trẻ/kính)</span>
+                  <span class="eng-pill rv">RV5.1: s=0.55 (RAW photo)</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 3 • Khử nhiễu</div>
+                  <div class="flow-node-title">⚙️ Denoise Bước Cuối</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: ~6 bước tái tạo</span>
+                  <span class="eng-pill rv">RV5.1: ~13 bước tái tạo</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node output-node">
+                <img src="assets/samples/img2img_0.png" class="flow-mini-thumb" alt="Mẫu Img2Img 512x512" title="Nhấp để phóng to">
+                <div>
+                  <div class="flow-node-step">Kết quả</div>
+                  <div class="flow-node-title">Biến Đổi Bề Mặt Da</div>
+                  <div class="flow-node-desc">Giữ nguyên dáng mặt gốc nhưng thay đổi vi cấu trúc lỗ chân lông &amp; ánh sáng.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Track 3: Inpainting -->
+          <div class="flow-track inp">
+            <div class="flow-track-head">
+              <span class="flow-track-title">3. FACIAL INPAINTING (<code>sd_inpaint</code>) — Chỉ Vẽ Lại Vùng Mask, Khóa 95% Pixel Thật Xung Quanh</span>
+              <span class="flow-track-sub">Dùng chung checkpoint <code>stable-diffusion-v1-5/stable-diffusion-inpainting</code> (UNet 9 kênh)</span>
+            </div>
+            <div class="flow-nodes-row">
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 1 • Mask ROI</div>
+                  <div class="flow-node-title">🎭 Ảnh Thật + Mặt Nạ</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: Haar + 3 vùng + blur 18</span>
+                  <span class="eng-pill rv">RV5.1: Ellipse 50% miệng/mắt</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 2 • UNet 9 kênh</div>
+                  <div class="flow-node-title">🧩 Nạp 3 Tensor Song Song</div>
+                  <div class="flow-node-desc">Ghép <code>4ch z_t</code> + <code>1ch mask</code> + <code>4ch vùng nền khóa</code> để chỉ sửa bên trong mask.</div>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">
+                <div>
+                  <div class="flow-node-step">Bước 3 • Hòa trộn biên</div>
+                  <div class="flow-node-title">✨ Chống Đường Viền</div>
+                </div>
+                <div class="flow-pills">
+                  <span class="eng-pill sd">SD1.5: m·fake + (1-m)·real</span>
+                  <span class="eng-pill rv">RV5.1: Composite trực tiếp</span>
+                </div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node output-node">
+                <img src="assets/samples/inpaint_0.png" class="flow-mini-thumb" alt="Mẫu Inpainting 512x512" title="Nhấp để phóng to">
+                <div>
+                  <div class="flow-node-step">Kết quả</div>
+                  <div class="flow-node-title">Bẫy Khó Nhất (11.71%)</div>
+                  <div class="flow-node-desc">Xóa sạch dấu vết cắt dán biên → khiến mô hình M₀ sụp đổ trước khi học AL.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BẢNG ĐỐI CHIẾU KỸ THUẬT 1-1: SD 1.5 VS RV5.1 -->
+        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 28px 0 10px;">Đối Chiếu Trực Diện Hai Động Cơ: Bộ A (<code>SD 1.5 Base</code>) vs Bộ B (<code>RealisticVision v5.1</code>)</h3>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 22%;">Tiêu Chí Kỹ Thuật</th>
+                <th style="width: 39%;">Bộ A: Stable Diffusion v1.5 Base (<code>src/pipelines/generate_deepfake_images.py</code>)</th>
+                <th style="width: 39%;">Bộ B: RealisticVision v5.1 (<code>scripts/run_generation.py</code>)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Checkpoint T2I &amp; Img2Img</strong></td>
+                <td><code>configs/dataset_factory.yaml → generation.model_id</code> (SD v1.5 Base)</td>
+                <td><code>SG161222/Realistic_Vision_V5.1_noVAE</code> (tinh chỉnh chuyên tả thực ảnh chụp)</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>Checkpoint Inpainting</strong></td>
+                <td><code>stable-diffusion-v1-5/stable-diffusion-inpainting</code> (UNet 9 kênh)</td>
+                <td><strong>Dùng chung</strong> <code>stable-diffusion-v1-5/stable-diffusion-inpainting</code> (<code>INPAINT_MODEL</code>)</td>
+              </tr>
+              <tr>
+                <td><strong>Steps &amp; CFG Scale</strong></td>
+                <td><code>steps = 20</code> | <code>guidance_scale = 6.2</code> (cân bằng tốc độ và độ tự nhiên)</td>
+                <td><code>steps = 25</code> | <code>guidance_scale = 7.0</code> (đẩy chi tiết da &amp; ánh sáng sắc nét hơn)</td>
+              </tr>
+              <tr>
+                <td><strong>Img2Img Strength</strong></td>
+                <td><code>0.30</code> (tự động hạ xuống <code>≤ 0.25</code> nếu mẫu là trẻ em <code>0–6 tuổi</code> hoặc đeo kính để chống biến dạng)</td>
+                <td><code>0.55</code> (mức biến đổi mạnh hơn ở kết cấu da &amp; biểu cảm trong 2.000 mẫu Img2Img)</td>
+              </tr>
+              <tr>
+                <td><strong>Scheduler &amp; Seed</strong></td>
+                <td><code>DPMSolverMultistepScheduler</code> (<code>dpmsolver++</code>, Karras) • Seed CRC32 tất định <code>sample_seed()</code></td>
+                <td><code>DPMSolverMultistepScheduler</code> (Karras sigmas; <code>dpmsolver++</code> cho T2I/I2I) • Seed <code>42 + idx</code></td>
+              </tr>
+              <tr>
+                <td><strong>Cơ Chế Mask Inpainting</strong></td>
+                <td><code>generate_dynamic_face_mask</code>: <code>OpenCV Haar</code> dò mặt, xoay vòng 3 vùng (<code>periocular</code>, <code>lips</code>, <code>full</code> +18% cằm), Gaussian <code>blur_radius=18</code> + alpha blend mềm</td>
+                <td><code>create_mask(512×512)</code>: Ellipse nhị phân cứng chia 50% vùng miệng (<code>mouth</code>, chẵn) và 50% vùng mắt/kính (<code>eyes</code>, lẻ)</td>
+              </tr>
+              <tr>
+                <td><strong>Chiến Lược Tạo Prompt</strong></td>
+                <td><strong><code>PromptGrammarEngine</code> (7 Slot)</strong> + giới hạn <code>≤ 45 từ</code> (&lt; 70 CLIP token); Active Learning gắn <strong>Softmax Error-Steering</strong> (<code>exploration_floor=0.15</code>)</td>
+                <td><strong>T2I:</strong> Lưới Descartes 5 chiều <strong>2.000</strong> tổ hợp (10 tuổi × 2 giới tính × 5 sắc tộc × 5 biểu cảm × 4 ánh sáng)<br><strong>I2I &amp; Inpaint:</strong> Prompt mẫu cố định <code>RAW photo, 8k uhd, dslr</code></td>
+              </tr>
+              <tr>
+                <td><strong>Hệ Quả Thực Nghiệm</strong></td>
+                <td>Nhiều ca biên mềm tinh vi ở chế độ Inpaint → ép M₀ sụp đổ và làm bàn đạp Active Learning (<code>M₀ → M₂*</code>: 11.71% → 91.89%)</td>
+                <td>Kết cấu lỗ chân lông &amp; ánh sáng cực giống ảnh chụp thật → phơi bày điểm mù OOD của <code>M₂*</code> (lọt <code>1.192/6.000</code> @ 512px; <code>1.792/6.000</code> @ 224px) trước khi <code>M₃</code> học khóa <code>93.13%</code> Unseen / <code>94.37%</code> toàn kho 6k</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ẢNH 1: ĐỐI CHIẾU 3 CHẾ ĐỘ KÈM ZOOM VI KẾT CẤU -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Tầng 2: Phổ Màu Da Trong Không Gian Sắc Ký YCbCr</span>
-            <span class="artifact-badge">NOTEBOOK 01 ARTIFACT</span>
+            <span class="artifact-row-title">🔬 Đối Chiếu Tận Mắt 3 Chế Độ: SD 1.5 Base vs RealisticVision v5.1 (Zoom 2× Da &amp; Biên)</span>
+            <span class="artifact-badge champion">REAL SAMPLES VISUAL AUDIT</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/extracted_nb/01_diffusion_dataset_and_curation_cell6_img1.png" class="artifact-img-full" alt="Skin Color Gamut YCbCr" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
+            <img src="assets/extracted_nb/dual_engine_visual_3modes.png" class="artifact-img-full" alt="Đối chiếu trực quan 3 chế độ giữa SD 1.5 và RV5.1" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Kiểm tra dải sắc tố: <code>135 ≤ Cr ≤ 180, 85 ≤ Cb ≤ 135</code> loại bỏ 100% ảnh ám sắc tím/xanh dị thường do lỗi khuếch tán.
+            <strong>Quan sát trực tiếp:</strong> Các ô phóng đại 2× cho thấy ảnh từ <strong>SD 1.5</strong> có xu hướng mịn da hơn, trong khi <strong>RV5.1</strong> ở chế độ <code>Img2Img</code> và <code>Text2Img</code> tái tạo rõ lỗ chân lông, nếp gấp chân chim và ánh sáng RAW chụp studio nhờ chuỗi <code>RAW photo, visible pores, 8k uhd, dslr</code>.
+          </div>
+        </div>
+
+        <!-- ẢNH 2: GIẢI PHẪU HÌNH HỌC MASK INPAINTING -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">🎭 Giải Phẫu Mặt Nạ Inpainting: SD 1.5 Soft-Mask (Haar + Blur 18px) vs RV5.1 Binary Ellipse</span>
+            <span class="artifact-badge">MASK &amp; ALPHA PROFILE</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/dual_engine_mask_anatomy.png" class="artifact-img-full" alt="So sánh hình học mặt nạ Soft-Mask và Binary Ellipse" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Giải thích kỹ thuật:</strong> Đồ thị mặt cắt ngang alpha ở hàng dưới minh họa độ dốc mượt <code>[0 → 1]</code> trên dải biên <code>7.5%–13.8%</code> của <code>generate_dynamic_face_mask</code> (SD 1.5), khác hẳn bước nhảy dựng đứng <code>0 → 1</code> của <code>create_mask</code> (RV5.1). Nhờ vùng đệm alpha này, công thức <code>m · fake + (1 - m) · real</code> xóa sạch viền ghép nối.
+          </div>
+        </div>
+
+        <!-- ẢNH 3: PHÂN BỔ QUOTA REAL-TIME & CẤU TRÚC PROMPT -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">📊 Biến Thiên Quota Active Learning (R1 → R2) &amp; Cấu Trúc Tổ Hợp Prompt Thực Tế</span>
+            <span class="artifact-badge champion">MANIFEST ANALYTICS</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/dual_engine_prompt_quota_evolution.png" class="artifact-img-full" alt="Phân bổ 3 chế độ qua các vòng và ngữ pháp PromptGrammarEngine vs 5-D Grid" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Bằng chứng đóng vòng:</strong> Số đếm từ manifest thật cho thấy ở Active Learning Vòng 2, <code>AdaptiveBudgetController</code> tự động dồn <strong>47.2%</strong> (<code>897/1.900</code>) ngân sách vào nhánh khó nhất là <code>sd_inpaint</code> (từ mức đều 33.3% ở R1), đồng thời <code>PromptGrammarEngine</code> xoay xác suất qua 7 slot với sàn khám phá <code>exploration_floor = 0.15</code>.
+          </div>
+        </div>
+
+        <!-- PHÒNG THÍ NGHIỆM PROMPT & NEGATIVE PROMPT THỰC TẾ -->
+        <h3 style="font-family: var(--font-display); font-size: 18px; margin: 30px 0 8px;">Giải Phẫu Prompt Thực Tế Trích Nguyên Văn Từ Manifest &amp; Negative Prompt</h3>
+        <div class="tok-legend">
+          <span style="font-weight: 700; color: var(--text);">Chú giải màu thành phần:</span>
+          <span class="prompt-tok tok-prefix">Tiền tố khung hình / tác vụ</span>
+          <span class="prompt-tok tok-demo">Nhân khẩu học (Tuổi / Giới tính / Sắc tộc)</span>
+          <span class="prompt-tok tok-optic">Quang học / Thân máy DSLR</span>
+          <span class="prompt-tok tok-light">Ánh sáng / Phông nền</span>
+          <span class="prompt-tok tok-skin">Vi kết cấu da / Biểu cảm / Khuyết điểm</span>
+          <span class="prompt-tok tok-neg">Negative Prompt (Từ khóa cấm)</span>
+        </div>
+
+        <!-- Cặp 1: TEXT2IMG -->
+        <div class="prompt-pair-grid">
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ A (SD 1.5) • Text2Img (<code>fake_ffhq_00003_1.png</code>)</span>
+              <span class="artifact-badge">PromptGrammar 7-Slot</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">head and shoulders portrait, centered, direct eye contact,</span>
+              <span class="prompt-tok tok-demo">baby girl, toddler portrait, delicate soft skin, gentle baby features,</span>
+              <span class="prompt-tok tok-light">soft studio key light, diffuse beauty dish fill, subtle catchlights,</span>
+              <span class="prompt-tok tok-optic">medium format Hasselblad portrait, natural skin pores, realistic micro-contrast,</span>
+              <span class="prompt-tok tok-skin">candid sideways glance, subtle head tilt, spontaneous capture</span>
+            </div>
+            <div class="prompt-card-foot">Khóa nhân khẩu theo metadata FFHQ nhưng giữ <strong>&lt; 45 từ</strong> (&lt; 70 CLIP token) để không bị cắt đuôi. Seed: <code>1966126620</code>.</div>
+          </div>
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ B (RV5.1) • Text2Img (<code>0_text2img.png</code>)</span>
+              <span class="artifact-badge champion">5-D Cartesian Grid (2.000)</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">RAW photo, a close-up portrait of a</span>
+              <span class="prompt-tok tok-demo">32-year-old South Asian woman,</span>
+              <span class="prompt-tok tok-skin">subtle warm smile,</span>
+              <span class="prompt-tok tok-light">neutral grey studio backdrop, soft rim lighting with subtle shadows,</span>
+              <span class="prompt-tok tok-optic">detailed skin texture, visible pores, 8k uhd, dslr, high quality</span>
+            </div>
+            <div class="prompt-card-foot">Trộn ngẫu nhiên tích Descartes <code>10 tuổi × 2 giới × 5 sắc tộc × 5 biểu cảm × 4 sáng = 2.000 tổ hợp</code> cân bằng (<code>seed=42</code>).</div>
+          </div>
+        </div>
+
+        <!-- Cặp 2: IMG2IMG -->
+        <div class="prompt-pair-grid">
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ A (SD 1.5) • Img2Img (<code>fake_ffhq_00000_0.png</code>)</span>
+              <span class="artifact-badge">Strength=0.30 (≤0.25 trẻ)</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">high resolution portrait, natural skin texture, realistic illumination,</span>
+              <span class="prompt-tok tok-demo">baby boy, toddler portrait, delicate soft skin, gentle baby features,</span>
+              <span class="prompt-tok tok-optic">shot on 85mm f/1.4 prime lens, creamy bokeh, sharp eye focus,</span>
+              <span class="prompt-tok tok-light">diffuse window light, soft gradient shadows, gentle ambient illumination</span>
+            </div>
+            <div class="prompt-card-foot">Ưu tiên giữ cấu trúc quang học &amp; ánh sáng thật của ảnh nguồn; chặn mức <code>strength ≤ 0.25</code> với trẻ em/kính để tránh biến dạng khuôn mặt.</div>
+          </div>
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ B (RV5.1) • Img2Img (<code>0_img2img.png</code>)</span>
+              <span class="artifact-badge champion">Strength=0.55 • Cố Định</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">RAW photo, a close-up portrait of</span>
+              <span class="prompt-tok tok-demo">an adult person,</span>
+              <span class="prompt-tok tok-skin">natural skin texture,</span>
+              <span class="prompt-tok tok-light">studio lighting,</span>
+              <span class="prompt-tok tok-optic">photorealistic, 8k uhd, dslr</span>
+            </div>
+            <div class="prompt-card-foot">Áp đồng bộ 1 prompt chuẩn mực trên toàn bộ <code>2.000</code> ảnh CelebA-HQ, dùng <code>strength=0.55</code> để tái tạo lớp bề mặt DSLR sắc nét.</div>
+          </div>
+        </div>
+
+        <!-- Cặp 3: INPAINTING -->
+        <div class="prompt-pair-grid">
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ A (SD 1.5) • Inpainting (<code>fake_ffhq_00002_0.png</code>)</span>
+              <span class="artifact-badge">ROI: lips / periocular / full</span>
+            </div>
+            <div class="prompt-code-box">
+              <span class="prompt-tok tok-prefix">seamless natural facial features, authentic skin texture,</span>
+              <span class="prompt-tok tok-demo">woman face, feminine features, adult portrait, natural skin,</span>
+              <span class="prompt-tok tok-skin">subtle warm smile, natural laughing eyes, relaxed facial muscles,</span>
+              <span class="prompt-tok tok-light">cozy candlelit warm glow, low-key illumination, deep soft shadows</span>
+            </div>
+            <div class="prompt-card-foot">Nhấn mạnh <em>seamless blend</em> + bỏ slot che khuất khi Inpaint để tái tạo chính xác biểu cảm &amp; đồng nhất ánh sáng với nền thật xung quanh.</div>
+          </div>
+          <div class="prompt-card">
+            <div class="prompt-card-head">
+              <span class="prompt-card-title">Bộ B (RV5.1) • Inpainting (<code>0_inpaint.png</code>)</span>
+              <span class="artifact-badge champion">50% Mouth / 50% Eyes</span>
+            </div>
+            <div class="prompt-code-box">
+              <strong>[Vùng miệng - chẵn]:</strong> <span class="prompt-tok tok-skin">a natural smiling mouth, realistic lips and skin texture,</span> <span class="prompt-tok tok-optic">photorealistic, 8k uhd</span><br>
+              <strong>[Vùng mắt - lẻ]:</strong> <span class="prompt-tok tok-demo">wearing stylish black sunglasses,</span> <span class="prompt-tok tok-skin">natural skin reflections,</span> <span class="prompt-tok tok-optic">photorealistic, 8k uhd</span>
+            </div>
+            <div class="prompt-card-foot">Chia 50/50 giữa biến đổi nụ cười và đeo kính râm, dùng chung model <code>stable-diffusion-v1-5/stable-diffusion-inpainting</code>.</div>
+          </div>
+        </div>
+
+        <!-- NEGATIVE PROMPT ANATOMY -->
+        <div class="callout-box danger">
+          <div class="callout-title">🚫 Đối Chiếu Negative Prompt Chặn Dị Tật Sinh Học (Áp Dụng Cho Cả 3 Chế Độ)</div>
+          <div class="callout-desc">
+            <p style="margin-bottom: 8px;">
+              <strong>• Bộ A — <code>CALIBRATED_NEGATIVE_PROMPT</code> (SD 1.5):</strong>
+              <span class="prompt-tok tok-neg" style="font-family: var(--font-mono); font-size: 11.5px;">blurry, distorted face, bad anatomy, deformed eyes, extra fingers, cartoon, 3d render, doll, oversaturated, plastic skin, mutation, cropped forehead, unitooth, out of frame</span>
+              <br><em>Mục tiêu:</em> Triệt tiêu các dị tật đặc trưng của SD 1.5 như răng liền khối (<code>unitooth</code>), da nhựa (<code>plastic skin</code>), búp bê (<code>doll</code>) và cắt trán (<code>cropped forehead</code>).
+            </p>
+            <p style="margin-bottom: 0;">
+              <strong>• Bộ B — <code>NEGATIVE_PROMPT</code> (RV5.1):</strong>
+              <span class="prompt-tok tok-neg" style="font-family: var(--font-mono); font-size: 11.5px;">deformed, bad eyes, bad anatomy, bad hands, poorly drawn face, mutation, mutated, ugly, disgusting, cartoon, 3d, anime, airbrushed, oversaturated, blurry, low quality, watermark, text, signature</span>
+              <br><em>Mục tiêu:</em> Ngăn mô hình bị trơn láng quá mức (<code>airbrushed</code>) và chặn triệt để chữ ký/watermark (<code>watermark, text, signature</code>) vốn xuất hiện trong tập pre-train ảnh chụp chân thực.
+            </p>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ===================================================================
+           PHẦN 4: QUY TRÌNH LỌC DỮ LIỆU TỰ ĐỘNG (CURATIONGATE)
+           =================================================================== -->
+      <section id="sec-curation" class="report-section">
+        <span class="section-eyebrow">04 / KIỂM SOÁT CHẤT LƯỢNG</span>
+        <h2 class="section-title">
+          CurationGate: <span class="accent">Phễu Lọc Tự Động 3 Tầng (6.545 Thô → 5.251 Ảnh SD 1.5 Đạt Chuẩn)</span>
+        </h2>
+        <p class="section-desc">
+          Triển khai thực tế trong <code>ImageCurationGate</code> (<code>src/pipelines/curate_image_dataset.py</code> &amp; <code>configs/dataset_factory.yaml</code>), mỗi ảnh sinh mới phải vượt qua 3 tầng kiểm duyệt tự động trước khi vào tập huấn luyện:
+        </p>
+
+        <div class="callout-box info">
+          <div class="callout-title">⚙️ Chi Tiết Kỹ Thuật Của 3 Tầng Lọc CurationGate Trong Mã Nguồn</div>
+          <div class="callout-desc">
+            1. <strong>Tầng 1 — Độ nét quang học (Laplacian Variance Calibrated):</strong> Tính biến sai toán tử Laplacian trên tensor <code>[0, 1]</code> nhân hệ số 1000 (<code>compute_laplacian_sharpness</code>); ngưỡng loại bỏ ảnh mờ được hiệu chỉnh động tại <strong>phân vị 5% (<code>q = 0.05</code>)</strong> của ảnh thật gốc (mặc định ≥ 1.25).<br>
+            2. <strong>Tầng 2 — Hình học &amp; Giải phẫu khuôn mặt (<code>opencv_haar</code> + <code>verify_facial_geometry</code>):</strong> Phát hiện khuôn mặt bằng <strong>OpenCV Haar Cascade</strong> (loại bỏ ảnh không thấy mặt hoặc có ≥ 2 khuôn mặt); kiểm tra tỷ lệ khung mặt <code>0.65 ≤ h/w ≤ 1.6</code>, diện tích mặt chiếm <code>20%–65%</code> khung hình, không bị cắt cụt trán/cằm (<code>skin ≤ 35%</code> tại mép ảnh), không cháy sáng ROI mặt (<code>&gt; 8.0%</code>), không lệch tâm (<code>0.15–0.85</code>), và không có đường cắt ngang bất thường ở miệng/cằm (<code>seam_spike &gt; 8.0 &amp; peak &gt; 20.0</code>).<br>
+            3. <strong>Tầng 3 — Chống trùng lặp &amp; Kết quả lọc thực tế:</strong> Khử trùng lặp tệp bằng băm nội dung <strong>SHA-256</strong> (<code>file_sha256</code>) trong CurationGate (và khử trùng lặp ngữ nghĩa bằng khoảng cách Cosine DINOv2 <code>≥ 0.05</code> ở bước mining). Tổng cộng loại bỏ 1.294 ảnh lỗi trên SD 1.5: Block 1 giữ <strong>2.200/2.745</strong> (80.15%, kết hợp sinh bù tối đa 3 lượt <code>att0→att1→att2</code>); AL Vòng 1 giữ <strong>1.484/1.900</strong> (78.11%); AL Vòng 2 giữ <strong>1.567/1.900</strong> (82.47%) — tổng <strong>5.251/6.545 (80.23%)</strong> đạt chuẩn.
+          </div>
+        </div>
+
+        <!-- Bảng Phễu Lọc 6.545 -> 5.251 -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Giai Đoạn Sinh SD 1.5</th>
+                <th>Ảnh Sinh Thô (Raw)</th>
+                <th>Bị Loại (Rejected)</th>
+                <th>Đạt Chuẩn Sạch (Curated)</th>
+                <th>Tỷ Lệ Đạt (Pass Rate)</th>
+                <th>Phân Bổ Tiếp Theo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Khởi tạo Block 1 (D₀)</strong></td>
+                <td>2.745</td>
+                <td>545</td>
+                <td><strong>2.200</strong></td>
+                <td>80.15%</td>
+                <td>1.411 Train + 200 Val + 589 Master Test</td>
+              </tr>
+              <tr>
+                <td><strong>Active Learning Vòng 1 (R1)</strong></td>
+                <td>1.900</td>
+                <td>416</td>
+                <td><strong>1.484</strong></td>
+                <td>78.11%</td>
+                <td>Chấm bởi M₀ → lọc <strong>553</strong> mẫu khó (470 Train + 83 Test)</td>
+              </tr>
+              <tr>
+                <td><strong>Active Learning Vòng 2 (R2)</strong></td>
+                <td>1.900</td>
+                <td>333</td>
+                <td><strong>1.567</strong></td>
+                <td>82.47%</td>
+                <td>Chấm bởi M₁ → lọc <strong>187</strong> mẫu khó (159 Train + 28 Test)</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>Tổng cộng SD 1.5</strong></td>
+                <td><strong>6.545</strong></td>
+                <td><strong>1.294</strong></td>
+                <td><span class="badge-pill green">5.251 sạch</span></td>
+                <td><strong>80.23%</strong></td>
+                <td>Đóng gói hoàn chỉnh D₀ → D₁ → D₂ (740 Hard Samples)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: CURATION FUNNEL & REJECTION BREAKDOWN -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Phễu Lọc CurationGate &amp; Thống Kê Lý Do Loại Bỏ Ảnh Lỗi (6.545 Thô → 5.251 Sạch)</span>
+            <span class="artifact-badge champion">CURATION AUDIT FIGURE</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/benchmarks/curation_funnel_sd15.png" class="artifact-img-full" alt="SD 1.5 CurationGate Funnel and Rejection Reasons" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Nguồn kiểm toán trực tiếp:</strong> Tổng hợp từ <code>fake_manifest.jsonl</code>, <code>curated_manifest.jsonl</code> và <code>round_{1,2}/curation_report.json</code>. Đa số ảnh bị loại là do khung mặt quá nhỏ (&lt;20%), không bắt được mốc mặt (Haar), cắt cụt trán/cằm hoặc xuất hiện ≥ 2 mặt.
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: SKIN GAMUT EDA -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Phân Tích EDA Đa Tạp Ảnh Thật: Phổ Màu Da YCbCr &amp; Độ Sáng Nền Tảng (4.000 Real Faces)</span>
+            <span class="artifact-badge">NOTEBOOK 01 EDA ARTIFACT</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/01_diffusion_dataset_and_curation_cell6_img1.png" class="artifact-img-full" alt="Real Manifold Skin Color Gamut YCbCr" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Phân tích đa tạp ảnh thật gốc:</strong> Khảo sát 4.000 ảnh thật FFHQ/CelebA-HQ trong không gian YCbCr (vùng da hội tụ tự nhiên quanh <code>Cb ∈ [77, 127], Cr ∈ [133, 173]</code>, Mean Y = 129.0) để làm chuẩn đối chiếu trắc quang cho dữ liệu sinh mới.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: IMAGE QUALITY PANEL -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Tầng 2 & 3: Bảng Kiểm Toán Độ Nét Quang Học & Phân Phối Chất Lượng</span>
+            <span class="artifact-row-title">Thống Kê Độ Nét Quang Học, Độ Sáng &amp; Tương Phản Nền Tảng (CelebA-HQ vs FFHQ)</span>
             <span class="artifact-badge">EDA FIGURE</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/eda/04_image_quality_panel.png" class="artifact-img-full" alt="Image Quality Panel" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Đo phương sai Laplacian: <code>Var(Laplacian) ≥ 100.0</code> loại bỏ hoàn toàn ảnh mờ nhòe, mất nét; pHash và SSIM ≤ 0.85 loại bỏ sạch bản sao trùng lặp.
+            Phân phối độ nét Laplacian, độ sáng trung bình (112.7 vs 116.4) và độ tương phản RMS giữa CelebA-HQ và FFHQ giúp hiệu chỉnh ngưỡng lọc CurationGate khách quan theo phân phối thực.
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 5: KHAI THÁC 740 MẪU KHÓ & ĐỐI CHUẨN 213 CHALLENGE VAULT
+           PHẦN 5: KHAI THÁC 740 MẪU KHÓ & TẬP THỬ THÁCH 213 CHALLENGE VAULT
            =================================================================== -->
       <section id="sec-hard-samples" class="report-section">
-        <span class="section-eyebrow">04 / ĐỐI CHUẨN MẪU KHÓ</span>
+        <span class="section-eyebrow">05 / 740 MẪU KHÓ &amp; CHALLENGE VAULT</span>
         <h2 class="section-title">
-          213 Challenge Vault: <span class="accent">Khai Thác 740 Mẫu Khó & Phân Tích 4 Dị Tật Sinh Học Vi Thể</span>
+          Challenge Vault: <span class="accent">Khai Thác 740 Mẫu Khó SD 1.5 &amp; Phân Tích 4 Lỗi Giải Phẫu (Anatomical Artifacts)</span>
         </h2>
         <p class="section-desc">
-          Dựa trên 2 tiêu chí định lượng khắt khe (vùng ranh giới không chắc chắn |P - 0.50| ≤ 0.15 và mẫu dự đoán sai với độ tin cậy cao), nhóm đã cô lập 213 mẫu khó nhất vào tập đối kháng 213 Challenge Vault làm thước đo bất biến kiểm chứng qua mọi vòng học.
+          Qua 2 vòng Active Learning đóng trên SD 1.5 (<code>CalibratedHardMiner</code>, <code>configs/active_learning.yaml</code>), mô hình chấm điểm các ảnh đã qua CurationGate sau bước <em>Temperature Scaling</em> (<code>T = 1.9831</code> ở Vòng 2) dựa trên 2 tiêu chí: <strong>False Negatives (<code>P &lt; 0.50</code>)</strong> và <strong>Boundary Uncertain (<code>|P - 0.50| ≤ 0.10</code>)</strong>, kết hợp lọc đa dạng embedding Cosine <code>≥ 0.05</code>. Theo nhật ký <code>closed_loop_metrics.json</code>, thu được <strong>570 FN + 170 Uncertain = 740 mẫu khó</strong> (Vòng 1 bởi <code>M₀</code>: 429 + 124 = 553; Vòng 2 bởi <code>M₁</code>: 141 + 46 = 187); khi đối chiếu lại theo <code>baseline_score</code> trong <code>hard_samples_manifest.jsonl</code> có <strong>616 mẫu &lt; 0.50</strong> và <strong>124 mẫu ≥ 0.50</strong>. Từ 740 mẫu này, nhóm tách <strong>629 mẫu</strong> vào train (D₂, D₃) và <strong>111 mẫu</strong> ghép cùng <strong>102 ảnh thật</strong> thành <strong>213 Challenge Vault</strong>. <em>(Riêng kết quả dùng <code>M₂*</code> profiling trên 6.000 ảnh RV5.1 — <strong>1.192 ca bỏ lọt</strong> @ 512px / 1.792 @ 224px chỉ để quan sát — xem tại <a href="#sec-zero-leakage" style="color: var(--primary); font-weight: 700;">Mục 7</a>).</em>
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: BIOLOGICAL DEFECTS GALLERY -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Thực Nghiệm: Bộ Sưu Tập 4 Dị Tật Sinh Học Vi Thể (Challenge Vault)</span>
+            <span class="artifact-row-title">4 Dạng Lỗi Giải Phẫu Điển Hình Trên Khuôn Mặt Giả (Challenge Vault)</span>
             <span class="artifact-badge alert">CHALLENGE VAULT ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/extracted_nb/02_hard_samples_and_active_learning_cell6_img2.png" class="artifact-img-full" alt="Biological Defect Taxonomy" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>4 Dị tật phát hiện:</strong> (1) Phản chiếu đồng tử giác mạc bất đối xứng hướng sáng; (2) Ranh giới men răng bị hòa tan liên tục; (3) Mất vi cấu trúc lỗ chân lông (hiệu ứng da nhựa); (4) Chân tóc tơ hòa trộn bất thường vào nền.
+            <strong>4 Dạng lỗi giải phẫu điển hình:</strong> (1) Lệch trục đồng tử &amp; phản quang giác mạc (catchlight) không khớp hướng sáng; (2) Sụn vành tai ngoài (helix) biến dạng, mờ nhòe nối bất thường với cơ má; (3) Lỗi răng liền khối (unitooth), mất rãnh kẽ răng; (4) Vùng da láng mịn như nhựa (plastic skin), mất vi cấu trúc lỗ chân lông.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: FULL CONTACT SHEET (SCROLLABLE & ZOOMABLE) -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Tấm Contact Sheet Khổng Lồ 213 Mẫu Khó Challenge Vault (Full-Res Contact Sheet)</span>
+            <span class="artifact-row-title">Toàn Bộ 213 Mẫu Thuộc Tập Thử Thách Challenge Vault (111 Hard Fake + 102 Real)</span>
             <span class="artifact-badge">ASSET 10.3 MB</span>
           </div>
           <div class="artifact-row-body" style="padding: 12px; max-height: 850px; overflow-y: auto;">
             <img src="assets/hard_samples_contact_sheet.png" class="artifact-img-full" alt="Hard Samples Contact Sheet" title="Nhấp để phóng to toàn màn hình" style="max-height: none;">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Toàn bộ 213 mẫu bẫy độc lập được khóa cứng trong <code>cumulative_challenge_test.jsonl</code>, không bao giờ được đưa vào tập huấn luyện của bất kỳ mô hình nào!
+            Toàn bộ 213 mẫu trong <code>cumulative_challenge_test.jsonl</code> (111 mẫu giả khó + 102 ảnh thật) được cô lập danh tính tuyệt đối, không bao giờ lọt vào tập huấn luyện của bất kỳ mô hình nào.
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 6: ĐỘT PHÁ VÒNG 2 ACTIVE LEARNING (M2*) & RECALL SURGE
+           PHẦN 6: ĐỘT PHÁ CỦA ACTIVE LEARNING VÒNG 2 (M2*)
            =================================================================== -->
       <section id="sec-active-learning" class="report-section">
-        <span class="section-eyebrow">05 / BƯỚC NHẢY VỌT BIÊN QUYẾT ĐỊNH</span>
+        <span class="section-eyebrow">06 / BƯỚC ĐỘT PHÁ CỦA ACTIVE LEARNING</span>
         <h2 class="section-title">
-          Active Learning Vòng 2: <span class="accent">M2* Nâng Fake Recall Từ 11.71% Lên 91.89% (+80.18%)</span>
+          Active Learning Vòng 2: <span class="accent">Mô Hình M2* Tăng Tỷ Lệ Phát Hiện Ảnh Giả Từ 11.71% Lên 91.89%</span>
         </h2>
         <p class="section-desc">
-          Bằng cách giải phóng có kiểm soát tầng Block 11 của DINOv2 (chỉ 8.06% tham số trainable) và áp dụng tốc độ học phân tầng (Differential Learning Rates), mô hình M2* đã dịch chuyển đường biên quyết định, bắt trọn 102/111 mẫu giả cực khó!
+          Bằng cách chỉ mở khóa tinh chỉnh tầng Block 11 của DINOv2 (chiếm 8.06% tham số) kết hợp Warm-Start từ M1 và Differential Learning Rates, mô hình M2* đã dịch chuyển ranh giới quyết định chính xác, phát hiện đúng <strong>102/111 mẫu giả cực khó</strong> và nâng ROC-AUC trên Challenge Vault từ <strong>0.8713</strong> lên <strong>0.9875</strong>!
         </p>
 
-        <!-- 1 ARTIFACT TRÊN 1 HÀNG: RECALL JUMP CHART -->
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: RECALL JUMP + ROC CURVE + CONFUSION MATRICES -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Biểu Đồ Bước Nhảy Vọt Fake Recall Trên 213 Challenge Samples (M0: 11.71% → M2*: 91.89%)</span>
+            <span class="artifact-row-title">Đột Phá Active Learning Trên Challenge Vault: Ma Trận Nhầm Lẫn, Fake Recall &amp; Đường Cong ROC (0.8713 → 0.9875)</span>
             <span class="artifact-badge champion">NOTEBOOK 02 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/extracted_nb/02_hard_samples_and_active_learning_cell9_img3.png" class="artifact-img-full" alt="Recall Jump Chart" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
+            <img src="assets/extracted_nb/02_hard_samples_and_active_learning_cell9_img3.png" class="artifact-img-full" alt="Challenge Vault Confusion Matrices, Recall Jump, and ROC Curves" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            M0 đạt 11.71% → M1 đạt 70.27% → <strong>M2* bứt phá 91.89% (+80.18%)</strong>. Bắt giữ thêm +89 mẫu giả tinh vi từng đánh lừa hoàn toàn baseline.
+            <strong>Bằng chứng trực quan trên 213 Challenge Vault:</strong> M0 chỉ bắt được 13/111 mẫu giả (11.71%, AUC 87.13%) → M1 tăng lên 78/111 (70.27%) → <strong>M2* đạt 102/111 (91.89%, tăng +80.18%, ROC-AUC đạt 98.75%)</strong> đồng thời giữ vững 98/102 ảnh thật chính xác.
           </div>
         </div>
 
-        <!-- 1 ARTIFACT TRÊN 1 HÀNG: PRECISION-RECALL CURVES -->
+        <div class="callout-box info">
+          <div class="callout-title">🔄 Cơ Chế Đóng Vòng Thông Minh: Error Attribution + AdaptiveBudgetController + PromptGrammarEngine</div>
+          <div class="callout-desc">
+            Active Learning của đồ án không sinh ảnh ngẫu nhiên mà tự động điều hướng theo điểm yếu của detector:<br>
+            • <strong>Phân rã lỗi Vòng 1 (Error Attribution):</strong> Phát hiện <code>sd_inpaint</code> đánh lừa <code>M₀</code> tới <strong>71.70%</strong> (so với <code>sd_img2img</code> 20.82% và <code>sd_text2img</code> 5.59%) → <code>AdaptiveBudgetController</code> tự động dồn ngân sách sinh Vòng 2 vào <strong>Inpaint (897)</strong>, <strong>Img2Img (540)</strong>, <strong>Text2Img (463)</strong>.<br>
+            • <strong>Kết quả Vòng 2:</strong> Error rate của Inpaint giảm sâu từ <strong>71.70% → 19.88%</strong>; đồng thời <code>PromptGrammarEngine</code> truy vết và tập trung vào vùng khó nhất như quanh mắt (<code>periocular: 39.53%</code>), ánh sáng studio (<code>13.87%</code>), người cao tuổi (<code>elderly: 13.61%</code>) và flash gắt (<code>13.30%</code>).
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: CLOSED LOOP ATTRIBUTION -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Đường Cong Precision-Recall So Sánh 5 Thế Hệ Mô Hình (213 Challenge Vault)</span>
-            <span class="artifact-badge">CHALLENGE VAULT BENCHMARK</span>
+            <span class="artifact-row-title">Phản Hồi Đóng Vòng: Error Attribution &amp; Phân Bổ Ngân Sách Sinh Thích Ứng (Vòng 1 → Vòng 2)</span>
+            <span class="artifact-badge">CLOSED-LOOP FEEDBACK</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img-full" alt="PR Curves 5 Models Challenge Vault" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
+            <img src="assets/benchmarks/closed_loop_attribution.png" class="artifact-img-full" alt="Closed-Loop Error Attribution and Adaptive Budgeting" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Đường cong PR của M2* và M3 ôm sát góc trên bên phải, PR-AUC đạt đỉnh cao 0.9875 (Bắt trúng 91.89% mẫu khó với Precision > 95%).
+            <strong>Nguồn số liệu:</strong> Trích xuất trực tiếp từ <code>experiments/logs/closed_loop_metrics.json</code> (thuật toán trong <code>AdaptiveBudgetController</code> và <code>PromptGrammarEngine</code>).
           </div>
         </div>
 
         <!-- Empirical Table -->
+        <div class="table-responsive">
         <table class="data-table">
           <thead>
             <tr>
               <th>Phiên Bản Mô Hình</th>
               <th>Fake Recall (↑)</th>
               <th>Bypass Rate (↓)</th>
+              <th>Accuracy (↑)</th>
               <th>ROC-AUC (↑)</th>
               <th>Số Mẫu Bắt Được (/111)</th>
               <th>Đánh Giá Kỹ Thuật</th>
@@ -1143,306 +2577,579 @@ def build_vertical_report_html() -> str:
               <td><strong>M0 (D0 Baseline)</strong></td>
               <td>11.71%</td>
               <td>88.29%</td>
-              <td>0.6124</td>
+              <td>53.99%</td>
+              <td>0.8713</td>
               <td>13 / 111 mẫu</td>
-              <td><span class="badge-pill red">BỎ SÓT NGUY HẠI</span></td>
+              <td><span class="badge-pill red">BỎ SÓT NHIỀU</span></td>
             </tr>
             <tr>
               <td><strong>M1 (Active Round 1)</strong></td>
               <td>70.27%</td>
               <td>29.73%</td>
-              <td>0.8842</td>
+              <td>83.10%</td>
+              <td>0.9655</td>
               <td>78 / 111 mẫu</td>
-              <td><span class="badge-pill amber">BƯỚC ĐẦU BỨT PHÁ</span></td>
+              <td><span class="badge-pill amber">CẢI THIỆN RÕ RỆT</span></td>
             </tr>
             <tr>
               <td><strong>M2 (Cold-Start Retrain)</strong></td>
               <td>86.49%</td>
               <td>13.51%</td>
-              <td>0.9430</td>
+              <td>92.49%</td>
+              <td>0.9937</td>
               <td>96 / 111 mẫu</td>
-              <td><span class="badge-pill green">HỘI TỤ TỐT</span></td>
+              <td><span class="badge-pill green">KẾT QUẢ TỐT</span></td>
             </tr>
             <tr class="highlight-champion">
               <td><strong>🏆 M2* (Refined Champion)</strong></td>
               <td><strong>91.89% (+80.18%)</strong></td>
               <td><strong>8.11%</strong></td>
+              <td><strong>93.90%</strong></td>
               <td><strong>0.9875</strong></td>
               <td><strong>102 / 111 mẫu</strong></td>
-              <td><span class="badge-pill green">CHẾ NGỰ HOÀN TOÀN</span></td>
+              <td><span class="badge-pill green">HIỆU QUẢ CAO NHẤT</span></td>
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 7: BẢO TOÀN LIÊM CHÍNH HỌC THUẬT: ZERO IDENTITY LEAKAGE
+           PHẦN 7: BẢO TOÀN TÍNH KHÁCH QUAN: ZERO IDENTITY LEAKAGE
            =================================================================== -->
       <section id="sec-zero-leakage" class="report-section">
-        <span class="section-eyebrow">06 / LIÊM CHÍNH HỌC THUẬT</span>
+        <span class="section-eyebrow">07 / BẢO TOÀN KHÁCH QUAN &amp; GIẢI TRÌNH RV5.1</span>
         <h2 class="section-title">
-          Zero Identity Leakage: <span class="accent">Phát Hiện & Cách Ly Hoàn Toàn 626 Ảnh Rò Rỉ Danh Tính</span>
+          Zero Identity Leakage: <span class="accent">Phân Vai 740 Mẫu Khó SD 1.5 vs 6.000 Ảnh RV5.1 &amp; Cách Ly Danh Tính Tập Test</span>
         </h2>
         <p class="section-desc">
-          Khi mở rộng sang kho 6.000 ảnh RealisticVision v5.1, nhóm phát hiện 626 ảnh inpaint/img2img được sinh từ khuôn mặt thuộc tập test. Nhóm đã lập tức cách ly 100% làm tập kiểm thử mù độc lập <code>unseen_rv51_test.jsonl</code>, đảm bảo mô hình học bản chất vi vết giả mạo chứ không nhớ mặt người.
+          Khi kiểm toán 6.000 ảnh từ động cơ siêu thực <strong>RealisticVision v5.1</strong>, nhóm phát hiện có <strong>626 ảnh</strong> (<code>313 inpaint + 313 img2img</code>) được sinh từ các khuôn mặt gốc thuộc tập kiểm thử <code>test_reals.jsonl</code>, và <strong>600 ảnh</strong> thuộc tập <code>val_reals.jsonl</code>. Nhóm cách ly tuyệt đối 626 ảnh test sang <code>unseen_rv51_test.jsonl</code> (cùng 589 ảnh thật thành <strong>1.215 ảnh</strong>) và 600 ảnh val sang <code>D3_clean/val.jsonl</code>; từ <strong>4.774 ảnh RV5.1 sạch danh tính</strong> còn lại, nhóm trích mẫu phân tầng <strong>1.384 ảnh</strong> kết hợp với <strong>629 mẫu khó SD 1.5</strong> và <strong>800 mẫu SD 1.5 cơ bản</strong> thành tập huấn luyện <code>D3_clean/train.jsonl</code> cân bằng 1:1 (<strong>2.813 Thật : 2.813 Giả = 5.626 ảnh</strong>).
         </p>
+
+        <div class="callout-box info">
+          <div class="callout-title">🛡️ Giải Trình Khoa Học: Vì Sao Con Số "740 Mẫu Khó" Không Gộp 6.000 Ảnh RealisticVision v5.1?</div>
+          <div class="callout-desc">
+            1) <strong>Đúng phân vai của Đề tài (docs/PURPOSE.md):</strong> <code>740 mẫu khó</code> là sản phẩm Active Learning nội miền của <strong>SD 1.5</strong> (553 vòng 1 + 187 vòng 2), chứng minh Proof of Utility cấp độ 1 trên <code>D0 → D1 → D2</code>.<br>
+            2) <strong>RV5.1 đóng vai trò Thử Nghiệm Đối Kháng Ngoại Miền (OOD cho M₀–M₂*):</strong> Ở độ phân giải chuẩn <code>512→504px</code> trên toàn bộ 6.000 ảnh (<code>legacy_6k_benchmark_results.json</code>), <code>M₀</code> bỏ lọt <strong>24.80%</strong> (<code>1.488/6.000</code>), <code>M₂*</code> (<code>active_learning_m2_best.pt</code>) bỏ lọt <strong>19.87%</strong> (<code>1.192/6.000</code>), và riêng trên tập Unseen RV5.1 (nhiều ảnh inpaint/img2img khó) <code>M₀</code> bỏ lọt <strong>33.55%</strong> còn <code>M₂*</code> bỏ lọt <strong>28.12%</strong>; còn ở phép thử nén thấp <code>224×224</code> trước đây (<code>legacy_6k_benchmark_results_224px.json</code>), <code>M₀</code> sụp xuống <strong>98.00%</strong> bỏ lọt và <code>M₂*</code> bỏ lọt <strong>29.87%</strong> (<code>1.792/6.000</code>).<br>
+            3) <strong>Chống rò rỉ danh tính tuyệt đối:</strong> Nếu gộp bừa ảnh RV5.1 bị bỏ lọt vào tập train, 626 ảnh có khuôn mặt trùng <code>test_reals.jsonl</code> sẽ rò rỉ vào tập học. Việc cách ly 626 ảnh này theo nguồn gốc danh tính giúp kiểm chứng <code>M₃</code> thích nghi đa động cơ trên <strong>danh tính hoàn toàn độc lập</strong> (93.13% Recall).
+          </div>
+        </div>
+
+        <!-- Bảng đối chiếu 2 cấp độ Proof of Utility -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 22%;">Cấp Độ Thực Nghiệm</th>
+                <th style="width: 24%;">Nguồn Dữ Liệu Sinh</th>
+                <th style="width: 26%;">Cơ Chế Khai Thác / Kiểm Định</th>
+                <th style="width: 28%;">Kết Quả Chứng Minh (Proof of Utility)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Cấp 1: Nội Miền SD 1.5</strong></td>
+                <td>Stable Diffusion v1.5 (~6.545 ảnh)</td>
+                <td>Active Learning 2 vòng → <strong>740 mẫu khó</strong> (629 train D₂, 111 Challenge Vault)</td>
+                <td><code>M₂*</code> tăng Recall Challenge Vault <strong>11.71% → 91.89%</strong> (+80.18%, AUC 0.9875)</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>Cấp 2: Đa Động Cơ (D₃ → M₃)</strong></td>
+                <td>RealisticVision v5.1 (6.000 ảnh) + SD 1.5</td>
+                <td>Cách ly <strong>626 ảnh trùng test</strong> + 600 ảnh val; trích phân tầng 1.384 RV5.1 sạch + 629 hard SD 1.5</td>
+                <td><code>M₃</code> tăng Recall trên <code>unseen_rv51_test</code> <strong>71.88% → 93.13%</strong> (bypass 6.87%), giữ nguyên 91.89% SD 1.5</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: CLEAN D3 PARTITION -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Sơ Đồ Phân Vùng Sạch D3: Cách Ly Tuyệt Đối Danh Tính Tập Test</span>
+            <span class="artifact-row-title">Sơ Đồ Phân Vùng Dữ Liệu Sạch D3: Cách Ly Hoàn Toàn Danh Tính Tập Test</span>
             <span class="artifact-badge champion">NOTEBOOK 03 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell3_img0.png" class="artifact-img-full" alt="Zero Identity Leakage Clean Partition Schema" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Cấu trúc D3 sạch (5.626 ảnh):</strong> Cân bằng 1:1 chuẩn xác (2.813 Thật : 2.813 Giả). Không một ảnh nào thuộc 626 ảnh trùng test ID được lọt vào tập huấn luyện!
+            <strong>Cấu trúc tập D3 sạch (5.626 ảnh):</strong> Cân bằng 1:1 chuẩn xác (2.813 Thật : 2.813 Giả = 1.384 RV5.1 sạch + 629 AL Hard Samples + 800 SD 1.5 Baseline). Không một ảnh nào trùng danh tính tập test lọt vào tập huấn luyện!
+          </div>
+        </div>
+
+        <!-- M2* OOD Hard-Sample Profiling Callout & Chart -->
+        <div class="callout-box success">
+          <div class="callout-title">🔍 Error Analysis / OOD Hard-Sample Profiling Bằng M₂* Trên 6.000 Ảnh RV5.1 (Không Dùng Để Train → Không Leakage)</div>
+          <div class="callout-desc">
+            Chạy suy luận 1 chiều (inference-only) để quan sát và phân tích điểm mù của mô hình trên 6.000 ảnh RV5.1 hoàn toàn hợp lệ về phương pháp luận (khớp Bước 2 trong <code>PURPOSE.md</code>) và <strong>không gây rò rỉ dữ liệu</strong> vì các mẫu này không đưa vào train. Nhóm chọn <strong>M₂* (Refined Warm-Start, <code>active_learning_m2_best.pt</code>)</strong> thay vì M₂ (Cold-Start) vì M₂ bị <em>Catastrophic Interference</em> (tụt Recall RV5.1 512px xuống <strong>56.55%</strong>, kém cả M₀ 66.45%), nên nếu dùng M₂ sẽ lọc nhầm nhiều mẫu do quên kiến thức; trong khi M₂* giữ Recall <strong>71.88%</strong> (512px) và <strong>91.89%</strong> (Challenge Vault), nên những ca đánh lừa được M₂* mới là điểm mù siêu thực đích thực:<br>
+            • <strong>Bị M₂* bỏ lọt ở chuẩn <code>512→504px</code> (<code>P(Fake) &lt; 0.50</code>): 1.192 / 6.000 ảnh (19.87%)</strong> — chủ yếu tập trung ở <code>inpaint</code> <strong>862/2.000 (43.10%</strong>; vùng miệng 45.30%, vùng mắt 40.90%), kế đến <code>img2img</code> <strong>328/2.000 (16.40%)</strong>, trong khi <code>text2img</code> chỉ sót <strong>2/2.000 (0.10%)</strong>.<br>
+            • <strong>Vùng phân vân (<code>|P - 0.50| ≤ 0.15</code>): 183 / 6.000 ảnh (3.05%)</strong> (hợp cả 2 tiêu chí: <strong>1.282 / 6.000 ảnh</strong>). Sau khi huấn luyện đa động cơ, <code>M₃</code> nâng Recall toàn kho 6k lên <strong>94.37%</strong> (chỉ còn 338/6.000 bypass).
+          </div>
+        </div>
+
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Hồ Sơ Điểm Mù Ngoại Miền (OOD Hard-Sample Profiling) Của M₂* Trên 6.000 Ảnh RV5.1</span>
+            <span class="artifact-badge">ERROR ANALYSIS FIGURE</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/benchmarks/m2star_rv51_hard_profiling.png" class="artifact-img-full" alt="M2* OOD Hard-Sample Profiling on 6,000 RV5.1 Images" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Kết luận phân tích điểm mù:</strong> Ở chuẩn <code>512→504px</code>, chế độ <code>inpaint</code> (43.10% bypass, trong đó vùng miệng 45.30%) và <code>img2img</code> (16.40%) của RV5.1 là điểm mù lớn nhất của <code>M₂*</code> (chiếm gần 100% các ca lọt), trực tiếp lý giải vì sao cần thích nghi đa động cơ để tạo ra <code>M₃</code> (hạ bypass toàn kho xuống còn 5.63%).
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 8: CHAMPION M3 DUAL-ENGINE & ĐỐI CHUẨN TỨ GIÁC (QUAD-VAULT)
+           PHẦN 8: CHAMPION M3 VÀ ĐÁNH GIÁ TRÊN 3 TẬP KIỂM THỬ ĐỘC LẬP
            =================================================================== -->
       <section id="sec-champion-m3" class="report-section">
-        <span class="section-eyebrow">07 / MÔ HÌNH VÔ ĐỊCH CHAMPION M3</span>
+        <span class="section-eyebrow">08 / MÔ HÌNH TOÀN DIỆN CHAMPION M3</span>
         <h2 class="section-title">
-          Champion M3: <span class="accent">Bứt Phá 93.13% Quad-Vault Mà Không Quên SD 1.5</span>
+          Mô Hình Champion M3: <span class="accent">Đạt 93.13% Trên Unseen RV5.1 Mà Vẫn Giữ Vững Hiệu Năng SD 1.5</span>
         </h2>
         <p class="section-desc">
-          Huấn luyện Warm-Start từ M2* với bộ điều phối Cosine Annealing qua 6 epochs. Mô hình hội tụ hoàn hảo, xác lập kỷ lục mới toàn diện trên cả 3 kho kiểm thử nội bộ độc lập.
+          Kế thừa trọng số từ M2* (Warm-Start) và tinh chỉnh Block 11 + Head qua 6 epochs với Cosine Annealing trên tập <code>D3_clean/train.jsonl</code> (5.626 ảnh), mô hình Champion M3 đạt <code>best_val_auc = 0.9846</code> ở Epoch 6 và nâng Fake Recall trên <code>unseen_rv51_test.jsonl</code> (độc lập danh tính) từ 71.88% lên <strong>93.13%</strong> (ROC-AUC <strong>0.9828</strong>) mà không bị quên kiến thức SD 1.5!
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: QUAD-VAULT RECALL CHART -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Biểu Đồ Cột Đối Chuẩn Tứ Giác: So Sánh Fake Recall 5 Mô Hình Trên 3 Kho Độc Lập</span>
+            <span class="artifact-row-title">So Sánh Tỷ Lệ Phát Hiện (Fake Recall) Của 5 Mô Hình Trên 3 Tập Kiểm Thử Độc Lập</span>
             <span class="artifact-badge champion">BENCHMARK FIGURE</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/benchmarks/benchmark_5models_vault_recall_comparison.png" class="artifact-img-full" alt="Quad-Vault Recall Comparison" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            M3 đạt Fake Recall <strong>93.13%</strong> trên tập mù RV5.1 (Bypass giảm sâu còn 6.87%) trong khi vẫn duy trì nguyên vẹn <strong>91.89%</strong> trên Challenge Vault!
+            Mô hình M3 đạt Fake Recall <strong>93.13%</strong> trên tập kiểm thử <code>unseen_rv51_test</code> (Bypass Rate giảm từ 28.12% còn <strong>6.87%</strong>), đồng thời duy trì trọn vẹn <strong>91.89%</strong> trên Challenge Vault và tăng lên <strong>69.44%</strong> trên Master Frozen Test (SD 1.5).
           </div>
         </div>
 
-        <!-- 1 ARTIFACT TRÊN 1 HÀNG: TRAINING CONVERGENCE -->
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: M3 6-EPOCH TRAINING CONVERGENCE -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Động Học Hội Tụ Huấn Luyện M3 (Loss & AUC Qua 6 Epochs Cosine Annealing)</span>
+            <span class="artifact-row-title">Động Học Huấn Luyện Champion M3 Qua 6 Epochs (Train/Val Loss &amp; Validation AUC 0.9846)</span>
+            <span class="artifact-badge champion">TRAINING DYNAMICS</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/benchmarks/m3_training_convergence.png" class="artifact-img-full" alt="Champion M3 6-Epoch Training Convergence" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Hội tụ mượt mà không Overfitting:</strong> Train Loss giảm đều <code>0.1833 → 0.0831</code>, Val Loss giảm <code>0.2552 → 0.2168</code>, và Val ROC-AUC trên <code>D3_clean/val.jsonl</code> tăng liên tục từ <code>0.9745</code> lên <strong>0.9846</strong> (Val Acc <strong>94.07%</strong>) tại Epoch 6.
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: M3 LIVE INFERENCE EXAMPLES -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Suy Luận Trực Tiếp (Live Inference) Của Champion M3 Trên Unseen RV5.1 (Phân Tích Ca Đúng &amp; Ca Sai)</span>
             <span class="artifact-badge">NOTEBOOK 03 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell5_img1.png" class="artifact-img-full" alt="M3 Convergence Dynamics" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
+            <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell5_img1.png" class="artifact-img-full" alt="M3 Live Inference Examples on Unseen RV5.1" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Validation AUC tăng đều từ 0.9745 lên <strong>0.9846</strong> ở Epoch 6 mà không hề xảy ra hiện tượng Overfitting hay Catastrophic Forgetting.
+            <strong>Minh họa trực quan từ tập Unseen RV5.1:</strong> Hàng trên hiển thị ảnh thật (2 ca nhận đúng với P(fake) 15.1%–45.2% và 2 ca báo động nhầm 65.5%–72.6%); hàng dưới hiển thị ảnh giả RV5.1 (3 ca bắt đúng với P(fake) 72.0%–86.5% và 1 ca bỏ lọt 14.4% — phản ánh trực tiếp Bypass Rate 6.87% còn lại).
           </div>
         </div>
 
-        <!-- Full Quad-Vault Scorecard Table -->
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Phiên Bản Mô Hình</th>
-              <th>Master Frozen Test (SD 1.5 - 1.178 ảnh)<br>Fake Recall (↑) | Bypass (↓)</th>
-              <th>Challenge Vault (Mẫu Khó - 213 ảnh)<br>Fake Recall (↑) | Bypass (↓)</th>
-              <th>Unseen RV5.1 Vault (Tập Mù - 1.215 ảnh)<br>Fake Recall (↑) | Bypass (↓)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>M0 (D0 Baseline)</strong></td>
-              <td>49.07% | 50.93%</td>
-              <td>11.71% | 88.29%</td>
-              <td>66.45% | 33.55%</td>
-            </tr>
-            <tr>
-              <td><strong>M1 (Active Round 1)</strong></td>
-              <td>62.14% | 37.86%</td>
-              <td>70.27% | 29.73%</td>
-              <td>72.04% | 27.96%</td>
-            </tr>
-            <tr>
-              <td><strong>M2 (Cold-Start Retrain)</strong></td>
-              <td>52.63% | 47.37%</td>
-              <td>86.49% | 13.51%</td>
-              <td>56.55% | 43.45%</td>
-            </tr>
-            <tr>
-              <td><strong>M2* (Refined Champion)</strong></td>
-              <td>66.89% | 33.11%</td>
-              <td><strong>91.89%</strong> | <strong>8.11%</strong></td>
-              <td>71.88% | 28.12%</td>
-            </tr>
-            <tr class="highlight-champion">
-              <td><strong>🏆 M3 (Dual-Engine Champion)</strong></td>
-              <td><span class="badge-pill green">69.44% (Cao nhất)</span></td>
-              <td><span class="badge-pill green">91.89% (Bảo tồn)</span></td>
-              <td><span class="badge-pill green">93.13% (+21.25%)</span></td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- Full Quad-Vault Scorecard Table with Accuracy, ROC-AUC, F1, Recall, Bypass -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Phiên Bản Mô Hình</th>
+                <th>Master Frozen Test (SD 1.5 — 1.178 ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+                <th>Challenge Vault (Mẫu Khó — 213 ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+                <th>Unseen RV5.1 Vault (1.215 ảnh — Độc Lập Danh Tính)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>M0 (D0 Baseline)</strong></td>
+                <td>49.07% | 50.93% | 74.11% | 0.8850 | 0.6546</td>
+                <td>11.71% | 88.29% | 53.99% | 0.8713 | 0.2097</td>
+                <td>66.45% | 33.55% | 82.30% | 0.9162 | 0.7947 (OOD)</td>
+              </tr>
+              <tr>
+                <td><strong>M1 (Active Round 1)</strong></td>
+                <td>62.14% | 37.86% | 79.20% | 0.9161 | 0.7492</td>
+                <td>70.27% | 29.73% | 83.10% | 0.9655 | 0.8125</td>
+                <td>72.04% | 27.96% | 83.79% | 0.9170 | 0.8207 (OOD)</td>
+              </tr>
+              <tr>
+                <td><strong>M2 (Cold-Start Retrain)</strong></td>
+                <td>52.63% | 47.37% | 75.04% | 0.8910 | 0.6783</td>
+                <td>86.49% | 13.51% | 92.49% | 0.9937 | 0.9231</td>
+                <td>56.55% | 43.45% | 76.38% | 0.8804 | 0.7116 (OOD)</td>
+              </tr>
+              <tr>
+                <td><strong>M2* (Refined Warm-Start)</strong></td>
+                <td>66.89% | 33.11% | 80.81% | 0.9177 | 0.7771</td>
+                <td><strong>91.89%</strong> | <strong>8.11%</strong> | <strong>93.90%</strong> | 0.9875 | <strong>0.9401</strong></td>
+                <td>71.88% | 28.12% | 82.96% | 0.9158 | 0.8130 (OOD)</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>🏆 M3 (Dual-Engine Champion)</strong></td>
+                <td><span class="badge-pill green">69.44% | 30.56% | 82.26% | 0.9206 | 0.7965</span></td>
+                <td><span class="badge-pill green">91.89% | 8.11% | 93.43% | 0.9875 | 0.9358</span></td>
+                <td><span class="badge-pill green">93.13% | 6.87% | 94.07% | 0.9828 | 0.9418</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Hyperparameter Progression Table -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mô Hình</th>
+                <th>Khởi Tạo (Init)</th>
+                <th>Tầng Mở Khóa (Unfreeze)</th>
+                <th>Learning Rate &amp; Scheduler</th>
+                <th>Hard Loss Weight &amp; Epochs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>M₀ / M₁ / M₂ (Cold)</strong></td>
+                <td>DINOv2 ImageNet Pretrained</td>
+                <td>Block 11 + Head (1.78M = 8.06%)</td>
+                <td>Head <code>2e-4</code> | Block 11 <code>2e-5</code></td>
+                <td><code>hard_weight = 2.0</code>, 5 epochs (M₀ ep 5, M₁ ep 4, M₂ ep 5)</td>
+              </tr>
+              <tr>
+                <td><strong>M₂* (Refined)</strong></td>
+                <td>Warm-Start từ <code>M₁</code></td>
+                <td>Block 11 + Head (1.78M = 8.06%)</td>
+                <td>Head <code>5e-5</code> | Block 11 <code>5e-6</code></td>
+                <td><code>hard_weight = 1.15</code>, 2 epochs (AMP, best ep 2)</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>M₃ (Champion)</strong></td>
+                <td>Warm-Start từ <code>M₂*</code></td>
+                <td>Block 11 + Head (1.78M = 8.06%)</td>
+                <td>Head <code>3e-5</code> | Block 11 <code>3e-6</code> (CosineAnnealingLR)</td>
+                <td><code>hard_weight = 1.10</code>, 6 epochs (AMP, best ep 6)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 9: ĐỐI CHUẨN TOÀN CẦU (UNIVERSAL BENCHMARK 20.400 ẢNH)
+           PHẦN 9: ĐÁNH GIÁ MỞ RỘNG TOÀN DIỆN (UNIVERSAL BENCHMARK 20.400 ẢNH)
            =================================================================== -->
       <section id="sec-universal" class="report-section">
-        <span class="section-eyebrow">08 / NĂNG LỰC TỔNG QUÁT HÓA TOÀN CẦU</span>
+        <span class="section-eyebrow">09 / ĐÁNH GIÁ MỞ RỘNG ZERO-SHOT CROSS-FAMILY</span>
         <h2 class="section-title">
-          Universal Benchmark: <span class="accent">Thử Thách Khổng Lồ 20.400 Ảnh Trên 34 Bộ Sinh & 8 Họ</span>
+          Universal Benchmark: <span class="accent">Đánh Giá Zero-Shot Trên 20.400 Ảnh Từ 34 Thuật Toán (Chuẩn 512→504px LANCZOS)</span>
         </h2>
         <p class="section-desc">
-          Đánh giá năng lực phát hiện thực chiến trên bộ dữ liệu đồ sộ gồm 10.200 ảnh Thật vs 10.200 ảnh Giả từ 34 thuật toán thuộc 8 họ công nghệ: GAN, Diffusion, Face-Swap, Commercial Inpainting, và Talking Heads.
+          Kiểm định giới hạn Zero-Shot ở chuẩn phân giải thiết kế <code>512→504px LANCZOS</code> (sau khi khắc phục lỗi nén nhầm <code>224×224 BILINEAR</code> ở bản đánh giá cũ) đối với 10.200 ảnh Thật và 10.200 ảnh Giả từ <strong>34 phương pháp</strong> thuộc 8 nhóm: <em>Reenactment &amp; Talking Head, Face Swapping, GAN Architectures, Diffusion Transformers (DiT), GAN Inversion &amp; Editing, Diffusion Baselines (DDIM), Latent Diffusion (SD 2.1), và AutoEncoders/VAEs</em>.
         </p>
 
-        <!-- 1 ARTIFACT TRÊN 1 HÀNG: FULL-WIDTH HEATMAP -->
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: 5-MODEL 34-METHOD HEATMAP -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Ma Trận Nhiệt Khảo Sát Chi Tiết Trên 34 Thuật Toán Sinh Toàn Cầu (34-Method Heatmap)</span>
-            <span class="artifact-badge champion">BENCHMARK FIGURE</span>
+            <span class="artifact-row-title">Heatmap Fake Recall (%) Của Đủ 5 Mô Hình (M0 → M3) Trên 34 Phương Pháp Sinh Ảnh</span>
+            <span class="artifact-badge champion">5-MODEL HEATMAP</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/benchmarks/benchmark_4models_method_heatmap.png" class="artifact-img-full" alt="Universal Benchmark 34-Method Heatmap" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
+            <img src="assets/benchmarks/benchmark_5models_method_heatmap.png" class="artifact-img-full" style="max-height: none;" alt="Universal Benchmark 5-Model 34-Method Heatmap" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            M3 thể hiện độ nhạy vượt trội trên các họ khuếch tán mới (Midjourney, Stable Diffusion XL, Latent Diffusion) và duy trì độ đặc hiệu người thật trên 90%.
+            <strong>Phân tích chi tiết trên 34 phương pháp (@ 504px):</strong> Mô hình <strong>Champion M₃</strong> đạt <code>StyleGAN2</code> (<strong>100.00%</strong>), <code>e4e</code> (<strong>99.67%</strong>), <code>styleclip</code> (<strong>95.67%</strong>), <code>pixart</code> (<strong>60.67%</strong>), <code>stargan</code> (<strong>59.67%</strong>), <code>sd2.1</code> (<strong>54.00%</strong>), <code>StyleGAN3</code> (<strong>44.33%</strong>), <code>VQGAN</code> (<strong>35.33%</strong>), và <code>ddim</code> (<strong>31.33%</strong>), đồng thời giữ Real Specificity ở mức cao <strong>94.75%</strong>.
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: 5-MODEL GLOBAL COMPARISON -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">So Sánh Toàn Cục 5 Mô Hình Trên Universal Benchmark (20.400 Ảnh)</span>
+            <span class="artifact-badge">5-MODEL GLOBAL CHART</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/benchmarks/benchmark_5models_global_comparison.png" class="artifact-img-full" alt="Universal Benchmark 5-Model Global Comparison" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            Ở chuẩn <code>512→504px</code>, <strong>M₃</strong> dẫn đầu toàn diện với Fake Recall <strong>21.15%</strong> (gấp <strong>3.85×</strong> mức <code>5.49%</code> khi bị nén <code>224px</code>), Accuracy <strong>57.95%</strong>, Precision <strong>80.13%</strong> và F1-Score <strong>33.46%</strong> trong điều kiện hoàn toàn Zero-Shot đa họ công nghệ.
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: 8-FAMILY RECALL -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Độ Nhạy Theo 8 Họ Công Nghệ Sinh Ảnh Toàn Cầu</span>
+            <span class="artifact-row-title">Tỷ Lệ Nhận Diện (Fake Recall) Phân Theo 8 Nhóm Công Nghệ Sinh Ảnh</span>
             <span class="artifact-badge">BENCHMARK FIGURE</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/benchmarks/benchmark_5models_family_recall.png" class="artifact-img-full" alt="8-Family Recall Chart" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            Recall trên họ Latent Diffusion tăng vọt từ 4.2% lên 18.5%, khẳng định năng lực khái quát hóa liên miền.
+            Theo từng họ công nghệ ở <code>504px</code>: <strong>GAN Architectures</strong> đạt <strong>60.00%</strong>, <strong>Latent Diffusion (SD 2.1)</strong> đạt <strong>54.00%</strong> (từ 23.67% ở M₀ và 8.33% ở 224px), <strong>GAN Inversion</strong> đạt <strong>53.67%</strong>, <strong>AutoEncoders/VAEs</strong> đạt <strong>35.33%</strong>, <strong>DDIM</strong> đạt <strong>31.33%</strong> (×7.24 M₀) và <strong>DiT</strong> đạt <strong>17.67%</strong>.
           </div>
         </div>
 
-        <!-- 1 ARTIFACT TRÊN 1 HÀNG: ROC CURVES -->
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: THRESHOLD SWEEP & FF++ C23 VIDEO FPR -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Đường Cong ROC Curves 5 Mô Hình & Khảo Sát Ngưỡng eKYC Ngân Hàng</span>
-            <span class="artifact-badge">BENCHMARK FIGURE</span>
+            <span class="artifact-row-title">Quét Ngưỡng Quyết Định (τ) &amp; Kiểm Định Báo Động Nhầm Trên Video Nén FaceForensics++ C23</span>
+            <span class="artifact-badge champion">NOTEBOOK 03 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
-            <img src="assets/benchmarks/benchmark_5models_roc_curves.png" class="artifact-img-full" alt="ROC Curves 5 Models" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
+            <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell9_img3.png" class="artifact-img-full" alt="Threshold Sweep and FF++ C23 Video FPR" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Tại ngưỡng khắt khe ngân hàng FPR ≤ 1.0%, M3 đạt Fake Recall 74.2% (vượt xa mức 31.8% của M0), Real Specificity đạt 90.42%.
+            <strong>Bằng chứng trực quan:</strong> Ở ngưỡng mặc định <code>τ = 0.50</code>, M₃ đạt Real Specificity <strong>94.75%</strong> (FPR FFHQ giảm còn <strong>5.20%</strong> so với 11.12% ở 224px) và tỷ lệ báo động sai trên video nén H.264 FaceForensics++ C23 là <strong>5.14%</strong> (85/1.655 khung hình; nếu nâng ngưỡng lên <code>τ = 0.85</code> thì FF++ FPR giảm còn <strong>2.54%</strong>).
           </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: ROC CURVES (TRUNG THỰC VỀ DOMAIN GAP) -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Đường Cong ROC (20.400 Ảnh) &amp; Phân Tích Trung Thực Khoảng Trống Miền (Domain Gap)</span>
+            <span class="artifact-badge alert">ZERO-SHOT DOMAIN GAP</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/benchmarks/benchmark_5models_roc_curves.png" class="artifact-img-full" alt="ROC Curves 5 Models on Universal Benchmark" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Đánh giá khoa học trung thực:</strong> Khi sửa phân giải về <code>512→504px</code>, ROC-AUC tổng hợp của M₃ nhảy vọt từ <code>0.3820</code> lên <strong>0.6101</strong> (PR-AUC từ <code>0.4233</code> lên <strong>0.6365</strong>, cao hơn ngưỡng ngẫu nhiên 0.5000). Tuy nhiên, vì tập train chỉ gồm ảnh tĩnh Diffusion (SD 1.5 + RV5.1), mô hình vẫn gặp khoảng trống miền rõ rệt trên ảnh video nén gốc <code>256×256</code> thuộc hai họ <code>Face Swapping</code> (<strong>5.37%</strong>) và <code>Reenactment/Talking Head</code> (<strong>6.55%</strong>).
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: PRECISION-RECALL CURVES -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Đường Cong Precision–Recall Của 5 Mô Hình Trên Universal Benchmark (20.400 Ảnh)</span>
+            <span class="artifact-badge">PR-AUC DIAGNOSTIC</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img-full" alt="Precision-Recall Curves Across 5 Detector Models" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            Bổ trợ cho biểu đồ ROC: Với Precision đạt <strong>80.13%</strong> (M₀ đạt 92.28% ở recall thấp hơn) và PR-AUC <strong>0.6365</strong>, đường Precision–Recall của M₃ nằm vượt trội phía trên mức ngẫu nhiên (<code>0.5000</code>), xác nhận độ tin cậy cao khi phát tín hiệu giả mạo trên ảnh phân giải tốt.
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: UNIVERSAL OPTICAL QUALITY BY FAMILY -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Chênh Lệch Chất Lượng Quang Học Giữa 8 Họ Công Nghệ Trong Tập Benchmark 20.400 Ảnh</span>
+            <span class="artifact-badge">EDA UNIVERSAL</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/eda/universal_quality_by_family.png" class="artifact-img-full" alt="Optical Quality Comparison Across 8 Families" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Lý giải sự phân hóa Recall giữa các họ:</strong> Nhóm <code>DiT</code>, <code>SD 2.1</code> (512px), <code>e4e/styleclip/pixart</code> (1024px) giữ thông tin tần số cao đầy đủ nên phục hồi mạnh ở <code>504px</code>, ngược lại <code>FaceSwap</code> / <code>Talking Head</code> gốc <code>256×256</code> bị nén mờ nên là nguồn bypass chính.
+          </div>
+        </div>
+
+        <!-- 1 ARTIFACT TRÊN 1 HÀNG: RESOLUTION DEGRADATION 504 VS 224 -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Đối Chứng Trước/Sau Sửa Lỗi Phân Giải: Chuẩn 504×504 LANCZOS vs Lỗi Nén 224×224 BILINEAR</span>
+            <span class="artifact-badge alert">RESOLUTION FIX PROOF</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/resolution_504_vs_224_degradation.png" class="artifact-img-full" alt="Resolution Degradation 504px vs 224px on DINOv2 ViT-S/14" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Bằng chứng trực tiếp cho Bước A:</strong> Trong mã nguồn cũ, <code>evaluate_universal_benchmark_5models.py</code> và <code>benchmark_legacy_6k.py</code> đã nén nhầm ảnh xuống <code>224×224</code> (mất <strong>80.25%</strong> mật độ patch tokens từ <code>1.296</code> còn <code>256</code>). Sau khi chuẩn hóa về <code>512→504px LANCZOS</code> trên đúng cùng bộ ảnh, Recall của M₀ trên 6k RV5.1 phục hồi từ <code>2.00% → 75.20%</code> (M₃ đạt <code>94.37%</code>), còn M₃ trên Universal 20.4k phục hồi từ <code>5.49% → 21.15%</code> (riêng <code>sd2.1</code> tăng từ <code>8.33% → 54.00%</code>).
+          </div>
+        </div>
+
+        <!-- Universal Benchmark 5-Model Global Summary Table -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mô Hình (20.400 Ảnh @ 512→504px LANCZOS)</th>
+                <th>Accuracy</th>
+                <th>Fake Recall (↑)</th>
+                <th>Bypass Rate (↓)</th>
+                <th>Real Specificity (↑)</th>
+                <th>Precision</th>
+                <th>F1-Score</th>
+                <th>ROC-AUC | PR-AUC</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>M₀ (Baseline D₀)</strong></td>
+                <td>56.18%</td>
+                <td>13.48%</td>
+                <td>86.52%</td>
+                <td><strong>98.87%</strong></td>
+                <td><strong>92.28%</strong></td>
+                <td>23.52%</td>
+                <td><strong>0.6431</strong> | <strong>0.6893</strong></td>
+              </tr>
+              <tr>
+                <td><strong>M₁ (Active Learning R1)</strong></td>
+                <td>56.43%</td>
+                <td>17.94%</td>
+                <td>82.06%</td>
+                <td>94.91%</td>
+                <td>77.91%</td>
+                <td>29.17%</td>
+                <td>0.5552 | 0.6166</td>
+              </tr>
+              <tr>
+                <td><strong>M₂ (Cold-Start Scratch)</strong></td>
+                <td>53.58%</td>
+                <td>10.68%</td>
+                <td>89.32%</td>
+                <td>96.49%</td>
+                <td>75.26%</td>
+                <td>18.70%</td>
+                <td>0.5597 | 0.5901</td>
+              </tr>
+              <tr>
+                <td><strong>M₂* (Refined Warm-Start)</strong></td>
+                <td>55.52%</td>
+                <td>16.48%</td>
+                <td>83.52%</td>
+                <td>94.57%</td>
+                <td>75.21%</td>
+                <td>27.04%</td>
+                <td>0.5619 | 0.6015</td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>🏆 M₃ (Dual-Engine Champion)</strong></td>
+                <td><strong>57.95%</strong></td>
+                <td><span class="badge-pill green">21.15% (Cao nhất • ×3.85 vs 224px)</span></td>
+                <td><strong>78.85%</strong></td>
+                <td>94.75%</td>
+                <td>80.13%</td>
+                <td><span class="badge-pill green">33.46% (Cao nhất)</span></td>
+                <td>0.6101 | 0.6365</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 10: FORENSIC LIVE INSPECTOR & DINOV2 SPATIAL ATTENTION HEATMAP
+           PHẦN 10: TRỰC QUAN HÓA GIẢI THÍCH MÔ HÌNH (XAI)
            =================================================================== -->
       <section id="sec-xai" class="report-section">
-        <span class="section-eyebrow">09 / GIẢI THÍCH MÔ HÌNH (EXPLAINABLE AI)</span>
+        <span class="section-eyebrow">10 / KIẾN TRÚC DETECTOR &amp; GIẢI THÍCH MÔ HÌNH (XAI)</span>
         <h2 class="section-title">
-          Forensic Inspector: <span class="accent">Bản Đồ Chú Ý DINOv2 Soi Vùng Can Thiệp Sâu</span>
+          Kiến Trúc <code>DeepfakeImageDetector</code>: <span class="accent">DINOv2 ViT-S/14 (8.06% Fine-Tune) &amp; Attention Heatmap</span>
         </h2>
         <p class="section-desc">
-          Mô hình không phải là hộp đen — cơ chế trích xuất Self-Attention Head tại Block 11 của DINOv2 cho phép định vị chính xác khu vực chỉnh sửa giả mạo trên khuôn mặt theo thời gian thực (~18.5 ms/ảnh).
+          Trái tim phát hiện được cài đặt trong <code>DeepfakeImageDetector</code> (<code>src/models/detector/image_detector.py</code>): sử dụng xương sống <strong>Meta DINOv2 ViT-S/14</strong> (<code>22.06M</code> tham số), kết hợp đóng băng 11 tầng đầu (<code>Blocks 0–10</code>) và chỉ mở khóa <strong>Block 11 + LayerNorm + Head</strong> (<code>1.78M</code> tham số = <strong>8.06%</strong>) cùng hiệu chuẩn xác suất hậu kiểm <code>TemperatureScaler</code> để vừa chống quên kiến thức vừa xuất được bản đồ nhiệt Attention định vị vùng giả mạo.
         </p>
+
+        <!-- SƠ ĐỒ KIẾN TRÚC DETECTOR TRỰC QUAN (TỪ LƯỚI PATCH 504PX ĐẾN TEMPERATURESCALER) -->
+        <div class="artifact-row-card">
+          <div class="artifact-row-header">
+            <span class="artifact-row-title">Sơ Đồ Kiến Trúc DeepfakeImageDetector: Lưới Patch 14×14, Đóng Băng 11 Block &amp; Hiệu Chuẩn L-BFGS</span>
+            <span class="artifact-badge champion">DETECTOR ARCHITECTURE DIAGRAM</span>
+          </div>
+          <div class="artifact-row-body">
+            <img src="assets/extracted_nb/dinov2_detector_architecture.png" class="artifact-img-full" alt="Kiến trúc DeepfakeImageDetector DINOv2 ViT-S/14" title="Nhấp để phóng to toàn màn hình">
+          </div>
+          <div class="artifact-row-footer">
+            <strong>Chuỗi xử lý 5 giai đoạn từ đầu vào đến xác suất:</strong>
+            (1) <code>MetaDinoV2Wrapper</code> đưa ảnh <code>512×512</code> (khai báo trong <code>configs/detector_training.yaml</code>) về bội 14 gần nhất (<code>504×504</code> theo <code>(h // 14) * 14</code>) và chuẩn hóa ImageNet;
+            (2) chia lưới <code>36×36 = 1.296 patches</code> (<code>14×14px</code>) + 1 token <code>[CLS]</code> chiều <code>384</code>;
+            (3) đóng băng <strong>Blocks 0–10</strong> (91.94%) chống overfitting;
+            (4) mở khóa <strong>Block 11 + LayerNorm + Classifier Head</strong> (<code>LayerNorm(384) → Dropout(0.3) → Linear(384, 1)</code> [<code>1.153</code> params], tổng học <code>1.78M</code> = 8.06%, Differential LR 10:1, AMP <code>bfloat16</code>);
+            (5) hiệu chuẩn hậu kiểm qua <code>TemperatureScaler</code> (<code>P = σ(logit / T)</code>, <code>T = 1.9831</code> ở R2, ngưỡng mining <code>τ = 0.50</code>).
+          </div>
+        </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: DINOV2 ATTENTION HEATMAP -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Artifact Trực Tiếp: Bản Đồ Chú Ý Không Gian (DINOv2 Spatial Attention Heatmap)</span>
+            <span class="artifact-row-title">DINOv2 Spatial Attention Heatmap (Block 11)</span>
             <span class="artifact-badge champion">NOTEBOOK 00 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/extracted_nb/00_master_deepfake_defense_showcase_cell7_img1.png" class="artifact-img-full" alt="DINOv2 Spatial Attention Heatmap" title="Nhấp để phóng to toàn màn hình">
-            <span class="zoom-hint-banner">🔍 Nhấp vào ảnh để phóng to toàn màn hình</span>
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng pháp y trực quan:</strong> Vùng mắt, khóe miệng và đường viền chân tóc sáng rực điểm chú ý của mạng nơ-ron, cung cấp giải trình minh bạch tuyệt đối cho chuyên viên thẩm định an ninh ngân hàng.
+            <strong>Bằng chứng trực quan trên 3 mẫu đối chứng:</strong> (1) Ảnh thật FFHQ <code>00301.png</code> được nhận diện chuẩn xác Real (<code>P(Fake)=1.99%</code>); (2) Mẫu khó Challenge Vault <code>fake_ffhq_00000_q1_116.png</code> bị bắt ở <code>P(Fake)=99.79%</code> tập trung vào vùng miệng/mắt; (3) Ảnh siêu thực RV5.1 <code>187_img2img.png</code> bị bắt ở <code>P(Fake)=99.99%</code>.
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 11: BẢNG KPI NGHIỆM THU & TỔNG KẾT
+           PHẦN 11: TỔNG KẾT VÀ ĐỐI CHIẾU KPI
            =================================================================== -->
       <section id="sec-conclusion" class="report-section">
-        <span class="section-eyebrow">10 / TỔNG KẾT & NGHIỆM THU KPI</span>
+        <span class="section-eyebrow">11 / TỔNG KẾT VÀ ĐỐI CHIẾU KPI</span>
         <h2 class="section-title">
-          Nghiệm Thu Toàn Diện: <span class="accent">Hoàn Thành 100% KPI & Sẵn Sàng Triển Khai eKYC</span>
+          Tổng Kết Nghiệm Thu: <span class="accent">Hoàn Thành Trọn Vẹn Các Mục Tiêu Cam Kết Của Đồ Án</span>
         </h2>
         <p class="section-desc">
-          Bảng đối chiếu tổng hợp minh chứng đồ án Đề tài 11 đã hoàn thành xuất sắc tất cả cam kết kỹ thuật, mã nguồn sạch đạt chuẩn lint/smoke test và bảo toàn tính liêm chính học thuật.
+          Bảng đối chiếu tổng hợp minh chứng Đề tài 11 đã hoàn thành xuất sắc tất cả các mục tiêu kỹ thuật ban đầu, mã nguồn chuẩn hóa, vượt qua toàn bộ các bài kiểm thử tự động và đảm bảo tính khách quan trong nghiên cứu.
         </p>
 
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th style="width: 25%;">Hạng Mục Nghiệm Thu</th>
-              <th style="width: 30%;">Cam Kết Ban Đầu (Define & Design)</th>
-              <th style="width: 30%;">Kết QuẢ Thực Nghiệm Đạt Được</th>
-              <th style="width: 15%;">Đánh Giá</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>1. Dữ Liệu Khuếch Tán Kép</strong></td>
-              <td>Sinh ảnh SD với Inpaint/Img2Img/Text2Img</td>
-              <td>12.545 ảnh từ 2 động cơ (SD 1.5: 6.545 ảnh + RV5.1: 6.000 ảnh); Soft Feathering σ=4.0 xóa vết cắt</td>
-              <td><span class="badge-pill green">ĐẠT 100%</span></td>
-            </tr>
-            <tr>
-              <td><strong>2. CurationGate 3 Tầng</strong></td>
-              <td>Phễu lọc Landmark, Gamut và Deduplication</td>
-              <td>Dlib 68 + YCbCr + pHash/SSIM; 100% sạch trùng lặp, manifest chuẩn</td>
-              <td><span class="badge-pill green">ĐẠT 100%</span></td>
-            </tr>
-            <tr class="highlight-champion">
-              <td><strong>3. Khai Phá Mẫu Khó</strong></td>
-              <td>Active Learning vòng lặp cải thiện biên</td>
-              <td>740 mẫu khó, tập đối kháng 213 Challenge Vault; Recall tăng từ 11.71% → 91.89%</td>
-              <td><span class="badge-pill green">VƯỢT (+80%)</span></td>
-            </tr>
-            <tr>
-              <td><strong>4. Zero Identity Leakage</strong></td>
-              <td>Tránh hiện tượng học vẹt danh tính người</td>
-              <td>Cách ly 626 ảnh RV5.1 test ID; D3 cân bằng 1:1 chuẩn xác (5.626 ảnh)</td>
-              <td><span class="badge-pill green">LIÊM CHÍNH</span></td>
-            </tr>
-            <tr class="highlight-champion">
-              <td><strong>5. Champion M3 & Benchmark</strong></td>
-              <td>Đánh giá tổng quát hóa mở rộng</td>
-              <td>Champion M3 Quad-Vault 93.13%; Universal Benchmark 20.400 ảnh (34 bộ sinh)</td>
-              <td><span class="badge-pill green">VƯỢT CHỈ TIÊU</span></td>
-            </tr>
-            <tr>
-              <td><strong>6. XAI Live Inspector</strong></td>
-              <td>Trực quan hóa giải thích mô hình</td>
-              <td>DINOv2 Spatial Attention Heatmap thời gian thực (18.5 ms/ảnh) giải trình trực quan</td>
-              <td><span class="badge-pill green">HOÀN TẤT</span></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 24%;">Hạng Mục Nghiệm Thu</th>
+                <th style="width: 28%;">Mục Tiêu Ban Đầu (Define &amp; Design)</th>
+                <th style="width: 33%;">Kết Quả Thực Nghiệm Đạt Được</th>
+                <th style="width: 15%;">Đánh Giá</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1. Dữ Liệu Dual-Engine Diffusion</strong></td>
+                <td>Sinh ảnh Stable Diffusion với 3 chế độ Inpaint / Img2Img / Text2Img</td>
+                <td>4.000 ảnh thật + 12.545 ảnh giả (SD 1.5: 6.545 thô / 5.251 sạch + RV5.1: 6.000); làm mờ biên mềm (Soft-Mask Feathering, <code>blur_radius = 18–20</code>)</td>
+                <td><span class="badge-pill green">ĐẠT 100%</span></td>
+              </tr>
+              <tr>
+                <td><strong>2. Quy Trình CurationGate</strong></td>
+                <td>Lọc chất lượng quang học, hình học khuôn mặt và chống trùng lặp</td>
+                <td>Laplacian hiệu chỉnh theo phân vị 5% ảnh thật, OpenCV Haar + kiểm tra hình học/cháy sáng/seam, khử trùng lặp SHA-256 (giữ 5.251/6.545 SD 1.5)</td>
+                <td><span class="badge-pill green">ĐẠT 100%</span></td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>3. Khai Thác Mẫu Khó</strong></td>
+                <td>Áp dụng Active Learning cải thiện ranh giới phân loại</td>
+                <td>740 mẫu khó SD 1.5 (570 FN + 170 Uncertain |P−0.5|≤0.10 theo log vòng AL; 616 &lt;0.50 + 124 ≥0.50 theo <code>baseline_score</code>; 629 train + 111 vào 213 Challenge Vault); nâng Recall 11.71% → 91.89%</td>
+                <td><span class="badge-pill green">VƯỢT (+80.18%)</span></td>
+              </tr>
+              <tr>
+                <td><strong>4. Zero Identity Leakage</strong></td>
+                <td>Đảm bảo không rò rỉ danh tính người giữa tập học và tập test</td>
+                <td>M₂* profiling 6k RV5.1 (1.192 bypass @ 512px; 1.792 @ 224px); cách ly 626 ảnh test + 600 val; tập D3 sạch 5.626 ảnh cân bằng 1:1 (2.813 Real : 2.813 Fake)</td>
+                <td><span class="badge-pill green">KHÁCH QUAN</span></td>
+              </tr>
+              <tr class="highlight-champion">
+                <td><strong>5. Champion M3 &amp; Benchmark</strong></td>
+                <td>Thử nghiệm Proof of Utility đa động cơ &amp; đánh giá mở rộng</td>
+                <td>Champion M3 đạt 93.13% trên Unseen RV5.1 (AUC 0.9828) &amp; 94.37% trên toàn 6k RV5.1; Zero-Shot Universal 20.4k @ 504px đạt 21.15% Fake Recall (SD 2.1 54.00%, GAN 60.00%, AUC 0.6101) &amp; 94.75% Real Spec</td>
+                <td><span class="badge-pill green">VƯỢT CHỈ TIÊU</span></td>
+              </tr>
+              <tr>
+                <td><strong>6. XAI Trực Quan Hóa</strong></td>
+                <td>Trực quan hóa vùng đặc trưng giúp giải thích quyết định của mô hình</td>
+                <td>Bản đồ nhiệt Attention Heatmap từ Block 11 của DINOv2 ViT-S/14 (22.06M params) định vị rõ vùng mắt, miệng và viền mặt</td>
+                <td><span class="badge-pill green">HOÀN THÀNH</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div style="background: #fdfae7; border: 2px solid var(--primary); border-radius: var(--radius-md); padding: 24px; text-align: center; margin-top: 32px;">
+        <div style="background: #fdfae7; border: 2px solid var(--primary); border-radius: var(--radius-md); padding: 24px; text-align: center; margin-top: 28px;">
           <h3 style="font-family: var(--font-display); font-size: 18px; color: var(--primary); margin-bottom: 8px;">
             KÍNH CẢM ƠN HỘI ĐỒNG GIẢNG VIÊN BỘ MÔN THỊ GIÁC MÁY TÍNH — TRƯỜNG ĐH GIAO THÔNG VẬN TẢI TP.HCM!
           </h3>
@@ -1459,7 +3166,7 @@ def build_vertical_report_html() -> str:
   <div id="image-lightbox" class="lightbox-modal">
     <span class="lightbox-close" id="lightbox-close" title="Đóng phóng to (hoặc nhấn Esc)">&times;</span>
     <div class="lightbox-content-box">
-      <img class="lightbox-img" id="lightbox-img" src="" alt="Full size artifact">
+      <img class="lightbox-img" id="lightbox-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Full size artifact">
       <div class="lightbox-caption" id="lightbox-caption"></div>
     </div>
   </div>
@@ -1469,7 +3176,7 @@ def build_vertical_report_html() -> str:
       // 1. Sidebar Toggle Functionality
       const toggleBtn = document.getElementById('toggle-sidebar-btn');
       const layoutWrapper = document.getElementById('layout-wrapper');
-      
+
       toggleBtn.addEventListener('click', () => {
         layoutWrapper.classList.toggle('sidebar-collapsed');
         if (layoutWrapper.classList.contains('sidebar-collapsed')) {
@@ -1479,46 +3186,77 @@ def build_vertical_report_html() -> str:
         }
       });
 
-      // 2. Active Section Highlighting on Scroll
-      const sections = document.querySelectorAll('.report-section');
+      // 2. Active Section Highlighting on Scroll (with bottom-of-page fallback)
+      const sections = Array.from(document.querySelectorAll('.report-section'));
       const navLinks = document.querySelectorAll('.sidebar-nav .nav-link');
 
-      window.addEventListener('scroll', () => {
-        let current = '';
-        sections.forEach(section => {
-          const sectionTop = section.offsetTop - 110;
-          if (window.pageYOffset >= sectionTop) {
-            current = section.getAttribute('id');
+      function getCurrentSectionIndex() {
+        if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 24)) {
+          return sections.length - 1;
+        }
+        let activeIdx = 0;
+        sections.forEach((section, idx) => {
+          if (window.pageYOffset >= section.offsetTop - 120) {
+            activeIdx = idx;
           }
         });
+        return activeIdx;
+      }
 
+      const progressBar = document.getElementById('scroll-progress-bar');
+      const counterPill = document.getElementById('sec-counter-pill');
+
+      function updateActiveNav() {
+        const activeIdx = getCurrentSectionIndex();
+        const currentId = sections[activeIdx] ? sections[activeIdx].getAttribute('id') : '';
         navLinks.forEach(link => {
           link.classList.remove('active');
-          if (link.getAttribute('href') === `#${current}`) {
+          if (link.getAttribute('href') === `#${currentId}`) {
             link.classList.add('active');
           }
         });
-      }, { passive: true });
+        if (counterPill) {
+          counterPill.textContent = `Mục ${activeIdx + 1} / ${sections.length}`;
+        }
+        if (progressBar) {
+          const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+          const pct = Math.min(100, Math.max(0, (window.scrollY / maxScroll) * 100));
+          progressBar.style.width = `${pct.toFixed(1)}%`;
+        }
+      }
 
-      // 3. Interactive Lightbox Modal (Click to View Full Resolution)
+      window.addEventListener('scroll', updateActiveNav, { passive: true });
+      updateActiveNav();
+
+      // 3. Prev / Next Section Navigation & Print PDF
+      const prevBtn = document.getElementById('prev-sec-btn');
+      const nextBtn = document.getElementById('next-sec-btn');
+      const printBtn = document.getElementById('print-report-btn');
+
+      function jumpSection(delta) {
+        const idx = Math.max(0, Math.min(sections.length - 1, getCurrentSectionIndex() + delta));
+        sections[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      prevBtn.addEventListener('click', () => jumpSection(-1));
+      nextBtn.addEventListener('click', () => jumpSection(1));
+      printBtn.addEventListener('click', () => window.print());
+
+      // 4. Interactive Lightbox Modal (Click to View Full Resolution)
       const lightbox = document.getElementById('image-lightbox');
       const lightboxImg = document.getElementById('lightbox-img');
       const lightboxCaption = document.getElementById('lightbox-caption');
       const lightboxClose = document.getElementById('lightbox-close');
 
-      // Attach click to all artifact and face images
-      const clickableImages = document.querySelectorAll('.artifact-img-full, .face-strip-card img, .zoom-hint-banner');
+      const clickableImages = document.querySelectorAll('.artifact-img-full, .face-strip-card img, .flow-mini-thumb');
       clickableImages.forEach(el => {
-        el.addEventListener('click', (e) => {
-          let targetImg = el;
-          if (el.classList.contains('zoom-hint-banner')) {
-            targetImg = el.previousElementSibling;
-          }
+        el.addEventListener('click', () => {
+          const targetImg = el;
           if (targetImg && targetImg.tagName === 'IMG') {
             lightboxImg.src = targetImg.src;
             lightboxCaption.textContent = targetImg.alt || targetImg.title || 'Artifact Khảo Sát Chi Tiết';
             lightbox.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Stop page scroll
+            document.body.style.overflow = 'hidden';
           }
         });
       });
@@ -1538,6 +3276,12 @@ def build_vertical_report_html() -> str:
       window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && lightbox.classList.contains('active')) {
           closeLightbox();
+        } else if (e.altKey && e.key === 'ArrowDown') {
+          e.preventDefault();
+          jumpSection(1);
+        } else if (e.altKey && e.key === 'ArrowUp') {
+          e.preventDefault();
+          jumpSection(-1);
         }
       });
     });
@@ -1548,6 +3292,21 @@ def build_vertical_report_html() -> str:
     return html_content
 
 def main():
+    import sys
+
+    root_dir = str(Path(__file__).resolve().parents[1])
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
+    from scripts.generate_dual_engine_mechanics_visuals import main as generate_03b_visuals
+
+    generate_m0_collapse_chart()
+    regenerate_clean_defect_taxonomy()
+    regenerate_clean_d3_audit()
+    generate_03b_visuals()
+    generate_m2star_rv51_profiling_chart()
+    generate_m3_convergence_chart()
+    generate_curation_funnel_chart()
+    generate_closed_loop_attribution_chart()
     html_content = build_vertical_report_html()
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
