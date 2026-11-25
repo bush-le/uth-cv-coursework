@@ -758,7 +758,7 @@ def _to_rgb_uint8(image: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
     """Convert a (C, H, W) or (H, W, C) image tensor/array to a contiguous (H, W, 3) RGB uint8 array.
 
     Args:
-        image: Input RGB/grayscale image as torch.Tensor or np.ndarray.
+        image: Input RGB/RGBA/grayscale image as torch.Tensor or np.ndarray.
 
     Returns:
         Contiguous NumPy array of shape (H, W, 3) with dtype uint8 in [0, 255].
@@ -767,21 +767,21 @@ def _to_rgb_uint8(image: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
         t = image.detach().cpu()
         if t.ndim == 4:
             t = t[0]
-        if t.ndim == 3 and t.shape[0] in (1, 3):
+        if t.ndim == 3 and t.shape[0] in (1, 3, 4) and t.shape[-1] not in (1, 3, 4):
             t = t.permute(1, 2, 0)
         arr = t.numpy()
     else:
         arr = np.asarray(image)
         if arr.ndim == 4:
             arr = arr[0]
-        if arr.ndim == 3 and arr.shape[0] in (1, 3) and arr.shape[-1] not in (1, 3):
+        if arr.ndim == 3 and arr.shape[0] in (1, 3, 4) and arr.shape[-1] not in (1, 3, 4):
             arr = np.transpose(arr, (1, 2, 0))
 
     if np.issubdtype(arr.dtype, np.floating):
         finite = arr[np.isfinite(arr)]
         max_v = float(np.max(finite)) if finite.size else 0.0
         scale = 255.0 if max_v <= 1.0 + 1e-3 else 1.0
-        arr_u8 = np.clip(np.nan_to_num(arr, nan=0.0) * scale, 0.0, 255.0).astype(np.uint8)
+        arr_u8 = np.clip(np.rint(np.nan_to_num(arr, nan=0.0) * scale), 0.0, 255.0).astype(np.uint8)
     else:
         arr_u8 = np.clip(arr, 0, 255).astype(np.uint8)
 
@@ -793,6 +793,34 @@ def _to_rgb_uint8(image: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
         arr_u8 = arr_u8[:, :, :3]
 
     return np.ascontiguousarray(arr_u8)
+
+
+def _detect_dominant_face_box(gray: np.ndarray) -> Optional[Tuple[int, int, int, int]]:
+    """Detect dominant face [x1, y1, x2, y2] with 512px scale normalization and relaxed Haar fallback."""
+    import cv2
+
+    h, w = gray.shape[:2]
+    face_cascade = get_haar_face_classifier()
+    if face_cascade.empty() or h < 4 or w < 4:
+        return None
+
+    gray_512 = cv2.resize(gray, (512, 512)) if (h, w) != (512, 512) else gray
+    faces = face_cascade.detectMultiScale(gray_512, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
+    if len(faces) == 0:
+        faces = face_cascade.detectMultiScale(gray_512, scaleFactor=1.05, minNeighbors=2, minSize=(40, 40))
+    if len(faces) == 0:
+        return None
+
+    faces_filtered = [tuple(int(v) for v in b) for b in faces if (b[2] * b[3]) >= 0.05 * (512 * 512)]
+    if not faces_filtered:
+        return None
+    fx, fy, fw, fh = max(faces_filtered, key=lambda b: b[2] * b[3])
+    sx, sy = w / 512.0, h / 512.0
+    x1 = max(0, int(round(fx * sx)))
+    y1 = max(0, int(round(fy * sy)))
+    x2 = min(w, max(x1 + 1, int(round((fx + fw) * sx))))
+    y2 = min(h, max(y1 + 1, int(round((fy + fh) * sy))))
+    return (x1, y1, x2, y2)
 
 
 def _get_eye_classifiers() -> Tuple[Any, Any]:
@@ -843,23 +871,19 @@ def verify_eye_pair(
     h, w = rgb.shape[:2]
     gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
 
-    # Resolve face ROI (explicit box -> Haar detector -> full canvas fallback)
+    # Resolve face ROI (explicit box -> normalized strict/relaxed Haar -> full canvas fallback)
     if face_bbox_xyxy is not None and len(face_bbox_xyxy) == 4:
         x1, y1, x2, y2 = [int(round(v)) for v in face_bbox_xyxy]
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(w, max(x1 + 1, x2)), min(h, max(y1 + 1, y2))
     else:
-        face_cascade = get_haar_face_classifier()
-        faces = (
-            face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
-            if not face_cascade.empty()
-            else ()
-        )
-        if len(faces) > 0:
-            fx, fy, fw, fh = max((tuple(int(v) for v in b) for b in faces), key=lambda b: b[2] * b[3])
-            x1, y1, x2, y2 = fx, fy, min(w, fx + fw), min(h, fy + fh)
+        det_box = _detect_dominant_face_box(gray)
+        if det_box is not None:
+            x1, y1, x2, y2 = det_box
         else:
-            x1, y1, x2, y2 = 0, 0, w, h
+            # Central portrait fallback avoids full-canvas background dilution on occluded faces
+            x1, y1 = int(0.15 * w), int(0.15 * h)
+            x2, y2 = max(x1 + 4, int(0.85 * w)), max(y1 + 4, int(0.85 * h))
 
     roi = gray[y1:y2, x1:x2]
     rh, rw = roi.shape[:2]
@@ -890,13 +914,20 @@ def verify_eye_pair(
 
     eye_cascade, glasses_cascade = _get_eye_classifiers()
     raw_eyes: List[Tuple[int, int, int, int]] = []
-    if not eye_cascade.empty() and upper_band.shape[0] >= 12 and upper_band.shape[1] >= 12:
-        detected = eye_cascade.detectMultiScale(upper_band, scaleFactor=1.08, minNeighbors=3, minSize=(14, 14))
-        if len(detected) < 2 and not glasses_cascade.empty():
-            detected = glasses_cascade.detectMultiScale(upper_band, scaleFactor=1.08, minNeighbors=3, minSize=(14, 14))
-        raw_eyes = [tuple(int(v) for v in b) for b in detected]
+    if upper_band.shape[0] >= 12 and upper_band.shape[1] >= 12:
+        if not eye_cascade.empty():
+            detected_eye = eye_cascade.detectMultiScale(upper_band, scaleFactor=1.08, minNeighbors=3, minSize=(14, 14))
+            raw_eyes.extend(tuple(int(v) for v in b) for b in detected_eye)
+        deduped_eyes = _deduplicate_boxes_xywh(raw_eyes, iou_thresh=0.30)
+        if len(deduped_eyes) < 2 and not glasses_cascade.empty():
+            detected_glasses = glasses_cascade.detectMultiScale(
+                upper_band, scaleFactor=1.08, minNeighbors=3, minSize=(14, 14)
+            )
+            raw_eyes.extend(tuple(int(v) for v in b) for b in detected_glasses)
+            deduped_eyes = _deduplicate_boxes_xywh(raw_eyes, iou_thresh=0.30)
+    else:
+        deduped_eyes = []
 
-    deduped_eyes = _deduplicate_boxes_xywh(raw_eyes, iou_thresh=0.30)
     eye_count = len(deduped_eyes)
     eyes_detected = eye_count >= 2
 
@@ -919,7 +950,7 @@ def verify_eye_pair(
 def compute_fft_high_freq_ratio(
     image: Union[np.ndarray, torch.Tensor],
     cutoff_ratio: float = 0.25,
-    min_ratio: float = 0.02,
+    min_ratio: float = 0.0025,
     max_ratio: float = 0.65,
     bbox_xyxy: Optional[Sequence[int]] = None,
 ) -> Dict[str, Any]:
@@ -1036,24 +1067,25 @@ def compute_pair_color_and_structure(
             m_arr = mask.detach().cpu().numpy()
         else:
             m_arr = np.asarray(mask)
-        if m_arr.ndim == 4:
-            m_arr = m_arr[0]
-        if m_arr.ndim == 3:
-            m_arr = m_arr[0] if m_arr.shape[0] <= 3 else m_arr[:, :, 0]
-        m_f32 = m_arr.astype(np.float32)
-        if float(np.max(m_f32)) > 1.0 + 1e-3:
-            m_f32 = m_f32 / 255.0
-        if m_f32.shape[:2] != (sh, sw):
-            m_f32 = cv2.resize(m_f32, (sw, sh), interpolation=cv2.INTER_NEAREST)
+        if m_arr.size > 0:
+            if m_arr.ndim == 4:
+                m_arr = m_arr[0]
+            if m_arr.ndim == 3:
+                m_arr = m_arr[0] if (m_arr.shape[0] <= 3 and m_arr.shape[-1] > 3) else m_arr[:, :, 0]
+            m_f32 = m_arr.astype(np.float32)
+            if float(np.max(m_f32)) > 1.0 + 1e-3:
+                m_f32 = m_f32 / 255.0
+            if m_f32.shape[:2] != (sh, sw):
+                m_f32 = cv2.resize(m_f32, (sw, sh), interpolation=cv2.INTER_NEAREST)
 
-        syn_t = torch.from_numpy(syn_rgb.astype(np.float32) / 255.0).permute(2, 0, 1)
-        src_t = torch.from_numpy(src_rgb.astype(np.float32) / 255.0).permute(2, 0, 1)
-        mask_t = torch.from_numpy(np.clip(m_f32, 0.0, 1.0)).unsqueeze(0)
-        is_seamless_val, seam_diff_val = verify_boundary_seam(
-            syn_t, src_t, mask_t, max_gradient_diff=max_seam_diff
-        )
-        is_seamless = bool(is_seamless_val)
-        seam_diff = float(seam_diff_val)
+            syn_t = torch.from_numpy(syn_rgb.astype(np.float32) / 255.0).permute(2, 0, 1)
+            src_t = torch.from_numpy(src_rgb.astype(np.float32) / 255.0).permute(2, 0, 1)
+            mask_t = torch.from_numpy(np.clip(m_f32, 0.0, 1.0)).unsqueeze(0)
+            is_seamless_val, seam_diff_val = verify_boundary_seam(
+                syn_t, src_t, mask_t, max_gradient_diff=max_seam_diff
+            )
+            is_seamless = bool(is_seamless_val)
+            seam_diff = float(seam_diff_val)
 
     if m_f32 is not None and np.any(m_f32 > 0.5):
         delta_e_lab = float(np.mean(lab_diff_map[m_f32 > 0.5]))
@@ -1130,13 +1162,17 @@ def audit_image_extended(
     Returns:
         ExtendedImageAuditReport containing all applicable metrics and aggregated validity.
     """
+    import cv2
+
     rgb_u8 = _to_rgb_uint8(image)
     tensor_chw = torch.from_numpy(rgb_u8.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
+    gray_u8 = cv2.cvtColor(rgb_u8, cv2.COLOR_RGB2GRAY)
+    face_box = _detect_dominant_face_box(gray_u8)
 
     sharpness = compute_laplacian_sharpness(tensor_chw)
     geom_valid, geom_reasons = verify_facial_geometry(rgb_u8)
-    eye_res = verify_eye_pair(rgb_u8)
-    fft_res = compute_fft_high_freq_ratio(rgb_u8)
+    eye_res = verify_eye_pair(rgb_u8, face_bbox_xyxy=face_box)
+    fft_res = compute_fft_high_freq_ratio(rgb_u8, bbox_xyxy=face_box)
 
     reasons: List[str] = []
     if sharpness < min_sharpness:

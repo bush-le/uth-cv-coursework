@@ -44,12 +44,98 @@ def test_verify_eye_pair_asymmetric_face_fails_symmetry() -> None:
 
 @pytest.mark.smoke
 def test_verify_eye_pair_sunglasses_occlusion_handled_gracefully() -> None:
-    """Dark sunglasses band across upper eye region sets sunglasses_occluded without false missing-eye rejection."""
+    """Dark sunglasses band across upper eye region sets sunglasses_occluded without missing-eye rejection."""
     img = np.full((256, 256, 3), 190, dtype=np.uint8)
     img[80:125, 55:200, :] = 15
     res = verify_eye_pair(img, face_bbox_xyxy=(32, 32, 224, 224))
     assert res["sunglasses_occluded"] is True
-    assert not any("No eyes detected" in r for r in res["reasons"])
+    assert not any("Expected >= 2 eyes" in r for r in res["reasons"])
+    assert res["passed"] is True
+
+
+@pytest.mark.smoke
+def test_verify_eye_pair_merges_eye_and_glasses_cascades(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Glasses cascade fallback must merge with eye_cascade detections instead of overwriting them."""
+    class _StubCascade:
+        def __init__(self, boxes):
+            self._boxes = np.array(boxes, dtype=np.int32) if boxes else ()
+
+        def empty(self) -> bool:
+            return False
+
+        def detectMultiScale(self, *args, **kwargs):
+            return self._boxes
+
+    # Case 1: eye_cascade detects 1 eye, glasses_cascade detects 0 -> must preserve eye_count=1
+    monkeypatch.setattr(
+        "src.common.metrics._get_eye_classifiers",
+        lambda: (_StubCascade([(20, 20, 24, 24)]), _StubCascade([])),
+    )
+    img = np.full((256, 256, 3), 180, dtype=np.uint8)
+    res1 = verify_eye_pair(img, face_bbox_xyxy=(32, 32, 224, 224))
+    assert res1["eye_count"] == 1
+
+    # Case 2: eye_cascade detects left eye, glasses_cascade detects right eye -> merged eye_count=2
+    monkeypatch.setattr(
+        "src.common.metrics._get_eye_classifiers",
+        lambda: (_StubCascade([(20, 20, 24, 24)]), _StubCascade([(110, 20, 24, 24)])),
+    )
+    res2 = verify_eye_pair(img, face_bbox_xyxy=(32, 32, 224, 224))
+    assert res2["eye_count"] == 2
+    assert res2["eyes_detected"] is True
+    assert res2["passed"] is True
+
+
+@pytest.mark.smoke
+def test_verify_eye_pair_no_bbox_detects_face_on_highres_sunglasses() -> None:
+    """When face_bbox_xyxy=None on a real 1024x1024 FFHQ sunglasses image or high-res face, relaxed Haar avoids full-canvas dilution."""
+    from pathlib import Path
+    from PIL import Image
+
+    ffhq_sample = Path("data/raw/faces/ffhq/00000.png")
+    if ffhq_sample.is_file():
+        arr = np.array(Image.open(ffhq_sample).convert("RGB"), dtype=np.uint8)
+        # Paint dark sunglasses band over the aligned eye zone (~y=360..500, x=280..740)
+        arr[360:500, 280:740, :] = 15
+        res_no_box = verify_eye_pair(arr, face_bbox_xyxy=None)
+        assert res_no_box["sunglasses_occluded"] is True
+        assert not any("Expected >= 2 eyes" in r for r in res_no_box["reasons"])
+
+
+@pytest.mark.smoke
+def test_audit_image_extended_parity_and_mismatched_source() -> None:
+    """audit_image_extended gives identical outputs for uint8 HWC and float32 CHW and handles 1024x1024 source + 4-ch tensor."""
+    rng = np.random.default_rng(7)
+    arr_u8 = rng.integers(80, 180, size=(512, 512, 3), dtype=np.uint8)
+    ten_chw = torch.from_numpy(arr_u8.astype(np.float32) / 255.0).permute(2, 0, 1)
+    src_hi = np.repeat(np.repeat(arr_u8, 2, axis=0), 2, axis=1)
+    mask_small = np.zeros((3, 3, 1), dtype=np.float32)
+
+    rep_u8 = audit_image_extended(arr_u8, mode="sd_img2img", source_image=src_hi, image_id="p1")
+    rep_chw = audit_image_extended(ten_chw, mode="sd_img2img", source_image=src_hi, image_id="p1")
+    assert rep_u8.fft_high_freq_ratio == pytest.approx(rep_chw.fft_high_freq_ratio, abs=1e-6)
+    assert rep_u8.delta_e_lab == pytest.approx(rep_chw.delta_e_lab, abs=1e-5)
+
+    # Ensure 4-channel CHW and tiny (H<=3, W, 1) mask do not crash
+    from src.common.metrics import _to_rgb_uint8
+    ten_4ch = torch.zeros((4, 64, 64), dtype=torch.float32)
+    assert _to_rgb_uint8(ten_4ch).shape == (64, 64, 3)
+    pair_tiny = compute_pair_color_and_structure(ten_4ch, ten_4ch, mask=mask_small)
+    assert pair_tiny["delta_e_lab"] == pytest.approx(0.0, abs=1e-4)
+
+
+@pytest.mark.smoke
+def test_fft_high_freq_ratio_passes_real_ffhq_sample() -> None:
+    """Calibrated default min_ratio passes natural FFHQ portrait texture without false waxy rejection."""
+    from pathlib import Path
+    from PIL import Image
+
+    ffhq_sample = Path("data/raw/faces/ffhq/00000.png")
+    if ffhq_sample.is_file():
+        arr = np.array(Image.open(ffhq_sample).convert("RGB"), dtype=np.uint8)
+        fft_res = compute_fft_high_freq_ratio(arr)
+        assert fft_res["texture_flag"] == "normal"
+        assert fft_res["passed"] is True
 
 
 @pytest.mark.smoke
