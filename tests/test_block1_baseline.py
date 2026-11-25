@@ -100,3 +100,161 @@ def test_block1_pipeline_dry_run(sample_raw_manifest, tmp_path):
     assert "d0_counts" in metrics
     assert metrics["d0_counts"]["test_total"] > 0
     assert metrics["baseline_test_metrics"]["roc_auc"] > 0
+
+
+@pytest.mark.smoke
+def test_package_benchmark_d0_vault_protection_blocks_and_allows_overwrite(tmp_path: Path) -> None:
+    """Sealed master_frozen_test.jsonl (>=1178) stays protected unless allow_overwrite_master_test=True."""
+    benchmarks_dir = tmp_path / "benchmarks"
+    d0_dir = benchmarks_dir / "D0_baseline"
+    d0_dir.mkdir(parents=True)
+
+    sealed_vault = benchmarks_dir / "master_frozen_test.jsonl"
+    sealed_records = [
+        ImageMetadata(image_id=f"sealed_{i}", label=i % 2, source_real_id=f"id_{i}")
+        for i in range(1178)
+    ]
+    sealed_payload = "".join(json.dumps(r.to_dict()) + "\n" for r in sealed_records)
+    sealed_vault.write_text(sealed_payload, encoding="utf-8")
+
+    # Even with >=1178 new candidates (e.g. 600+600=1200), default must protect sealed vault
+    partitions = {
+        "train": [ImageMetadata(image_id="r_tr_0", label=0, source_real_id="tr_0")],
+        "val": [ImageMetadata(image_id="r_va_0", label=0, source_real_id="va_0")],
+        "test": [ImageMetadata(image_id=f"new_r_{i}", label=0, source_real_id=f"nr_{i}") for i in range(600)],
+    }
+    curated_fakes = {
+        "train": [ImageMetadata(image_id="f_tr_0", label=1, source_real_id="tr_0")],
+        "val": [ImageMetadata(image_id="f_va_0", label=1, source_real_id="va_0")],
+        "test": [ImageMetadata(image_id=f"new_f_{i}", label=1, source_real_id=f"nr_{i}") for i in range(600)],
+    }
+
+    paths = package_benchmark_d0(partitions, curated_fakes, benchmarks_dir, allow_overwrite_master_test=False)
+    assert paths["master_test"].read_text(encoding="utf-8") == sealed_payload
+    assert paths["d0_test"].read_text(encoding="utf-8") == sealed_payload
+
+    package_benchmark_d0(partitions, curated_fakes, benchmarks_dir, allow_overwrite_master_test=True)
+    updated_lines = [line for line in paths["master_test"].read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(updated_lines) == 1200
+
+
+@pytest.mark.smoke
+def test_synthesize_and_curate_quota_curate_only_and_shortfall_refill(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify curate_only avoids generation and --no-resume re-curates existing raw before refilling shortfall."""
+    from PIL import Image
+    from src.models.diffusion.prompt_engine import PromptGrammarEngine
+    from src.pipelines import run_block1_baseline as rb1
+
+    img_dir = tmp_path / "imgs"
+    img_dir.mkdir()
+    real_m = tmp_path / "train_reals.jsonl"
+    real_p = img_dir / "real_0.png"
+    Image.new("RGB", (64, 64), color=(140, 140, 140)).save(real_p)
+    real_m.write_text(json.dumps({"image_id": "real_0", "label": 0, "file_path": str(real_p)}) + "\n", encoding="utf-8")
+
+    raw_base = tmp_path / "d0_raw.jsonl"
+    raw_att0 = tmp_path / "d0_raw_att0.jsonl"
+    cur_m = tmp_path / "d0_curated.jsonl"
+    rep_p = tmp_path / "d0_report.json"
+
+    f0_p = img_dir / "f0.png"
+    f1_p = img_dir / "f1.png"
+    f2_p = img_dir / "f2.png"
+    Image.new("RGB", (64, 64), color=(120, 140, 160)).save(f0_p)
+    Image.new("RGB", (64, 64), color=(150, 130, 110)).save(f1_p)
+    Image.new("RGB", (64, 64), color=(180, 100, 120)).save(f2_p)
+
+    # Pre-existing raw attempt0 (2 samples), stale curated (3 samples would falsely short-circuit if resume=True)
+    raw_att0.write_text(
+        json.dumps({"image_id": "f0", "label": 1, "manipulation_type": "sd_text2img", "file_path": str(f0_p)})
+        + "\n"
+        + json.dumps({"image_id": "f1", "label": 1, "manipulation_type": "sd_text2img", "file_path": str(f1_p)})
+        + "\n",
+        encoding="utf-8",
+    )
+    cur_m.write_text(
+        "".join(
+            json.dumps({"image_id": f"stale_{i}", "label": 1, "file_path": str(f0_p)}) + "\n"
+            for i in range(3)
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        rb1,
+        "curate_dataset",
+        lambda **kwargs: Path(kwargs["output_manifest"]).write_text(
+            Path(kwargs["input_manifest"]).read_text(encoding="utf-8"), encoding="utf-8"
+        ),
+    )
+
+    def _forbid_gen(**kwargs):
+        raise AssertionError("run_image_generation must not be called in curate_only mode")
+
+    monkeypatch.setattr(rb1, "run_image_generation", _forbid_gen)
+    prompt_eng = PromptGrammarEngine(seed=42)
+
+    kept_only = rb1.synthesize_and_curate_quota(
+        input_manifest=real_m,
+        output_raw_manifest=raw_base,
+        output_curated_manifest=cur_m,
+        output_dir=img_dir,
+        target_count=3,
+        prompt_engine=prompt_eng,
+        report_path=rep_p,
+        curate_only=True,
+        resume=False,
+    )
+    assert [m.image_id for m in kept_only] == ["f0", "f1"]
+    assert raw_base.exists()
+
+    # Now allow shortfall refill with resume=False, curate_only=False
+    gen_calls = []
+
+    def _mock_gen(**kwargs):
+        gen_calls.append(kwargs["output_manifest"].name)
+        Path(kwargs["output_manifest"]).write_text(
+            json.dumps({"image_id": "f2", "label": 1, "manipulation_type": "sd_text2img", "file_path": str(f2_p)})
+            + "\n",
+            encoding="utf-8",
+        )
+        return 1
+
+    monkeypatch.setattr(rb1, "run_image_generation", _mock_gen)
+    refilled = rb1.synthesize_and_curate_quota(
+        input_manifest=real_m,
+        output_raw_manifest=raw_base,
+        output_curated_manifest=cur_m,
+        output_dir=img_dir,
+        target_count=3,
+        prompt_engine=prompt_eng,
+        report_path=rep_p,
+        curate_only=False,
+        resume=False,
+    )
+    assert gen_calls == ["d0_raw_att1.jsonl"]
+    assert [m.image_id for m in refilled] == ["f0", "f1", "f2"]
+
+
+@pytest.mark.smoke
+def test_block1_parse_args_supports_no_resume_curate_only_and_overwrite_vault(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify Block 1 CLI flags and clean 10k defaults (589/1411/200)."""
+    import sys
+    from src.pipelines.run_block1_baseline import parse_args
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["run_block1_baseline.py", "--no-resume", "--curate-only", "--overwrite-master-test"],
+    )
+    args = parse_args()
+    assert args.test_fake_count == 589
+    assert args.train_fake_count == 1411
+    assert args.val_fake_count == 200
+    assert args.resume is False
+    assert args.curate_only is True
+    assert args.overwrite_master_test is True

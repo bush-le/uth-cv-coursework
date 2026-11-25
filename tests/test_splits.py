@@ -220,3 +220,79 @@ def test_normalize_demographics_celeba_and_ffhq():
     assert norm_celeba2["glasses"] == "Glasses"
 
 
+@pytest.mark.smoke
+def test_compute_dataset_stats_portfolio_and_rv51_fields(tmp_path: Path) -> None:
+    """Verify compute_dataset_stats emits all keys required by Notebook Cell 3 across D0, AL, and RV5.1."""
+    stats_file = tmp_path / "stats.json"
+    raw_manifest = tmp_path / "raw.jsonl"
+    fake_manifest = tmp_path / "fake.jsonl"
+    curated_manifest = tmp_path / "curated.jsonl"
+    hard_manifest = tmp_path / "hard.jsonl"
+    al_dir = tmp_path / "al"
+    r1_dir = al_dir / "round_1"
+    r1_dir.mkdir(parents=True)
+    rv51_raw = tmp_path / "rv51_raw.jsonl"
+    rv51_cur = tmp_path / "rv51_cur.jsonl"
+
+    raw_manifest.write_text(json.dumps({"image_id": "r1", "label": 0}) + "\n", encoding="utf-8")
+    fake_manifest.write_text(
+        json.dumps({"image_id": "d0_1", "label": 1, "manipulation_type": "sd_inpaint"})
+        + "\n"
+        + json.dumps({"image_id": "d0_2", "label": 1, "manipulation_type": "sd_img2img"})
+        + "\n",
+        encoding="utf-8",
+    )
+    curated_manifest.write_text(
+        json.dumps({"image_id": "d0_1", "label": 1, "manipulation_type": "sd_inpaint"}) + "\n",
+        encoding="utf-8",
+    )
+    (r1_dir / "candidates_raw.jsonl").write_text(
+        json.dumps({"image_id": "al_1", "label": 1, "manipulation_type": "sd_text2img"})
+        + "\n"
+        + json.dumps({"image_id": "al_2", "label": 1, "manipulation_type": "sd_text2img"})
+        + "\n",
+        encoding="utf-8",
+    )
+    (r1_dir / "candidates_curated.jsonl").write_text(
+        json.dumps({"image_id": "al_1", "label": 1, "manipulation_type": "sd_text2img"}) + "\n",
+        encoding="utf-8",
+    )
+    hard_manifest.write_text(
+        json.dumps({"image_id": "al_1", "label": 1, "manipulation_type": "sd_text2img"}) + "\n",
+        encoding="utf-8",
+    )
+    rv51_raw.write_text(
+        "".join(json.dumps({"image_path": f"rv_{i}.png"}) + "\n" for i in range(5)),
+        encoding="utf-8",
+    )
+    rv51_cur.write_text(
+        "".join(json.dumps({"image_path": f"rv_{i}.png"}) + "\n" for i in range(4)),
+        encoding="utf-8",
+    )
+
+    cfg = {
+        "paths": {
+            "raw_manifest": str(raw_manifest),
+            "fake_manifest": str(fake_manifest),
+            "curated_manifest": str(curated_manifest),
+            "hard_manifest": str(hard_manifest),
+            "active_learning_dir": str(al_dir),
+            "rv51_manifest": str(rv51_raw),
+            "rv51_curated_manifest": str(rv51_cur),
+            "stats_file": str(stats_file),
+        }
+    }
+    stats = compute_dataset_stats(cfg)
+    counts = stats["counts_by_source"]
+    assert counts["raw_real"] == 1
+    assert counts["d0_raw_synthetic"] == 2
+    assert counts["d0_curated_synthetic"] == 1
+    assert counts["synthetic_raw_total"] == 4
+    assert counts["curated_synthetic"] == 2
+    assert counts["synthetic_total"] == 2
+    assert counts["rv51_ood_synthetic"] == 5
+    assert counts["rv51_ood_curated"] == 4
+    assert stats["d0_curation_pass_rate"] == pytest.approx(0.5)
+    assert stats["curation_pass_rate"] == pytest.approx(0.5)
+
+

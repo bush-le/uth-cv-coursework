@@ -12,8 +12,10 @@ root = Path(__file__).resolve().parents[1]
 fig_out1 = root / "experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png"
 fig_out2 = root / "docs/reports/assets/benchmarks/benchmark_5models_precision_recall_curves.png"
 
-# Load original high-res image from origin/main
-img = cv2.imread(str(root / "experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png"))
+src_fig = root / "experiments/benchmarks/figures/benchmark_5models_precision_recall_curves.png"
+img = cv2.imread(str(src_fig))
+if img is None:
+    raise FileNotFoundError(f"Source precision-recall figure not found or unreadable: {src_fig}")
 rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 x_left, x_right = 188, 2641

@@ -20,9 +20,10 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import argparse
+import gc
 import json
-from typing import Any, Dict, List, Optional, Tuple
 import random
+from typing import Any, Dict, List, Optional, Tuple
 import torch
 
 from src.common.config import load_config
@@ -125,6 +126,25 @@ def extract_error_attribution_from_hard_samples(
     }
 
 
+def _extract_identity_key(rec: Dict[str, Any]) -> str:
+    """Resolve canonical source/person identity key across manifest schema variants."""
+    explicit = rec.get("identity")
+    if explicit is not None and str(explicit).strip():
+        return str(explicit)
+    demographics = rec.get("demographics")
+    if isinstance(demographics, dict):
+        demo_id = demographics.get("identity_id") or demographics.get("identity")
+        if demo_id is not None and str(demo_id).strip():
+            return f"celeba_id:{demo_id}"
+    src_real = rec.get("source_real_id")
+    if src_real is not None and str(src_real).strip():
+        src_str = str(src_real)
+        if src_str.startswith("celeba_id_"):
+            return f"celeba_id:{src_str[len('celeba_id_'):]}"
+        return src_str
+    return str(rec["image_id"])
+
+
 def verify_partition_disjointness(train_manifest_path: Path, test_manifest_path: Path) -> None:
     """Assert zero identity leakage between training seed manifest and test vault."""
     if not train_manifest_path.exists() or not test_manifest_path.exists():
@@ -132,13 +152,13 @@ def verify_partition_disjointness(train_manifest_path: Path, test_manifest_path:
 
     with open(train_manifest_path, "r", encoding="utf-8") as f:
         train_ids = {
-            json.loads(line).get("identity", json.loads(line)["image_id"])
+            _extract_identity_key(json.loads(line))
             for line in f
             if line.strip()
         }
     with open(test_manifest_path, "r", encoding="utf-8") as f:
         test_ids = {
-            json.loads(line).get("identity", json.loads(line)["image_id"])
+            _extract_identity_key(json.loads(line))
             for line in f
             if line.strip()
         }
@@ -177,6 +197,13 @@ def split_hard_samples(
     return train_hards, test_hards
 
 
+def _release_torch_memory() -> None:
+    """Release Python objects and cached CUDA memory between active learning stages."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 def run_active_learning_loop(
     num_rounds: int = 2,
     candidates_per_round: int = 60,
@@ -189,6 +216,8 @@ def run_active_learning_loop(
     epochs_per_round: int = 5,
     seed: int = 42,
     target_total_rounds: Optional[int] = None,
+    curate_only: bool = False,
+    force_regenerate: bool = False,
 ) -> Dict[str, Any]:
     """Execute multi-round closed-loop active learning deepfake dataset expansion.
 
@@ -203,12 +232,15 @@ def run_active_learning_loop(
         device: Compute device ('cpu' or 'cuda').
         epochs_per_round: Number of fine-tuning epochs per detector round.
         seed: Master random seed.
+        curate_only: If True, skips generation and re-curates existing candidates_raw.jsonl files.
+        force_regenerate: If True (and not curate_only), disables generation PNG reuse.
 
     Returns:
         Dictionary recording full active learning trajectory and benchmark gains.
     """
     seed_everything(seed)
     cfg = load_config(Path(config_path)) if Path(config_path).exists() else {}
+    effective_resume = resume and not curate_only
 
     base_dir = output_base_dir or Path("data/active_learning")
     base_dir.mkdir(parents=True, exist_ok=True)
@@ -227,10 +259,26 @@ def run_active_learning_loop(
     prompt_eng = PromptGrammarEngine(seed=seed, exploration_floor=0.15)
     miner = CalibratedHardMiner(decision_threshold=0.5, uncertainty_window=0.10)
 
-    # 2. Frozen Test Set Path (identity-disjoint, 43 samples)
-    test_manifest_path = Path("data/benchmarks/D0_baseline/test.jsonl")
-    val_manifest_path = Path("data/benchmarks/D0_baseline/val.jsonl")
-    train_manifest_d0 = Path("data/benchmarks/D0_baseline/train.jsonl")
+    # 2. Frozen Test Set Path & Data Partition Roots
+    paths_cfg = cfg.get("paths", {}) if isinstance(cfg, dict) else {}
+    if output_base_dir is not None:
+        benchmarks_root = (
+            output_base_dir.parent / "benchmarks"
+            if (output_base_dir.parent / "benchmarks").exists()
+            else output_base_dir / "benchmarks"
+        )
+        partitions_root = (
+            output_base_dir.parent / "partitions"
+            if (output_base_dir.parent / "partitions").exists()
+            else output_base_dir / "partitions"
+        )
+    else:
+        benchmarks_root = Path(paths_cfg.get("benchmarks_dir", "data/benchmarks"))
+        partitions_root = Path(paths_cfg.get("partitions_dir", "data/partitions"))
+
+    test_manifest_path = benchmarks_root / "D0_baseline/test.jsonl"
+    val_manifest_path = benchmarks_root / "D0_baseline/val.jsonl"
+    train_manifest_d0 = benchmarks_root / "D0_baseline/train.jsonl"
 
     # Load initial baseline training set D0
     current_train_records: List[ImageMetadata] = []
@@ -256,9 +304,12 @@ def run_active_learning_loop(
     # Cumulative Challenge Test Set Path (dynamically updated with 15% slices of mined H_r)
     challenge_manifest_path = base_dir / "cumulative_challenge_test.jsonl"
     challenge_test_records: List[ImageMetadata] = []
-    if challenge_manifest_path.exists():
+    if effective_resume and challenge_manifest_path.exists():
         with open(challenge_manifest_path, "r", encoding="utf-8") as f:
             challenge_test_records = [ImageMetadata.from_dict(json.loads(line)) for line in f if line.strip()]
+    elif not dry_run and not effective_resume and challenge_manifest_path.exists():
+        # Reset stale challenge test vault on fresh non-resume / curate-only rebuilds
+        challenge_manifest_path.write_text("", encoding="utf-8")
 
     # Tracking records
     rounds_log: List[Dict[str, Any]] = []
@@ -273,7 +324,7 @@ def run_active_learning_loop(
     current_detector_ckpt = ckpt_dir / "baseline_d0_best.pt"
     resume_records = list(current_train_records)
 
-    if resume:
+    if effective_resume:
         r_cand = 1
         while True:
             r_dir = base_dir / f"round_{r_cand}"
@@ -282,7 +333,7 @@ def run_active_learning_loop(
             if r_hard_path.exists() and r_ckpt.exists():
                 logger.info("Found completed Round %d artifacts at %s and %s", r_cand, r_dir, r_ckpt.name)
                 bench_folder = "D1_augmented" if r_cand == 1 else ("D2_hard_boosted" if r_cand == 2 else f"D{r_cand}_expanded")
-                bench_train = Path("data/benchmarks") / bench_folder / "train.jsonl"
+                bench_train = benchmarks_root / bench_folder / "train.jsonl"
                 if bench_train.exists():
                     with open(bench_train, "r", encoding="utf-8") as bf:
                         resume_records = [ImageMetadata.from_dict(json.loads(line)) for line in bf if line.strip()]
@@ -428,7 +479,7 @@ def run_active_learning_loop(
     for r in range(start_round, end_round + 1):
         round_dir = base_dir / f"round_{r}"
         round_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("\n--- [Active Learning Round %d/%d] ---", r, num_rounds)
+        logger.info("\n--- [Active Learning Round %d/%d] ---", r, end_round)
 
         # 1. Tier 1: Mode Budget Allocation
         mode_quotas = budget_ctrl.compute_mode_quotas(prev_attribution["mode_errors"])
@@ -441,9 +492,10 @@ def run_active_learning_loop(
         )
 
         # 3. Dynamic Candidate Generation using Prompt Grammar Engine (Strictly Train-Reals to prevent test contamination)
-        train_reals_path = Path("data/partitions/train_reals.jsonl")
-        test_reals_path = Path("data/partitions/test_reals.jsonl")
-        raw_manifest_path = train_reals_path if train_reals_path.exists() else Path("data/raw/manifest.jsonl")
+        train_reals_path = partitions_root / "train_reals.jsonl"
+        test_reals_path = partitions_root / "test_reals.jsonl"
+        default_raw_manifest = Path(paths_cfg.get("raw_manifest", "data/raw/manifest.jsonl"))
+        raw_manifest_path = train_reals_path if train_reals_path.exists() else default_raw_manifest
         if train_reals_path.exists() and test_reals_path.exists():
             verify_partition_disjointness(train_reals_path, test_reals_path)
         candidates_raw_path = round_dir / "candidates_raw.jsonl"
@@ -451,28 +503,49 @@ def run_active_learning_loop(
         candidates_curated_path = round_dir / "candidates_curated.jsonl"
         hard_manifest_path = round_dir / "hard_samples.jsonl"
 
-        # Generate candidates using SD engine with prompt grammar engine
-        run_image_generation(
-            input_manifest=raw_manifest_path,
-            output_manifest=candidates_raw_path,
-            output_dir=round_dir / "images",
-            total_samples=candidates_per_round,
-            mode_quotas=mode_quotas,
-            prompt_engine=prompt_eng,
-            mask_targets=mask_targets,
-            device=device,
-            seed=seed + r * 100,
-            sample_offset=(r - 1) * candidates_per_round,
-        )
+        # Generate candidates using SD engine with prompt grammar engine (or reuse existing raw pool in curate_only mode)
+        if curate_only:
+            if not candidates_raw_path.exists():
+                raise FileNotFoundError(
+                    f"Curate-only mode requested for Round {r}, but raw manifest not found: {candidates_raw_path}"
+                )
+            logger.info(
+                "Round %d [curate-only]: Re-curating existing raw candidates at %s without generation.",
+                r,
+                candidates_raw_path,
+            )
+        else:
+            run_image_generation(
+                input_manifest=raw_manifest_path,
+                output_manifest=candidates_raw_path,
+                output_dir=round_dir / "images",
+                total_samples=candidates_per_round,
+                mode_quotas=mode_quotas,
+                prompt_engine=prompt_eng,
+                mask_targets=mask_targets,
+                device=device,
+                seed=seed + r * 100,
+                resume=not force_regenerate,
+                sample_offset=(r - 1) * candidates_per_round,
+                config=config_path,
+            )
 
         # 4. Quality Curation Gate
         curation_report_path = round_dir / "curation_report.json"
+        cur_cfg = cfg.get("curation", {})
+        clip_cfg = cur_cfg.get("clip", {})
         curate_dataset(
             input_manifest=candidates_raw_path,
             output_manifest=candidates_curated_path,
             report_path=curation_report_path,
-            extended_audit=True,
+            face_backend=str(cur_cfg.get("face_check", {}).get("backend", "yunet")),
+            clip_enabled=clip_cfg.get("enabled"),
+            min_clip_score=float(clip_cfg.get("min_score", 0.20)),
+            dedup=bool(cur_cfg.get("dedup", True)),
+            perceptual_dedup_threshold=cur_cfg.get("perceptual_dedup_threshold", 2),
+            extended_audit=bool(cur_cfg.get("extended_audit", True)),
             raw_manifest=raw_manifest_path,
+            config_path=config_path,
         )
 
         # Load curated candidates
@@ -555,6 +628,12 @@ def run_active_learning_loop(
             for h in mined_hard:
                 f.write(json.dumps(h.to_dict()) + "\n")
 
+        # Release inference detector & dataloader tensors before instantiating retraining model on 4GB VRAM GPUs
+        del detector, candidate_dm
+        if "val_dm" in locals():
+            del val_dm, val_logits_list, val_labels_list, cat_logits, cat_labels
+        _release_torch_memory()
+
         # 8. Feedback Attribution to Close the Loop
         attribution = extract_error_attribution_from_hard_samples(mined_hard, curated_candidates)
         prompt_eng.update_error_weights(attribution["keyword_errors"], temperature=0.7)
@@ -564,7 +643,7 @@ def run_active_learning_loop(
         h_train, h_test = split_hard_samples(mined_hard, test_ratio=0.15, seed=seed + r)
         if h_test:
             # Pair hard fakes with matching authentic real samples from test partition for mathematically balanced evaluation
-            test_reals_path = Path("data/partitions/test_reals.jsonl")
+            test_reals_path = partitions_root / "test_reals.jsonl"
             paired_reals: List[ImageMetadata] = []
             if test_reals_path.exists():
                 with open(test_reals_path, "r", encoding="utf-8") as rf:
@@ -600,7 +679,7 @@ def run_active_learning_loop(
 
         # Persist benchmark dataset manifests for D1_augmented and D2_hard_boosted
         bench_folder_name = "D1_augmented" if r == 1 else ("D2_hard_boosted" if r == 2 else f"D{r}_expanded")
-        bench_dir = Path("data/benchmarks") / bench_folder_name
+        bench_dir = benchmarks_root / bench_folder_name
         bench_dir.mkdir(parents=True, exist_ok=True)
         with open(bench_dir / "train.jsonl", "w", encoding="utf-8") as bf:
             for m in current_train_records:
@@ -672,6 +751,11 @@ def run_active_learning_loop(
         # Update current checkpoint pointer for next round
         current_detector_ckpt = m_best_ckpt
 
+        del round_detector, round_dm
+        if "chal_dm" in locals():
+            del chal_dm
+        _release_torch_memory()
+
         rounds_log.append({
             "round": r,
             "training_samples_count": len(current_train_records),
@@ -688,16 +772,16 @@ def run_active_learning_loop(
 
         # Incremental metrics checkpoint: persist after each round so feedback is never lost
         try:
+            init_auc = rounds_log[0]["test_metrics"].get("roc_auc", 0.0) if rounds_log else 0.0
+            final_auc = rounds_log[-1]["test_metrics"].get("roc_auc", 0.0) if rounds_log else 0.0
             intermediate_summary = {
                 "num_rounds": num_rounds,
                 "candidates_per_round": candidates_per_round,
                 "rounds": rounds_log,
                 "deltas": {
-                    "initial_auc": rounds_log[0]["test_metrics"]["roc_auc"] if rounds_log else 0.0,
-                    "final_auc": rounds_log[-1]["test_metrics"]["roc_auc"] if rounds_log else 0.0,
-                    "auc_gain": round(
-                        rounds_log[-1]["test_metrics"]["roc_auc"] - rounds_log[0]["test_metrics"]["roc_auc"], 4
-                    ) if rounds_log else 0.0,
+                    "initial_auc": init_auc,
+                    "final_auc": final_auc,
+                    "auc_gain": round(final_auc - init_auc, 4) if rounds_log else 0.0,
                 },
             }
             with open(logs_dir / "closed_loop_metrics.json", "w", encoding="utf-8") as imf:
@@ -706,16 +790,16 @@ def run_active_learning_loop(
         except Exception as exc:
             logger.warning("Could not persist intermediate round metrics: %s", exc)
 
+    init_auc = rounds_log[0]["test_metrics"].get("roc_auc", 0.0) if rounds_log else 0.0
+    final_auc = rounds_log[-1]["test_metrics"].get("roc_auc", 0.0) if rounds_log else 0.0
     summary = {
         "num_rounds": num_rounds,
         "candidates_per_round": candidates_per_round,
         "rounds": rounds_log,
         "deltas": {
-            "initial_auc": rounds_log[0]["test_metrics"]["roc_auc"] if rounds_log else 0.0,
-            "final_auc": rounds_log[-1]["test_metrics"]["roc_auc"] if rounds_log else 0.0,
-            "auc_gain": round(
-                rounds_log[-1]["test_metrics"]["roc_auc"] - rounds_log[0]["test_metrics"]["roc_auc"], 4
-            ) if rounds_log else 0.0,
+            "initial_auc": init_auc,
+            "final_auc": final_auc,
+            "auc_gain": round(final_auc - init_auc, 4) if rounds_log else 0.0,
         },
     }
 
@@ -734,7 +818,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=str, default="configs/dataset_factory.yaml", help="Path to config")
     parser.add_argument("--epochs", type=int, default=5, help="Epochs per detector training stage")
     parser.add_argument("--device", type=str, default="cuda", help="Target device (cuda or cpu)")
+    parser.add_argument("--seed", type=int, default=42, help="Master random seed")
     parser.add_argument("--dry-run", action="store_true", help="Run quick dry-run test")
+    parser.add_argument("--no-resume", dest="resume", action="store_false", default=True, help="Start from Round 1 instead of resuming completed rounds")
+    parser.add_argument("--curate-only", action="store_true", default=False, help="Skip generation and re-curate existing candidates_raw.jsonl files")
+    parser.add_argument("--force-regenerate", action="store_true", default=False, help="Regenerate candidate PNGs instead of reusing existing matching files")
     return parser.parse_args()
 
 
@@ -746,6 +834,10 @@ if __name__ == "__main__":
         candidates_per_round=args.candidates_per_round,
         config_path=args.config,
         dry_run=args.dry_run,
+        resume=args.resume,
         device=dev,
         epochs_per_round=args.epochs,
+        seed=args.seed,
+        curate_only=args.curate_only,
+        force_regenerate=args.force_regenerate,
     )

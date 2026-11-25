@@ -140,9 +140,22 @@ class MetaDinoV2Wrapper(nn.Module):
                 cfg = AutoConfig.from_pretrained(model_name)
                 self.backbone = AutoModel.from_config(cfg)
         except Exception as e:
-            logger.warning("Failed to load %s from Hub (%s), using local config.", model_name, e)
-            cfg = AutoConfig.from_pretrained(model_name)
-            self.backbone = AutoModel.from_config(cfg)
+            if pretrained:
+                try:
+                    logger.warning(
+                        "Failed to load %s from Hub (%s); retrying with local cache only.",
+                        model_name,
+                        e,
+                    )
+                    self.backbone = AutoModel.from_pretrained(model_name, local_files_only=True)
+                except Exception as cache_err:
+                    raise RuntimeError(
+                        f"Failed to load pretrained {model_name} from Hub or local cache: {cache_err}"
+                    ) from cache_err
+            else:
+                logger.warning("Failed to load config %s from Hub (%s), retrying local cache.", model_name, e)
+                cfg = AutoConfig.from_pretrained(model_name, local_files_only=True)
+                self.backbone = AutoModel.from_config(cfg)
 
         self.embed_dim = self.backbone.config.hidden_size
         self.register_buffer(

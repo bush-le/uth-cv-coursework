@@ -10,8 +10,9 @@ if str(_ROOT) not in sys.path:
 
 import argparse
 from dataclasses import dataclass, field
+import gc
 import json
-from typing import Any, Dict, List, Optional, Sequence, Set, Union
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 from PIL import Image
@@ -107,6 +108,12 @@ class ImageCurationGate:
         self._clip_scorer: Optional[ClipScorer] = None
         if self.clip_enabled:
             self._clip_scorer = ClipScorer(model_id=clip_model_id, device=resolved_device)
+
+    def close(self) -> None:
+        """Release underlying CLIP scorer and model tensors from memory."""
+        if self._clip_scorer is not None:
+            self._clip_scorer.close()
+            self._clip_scorer = None
 
     def evaluate_image(
         self,
@@ -274,6 +281,46 @@ def calibrate_sharpness_from_manifest(
     return calibrate_threshold(real_sharpness, ref_quantile) if real_sharpness else fallback
 
 
+def _is_perceptual_duplicate(
+    dhash_val: Optional[int],
+    cur_src: str,
+    mode_val: str,
+    thumb32_u8: Optional[np.ndarray],
+    seen_dhashes_u64: List[int],
+    seen_dhash_meta: List[Tuple[str, str, Optional[np.ndarray]]],
+    threshold: Optional[int],
+) -> bool:
+    """Check perceptual dHash near-duplicate with source/pixel verification for edited modes."""
+    if dhash_val is None or threshold is None or not seen_dhashes_u64:
+        return False
+
+    arr_seen = np.array(seen_dhashes_u64, dtype=np.uint64)
+    xor_bytes = (arr_seen ^ np.uint64(dhash_val)).view(np.uint8).reshape(-1, 8)
+    dists = _POPCOUNT_LUT[xor_bytes].sum(axis=1)
+    hit_idxs = np.flatnonzero(dists <= threshold)
+    for h_idx in hit_idxs:
+        prev_src, prev_mode, prev_thumb = seen_dhash_meta[int(h_idx)]
+        if (
+            cur_src
+            and prev_src == cur_src
+            and mode_val in ("sd_img2img", "sd_inpaint")
+            and prev_mode in ("sd_img2img", "sd_inpaint")
+            and thumb32_u8 is not None
+            and prev_thumb is not None
+        ):
+            diff_p95 = float(
+                np.percentile(
+                    np.abs(thumb32_u8.astype(np.float32) - prev_thumb.astype(np.float32)),
+                    95,
+                )
+            )
+            if diff_p95 <= 2.5:
+                return True
+        else:
+            return True
+    return False
+
+
 def curate_image_manifest(
     input_manifest: Path,
     output_manifest: Path,
@@ -317,7 +364,21 @@ def curate_image_manifest(
     source_cache: Dict[Path, np.ndarray] = {}
     processed_idx = 0
 
-    pending_batch: List[Tuple[Dict[str, Any], torch.Tensor, str, str, Optional[np.ndarray], Optional[torch.Tensor], str]] = []
+    pending_batch: List[
+        Tuple[
+            Dict[str, Any],
+            torch.Tensor,
+            str,
+            str,
+            Optional[np.ndarray],
+            Optional[torch.Tensor],
+            str,
+            Optional[str],
+            Optional[int],
+            str,
+            Optional[np.ndarray],
+        ]
+    ] = []
 
     def _flush_pending_batch() -> None:
         nonlocal kept_count, rejected_count
@@ -342,7 +403,53 @@ def curate_image_manifest(
                             clip_scores[idx] = float(gate._clip_scorer.score(batch_items[idx][1], batch_items[idx][6]))
                         except Exception:
                             clip_scores[idx] = None
-        for (b_item, b_ten, b_id, b_mode, b_src, b_mask, b_prompt), b_clip in zip(batch_items, clip_scores):
+        for (
+            b_item,
+            b_ten,
+            b_id,
+            b_mode,
+            b_src,
+            b_mask,
+            b_prompt,
+            b_fhash,
+            b_dhash,
+            b_cur_src,
+            b_thumb32,
+        ), b_clip in zip(batch_items, clip_scores):
+            if gate.dedup and b_fhash is not None and b_fhash in seen_hashes:
+                rejected_count += 1
+                dup_rep = ImageCurationReport(
+                    image_id=b_id,
+                    is_valid=False,
+                    sharpness_score=0.0,
+                    clip_score=None,
+                    face_detected=False,
+                    rejection_reasons=["duplicate_content"],
+                )
+                report_lines.append(json.dumps(dup_rep.to_dict()) + "\n")
+                continue
+
+            if _is_perceptual_duplicate(
+                b_dhash,
+                b_cur_src,
+                b_mode,
+                b_thumb32,
+                seen_dhashes_u64,
+                seen_dhash_meta,
+                gate.perceptual_dedup_threshold,
+            ):
+                rejected_count += 1
+                pdup_rep = ImageCurationReport(
+                    image_id=b_id,
+                    is_valid=False,
+                    sharpness_score=0.0,
+                    clip_score=None,
+                    face_detected=False,
+                    rejection_reasons=["duplicate_perceptual_dhash"],
+                )
+                report_lines.append(json.dumps(pdup_rep.to_dict()) + "\n")
+                continue
+
             try:
                 b_rep = gate.evaluate_image(
                     b_ten,
@@ -365,6 +472,11 @@ def curate_image_manifest(
                 )
             report_lines.append(json.dumps(b_rep.to_dict()) + "\n")
             if b_rep.is_valid:
+                if gate.dedup and b_fhash is not None:
+                    seen_hashes.add(b_fhash)
+                if b_dhash is not None and gate.perceptual_dedup_threshold is not None:
+                    seen_dhashes_u64.append(b_dhash)
+                    seen_dhash_meta.append((b_cur_src, b_mode, b_thumb32))
                 curated_lines.append(json.dumps(b_item) + "\n")
                 kept_count += 1
             else:
@@ -396,7 +508,8 @@ def curate_image_manifest(
                     report_lines.append(json.dumps(report.to_dict()) + "\n")
                     continue
 
-                # Exact byte dedup check
+                # Exact byte dedup check (only kept samples populate seen_hashes)
+                f_hash: Optional[str] = None
                 if gate.dedup:
                     try:
                         f_hash = file_sha256(file_path)
@@ -413,7 +526,6 @@ def curate_image_manifest(
                             )
                             report_lines.append(json.dumps(report.to_dict()) + "\n")
                             continue
-                        seen_hashes.add(f_hash)
                     except Exception as err:
                         logger.warning("Error computing hash for %s: %s", file_path, err)
 
@@ -438,50 +550,27 @@ def curate_image_manifest(
                         np_img = np.array(rgb_pil, dtype=np.float32) / 255.0
                         tensor_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
 
-                    # Source-aware perceptual dHash near-duplicate check via vectorized uint64 popcount
-                    if dhash_val is not None and gate.perceptual_dedup_threshold is not None:
-                        is_perceptual_dup = False
-                        if seen_dhashes_u64:
-                            arr_seen = np.array(seen_dhashes_u64, dtype=np.uint64)
-                            xor_bytes = (arr_seen ^ np.uint64(dhash_val)).view(np.uint8).reshape(-1, 8)
-                            dists = _POPCOUNT_LUT[xor_bytes].sum(axis=1)
-                            hit_idxs = np.flatnonzero(dists <= gate.perceptual_dedup_threshold)
-                            for h_idx in hit_idxs:
-                                prev_src, prev_mode, prev_thumb = seen_dhash_meta[int(h_idx)]
-                                if (
-                                    cur_src
-                                    and prev_src == cur_src
-                                    and mode_val in ("sd_img2img", "sd_inpaint")
-                                    and prev_mode in ("sd_img2img", "sd_inpaint")
-                                    and thumb32_u8 is not None
-                                    and prev_thumb is not None
-                                ):
-                                    diff_p95 = float(
-                                        np.percentile(
-                                            np.abs(thumb32_u8.astype(np.float32) - prev_thumb.astype(np.float32)),
-                                            95,
-                                        )
-                                    )
-                                    if diff_p95 <= 2.5:
-                                        is_perceptual_dup = True
-                                        break
-                                else:
-                                    is_perceptual_dup = True
-                                    break
-                        if is_perceptual_dup:
-                            rejected_count += 1
-                            report = ImageCurationReport(
-                                image_id=img_id,
-                                is_valid=False,
-                                sharpness_score=0.0,
-                                clip_score=None,
-                                face_detected=False,
-                                rejection_reasons=["duplicate_perceptual_dhash"],
-                            )
-                            report_lines.append(json.dumps(report.to_dict()) + "\n")
-                            continue
-                        seen_dhashes_u64.append(dhash_val)
-                        seen_dhash_meta.append((cur_src, mode_val, thumb32_u8))
+                    # Source-aware perceptual dHash near-duplicate check against already kept samples
+                    if _is_perceptual_duplicate(
+                        dhash_val,
+                        cur_src,
+                        mode_val,
+                        thumb32_u8,
+                        seen_dhashes_u64,
+                        seen_dhash_meta,
+                        gate.perceptual_dedup_threshold,
+                    ):
+                        rejected_count += 1
+                        report = ImageCurationReport(
+                            image_id=img_id,
+                            is_valid=False,
+                            sharpness_score=0.0,
+                            clip_score=None,
+                            face_detected=False,
+                            rejection_reasons=["duplicate_perceptual_dhash"],
+                        )
+                        report_lines.append(json.dumps(report.to_dict()) + "\n")
+                        continue
 
                     src_u8 = None
                     mask_t = None
@@ -548,7 +637,21 @@ def curate_image_manifest(
                                 if mask_t is None:
                                     mask_t = generate_dynamic_face_mask(src_t, bbox=bbox_xyxy, target_region="full")
 
-                    pending_batch.append((item, tensor_img, img_id, mode_val, src_u8, mask_t, item.get("prompt", "")))
+                    pending_batch.append(
+                        (
+                            item,
+                            tensor_img,
+                            img_id,
+                            mode_val,
+                            src_u8,
+                            mask_t,
+                            item.get("prompt", ""),
+                            f_hash,
+                            dhash_val,
+                            cur_src,
+                            thumb32_u8,
+                        )
+                    )
                     if not (gate.clip_enabled and gate._clip_scorer is not None) or len(pending_batch) >= 32:
                         _flush_pending_batch()
                 except Exception as err:
@@ -649,6 +752,11 @@ def main() -> None:
 
     extended_audit = bool(_res(args.extended_audit, "curation.extended_audit", False))
     perceptual_thresh = _res(None, "curation.perceptual_dedup_threshold", None)
+    resolved_perceptual_thresh = _resolve_perceptual_dedup_threshold(
+        perceptual_dedup_threshold=int(perceptual_thresh) if perceptual_thresh is not None else None,
+        dedup=dedup,
+        config_path=args.config,
+    )
     gate = ImageCurationGate(
         min_sharpness=min_sharpness_val,
         min_clip_score=min_clip_score,
@@ -656,16 +764,55 @@ def main() -> None:
         clip_model_id=clip_model_id,
         face_backend=face_backend,
         dedup=dedup,
-        perceptual_dedup_threshold=int(perceptual_thresh) if perceptual_thresh is not None else None,
+        perceptual_dedup_threshold=resolved_perceptual_thresh,
         extended_audit=extended_audit,
     )
-    curate_image_manifest(
-        input_manifest=in_manifest,
-        output_manifest=out_manifest,
-        gate=gate,
-        curation_report=curation_report,
-        raw_manifest=raw_manifest,
-    )
+    try:
+        curate_image_manifest(
+            input_manifest=in_manifest,
+            output_manifest=out_manifest,
+            gate=gate,
+            curation_report=curation_report,
+            raw_manifest=raw_manifest,
+        )
+    finally:
+        gate.close()
+        del gate
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+
+def _resolve_perceptual_dedup_threshold(
+    perceptual_dedup_threshold: Optional[int],
+    dedup: bool,
+    config_path: Optional[Union[str, Path]] = None,
+) -> Optional[int]:
+    """Resolve perceptual dHash Hamming threshold from explicit arg or config YAML (default 2)."""
+    if perceptual_dedup_threshold is not None:
+        val = int(perceptual_dedup_threshold)
+        return None if val < 0 else val
+    if not dedup:
+        return None
+
+    candidates: List[Path] = []
+    if config_path is not None:
+        candidates.append(Path(config_path))
+    else:
+        candidates.extend([Path("configs/dataset_factory.yaml"), _ROOT / "configs/dataset_factory.yaml"])
+
+    for cfg_file in candidates:
+        if cfg_file.is_file():
+            try:
+                cfg = load_config(cfg_file)
+                cfg_val = cfg_get(cfg, "curation.perceptual_dedup_threshold")
+                if cfg_val is None:
+                    return 2
+                parsed = int(cfg_val)
+                return None if parsed < 0 else parsed
+            except (KeyError, TypeError, ValueError):
+                pass
+    return 2
 
 
 def curate_dataset(
@@ -683,8 +830,10 @@ def curate_dataset(
     extended_audit: bool = False,
     raw_manifest: Optional[Path] = None,
     reference_quantile_sharpness: float = 0.05,
+    source_dirs: Optional[Sequence[Union[str, Path]]] = None,
+    config_path: Optional[Union[str, Path]] = None,
 ) -> Dict[str, Any]:
-    """High-level wrapper to curate a synthetic dataset manifest with optional sharpness auto-calibration."""
+    """High-level wrapper to curate a synthetic dataset manifest with config defaults and VRAM cleanup."""
     if min_sharpness is None:
         if raw_manifest is not None and Path(raw_manifest).exists():
             min_sharpness_val = calibrate_sharpness_from_manifest(
@@ -696,6 +845,13 @@ def curate_dataset(
         min_sharpness_val = float(min_sharpness)
 
     resolved_clip = (face_backend != "none") if clip_enabled is None else bool(clip_enabled)
+    resolved_perceptual_thresh = _resolve_perceptual_dedup_threshold(
+        perceptual_dedup_threshold=perceptual_dedup_threshold,
+        dedup=dedup,
+        config_path=config_path,
+    )
+
+    owns_gate = gate is None
     if gate is None:
         gate = ImageCurationGate(
             min_sharpness=min_sharpness_val,
@@ -704,17 +860,26 @@ def curate_dataset(
             clip_enabled=resolved_clip,
             device="auto",
             dedup=dedup,
-            perceptual_dedup_threshold=perceptual_dedup_threshold,
+            perceptual_dedup_threshold=resolved_perceptual_thresh,
             extended_audit=extended_audit,
         )
     rep = report_path or curation_report
-    return curate_image_manifest(
-        input_manifest=Path(input_manifest),
-        output_manifest=Path(output_manifest),
-        gate=gate,
-        curation_report=Path(rep) if rep else None,
-        raw_manifest=Path(raw_manifest) if raw_manifest else None,
-    )
+    try:
+        return curate_image_manifest(
+            input_manifest=Path(input_manifest),
+            output_manifest=Path(output_manifest),
+            gate=gate,
+            curation_report=Path(rep) if rep else None,
+            raw_manifest=Path(raw_manifest) if raw_manifest else None,
+            source_dirs=source_dirs,
+        )
+    finally:
+        if owns_gate:
+            gate.close()
+            del gate
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":

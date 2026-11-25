@@ -215,3 +215,146 @@ def test_curation_rejects_faceless_artifacts_with_opencv_haar(tmp_path):
     report = json.loads(rep_m.read_text().strip())
     assert report["is_valid"] is False
     assert any("face" in r.lower() for r in report["rejection_reasons"])
+
+
+@pytest.mark.smoke
+def test_curate_dataset_enables_config_perceptual_dedup_source_dirs_and_cleanup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify curate_dataset resolves perceptual_dedup_threshold=2, forwards source_dirs, and closes gate."""
+    from src.pipelines import curate_image_dataset as cid
+
+    src_dir = tmp_path / "custom_sources"
+    src_dir.mkdir()
+    yy, xx = np.indices((128, 128))
+    base = (128.0 + 45.0 * np.sin(xx / 10.0) + 35.0 * np.cos(yy / 14.0)).clip(20, 235).astype(np.uint8)
+    arr1 = np.stack([base, np.roll(base, 6, axis=1), np.roll(base, 12, axis=0)], axis=-1)
+
+    src_img = src_dir / "ref_01.jpg"
+    Image.fromarray(arr1).save(src_img)
+
+    p1 = tmp_path / "syn1.png"
+    p2 = tmp_path / "syn2.png"
+    Image.fromarray(arr1).save(p1)
+    arr2 = arr1.copy()
+    arr2[0, 0, 0] = min(255, int(arr2[0, 0, 0]) + 1)  # Different SHA-256, identical dHash
+    Image.fromarray(arr2).save(p2)
+
+    in_m = tmp_path / "in.jsonl"
+    out_m = tmp_path / "out.jsonl"
+    rep_m = tmp_path / "rep.jsonl"
+    in_m.write_text(
+        json.dumps(
+            {
+                "image_id": "f1",
+                "label": 1,
+                "manipulation_type": "sd_img2img",
+                "source_real_image": "ref_01.jpg",
+                "file_path": str(p1),
+            }
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "image_id": "f2",
+                "label": 1,
+                "manipulation_type": "sd_img2img",
+                "source_real_image": "ref_01.jpg",
+                "file_path": str(p2),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    closed_flags = []
+    orig_close = cid.ImageCurationGate.close
+
+    def _spy_close(self) -> None:
+        closed_flags.append(True)
+        orig_close(self)
+
+    monkeypatch.setattr(cid.ImageCurationGate, "close", _spy_close)
+
+    summary = cid.curate_dataset(
+        input_manifest=in_m,
+        output_manifest=out_m,
+        report_path=rep_m,
+        min_sharpness=0.0,
+        face_backend="none",
+        clip_enabled=False,
+        extended_audit=True,
+        source_dirs=[src_dir],
+    )
+
+    assert summary["kept"] == 1
+    assert summary["rejected"] == 1
+    assert closed_flags == [True]
+    reports = [json.loads(line) for line in rep_m.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert reports[0]["delta_e_lab"] is not None
+    assert "duplicate_perceptual_dhash" in reports[1]["rejection_reasons"]
+
+
+def test_rejected_sample_does_not_poison_perceptual_dedup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify a rejected first candidate does not cause a valid near-duplicate second candidate to be dropped."""
+    yy, xx = np.indices((64, 64))
+    pat = (((yy // 4 + xx // 4) % 2) * 180 + 40).astype(np.uint8)
+    arr = np.stack([pat, np.roll(pat, 2, axis=1), pat], axis=-1)
+    p1 = tmp_path / "bad_first.png"
+    p2 = tmp_path / "good_second.png"
+    Image.fromarray(arr).save(p1)
+    Image.fromarray(arr).save(p2)
+
+    in_m = tmp_path / "in.jsonl"
+    out_m = tmp_path / "out.jsonl"
+    rep_m = tmp_path / "rep.jsonl"
+    in_m.write_text(
+        json.dumps({"image_id": "bad_1", "label": 1, "file_path": str(p1)})
+        + "\n"
+        + json.dumps({"image_id": "good_2", "label": 1, "file_path": str(p2)})
+        + "\n",
+        encoding="utf-8",
+    )
+
+    gate = ImageCurationGate(min_sharpness=0.0, clip_enabled=False, dedup=True, perceptual_dedup_threshold=2)
+
+    def _selective_eval(image, prompt="", image_id="", **kwargs):
+        if image_id == "bad_1":
+            return ImageCurationReport(
+                image_id=image_id,
+                is_valid=False,
+                sharpness_score=0.0,
+                clip_score=None,
+                face_detected=False,
+                rejection_reasons=["simulated_quality_reject"],
+            )
+        return ImageCurationReport(
+            image_id=image_id,
+            is_valid=True,
+            sharpness_score=50.0,
+            clip_score=None,
+            face_detected=True,
+            rejection_reasons=[],
+        )
+
+    monkeypatch.setattr(gate, "evaluate_image", _selective_eval)
+    summary = curate_image_manifest(in_m, out_m, gate, curation_report=rep_m)
+
+    assert summary["kept"] == 1
+    assert summary["rejected"] == 1
+    kept_items = [json.loads(line)["image_id"] for line in out_m.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert kept_items == ["good_2"]
+
+
+@pytest.mark.smoke
+def test_detect_faces_accepts_float16_and_bfloat16_tensors() -> None:
+    """Verify detect_faces safely converts float16 and bfloat16 CHW tensors without OpenCV depth errors."""
+    from src.common.metrics import detect_faces
+
+    for dt in (torch.float16, torch.bfloat16):
+        img = torch.zeros(3, 64, 64, dtype=dt)
+        count = detect_faces(img, backend="opencv_haar")
+        assert isinstance(count, int)
+        assert count >= 0

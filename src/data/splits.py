@@ -213,7 +213,6 @@ def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
     fake_path = Path(paths_cfg.get("fake_manifest", "data/synthetic/fake_manifest.jsonl"))
     curated_path = Path(paths_cfg.get("curated_manifest", "data/synthetic/curated_manifest.jsonl"))
     hard_path = Path(paths_cfg.get("hard_manifest", "data/hard_samples/hard_samples_manifest.jsonl"))
-    report_path = Path(paths_cfg.get("curation_report", "data/synthetic/curation_report.jsonl"))
     stats_file = Path(paths_cfg.get("stats_file", "data/dataset_statistics.json"))
 
     def _read_manifest(p: Path) -> List[Dict[str, Any]]:
@@ -230,20 +229,73 @@ def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
                         pass
         return items
 
+    def _dedup_records(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        seen = set()
+        out: List[Dict[str, Any]] = []
+        for idx, it in enumerate(items):
+            key = it.get("image_id") or it.get("file_path") or it.get("image_path") or f"__row_{idx}"
+            if key not in seen:
+                seen.add(key)
+                out.append(it)
+        return out
+
     raw_items = _read_manifest(raw_path)
     fake_items = _read_manifest(fake_path)
     curated_items = _read_manifest(curated_path)
     hard_items = _read_manifest(hard_path)
 
-    # Counts by source
-    counts_by_source = {
+    is_default_repo_layout = (
+        fake_path == Path("data/synthetic/fake_manifest.jsonl")
+        and raw_path == Path("data/raw/manifest.jsonl")
+    )
+
+    al_dir: Optional[Path] = None
+    if paths_cfg.get("active_learning_dir"):
+        al_dir = Path(paths_cfg["active_learning_dir"])
+    elif is_default_repo_layout:
+        al_dir = Path("data/active_learning")
+
+    al_raw_items: List[Dict[str, Any]] = []
+    al_curated_items: List[Dict[str, Any]] = []
+    if al_dir is not None and al_dir.is_dir():
+        for r_dir in sorted(al_dir.glob("round_*")):
+            if r_dir.is_dir():
+                al_raw_items.extend(_read_manifest(r_dir / "candidates_raw.jsonl"))
+                al_curated_items.extend(_read_manifest(r_dir / "candidates_curated.jsonl"))
+
+    all_raw_synthetic = _dedup_records(fake_items + al_raw_items)
+    all_curated_synthetic = _dedup_records(curated_items + al_curated_items)
+
+    rv51_path: Optional[Path] = None
+    if paths_cfg.get("rv51_manifest"):
+        rv51_path = Path(paths_cfg["rv51_manifest"])
+    elif is_default_repo_layout:
+        rv51_path = Path("data/external_benchmarks/synthetic_face_dataset_6k/fake_manifest.jsonl")
+
+    rv51_curated_path: Optional[Path] = None
+    if paths_cfg.get("rv51_curated_manifest"):
+        rv51_curated_path = Path(paths_cfg["rv51_curated_manifest"])
+    elif is_default_repo_layout:
+        rv51_curated_path = Path("data/external_benchmarks/synthetic_face_dataset_6k/curated_manifest.jsonl")
+
+    rv51_items = _read_manifest(rv51_path) if rv51_path is not None else []
+    rv51_curated_items = _read_manifest(rv51_curated_path) if rv51_curated_path is not None else []
+
+    # Counts by source (compatible with Notebook Cell 3 & D0/portfolio accounting)
+    counts_by_source: Dict[str, int] = {
         "raw_real": len(raw_items),
-        "synthetic_total": len(fake_items),
-        "curated_synthetic": len(curated_items),
+        "synthetic_total": len(all_curated_synthetic),
+        "synthetic_raw_total": len(all_raw_synthetic),
+        "d0_curated_synthetic": len(curated_items),
+        "d0_raw_synthetic": len(fake_items),
+        "rv51_ood_synthetic": len(rv51_items),
+        "curated_synthetic": len(all_curated_synthetic),
         "hard_samples": len(hard_items),
     }
+    if rv51_curated_items:
+        counts_by_source["rv51_ood_curated"] = len(rv51_curated_items)
 
-    # Counts by manipulation mode
+    # Counts by manipulation mode (D0 curated breakdown, preserving hard_rate_by_mode ratio)
     counts_by_mode: Dict[str, int] = defaultdict(int)
     for it in curated_items:
         m = it.get("manipulation_type", "unknown")
@@ -271,7 +323,14 @@ def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     curation_pass_rate = (
-        float(len(curated_items) / max(1, len(fake_items))) if fake_items else 0.0
+        round(float(len(all_curated_synthetic) / len(all_raw_synthetic)), 4)
+        if all_raw_synthetic
+        else 0.0
+    )
+    d0_curation_pass_rate = (
+        round(float(len(curated_items) / len(fake_items)), 4)
+        if fake_items
+        else 0.0
     )
 
     stats = {
@@ -283,6 +342,7 @@ def compute_dataset_stats(cfg: Dict[str, Any]) -> Dict[str, Any]:
             "glasses_distribution": dict(glasses_dist),
         },
         "curation_pass_rate": curation_pass_rate,
+        "d0_curation_pass_rate": d0_curation_pass_rate,
         "hard_rate_by_mode": hard_rate_by_mode,
         "tau": cfg.get("hardness", {}).get("tau"),
         "hardness_config": cfg.get("hardness", {}),

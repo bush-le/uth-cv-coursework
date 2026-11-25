@@ -22,8 +22,12 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import argparse
+import gc
 import json
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+import re
+import sys
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 import torch
 
 from src.common.logger import get_logger
@@ -96,6 +100,48 @@ def load_metadata_manifest(manifest_path: Path) -> List[ImageMetadata]:
     return records
 
 
+def _save_metadata_manifest(manifest_path: Path, records: Sequence[ImageMetadata]) -> None:
+    """Persist a sequence of ImageMetadata records as a JSONL manifest."""
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        for m in records:
+            f.write(json.dumps(m.to_dict()) + "\n")
+
+
+def _release_torch_memory() -> None:
+    """Trigger garbage collection and clear cached CUDA memory between heavy stages."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
+def _collect_existing_raw_records(output_raw_manifest: Path) -> Tuple[List[ImageMetadata], int]:
+    """Collect deduplicated raw records from base and *_att{N}.jsonl manifests and next attempt index."""
+    att_pattern = re.compile(rf"^{re.escape(output_raw_manifest.stem)}_att(\d+)$")
+    att_files: List[Tuple[int, Path]] = []
+    if output_raw_manifest.parent.is_dir():
+        for cand in output_raw_manifest.parent.glob(f"{output_raw_manifest.stem}_att*.jsonl"):
+            match = att_pattern.match(cand.stem)
+            if match:
+                att_files.append((int(match.group(1)), cand))
+    att_files.sort(key=lambda pair: pair[0])
+
+    sources: List[Path] = [path for _, path in att_files]
+    if output_raw_manifest.exists():
+        sources.append(output_raw_manifest)
+
+    merged: List[ImageMetadata] = []
+    seen_ids = set()
+    for src in sources:
+        for rec in load_metadata_manifest(src):
+            if rec.image_id not in seen_ids:
+                merged.append(rec)
+                seen_ids.add(rec.image_id)
+
+    next_attempt = (att_files[-1][0] + 1) if att_files else 0
+    return merged, next_attempt
+
+
 def synthesize_and_curate_quota(
     input_manifest: Path,
     output_raw_manifest: Path,
@@ -107,10 +153,14 @@ def synthesize_and_curate_quota(
     device: str = "cpu",
     seed: int = 42,
     max_attempts: int = 3,
+    resume: bool = True,
+    curate_only: bool = False,
+    config_path: Optional[str] = "configs/dataset_factory.yaml",
 ) -> List[ImageMetadata]:
-    """Synthesize candidates and curate iteratively until target_count valid samples are reached."""
-    curated = load_metadata_manifest(output_curated_manifest)
-    if len(curated) >= target_count:
+    """Synthesize candidates and/or re-curate existing raw pools until target_count valid samples are reached."""
+    effective_resume = resume and not curate_only
+    curated = load_metadata_manifest(output_curated_manifest) if effective_resume else []
+    if effective_resume and len(curated) >= target_count:
         logger.info(
             "Manifest %s already has %d valid samples (target %d), reusing.",
             output_curated_manifest.name,
@@ -119,13 +169,58 @@ def synthesize_and_curate_quota(
         )
         return curated[:target_count]
 
+    existing_raw, next_attempt = _collect_existing_raw_records(output_raw_manifest)
+    if curate_only and not existing_raw:
+        raise FileNotFoundError(
+            f"Curate-only mode requested, but no existing raw manifest was found for {output_raw_manifest}"
+        )
+
+    all_raw_records: List[ImageMetadata] = []
+    seen_raw_ids = set()
+    for r in existing_raw:
+        if r.image_id not in seen_raw_ids:
+            all_raw_records.append(r)
+            seen_raw_ids.add(r.image_id)
+
     attempt = 0
-    while len(curated) < target_count and attempt < max_attempts:
-        needed = target_count - len(curated)
-        batch_size = int(needed * 1.15) + 2 if attempt > 0 else target_count
+    if not effective_resume and existing_raw:
         logger.info(
-            "Quota synthesis attempt %d/%d for %s: need %d valid samples, generating %d candidates...",
+            "Re-curating %d existing raw candidates for %s under active quality gate (curate_only=%s)...",
+            len(existing_raw),
+            output_curated_manifest.name,
+            curate_only,
+        )
+        _save_metadata_manifest(output_raw_manifest, all_raw_records)
+        curate_dataset(
+            input_manifest=output_raw_manifest,
+            output_manifest=output_curated_manifest,
+            report_path=report_path,
+            extended_audit=True,
+            raw_manifest=input_manifest,
+            config_path=config_path,
+        )
+        curated = load_metadata_manifest(output_curated_manifest)
+        if curate_only:
+            if len(curated) < target_count:
+                logger.warning(
+                    "Curate-only mode for %s yielded %d/%d valid samples without regeneration.",
+                    output_curated_manifest.name,
+                    len(curated),
+                    target_count,
+                )
+            selected = curated[:target_count]
+            _save_metadata_manifest(output_curated_manifest, selected)
+            return selected
+        attempt = next_attempt
+
+    attempts_used = 0
+    while len(curated) < target_count and attempts_used < max_attempts:
+        needed = target_count - len(curated)
+        batch_size = int(needed * 1.25) + 4 if (attempt > 0 or len(curated) > 0) else target_count
+        logger.info(
+            "Quota synthesis attempt %d (budget %d/%d) for %s: need %d valid samples, generating %d candidates...",
             attempt + 1,
+            attempts_used + 1,
             max_attempts,
             output_curated_manifest.name,
             needed,
@@ -145,8 +240,14 @@ def synthesize_and_curate_quota(
             device=device,
             seed=seed + (attempt * 1000),
             resume=True,
-            sample_offset=len(curated) + (attempt * 500),
+            sample_offset=max(len(all_raw_records), len(curated)) + (attempt * 500),
+            config=config_path,
         )
+
+        for r in load_metadata_manifest(att_raw):
+            if r.image_id not in seen_raw_ids:
+                all_raw_records.append(r)
+                seen_raw_ids.add(r.image_id)
 
         curate_dataset(
             input_manifest=att_raw,
@@ -154,6 +255,7 @@ def synthesize_and_curate_quota(
             report_path=att_rep,
             extended_audit=True,
             raw_manifest=input_manifest,
+            config_path=config_path,
         )
 
         new_samples = load_metadata_manifest(att_cur)
@@ -166,28 +268,30 @@ def synthesize_and_curate_quota(
                 break
 
         attempt += 1
+        attempts_used += 1
 
-    # Save final aggregated curated manifest
-    output_curated_manifest.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_curated_manifest, "w", encoding="utf-8") as f:
-        for m in curated[:target_count]:
-            f.write(json.dumps(m.to_dict()) + "\n")
+    if all_raw_records:
+        _save_metadata_manifest(output_raw_manifest, all_raw_records)
+
+    selected = curated[:target_count]
+    _save_metadata_manifest(output_curated_manifest, selected)
 
     logger.info(
         "Quota fulfillment for %s: achieved %d/%d valid samples.",
         output_curated_manifest.name,
-        min(len(curated), target_count),
+        len(selected),
         target_count,
     )
-    return curated[:target_count]
+    return selected
 
 
 def package_benchmark_d0(
     partitions: Dict[str, List[ImageMetadata]],
     curated_fakes: Dict[str, List[ImageMetadata]],
     benchmarks_dir: Path,
+    allow_overwrite_master_test: bool = False,
 ) -> Dict[str, Path]:
-    """Assemble Master Frozen Test Set and D0_baseline benchmark manifests."""
+    """Assemble Master Frozen Test Set and D0_baseline benchmark manifests with vault protection."""
     benchmarks_dir.mkdir(parents=True, exist_ok=True)
     d0_dir = benchmarks_dir / "D0_baseline"
     d0_dir.mkdir(parents=True, exist_ok=True)
@@ -211,26 +315,29 @@ def package_benchmark_d0(
         paths["d0_test"]: d0_test_records,
     }
 
-    # Vault Protection: Prevent overwriting an existing sealed master test vault with smaller mock/partial sets
-    if paths["master_test"].exists() and len(master_test_records) < 1178:
+    # Vault Protection: Prevent overwriting an existing sealed master test vault unless explicitly unlocked
+    if paths["master_test"].exists() and not allow_overwrite_master_test:
         try:
             with open(paths["master_test"], "r", encoding="utf-8") as f_chk:
                 existing_lines = sum(1 for line in f_chk if line.strip())
             if existing_lines >= 1178:
                 logger.warning(
-                    "Master Frozen Test Vault (%s) is already sealed with %d samples. Preserving vault against overwrite by %d test records.",
+                    "Master Frozen Test Vault (%s) is already sealed with %d samples. "
+                    "Preserving sealed vault and synchronized D0 test manifest (use allow_overwrite_master_test=True to replace).",
                     paths["master_test"],
                     existing_lines,
-                    len(master_test_records),
                 )
                 del manifest_map[paths["master_test"]]
+                manifest_map.pop(paths["d0_test"], None)
+                if not paths["d0_test"].exists():
+                    paths["d0_test"].write_text(
+                        paths["master_test"].read_text(encoding="utf-8"), encoding="utf-8"
+                    )
         except Exception as exc:
             logger.warning("Could not check master test vault integrity: %s", exc)
 
     for path, meta_list in manifest_map.items():
-        with open(path, "w", encoding="utf-8") as f:
-            for m in meta_list:
-                f.write(json.dumps(m.to_dict()) + "\n")
+        _save_metadata_manifest(path, meta_list)
 
     logger.info(
         "Packaged D0 benchmark: %d train (%d Real, %d Fake), %d val (%d Real, %d Fake), %d test (%d Real, %d Fake).",
@@ -250,8 +357,8 @@ def package_benchmark_d0(
 def run_block1_pipeline(
     raw_manifest_path: Path = Path("data/raw/manifest.jsonl"),
     config_path: str = "configs/dataset_factory.yaml",
-    test_fake_count: int = 600,
-    train_fake_count: int = 1400,
+    test_fake_count: int = 589,
+    train_fake_count: int = 1411,
     val_fake_count: int = 200,
     epochs: int = 5,
     device: str = "cpu",
@@ -259,8 +366,11 @@ def run_block1_pipeline(
     output_base_dir: Optional[Path] = None,
     checkpoints_dir: Optional[Path] = None,
     seed: int = 42,
+    resume: bool = True,
+    curate_only: bool = False,
+    allow_overwrite_master_test: bool = False,
 ) -> Dict[str, Any]:
-    """Execute complete Block 1: Partitioning, Test Vault & D0 Synthesis, and Baseline M0 Training."""
+    """Execute complete Block 1: Partitioning, Test Vault & D0 Synthesis/Curation, and Baseline M0 Training."""
     seed_everything(seed)
     base_dir = output_base_dir or Path("data")
     ckpt_dir = checkpoints_dir or Path("experiments/checkpoints")
@@ -271,15 +381,21 @@ def run_block1_pipeline(
     partitions_dir = base_dir / "partitions"
     benchmarks_dir = (base_dir / "benchmarks_dry_run") if (dry_run and output_base_dir is None) else (base_dir / "benchmarks")
     syn_dir = base_dir / "synthetic"
+    effective_resume = resume and not curate_only
 
     logger.info("=== Starting Block 1: Master Frozen Test Vault & Baseline M0 Initialization ===")
 
-    # 1. Identity-Disjoint Partitioning
-    partitions = create_identity_partitions(
-        raw_manifest=raw_manifest_path,
-        partitions_dir=partitions_dir,
-        seed=seed,
-    )
+    # 1. Identity-Disjoint Partitioning (preserve existing partitions during curate-only re-runs)
+    part_files = {k: partitions_dir / f"{k}_reals.jsonl" for k in ("train", "val", "test")}
+    if curate_only and all(p.is_file() for p in part_files.values()):
+        partitions = {k: load_metadata_manifest(p) for k, p in part_files.items()}
+        logger.info("Reused existing identity-disjoint real partitions from %s.", partitions_dir)
+    else:
+        partitions = create_identity_partitions(
+            raw_manifest=raw_manifest_path,
+            partitions_dir=partitions_dir,
+            seed=seed,
+        )
 
     if dry_run:
         # Fast synthetic dry-run verification
@@ -349,7 +465,7 @@ def run_block1_pipeline(
     test_fakes_dir = syn_dir / "master_test_images"
     test_reals_manifest = partitions_dir / "test_reals.jsonl"
 
-    logger.info(">>> Synthesizing %d Master Test Fakes from held-out Test IDs...", test_fake_count)
+    logger.info(">>> Processing %d Master Test Fakes from held-out Test IDs...", test_fake_count)
     curated_test_fakes = synthesize_and_curate_quota(
         input_manifest=test_reals_manifest,
         output_raw_manifest=test_fakes_raw,
@@ -360,6 +476,9 @@ def run_block1_pipeline(
         report_path=syn_dir / "master_test_curation_report.json",
         device=device,
         seed=seed + 100,
+        resume=effective_resume,
+        curate_only=curate_only,
+        config_path=config_path,
     )
 
     # 3. Synthesize Baseline D0 Train Fakes (Quota Ensured)
@@ -368,7 +487,7 @@ def run_block1_pipeline(
     train_fakes_dir = syn_dir / "d0_train_images"
     train_reals_manifest = partitions_dir / "train_reals.jsonl"
 
-    logger.info(">>> Synthesizing %d Baseline D0 Train Fakes...", train_fake_count)
+    logger.info(">>> Processing %d Baseline D0 Train Fakes...", train_fake_count)
     curated_train_fakes = synthesize_and_curate_quota(
         input_manifest=train_reals_manifest,
         output_raw_manifest=train_fakes_raw,
@@ -379,6 +498,9 @@ def run_block1_pipeline(
         report_path=syn_dir / "d0_train_curation_report.json",
         device=device,
         seed=seed + 200,
+        resume=effective_resume,
+        curate_only=curate_only,
+        config_path=config_path,
     )
 
     # 4. Synthesize Baseline D0 Val Fakes (Quota Ensured)
@@ -387,7 +509,7 @@ def run_block1_pipeline(
     val_fakes_dir = syn_dir / "d0_val_images"
     val_reals_manifest = partitions_dir / "val_reals.jsonl"
 
-    logger.info(">>> Synthesizing %d Baseline D0 Val Fakes...", val_fake_count)
+    logger.info(">>> Processing %d Baseline D0 Val Fakes...", val_fake_count)
     curated_val_fakes = synthesize_and_curate_quota(
         input_manifest=val_reals_manifest,
         output_raw_manifest=val_fakes_raw,
@@ -398,6 +520,9 @@ def run_block1_pipeline(
         report_path=syn_dir / "d0_val_curation_report.json",
         device=device,
         seed=seed + 300,
+        resume=effective_resume,
+        curate_only=curate_only,
+        config_path=config_path,
     )
 
     curated_fakes_dict = {
@@ -407,7 +532,12 @@ def run_block1_pipeline(
     }
 
     # 5. Package D0 Benchmarks and Frozen Test Set
-    manifest_paths = package_benchmark_d0(partitions, curated_fakes_dict, benchmarks_dir)
+    manifest_paths = package_benchmark_d0(
+        partitions,
+        curated_fakes_dict,
+        benchmarks_dir,
+        allow_overwrite_master_test=allow_overwrite_master_test,
+    )
 
     # 6. Train Baseline Detector M0
     logger.info(">>> Training Baseline Detector M0 on D0...")
@@ -425,8 +555,9 @@ def run_block1_pipeline(
     dm.setup()
 
     m0_best = ckpt_dir / "baseline_d0_best.pt"
-    m0_detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=not m0_best.exists())
-    if m0_best.exists():
+    reuse_existing_m0 = effective_resume and m0_best.exists()
+    m0_detector = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=not reuse_existing_m0)
+    if reuse_existing_m0:
         logger.info(">>> Found pre-existing Baseline Detector M0 checkpoint at %s, skipping retraining and reusing.", m0_best)
         st = torch.load(m0_best, map_location=device, weights_only=False)
         if "model_state_dict" in st:
@@ -452,6 +583,9 @@ def run_block1_pipeline(
 
     test_metrics = evaluate_image_detector(m0_detector, dm.test_dataloader(), device=device)
     logger.info(">>> Baseline M0 Master Frozen Test Results: %s", test_metrics)
+
+    del m0_detector, dm
+    _release_torch_memory()
 
     summary = {
         "stage": "Block1_Baseline_M0",
@@ -479,13 +613,17 @@ def parse_args() -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(description="Block 1: Master Frozen Test Vault & Baseline M0 Initialization")
     parser.add_argument("--raw-manifest", type=Path, default=Path("data/raw/manifest.jsonl"))
-    parser.add_argument("--test-fake-count", type=int, default=600, help="Number of test fakes to synthesize")
-    parser.add_argument("--train-fake-count", type=int, default=1400, help="Number of train fakes to synthesize")
+    parser.add_argument("--config", type=str, default="configs/dataset_factory.yaml", help="Path to YAML configuration")
+    parser.add_argument("--test-fake-count", type=int, default=589, help="Number of test fakes to synthesize")
+    parser.add_argument("--train-fake-count", type=int, default=1411, help="Number of train fakes to synthesize")
     parser.add_argument("--val-fake-count", type=int, default=200, help="Number of val fakes to synthesize")
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs for baseline detector training")
     parser.add_argument("--device", type=str, default="cuda", help="Target execution device (cuda or cpu)")
     parser.add_argument("--dry-run", action="store_true", help="Quick dry run verification")
     parser.add_argument("--seed", type=int, default=42, help="Master random seed")
+    parser.add_argument("--no-resume", dest="resume", action="store_false", default=True, help="Force re-curation and retrain M0 (re-curate existing raw + synthesize shortfall)")
+    parser.add_argument("--curate-only", action="store_true", default=False, help="Re-curate existing raw manifests without running generation and retrain M0")
+    parser.add_argument("--overwrite-master-test", action="store_true", default=False, help="Explicitly unlock overwriting a sealed master_frozen_test.jsonl")
     return parser.parse_args()
 
 
@@ -494,6 +632,7 @@ if __name__ == "__main__":
     dev = "cuda" if args.device == "cuda" and torch.cuda.is_available() else "cpu"
     run_block1_pipeline(
         raw_manifest_path=args.raw_manifest,
+        config_path=args.config,
         test_fake_count=args.test_fake_count,
         train_fake_count=args.train_fake_count,
         val_fake_count=args.val_fake_count,
@@ -501,4 +640,7 @@ if __name__ == "__main__":
         device=dev,
         dry_run=args.dry_run,
         seed=args.seed,
+        resume=args.resume,
+        curate_only=args.curate_only,
+        allow_overwrite_master_test=args.overwrite_master_test,
     )

@@ -405,23 +405,12 @@ def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "ope
     if backend in ("opencv", "opencv_haar"):
         import cv2
 
-        if isinstance(image_rgb, torch.Tensor):
-            t = image_rgb.detach().cpu()
-            if t.ndim == 3 and t.shape[0] in (1, 3):
-                t = t.permute(1, 2, 0)
-            if t.dtype in (torch.float32, torch.float64):
-                t = (t.clamp(0.0, 1.0) * 255.0).to(torch.uint8)
-            image_rgb = t.numpy()
-
         face_cascade = get_haar_face_classifier()
         if face_cascade.empty():
             logger.warning("Haarcascade file could not be loaded; defaulting to 1 face.")
             return 1
 
-
-        if not isinstance(image_rgb, np.ndarray) or image_rgb.dtype != np.uint8:
-            image_rgb = np.clip(image_rgb * 255.0 if np.issubdtype(image_rgb.dtype, np.floating) else image_rgb, 0, 255).astype(np.uint8)
-
+        image_rgb = _to_rgb_uint8(image_rgb)
         gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
         faces = face_cascade.detectMultiScale(
             gray,
@@ -682,6 +671,11 @@ class ClipScorer:
         """Compute cosine similarity between image (3, H, W) and prompt text."""
         return self.score_batch([image], [prompt])[0]
 
+    def close(self) -> None:
+        """Release loaded CLIP model and processor references from memory."""
+        self._model = None
+        self._processor = None
+
 
 def expected_calibration_error(
     y_true: np.ndarray | list[int],
@@ -895,6 +889,8 @@ def _to_rgb_uint8(image: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
             t = t[0]
         if t.ndim == 3 and t.shape[0] in (1, 3, 4) and t.shape[-1] not in (1, 3, 4):
             t = t.permute(1, 2, 0)
+        if t.is_floating_point():
+            t = t.float()
         arr = t.numpy()
     else:
         arr = np.asarray(image)

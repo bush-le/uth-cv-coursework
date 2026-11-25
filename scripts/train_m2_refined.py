@@ -7,7 +7,7 @@ Key Architectural Adjustments:
 1. Warm-Start: Initializes from active_learning_m1_best.pt instead of ImageNet.
 2. Moderate Hard Weight: hard_sample_loss_weight = 1.15 (down from 2.0).
 3. Low Learning Rate: lr = 5e-5 for classifier, 5e-6 for unfreezed DINOv2 block.
-4. Smooth Epochs: 3 epochs with AMP.
+4. Smooth Epochs: 2 epochs with AMP.
 """
 
 import json
@@ -26,7 +26,6 @@ import torch
 import torch.nn as nn
 from torch.optim import AdamW
 
-from src.common.logger import get_logger
 from src.common.logger import get_logger
 from src.common.seed import seed_everything
 from src.data.image_datamodule import DeepfakeImageDataModule

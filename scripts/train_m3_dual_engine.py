@@ -15,6 +15,7 @@ Architectural Guarantees:
 
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -237,10 +238,22 @@ def main() -> None:
 
         # Checkpoint Saving & Early Stopping Check
         is_best = False
-        if val_auc > best_val_auc or (abs(val_auc - best_val_auc) < 1e-4 and val_loss < best_val_loss):
+        auc_valid = math.isfinite(val_auc)
+        if auc_valid and math.isfinite(best_val_auc):
+            better_auc = val_auc > best_val_auc + 1e-4
+            tied_better_loss = abs(val_auc - best_val_auc) <= 1e-4 and val_loss < best_val_loss
+            improved = better_auc or tied_better_loss
+        elif auc_valid:
+            improved = True
+        else:
+            improved = (val_loss < best_val_loss) or (epoch == 1)
+
+        if improved:
             is_best = True
-            best_val_auc = val_auc
-            best_val_loss = val_loss
+            if auc_valid:
+                best_val_auc = val_auc
+            if math.isfinite(val_loss):
+                best_val_loss = val_loss
             best_epoch = epoch
             no_improve_epochs = 0
             logger.info("  --> NEW BEST METRIC at epoch %d (Val AUC: %.4f)", epoch, val_auc)
@@ -252,7 +265,7 @@ def main() -> None:
             "optimizer_state_dict": optimizer.state_dict(),
             "epoch": epoch,
             "val_loss": val_loss,
-            "best_metric": best_val_auc,
+            "best_metric": best_val_auc if math.isfinite(best_val_auc) else val_loss,
             "metrics": val_metrics,
             "config": vars(args),
             "warm_started_from": str(m2_ckpt_path),

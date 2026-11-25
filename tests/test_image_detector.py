@@ -280,3 +280,16 @@ def test_closed_loop_combine_and_finetune_dinovit(tmp_path: Path) -> None:
     assert "roc_auc_gain" in comparison["deltas"]
     assert "hard_sample_recall_gain" in comparison["deltas"]
     assert "bypass_rate_reduction" in comparison["deltas"]
+
+
+def test_dinov2_pretrained_raises_runtime_error_when_hub_and_cache_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify MetaDinoV2Wrapper never falls back to uninitialized weights when pretrained=True fails."""
+    from transformers import AutoModel
+    from src.models.detector.image_detector import MetaDinoV2Wrapper
+
+    def _always_fail(*args, **kwargs):
+        raise OSError("Simulated offline hub failure")
+
+    monkeypatch.setattr(AutoModel, "from_pretrained", _always_fail)
+    with pytest.raises(RuntimeError, match="Failed to load pretrained"):
+        MetaDinoV2Wrapper(model_name="dinov2_small", pretrained=True)

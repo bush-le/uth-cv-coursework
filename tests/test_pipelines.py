@@ -377,6 +377,269 @@ def test_infer_pipeline_runs_with_verified_checkpoint(tmp_path):
     assert results[0]["prediction"] in ("real", "fake")
 
 
+@pytest.mark.smoke
+def test_build_d3_clean_dataset_dynamic_curated_rv51(tmp_path: Path) -> None:
+    """Verify build_d3_clean_dataset supports arbitrary curated RV5.1 counts without 626/600 asserts."""
+    import json
+    from pathlib import Path
+    from PIL import Image
+    from scripts.build_d3_clean_dataset import build_d3_clean_dataset
+
+    img_dir = tmp_path / "imgs"
+    img_dir.mkdir()
+
+    def _save(name: str) -> str:
+        p = img_dir / name
+        Image.new("RGB", (32, 32), color=(120, 130, 140)).save(p)
+        return str(p)
+
+    train_reals_p = tmp_path / "train_reals.jsonl"
+    val_reals_p = tmp_path / "val_reals.jsonl"
+    test_reals_p = tmp_path / "test_reals.jsonl"
+    d2_train_p = tmp_path / "d2_train.jsonl"
+    rv51_cur_p = tmp_path / "rv51_curated.jsonl"
+    out_dir = tmp_path / "D3_clean"
+
+    train_reals = [{"image_id": f"tr_{i}", "label": 0, "source_real_id": f"tr_{i}", "file_path": _save(f"tr_{i}.jpg")} for i in range(6)]
+    val_reals = [{"image_id": f"va_{i}", "label": 0, "source_real_id": f"va_{i}", "file_path": _save(f"va_{i}.jpg")} for i in range(2)]
+    test_reals = [{"image_id": f"te_{i}", "label": 0, "source_real_id": f"te_{i}", "file_path": _save(f"te_{i}.jpg")} for i in range(2)]
+
+    train_reals_p.write_text("".join(json.dumps(r) + "\n" for r in train_reals), encoding="utf-8")
+    val_reals_p.write_text("".join(json.dumps(r) + "\n" for r in val_reals), encoding="utf-8")
+    test_reals_p.write_text("".join(json.dumps(r) + "\n" for r in test_reals), encoding="utf-8")
+
+    # D2 pool: 2 hard + 2 non-hard (not fixed 629 / 800)
+    d2_records = train_reals + [
+        {"image_id": "h1", "label": 1, "is_hard_sample": True, "manipulation_type": "sd_inpaint", "source_real_id": "tr_0", "file_path": _save("h1.png")},
+        {"image_id": "h2", "label": 1, "is_hard_sample": True, "manipulation_type": "sd_img2img", "source_real_id": "tr_1", "file_path": _save("h2.png")},
+        {"image_id": "nh1", "label": 1, "is_hard_sample": False, "manipulation_type": "sd_inpaint", "source_real_id": "tr_2", "file_path": _save("nh1.png")},
+        {"image_id": "nh2", "label": 1, "is_hard_sample": False, "manipulation_type": "sd_text2img", "source_real_id": "tr_3", "file_path": _save("nh2.png")},
+    ]
+    d2_train_p.write_text("".join(json.dumps(r) + "\n" for r in d2_records), encoding="utf-8")
+
+    # Curated RV5.1: 1 test-derived (not 626!), 1 val-derived (not 600!), plus clean train & text2img pools
+    rv51_entries = [
+        {"image_path": _save("rv_te.png"), "task": "inpaint", "source_real_image": "te_0.jpg"},
+        {"image_path": _save("rv_va.png"), "task": "img2img", "source_real_image": "va_0.jpg"},
+        {"image_path": _save("rv_tr_inp.png"), "task": "inpaint", "source_real_image": "tr_0.jpg"},
+        {"image_path": _save("rv_tr_i2i.png"), "task": "img2img", "source_real_image": "tr_1.jpg"},
+        {"file_path": _save("rv_t2i_1.png"), "manipulation_type": "rv51_text2img"},
+        {"file_path": _save("rv_t2i_2.png"), "manipulation_type": "rv51_text2img"},
+    ]
+    rv51_cur_p.write_text("".join(json.dumps(r) + "\n" for r in rv51_entries), encoding="utf-8")
+
+    res = build_d3_clean_dataset(
+        train_reals_path=train_reals_p,
+        val_reals_path=val_reals_p,
+        test_reals_path=test_reals_p,
+        d2_train_path=d2_train_p,
+        rv51_manifest_path=rv51_cur_p,
+        output_dir=out_dir,
+        sd_nonhard_quota=1,
+        seed=42,
+    )
+
+    assert res["train_real"] == 6
+    assert res["train_fake"] == 6
+    assert res["rv51_test_derived"] == 1
+    assert res["rv51_val_derived"] == 1
+    assert res["unseen_rv51_test_total"] == 3
+    assert res["val_total"] == 3
+    assert (out_dir / "train.jsonl").is_file()
+    assert (out_dir / "val.jsonl").is_file()
+    assert (out_dir / "unseen_rv51_test.jsonl").is_file()
+
+
+@pytest.mark.smoke
+def test_populate_hard_samples_vault_dynamic_counts(tmp_path: Path) -> None:
+    """Verify populate_hard_samples_vault writes real computed counts instead of legacy constants."""
+    import json
+    from pathlib import Path
+    from PIL import Image
+    from scripts.populate_hard_samples_vault import populate_hard_samples_vault
+
+    src_dir = tmp_path / "src_imgs"
+    src_dir.mkdir()
+    img_paths = []
+    for i in range(4):
+        p = src_dir / f"h_{i}.png"
+        Image.new("RGB", (32, 32), color=(50 * i, 100, 150)).save(p)
+        img_paths.append(str(p))
+
+    r1_p = tmp_path / "r1_hard.jsonl"
+    r2_p = tmp_path / "r2_hard.jsonl"
+    chal_p = tmp_path / "challenge.jsonl"
+    d2_p = tmp_path / "d2_train.jsonl"
+    target_dir = tmp_path / "hard_samples"
+
+    r1_p.write_text(
+        json.dumps({"image_id": "h0", "label": 1, "manipulation_type": "sd_inpaint", "file_path": img_paths[0], "baseline_score": 0.2})
+        + "\n"
+        + json.dumps({"image_id": "h1", "label": 1, "manipulation_type": "sd_img2img", "file_path": img_paths[1], "baseline_score": 0.4})
+        + "\n",
+        encoding="utf-8",
+    )
+    # Include 1 overlapping image_id ("h1") + 2 new hard samples
+    r2_p.write_text(
+        json.dumps({"image_id": "h1", "label": 1, "manipulation_type": "sd_img2img", "file_path": img_paths[1], "baseline_score": 0.4})
+        + "\n"
+        + json.dumps({"image_id": "h2", "label": 1, "manipulation_type": "sd_text2img", "file_path": img_paths[2], "baseline_score": 0.3})
+        + "\n"
+        + json.dumps({"image_id": "h3", "label": 1, "manipulation_type": "sd_inpaint", "file_path": img_paths[3], "baseline_score": 0.5})
+        + "\n",
+        encoding="utf-8",
+    )
+    chal_p.write_text(
+        json.dumps({"image_id": "h3", "label": 1, "is_hard_sample": True})
+        + "\n"
+        + json.dumps({"image_id": "real_pair", "label": 0})
+        + "\n",
+        encoding="utf-8",
+    )
+    d2_p.write_text(
+        "".join(
+            json.dumps({"image_id": hid, "label": 1, "is_hard_sample": True}) + "\n"
+            for hid in ("h0", "h1", "h2")
+        ),
+        encoding="utf-8",
+    )
+
+    report = populate_hard_samples_vault(
+        r1_path=r1_p,
+        r2_path=r2_p,
+        chal_path=chal_p,
+        d2_train_path=d2_p,
+        target_dir=target_dir,
+    )
+
+    assert report["total_hard_samples"] == 4
+    assert report["allocation"]["round_1_mined"] == 2
+    assert report["allocation"]["round_2_mined"] == 3
+    assert report["allocation"]["retraining_buffer_D2"] == 3
+    assert report["allocation"]["challenge_hard_fakes"] == 1
+    assert report["allocation"]["cumulative_challenge_test_vault"] == 2
+
+    readme_text = (target_dir / "README.md").read_text(encoding="utf-8")
+    assert "629" not in readme_text
+    assert "553" not in readme_text
+    assert "187" not in readme_text
+    assert "2 mẫu khó" in readme_text
+    assert "3 mẫu khó" in readme_text
+    assert "3 mẫu)" in readme_text
+
+
+def test_generate_image_preserves_inpaint_target_on_resume_and_guards_empty_manifest(tmp_path: Path) -> None:
+    """Verify inpaint_mask_target persists on resume, triggers regen when changed, and empty input raises ValueError."""
+    import json
+    from PIL import Image
+    from src.pipelines.generate_deepfake_images import run_image_generation
+
+    empty_manifest = tmp_path / "empty.jsonl"
+    empty_manifest.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="no real image records"):
+        run_image_generation(
+            input_manifest=empty_manifest,
+            output_manifest=tmp_path / "out_empty.jsonl",
+            output_dir=tmp_path / "syn_empty",
+            model_name="mock_sd",
+            use_mock_fallback=True,
+        )
+
+    in_manifest = tmp_path / "raw_in.jsonl"
+    out_manifest = tmp_path / "fake_out.jsonl"
+    out_dir = tmp_path / "syn"
+    src_p = tmp_path / "real_0.png"
+    Image.new("RGB", (64, 64), color=(110, 120, 130)).save(src_p)
+    in_manifest.write_text(json.dumps({"image_id": "real_0", "label": 0, "file_path": str(src_p)}) + "\n")
+
+    run_image_generation(
+        input_manifest=in_manifest,
+        output_manifest=out_manifest,
+        output_dir=out_dir,
+        model_name="mock_sd",
+        use_mock_fallback=True,
+        mode_quotas={"sd_inpaint": 1},
+        mask_targets=["periocular"],
+        resume=True,
+    )
+    rec1 = json.loads(out_manifest.read_text(encoding="utf-8").strip())
+    assert rec1["generation"]["inpaint_mask_target"] == "periocular"
+
+    # Resuming with identical mask_targets must preserve inpaint_mask_target
+    run_image_generation(
+        input_manifest=in_manifest,
+        output_manifest=out_manifest,
+        output_dir=out_dir,
+        model_name="mock_sd",
+        use_mock_fallback=True,
+        mode_quotas={"sd_inpaint": 1},
+        mask_targets=["periocular"],
+        resume=True,
+    )
+    rec2 = json.loads(out_manifest.read_text(encoding="utf-8").strip())
+    assert rec2["generation"]["inpaint_mask_target"] == "periocular"
+
+    # Changing mask_targets must update provenance and regenerate cleanly
+    run_image_generation(
+        input_manifest=in_manifest,
+        output_manifest=out_manifest,
+        output_dir=out_dir,
+        model_name="mock_sd",
+        use_mock_fallback=True,
+        mode_quotas={"sd_inpaint": 1},
+        mask_targets=["lips"],
+        resume=True,
+    )
+    rec3 = json.loads(out_manifest.read_text(encoding="utf-8").strip())
+    assert rec3["generation"]["inpaint_mask_target"] == "lips"
+
+
+def test_train_detector_handles_nan_auc_single_class_val(tmp_path: Path) -> None:
+    """Verify training still saves finite best checkpoint when validation set has a single class (NaN AUC)."""
+    import math
+    import torch
+    from src.data.image_datamodule import DeepfakeImageDataModule
+    from src.data.image_schema import ImageMetadata
+    from src.models.detector.image_detector import DeepfakeImageDetector
+    from src.pipelines.train_image_detector import train_deepfake_image_detector
+
+    train_recs = [
+        ImageMetadata(image_id=f"tr_{i}", label=i % 2, manipulation_type="real" if i % 2 == 0 else "sd_text2img")
+        for i in range(4)
+    ]
+    # Single-class val set guarantees compute_roc_auc returns NaN
+    val_recs = [
+        ImageMetadata(image_id=f"va_{i}", label=0, manipulation_type="real")
+        for i in range(2)
+    ]
+    cache = {m.image_id: torch.rand(3, 64, 64) for m in (train_recs + val_recs)}
+
+    dm = DeepfakeImageDataModule(
+        train_metadata=train_recs,
+        val_metadata=val_recs,
+        test_metadata=[],
+        cache=cache,
+        batch_size=2,
+        seed=42,
+    )
+    dm.setup()
+    model = DeepfakeImageDetector(backbone="dino_vit", num_classes=1)
+    ckpt_dir = tmp_path / "ckpts_nan"
+
+    metrics = train_deepfake_image_detector(
+        model=model,
+        datamodule=dm,
+        num_epochs=1,
+        learning_rate=1e-3,
+        checkpoint_dir=ckpt_dir,
+        device="cpu",
+    )
+    assert math.isnan(metrics["roc_auc"])
+    assert (ckpt_dir / "best_model.pt").is_file()
+    saved = torch.load(ckpt_dir / "best_model.pt", map_location="cpu", weights_only=False)
+    assert math.isfinite(saved["best_metric"])
+
+
 
 
 

@@ -10,6 +10,7 @@ if str(_ROOT) not in sys.path:
 
 import argparse
 import json
+import math
 from typing import Dict, List, Optional
 import torch
 import torch.nn as nn
@@ -183,22 +184,30 @@ def train_deepfake_image_detector(
         )
         latest_metrics = val_metrics
 
+        val_auc = float(val_metrics.get("roc_auc", float("nan")))
+        val_loss = float(val_metrics.get("loss", float("inf")))
+        auc_valid = math.isfinite(val_auc)
+        if auc_valid and math.isfinite(best_auc):
+            is_best = (val_auc > best_auc + 1e-4) or (
+                abs(val_auc - best_auc) <= 1e-4 and val_loss < best_loss
+            )
+        elif auc_valid:
+            is_best = True
+        else:
+            is_best = (val_loss < best_loss) or (epoch == 1)
+        if is_best:
+            if auc_valid:
+                best_auc = val_auc
+            if math.isfinite(val_loss):
+                best_loss = val_loss
         state = {
             "epoch": epoch,
             "global_step": epoch * max(1, len(train_loader)),
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
-            "best_metric": max(best_auc, val_metrics["roc_auc"]),
+            "best_metric": best_auc if math.isfinite(best_auc) else val_loss,
             "metrics": val_metrics,
         }
-        val_auc = float(val_metrics.get("roc_auc", 0.0))
-        val_loss = float(val_metrics.get("loss", float("inf")))
-        is_best = (val_auc > best_auc + 1e-4) or (
-            abs(val_auc - best_auc) <= 1e-4 and val_loss < best_loss
-        )
-        if is_best:
-            best_auc = val_auc
-            best_loss = val_loss
         save_checkpoint(
             state=state,
             is_best=is_best,

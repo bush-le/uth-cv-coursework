@@ -54,7 +54,8 @@ def generate_dynamic_face_mask(
 
     Args:
         image: Source face tensor of shape (C, H, W) in [0, 1].
-        bbox: Optional normalized (ymin, xmin, ymax, xmax) bounding box.
+        bbox: Optional bounding box in Pascal VOC [xmin, ymin, xmax, ymax] order
+            (normalized in [0, 1] or pixel coordinates).
         blur_radius: Gaussian blur radius for boundary feathering.
         target_region: "full" for complete face/jaw, "periocular" for eye zone, "lips" for mouth zone.
 
@@ -68,7 +69,7 @@ def generate_dynamic_face_mask(
     if bbox is None:
         needs_detection = True
     elif any(coord > 1.0 for coord in bbox):
-        # Pixel coordinates passed (e.g. [0, 0, 1024, 1024] or [x1, y1, x2, y2])
+        # Pixel coordinates passed (e.g. [0, 0, 1024, 1024] or [xmin, ymin, xmax, ymax])
         bx1, by1, bx2, by2 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
         bw, bh = abs(bx2 - bx1), abs(by2 - by1)
         max_coord = max(bx1, by1, bx2, by2)
@@ -77,8 +78,9 @@ def generate_dynamic_face_mask(
         if bw >= 0.90 * ref_w and bh >= 0.90 * ref_h:
             needs_detection = True
         else:
-            bbox = (min(by1, by2) / ref_h, min(bx1, bx2) / ref_w, max(by1, by2) / ref_h, max(bx1, bx2) / ref_w)
-    elif (bbox[2] - bbox[0] >= 0.90) and (bbox[3] - bbox[1] >= 0.90):
+            # Preserve [xmin, ymin, xmax, ymax] order expected by the branch below
+            bbox = (min(bx1, bx2) / ref_w, min(by1, by2) / ref_h, max(bx1, bx2) / ref_w, max(by1, by2) / ref_h)
+    elif (bbox[3] - bbox[1] >= 0.90) and (bbox[2] - bbox[0] >= 0.90):
         # Normalized but spans >= 90% of frame -> raw canvas dummy box
         needs_detection = True
 

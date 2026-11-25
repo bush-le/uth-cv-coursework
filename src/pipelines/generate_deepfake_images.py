@@ -361,7 +361,13 @@ def run_image_generation(
     - Records full generation provenance in ImageMetadata.generation.
     - Resume regenerates when generation parameters change.
     """
-    if modes is not None or height is not None or mask_box is not None:
+    if (
+        (modes is not None or height is not None or mask_box is not None)
+        and mode_quotas is None
+        and total_samples is None
+        and prompt_engine is None
+        and mask_targets is None
+    ):
         in_p = Path(input_manifest) if input_manifest is not None else Path("data/raw/manifest.jsonl")
         out_m = Path(output_manifest) if output_manifest is not None else Path("data/synthetic/fake_manifest.jsonl")
         out_d = Path(output_dir) if output_dir is not None else Path("data/synthetic")
@@ -454,6 +460,16 @@ def run_image_generation(
                     except Exception:
                         pass
 
+    if not in_manifest_path.exists():
+        raise FileNotFoundError(f"Input manifest not found: {in_manifest_path}")
+    with open(in_manifest_path, "r", encoding="utf-8") as f:
+        real_items = [json.loads(line) for line in f if line.strip()]
+
+    if max_samples_val is not None and max_samples_val > 0:
+        real_items = real_items[:max_samples_val]
+    if not real_items:
+        raise ValueError(f"Input manifest contains no real image records: {in_manifest_path}")
+
     engine = StableDiffusionEngine(
         model_name=model_name_val,
         inpaint_model_name=inpaint_model_val,
@@ -462,14 +478,6 @@ def run_image_generation(
     )
     generated_count = 0
     fake_records = []
-
-    if not in_manifest_path.exists():
-        raise FileNotFoundError(f"Input manifest not found: {in_manifest_path}")
-    with open(in_manifest_path, "r", encoding="utf-8") as f:
-        real_items = [json.loads(line) for line in f if line.strip()]
-
-    if max_samples_val is not None and max_samples_val > 0:
-        real_items = real_items[:max_samples_val]
 
     # Pre-plan generation tasks and group by mode to load each pipeline ONCE
     tasks = []
@@ -552,190 +560,202 @@ def run_image_generation(
     tasks.sort(key=lambda t: t["mode_idx"])
 
     inpaint_counter = 0
-    for task in tasks:
-        item = task["item"]
-        real_id = task["real_id"]
-        demographics = task["demographics"]
-        k = task["k"]
-        fake_id = task["fake_id"]
-        mode_idx = task["mode_idx"]
-        source_img = None
+    try:
+        for task in tasks:
+            item = task["item"]
+            real_id = task["real_id"]
+            demographics = task["demographics"]
+            k = task["k"]
+            fake_id = task["fake_id"]
+            mode_idx = task["mode_idx"]
+            source_img = None
 
-        if mode_idx == 0:
-            manip_type = "sd_img2img"
-            sub_folder = "img2img"
-            base_p = "high resolution authentic portrait, natural skin texture, realistic lighting, detailed human face"
-        elif mode_idx == 1:
-            manip_type = "sd_inpaint"
-            sub_folder = "inpainting"
-            base_p = "seamless natural facial features, authentic detailed eyes, natural smile, photorealistic skin texture"
-        else:
-            manip_type = "sd_text2img"
-            sub_folder = "text2image"
-            base_p = "RAW photo, authentic portrait of a person, sharp focus, natural skin texture, 8k uhd, dslr, soft studio lighting"
-
-        if prompt_engine:
-            mode_str = "img2img" if mode_idx == 0 else ("inpaint" if mode_idx == 1 else "text2img")
-            prompt_used = prompt_engine.generate_prompt(
-                demographics, mode=mode_str, seed_offset=task["item_idx"] * 100 + task["k"]
-            )
-        else:
-            prompt_used = _build_demographic_prompt(demographics, base_p)
-        sub_dir = out_dir_path / sub_folder
-        sub_dir.mkdir(parents=True, exist_ok=True)
-        out_file = sub_dir / f"{fake_id}.png"
-
-        # Derive per-sample deterministic seed
-        curr_seed = sample_seed(seed_val, fake_id, k)
-
-        active_model_id = inpaint_model_val if manip_type == "sd_inpaint" else model_name_val
-        curr_gen = generation_params(
-            cfg,
-            manip_type,
-            overrides={
-                "model_id": active_model_id,
-                "steps": steps_val,
-                "guidance_scale": guidance_scale_val,
-                "img2img_strength": img2img_strength_val,
-            },
-        )
-        curr_gen["seed"] = curr_seed
-
-        # Check provenance-aware resume
-        if resume and out_file.exists() and out_file.stat().st_size > 0:
-            old_rec = existing_records.get(fake_id)
-            old_gen = old_rec.get("generation") if old_rec else None
-
-            # Must match key parameters to safely reuse, or reuse existing valid file if manifest missing
-            if old_gen is None or (
-                old_gen.get("steps") == curr_gen["steps"]
-                and old_gen.get("model_id") == curr_gen["model_id"]
-                and old_gen.get("mode") == curr_gen["mode"]
-                and old_gen.get("seed") == curr_gen["seed"]
-            ):
-                logger.info("Resuming %s: valid image file exists, skipping generation.", out_file.name)
-                meta = ImageMetadata(
-                    image_id=fake_id,
-                    label=1,
-                    manipulation_type=manip_type,
-                    prompt=prompt_used,
-                    source_real_id=real_id,
-                    file_path=str(out_file),
-                    is_hard_sample=False,
-                    data_source="synthetic",
-                    demographics=demographics,
-                    generation=curr_gen,
-                    scores=old_rec.get("scores") if old_rec else None,
-                )
-                fake_records.append(meta.to_dict())
-                generated_count += 1
-                continue
-
-        # Need source image for img2img / inpaint
-        if mode_idx in (0, 1):
-            if source_img is None:
-                if mock_cache and real_id in mock_cache:
-                    source_img = mock_cache[real_id]
-                elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
-                    with Image.open(item["file_path"]) as img:
-                        img_rgb = img.convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
-                        np_img = np.array(img_rgb, dtype=np.float32) / 255.0
-                        source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
-                else:
-                    logger.warning("Skipping %s: source image missing for mode %s", real_id, manip_type)
-                    continue
-            h, w = source_img.shape[1], source_img.shape[2]
-        else:
-            h, w = target_h, target_w
-
-        if mode_idx == 0:
-            effective_strength = img2img_strength_val
-            if demographics:
-                if demographics.get("age_group") in ("0-2", "3-6") or demographics.get("glasses") not in (None, "None"):
-                    effective_strength = min(effective_strength, 0.25)
-            fake_tensor = engine.generate_img2img(
-                source_image=source_img,
-                prompt=prompt_used,
-                strength=effective_strength,
-                num_inference_steps=steps_val,
-                seed=curr_seed,
-                guidance_scale=guidance_scale_val,
-            )
-        elif mode_idx == 1:
-            raw_bbox = item.get("bbox") or cfg.get("generation", {}).get("inpaint_mask_box")
-            if mask_targets and inpaint_counter < len(mask_targets):
-                region_choice = mask_targets[inpaint_counter]
+            if mode_idx == 0:
+                manip_type = "sd_img2img"
+                sub_folder = "img2img"
+                base_p = "high resolution authentic portrait, natural skin texture, realistic lighting, detailed human face"
+            elif mode_idx == 1:
+                manip_type = "sd_inpaint"
+                sub_folder = "inpainting"
+                base_p = "seamless natural facial features, authentic detailed eyes, natural smile, photorealistic skin texture"
             else:
-                region_choice = ["periocular", "lips", "full"][task["item_idx"] % 3]
-            inpaint_counter += 1
-            curr_gen["inpaint_mask_target"] = region_choice
+                manip_type = "sd_text2img"
+                sub_folder = "text2image"
+                base_p = "RAW photo, authentic portrait of a person, sharp focus, natural skin texture, 8k uhd, dslr, soft studio lighting"
 
-            mask = generate_dynamic_face_mask(
-                source_img, bbox=raw_bbox, blur_radius=18, target_region=region_choice
+            if prompt_engine:
+                mode_str = "img2img" if mode_idx == 0 else ("inpaint" if mode_idx == 1 else "text2img")
+                prompt_used = prompt_engine.generate_prompt(
+                    demographics, mode=mode_str, seed_offset=task["item_idx"] * 100 + task["k"]
+                )
+            else:
+                prompt_used = _build_demographic_prompt(demographics, base_p)
+            sub_dir = out_dir_path / sub_folder
+            sub_dir.mkdir(parents=True, exist_ok=True)
+            out_file = sub_dir / f"{fake_id}.png"
+
+            # Derive per-sample deterministic seed
+            curr_seed = sample_seed(seed_val, fake_id, k)
+
+            active_model_id = inpaint_model_val if manip_type == "sd_inpaint" else model_name_val
+            curr_gen = generation_params(
+                cfg,
+                manip_type,
+                overrides={
+                    "model_id": active_model_id,
+                    "steps": steps_val,
+                    "guidance_scale": guidance_scale_val,
+                    "img2img_strength": img2img_strength_val,
+                },
             )
+            curr_gen["seed"] = curr_seed
 
-            fake_tensor = engine.generate_inpaint(
-                source_image=source_img,
-                mask=mask,
+            region_choice: Optional[str] = None
+            if mode_idx == 1:
+                if mask_targets and inpaint_counter < len(mask_targets):
+                    region_choice = mask_targets[inpaint_counter]
+                else:
+                    region_choice = ["periocular", "lips", "full"][task["item_idx"] % 3]
+                inpaint_counter += 1
+                curr_gen["inpaint_mask_target"] = region_choice
+
+            # Check provenance-aware resume
+            if resume and out_file.exists() and out_file.stat().st_size > 0:
+                old_rec = existing_records.get(fake_id)
+                old_gen = old_rec.get("generation") if old_rec else None
+
+                # Must match key parameters to safely reuse, or reuse existing valid file if manifest missing
+                params_match = old_gen is None or (
+                    old_gen.get("steps") == curr_gen["steps"]
+                    and old_gen.get("model_id") == curr_gen["model_id"]
+                    and old_gen.get("mode") == curr_gen["mode"]
+                    and old_gen.get("seed") == curr_gen["seed"]
+                    and old_gen.get("guidance_scale", curr_gen["guidance_scale"]) == curr_gen["guidance_scale"]
+                    and (
+                        mode_idx != 0
+                        or old_gen.get("img2img_strength", curr_gen["img2img_strength"])
+                        == curr_gen["img2img_strength"]
+                    )
+                    and (
+                        mode_idx != 1
+                        or old_gen.get("inpaint_mask_target", region_choice) == region_choice
+                    )
+                )
+                if params_match:
+                    logger.info("Resuming %s: valid image file exists, skipping generation.", out_file.name)
+                    meta = ImageMetadata(
+                        image_id=fake_id,
+                        label=1,
+                        manipulation_type=manip_type,
+                        prompt=prompt_used,
+                        source_real_id=real_id,
+                        file_path=str(out_file),
+                        is_hard_sample=False,
+                        data_source="synthetic",
+                        demographics=demographics,
+                        generation=curr_gen,
+                        scores=old_rec.get("scores") if old_rec else None,
+                    )
+                    fake_records.append(meta.to_dict())
+                    generated_count += 1
+                    continue
+
+            # Need source image for img2img / inpaint
+            if mode_idx in (0, 1):
+                if source_img is None:
+                    if mock_cache and real_id in mock_cache:
+                        source_img = mock_cache[real_id]
+                    elif "file_path" in item and item["file_path"] and Path(item["file_path"]).exists():
+                        with Image.open(item["file_path"]) as img:
+                            img_rgb = img.convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
+                            np_img = np.array(img_rgb, dtype=np.float32) / 255.0
+                            source_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
+                    else:
+                        logger.warning("Skipping %s: source image missing for mode %s", real_id, manip_type)
+                        continue
+                h, w = source_img.shape[1], source_img.shape[2]
+            else:
+                h, w = target_h, target_w
+
+            if mode_idx == 0:
+                effective_strength = img2img_strength_val
+                if demographics:
+                    if demographics.get("age_group") in ("0-2", "3-6") or demographics.get("glasses") not in (None, "None"):
+                        effective_strength = min(effective_strength, 0.25)
+                fake_tensor = engine.generate_img2img(
+                    source_image=source_img,
+                    prompt=prompt_used,
+                    strength=effective_strength,
+                    num_inference_steps=steps_val,
+                    seed=curr_seed,
+                    guidance_scale=guidance_scale_val,
+                )
+            elif mode_idx == 1:
+                raw_bbox = item.get("bbox") or cfg.get("generation", {}).get("inpaint_mask_box")
+                mask = generate_dynamic_face_mask(
+                    source_img, bbox=raw_bbox, blur_radius=18, target_region=region_choice or "full"
+                )
+
+                fake_tensor = engine.generate_inpaint(
+                    source_image=source_img,
+                    mask=mask,
+                    prompt=prompt_used,
+                    num_inference_steps=steps_val,
+                    seed=curr_seed,
+                    guidance_scale=guidance_scale_val,
+                )
+            else:
+                fake_tensor = engine.generate_text2img(
+                    prompt=prompt_used,
+                    height=h,
+                    width=w,
+                    num_inference_steps=steps_val,
+                    seed=curr_seed,
+                    guidance_scale=guidance_scale_val,
+                )
+
+            # Save PNG into dedicated mode folder
+            np_img = (fake_tensor.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
+            Image.fromarray(np_img).save(out_file)
+
+            meta = ImageMetadata(
+                image_id=fake_id,
+                label=1,
+                manipulation_type=manip_type,
                 prompt=prompt_used,
-                num_inference_steps=steps_val,
-                seed=curr_seed,
-                guidance_scale=guidance_scale_val,
+                source_real_id=real_id,
+                file_path=str(out_file),
+                is_hard_sample=False,
+                data_source="synthetic",
+                demographics=demographics,
+                generation=curr_gen,
             )
-        else:
-            fake_tensor = engine.generate_text2img(
-                prompt=prompt_used,
-                height=h,
-                width=w,
-                num_inference_steps=steps_val,
-                seed=curr_seed,
-                guidance_scale=guidance_scale_val,
-            )
+            record_dict = meta.to_dict()
+            fake_records.append(record_dict)
+            generated_count += 1
 
-        # Save PNG into dedicated mode folder
-        np_img = (fake_tensor.permute(1, 2, 0).detach().cpu().numpy() * 255.0).astype(np.uint8)
-        Image.fromarray(np_img).save(out_file)
+            # Incremental manifest persistence: append record immediately so interruptions never lose indexing
+            with open(out_manifest_path, "a", encoding="utf-8") as mf:
+                mf.write(json.dumps(record_dict) + "\n")
 
-        meta = ImageMetadata(
-            image_id=fake_id,
-            label=1,
-            manipulation_type=manip_type,
-            prompt=prompt_used,
-            source_real_id=real_id,
-            file_path=str(out_file),
-            is_hard_sample=False,
-            data_source="synthetic",
-            demographics=demographics,
-            generation=curr_gen,
+            # Periodic VRAM & RAM hygiene for long-running 10k scaling
+            if generated_count % 100 == 0:
+                import gc
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+        fake_records.sort(key=lambda r: r["image_id"])
+        with open(out_manifest_path, "w", encoding="utf-8") as f:
+            for r in fake_records:
+                f.write(json.dumps(r) + "\n")
+
+        logger.info(
+            "Generation complete: %d synthetic faces saved to %s.", generated_count, out_manifest_path
         )
-        record_dict = meta.to_dict()
-        fake_records.append(record_dict)
-        generated_count += 1
-
-        # Incremental manifest persistence: append record immediately so interruptions never lose indexing
-        with open(out_manifest_path, "a", encoding="utf-8") as mf:
-            mf.write(json.dumps(record_dict) + "\n")
-
-        # Periodic VRAM & RAM hygiene for long-running 10k scaling
-        if generated_count % 100 == 0:
-            import gc
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
-    fake_records.sort(key=lambda r: r["image_id"])
-    with open(out_manifest_path, "w", encoding="utf-8") as f:
-        for r in fake_records:
-            f.write(json.dumps(r) + "\n")
-
-    logger.info(
-        "Generation complete: %d synthetic faces saved to %s.", generated_count, out_manifest_path
-    )
-    del engine
-    import gc
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    finally:
+        engine.close()
+        del engine
     return generated_count
 
 

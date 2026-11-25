@@ -56,3 +56,16 @@ def test_micro_inpaint_preserves_facial_continuity():
     chin_y = int((0.2 + 0.6 * 0.90) * 256)
     assert mask[:, chin_y, 128].item() < 0.1
 
+
+@pytest.mark.smoke
+def test_dynamic_oval_mask_pixel_coordinates_preserve_xy_axes() -> None:
+    """Verify pixel-space Pascal VOC [xmin, ymin, xmax, ymax] does not transpose X and Y axes."""
+    from src.models.diffusion.stable_diffusion_engine import generate_dynamic_face_mask
+
+    dummy_img = torch.zeros(3, 512, 512)
+    # Rectangular face bbox in upper-left/mid-left region: x in [50, 150], y in [100, 350]
+    mask = generate_dynamic_face_mask(dummy_img, bbox=(50, 100, 150, 350), blur_radius=2, target_region="full")
+
+    assert mask[:, 225, 100].item() > 0.9
+    assert mask[:, 100, 225].item() < 0.05
+

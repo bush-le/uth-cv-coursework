@@ -35,6 +35,18 @@ echo "Config: ${CONFIG}"
 echo "Python: $(${PYTHON} --version)"
 echo "=================================================="
 
+run_stage_with_optional_config() {
+    local module_target="$1"
+    shift
+    if [[ $# -ge 1 && "$1" != -* && ( "$1" == *.yaml || "$1" == *.yml || -f "$1" ) ]]; then
+        local cfg_arg="$1"
+        shift
+        ${PYTHON} -m "${module_target}" --config "${cfg_arg}" "$@"
+    else
+        ${PYTHON} -m "${module_target}" "$@"
+    fi
+}
+
 case "${STAGE}" in
     "clean-10k"|"production")
         echo "[Production] Launching Master Clean 10,000 Pipeline..."
@@ -42,23 +54,23 @@ case "${STAGE}" in
         ;;
     "block1"|"baseline")
         echo "[Stage 1] Running Block 1 Baseline Initialization..."
-        ${PYTHON} -m src.pipelines.run_block1_baseline "${@:2}"
+        run_stage_with_optional_config src.pipelines.run_block1_baseline "${@:2}"
         ;;
     "active-learning"|"al")
         echo "[Stage 2-3] Running Closed-Loop Active Learning..."
-        ${PYTHON} -m src.pipelines.run_closed_loop_active_learning "${@:2}"
+        run_stage_with_optional_config src.pipelines.run_closed_loop_active_learning "${@:2}"
         ;;
     "generate")
         echo "[Phase 1a] Generating synthetic DF images via Stable Diffusion..."
-        ${PYTHON} -m src.pipelines.generate_deepfake_images "${@:2}"
+        run_stage_with_optional_config src.pipelines.generate_deepfake_images "${@:2}"
         ;;
     "curate")
         echo "[Phase 1b] Filtering synthetic DF images via Curation Gate..."
-        ${PYTHON} -m src.pipelines.curate_image_dataset "${@:2}"
+        run_stage_with_optional_config src.pipelines.curate_image_dataset "${@:2}"
         ;;
     "mine")
         echo "[Phase 2] Running baseline dinoViT to mine bypassed Hard Samples..."
-        ${PYTHON} -m src.pipelines.mine_hard_samples "${@:2}"
+        run_stage_with_optional_config src.pipelines.mine_hard_samples "${@:2}"
         ;;
     "train")
         echo "[Phase 3a] Fine-tuning dinoViT on Baseline + Synthetic + Hard Samples..."
@@ -74,7 +86,7 @@ case "${STAGE}" in
         ;;
     "showcase"|"end-to-end")
         echo "[End-to-End] Running N-image SD1.5 Generate -> Curate/Audit -> Mine/Infer showcase..."
-        ${PYTHON} -m src.pipelines.run_end_to_end_showcase "${@:2}"
+        run_stage_with_optional_config src.pipelines.run_end_to_end_showcase "${@:2}"
         ;;
     *)
         echo "Error: Unknown stage '${STAGE}'. Allowed: clean-10k, block1, active-learning, generate, curate, mine, train, eval, infer, showcase."
