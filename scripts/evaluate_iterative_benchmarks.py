@@ -3,7 +3,6 @@
 Generates the Golden Coursework Comparison Table for the 4-way Proof-of-Utility ablation.
 """
 
-import os
 from pathlib import Path
 import sys
 
@@ -14,18 +13,15 @@ if str(_ROOT) not in sys.path:
 
 import argparse
 import json
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from src.common.config import cfg_get, load_config
 from src.common.logger import get_logger
 from src.common.metrics import (
     compute_accuracy,
     compute_bypass_rate,
-    compute_precision,
     compute_recall,
     compute_roc_auc,
 )

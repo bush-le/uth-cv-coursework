@@ -1,6 +1,5 @@
 """Benchmark evaluation pipeline for 2D deepfake image detector (dinoViT baseline vs fine-tuned)."""
 
-import os
 from pathlib import Path
 import sys
 

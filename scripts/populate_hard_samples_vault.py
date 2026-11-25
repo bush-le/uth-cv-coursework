@@ -7,15 +7,6 @@ Synchronizes the root data/hard_samples/ directory with active learning artifact
 4. data/hard_samples/README.md (architecture and navigation documentation)
 """
 
-import os
-from pathlib import Path
-import sys
-
-# Automatic root resolution for direct script execution
-_ROOT = Path(__file__).resolve().parents[1]
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-
 from collections import Counter
 import json
 import os

@@ -1,6 +1,5 @@
 """Inference pipeline for running dinoViT deepfake detection on test images."""
 
-import os
 from pathlib import Path
 import sys
 

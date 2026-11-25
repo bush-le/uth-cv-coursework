@@ -1,6 +1,5 @@
 """Unified training pipeline entrypoint for dinoViT Deepfake Detection with Synthetic + Hard Samples."""
 
-import os
 from pathlib import Path
 import sys
 
@@ -11,10 +10,8 @@ if str(_ROOT) not in sys.path:
 
 import argparse
 import json
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 import torch
-import yaml
 
 from src.common.config import load_yaml_with_defaults
 from src.common.logger import get_logger
@@ -23,10 +20,7 @@ from src.data.image_datamodule import DeepfakeImageDataModule
 from src.data.image_schema import ImageMetadata
 from src.models.detector.image_detector import DeepfakeImageDetector
 from src.pipelines.evaluate_image_benchmark import evaluate_image_detector
-from src.pipelines.train_image_detector import (
-    combine_training_manifests,
-    train_deepfake_image_detector,
-)
+from src.pipelines.train_image_detector import train_deepfake_image_detector
 
 
 def parse_args() -> argparse.Namespace:

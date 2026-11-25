@@ -1,8 +1,7 @@
 """Objective cross-model hardness verification without model-specific evaluation bias."""
 
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional
-import numpy as np
+from typing import Any, Dict
 import torch
 import torch.nn.functional as F
 

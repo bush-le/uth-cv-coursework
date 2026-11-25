@@ -1,6 +1,5 @@
 """Script to generate clean coursework Jupyter Notebooks with proper markdown formatting."""
 
-import os
 from pathlib import Path
 import sys
 
@@ -10,7 +9,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import json
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 

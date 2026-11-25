@@ -9,11 +9,10 @@ Extracts hard synthetic samples:
 import argparse
 from dataclasses import asdict, dataclass
 import json
-import os
 from pathlib import Path
 import shutil
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 # Automatic root resolution for direct script execution
 _ROOT = Path(__file__).resolve().parents[2]
@@ -28,7 +27,7 @@ from torch.utils.data import DataLoader
 
 from src.common.config import cfg_get, load_config
 from src.common.logger import get_logger
-from src.common.metrics import calibrate_threshold, compute_bypass_rate
+from src.common.metrics import calibrate_threshold
 from src.common.seed import seed_everything
 from src.data.image_datamodule import collate_image_samples
 from src.data.image_dataset import DeepfakeImageDataset

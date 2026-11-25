@@ -10,32 +10,23 @@ Key Architectural Adjustments:
 4. Smooth Epochs: 3 epochs with AMP.
 """
 
+import json
 import os
 from pathlib import Path
 import sys
+from typing import List
 
-# Automatic root resolution for direct script execution
+# Ensure project root is in sys.path
 _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
-
-import json
-import os
-import sys
-from pathlib import Path
-from typing import Dict, List
-
-# Ensure project root is in sys.path
-root_dir = Path(__file__).resolve().parents[1]
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
-os.chdir(root_dir)
+os.chdir(_ROOT)
 
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
 
-from src.common.checkpoint import save_checkpoint
+from src.common.logger import get_logger
 from src.common.logger import get_logger
 from src.common.seed import seed_everything
 from src.data.image_datamodule import DeepfakeImageDataModule

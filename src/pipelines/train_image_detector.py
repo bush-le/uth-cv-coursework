@@ -1,6 +1,5 @@
 """Phase 3 Pipeline: Fine-tuning dinoViT detector on Baseline Data + Synthetic DF + Mined Hard Samples."""
 
-import os
 from pathlib import Path
 import sys
 
@@ -11,7 +10,6 @@ if str(_ROOT) not in sys.path:
 
 import argparse
 import json
-from pathlib import Path
 from typing import Dict, List, Optional
 import torch
 import torch.nn as nn

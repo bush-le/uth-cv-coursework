@@ -1,19 +1,15 @@
-import os
-from pathlib import Path
-import sys
-
-# Automatic root resolution for direct script execution
-_ROOT = Path(__file__).resolve().parents[1]
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-
 #!/usr/bin/env python3
 """Unpack and normalize the external 6k synthetic face benchmark dataset."""
 
 import json
 from pathlib import Path
+import sys
 from typing import Optional
 import zipfile
+
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 from src.common.logger import get_logger
 

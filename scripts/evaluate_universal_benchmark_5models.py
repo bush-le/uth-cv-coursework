@@ -12,13 +12,12 @@ Generates:
 
 import argparse
 import csv
-import json
 import os
 from pathlib import Path
 import shutil
 import sys
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 # Ensure project root is in sys.path
 root_dir = Path(__file__).resolve().parents[1]
@@ -26,28 +25,18 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 os.chdir(root_dir)
 
-import cv2
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 from src.common.logger import get_logger
-from src.common.metrics import (
-    compute_accuracy,
-    compute_bypass_rate,
-    compute_precision,
-    compute_recall,
-    compute_roc_auc,
-)
 from src.models.detector.image_detector import DeepfakeImageDetector
 from scripts.evaluate_universal_benchmark_4models import (
     METHOD_TAXONOMY,
-    FAMILY_COLORS,
     UniversalBenchmarkDataset,
     collate_benchmark,
     compute_roc_curve_vectorized,

@@ -9,7 +9,6 @@ import json
 from pathlib import Path
 import random
 from typing import Any, Dict, List, Optional, Set, Tuple
-import numpy as np
 
 from src.common.logger import get_logger
 from src.data.image_schema import ImageMetadata

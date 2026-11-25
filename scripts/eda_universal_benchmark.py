@@ -6,11 +6,10 @@ All samples are verified square (1:1 aspect ratio), with zero under-powered or i
 """
 
 import csv
-import json
 import os
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 import cv2
 import matplotlib

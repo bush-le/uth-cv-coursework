@@ -32,7 +32,6 @@ if str(root_dir) not in sys.path:
 os.chdir(root_dir)
 
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
 
 from src.common.logger import get_logger

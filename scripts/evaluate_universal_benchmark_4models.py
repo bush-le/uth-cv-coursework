@@ -20,14 +20,12 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 os.chdir(root_dir)
 
-import cv2
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 
 from src.common.logger import get_logger

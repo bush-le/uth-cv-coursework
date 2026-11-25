@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # Automatic root resolution
 _ROOT = Path(__file__).resolve().parents[1]
@@ -13,7 +13,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 os.chdir(_ROOT)
 
-from src.common.config import cfg_get, load_config, resolve
+from src.common.config import load_config, resolve
 from src.common.logger import get_logger
 from src.common.visualizer import plot_real_vs_synthetic_comparison
 

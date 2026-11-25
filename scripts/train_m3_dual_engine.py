@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 import sys
 import time
-from typing import Dict, List, Optional
+from typing import List
 
 # Ensure project root is in sys.path
 root_dir = Path(__file__).resolve().parents[1]

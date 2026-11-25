@@ -8,7 +8,6 @@ Coordinates:
 - Replay Buffer accumulation: D0 subset of D1 subset of D2 (Prevents catastrophic forgetting)
 """
 
-import os
 from pathlib import Path
 import sys
 
@@ -17,21 +16,12 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-import argparse
 from copy import deepcopy
-import json
-from pathlib import Path
 import random
-import shutil
-from typing import Any, Dict, List, Optional, Tuple
-import torch
+from typing import List
 
-from src.common.config import cfg_get, load_config
 from src.common.logger import get_logger
-from src.common.seed import seed_everything
 from src.data.image_schema import ImageMetadata
-from src.data.splits import create_identity_partitions
-from src.models.detector.calibration import TemperatureScaler
 
 logger = get_logger(__name__)
 

@@ -1,6 +1,5 @@
 """Pipeline entrypoint: Phase 1 batch generation of synthetic deepfake facial images via Stable Diffusion."""
 
-import os
 from pathlib import Path
 import sys
 
@@ -11,13 +10,12 @@ if str(_ROOT) not in sys.path:
 
 import argparse
 import json
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from PIL import Image
 import torch
 
-from src.common.config import cfg_get, load_config, resolve
+from src.common.config import cfg_get, load_config
 from src.common.logger import get_logger
 from src.common.seed import seed_everything
 from src.data.image_schema import ImageMetadata

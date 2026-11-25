@@ -1,8 +1,7 @@
 """Production Stable Diffusion engine supporting Text2Img, Inpainting, and Img2Img generation."""
 
 import gc
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 import zlib
 import cv2
 import numpy as np

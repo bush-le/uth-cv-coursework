@@ -1,6 +1,5 @@
 """Evaluation pipeline script for benchmarking baseline vs fine-tuned dinoViT models."""
 
-import os
 from pathlib import Path
 import sys
 
