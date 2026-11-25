@@ -296,6 +296,58 @@ class StableDiffusionEngine(nn.Module):
         np_arr = np.array(rgb_img, dtype=np.float32) / 255.0
         return torch.from_numpy(np_arr).permute(2, 0, 1).contiguous()
 
+    def _from_pretrained_safe(self, pipe_cls: Any, model_id: str) -> Any:
+        """Load a Diffusers pipeline with offline cache fallback and optional CUDA CPU offload."""
+        load_kwargs: dict[str, Any] = {
+            "torch_dtype": self.torch_dtype,
+            "safety_checker": None,
+            "local_files_only": self.local_files_only,
+        }
+        try:
+            pipe = pipe_cls.from_pretrained(model_id, **load_kwargs)
+        except Exception as primary_exc:
+            alias_pair = (
+                "stable-diffusion-v1-5/stable-diffusion-v1-5",
+                "runwayml/stable-diffusion-v1-5",
+            )
+            candidates: list[str] = []
+            if not self.local_files_only:
+                candidates.append(model_id)
+            if model_id in alias_pair:
+                candidates.extend(alias for alias in alias_pair if alias != model_id)
+            if not candidates:
+                raise
+
+            pipe = None
+            last_exc: Exception = primary_exc
+            for candidate_id in candidates:
+                try:
+                    logger.warning(
+                        "Primary pipeline load failed for '%s' (%s). Retrying offline cache with '%s' (local_files_only=True).",
+                        model_id,
+                        primary_exc,
+                        candidate_id,
+                    )
+                    pipe = pipe_cls.from_pretrained(
+                        candidate_id,
+                        torch_dtype=self.torch_dtype,
+                        safety_checker=None,
+                        local_files_only=True,
+                    )
+                    break
+                except Exception as retry_exc:
+                    last_exc = retry_exc
+            if pipe is None:
+                raise last_exc
+
+        if self.cpu_offload and self.target_device.type == "cuda" and hasattr(pipe, "enable_model_cpu_offload"):
+            pipe.enable_model_cpu_offload()
+            logger.info("Enabled model CPU offload on pipeline (%s).", model_id)
+            return pipe
+
+        moved = pipe.to(self.target_device)
+        return moved if moved is not None else pipe
+
     def _switch_mode(self, mode: str) -> Any:
         """Switch active pipeline, strictly freeing old pipeline to avoid VRAM/RAM OOM."""
         if self._active_mode == mode and self._active_pipeline is not None:
@@ -314,22 +366,14 @@ class StableDiffusionEngine(nn.Module):
             logger.info("Loading text2img pipeline from %s on %s...", self.model_name, self.target_device)
             from diffusers import StableDiffusionPipeline
 
-            pipe = StableDiffusionPipeline.from_pretrained(
-                self.model_name,
-                torch_dtype=self.torch_dtype,
-                safety_checker=None,
-            ).to(self.target_device)
+            pipe = self._from_pretrained_safe(StableDiffusionPipeline, self.model_name)
         elif mode == "inpaint":
             from diffusers import StableDiffusionInpaintPipeline
 
             target_inpaint_model = self.inpaint_model_name or self.model_name
             logger.info("Loading inpaint pipeline from %s on %s...", target_inpaint_model, self.target_device)
             try:
-                pipe = StableDiffusionInpaintPipeline.from_pretrained(
-                    target_inpaint_model,
-                    torch_dtype=self.torch_dtype,
-                    safety_checker=None,
-                ).to(self.target_device)
+                pipe = self._from_pretrained_safe(StableDiffusionInpaintPipeline, target_inpaint_model)
             except Exception as exc:
                 if target_inpaint_model != self.model_name:
                     logger.warning(
@@ -338,22 +382,14 @@ class StableDiffusionEngine(nn.Module):
                         exc,
                         self.model_name,
                     )
-                    pipe = StableDiffusionInpaintPipeline.from_pretrained(
-                        self.model_name,
-                        torch_dtype=self.torch_dtype,
-                        safety_checker=None,
-                    ).to(self.target_device)
+                    pipe = self._from_pretrained_safe(StableDiffusionInpaintPipeline, self.model_name)
                 else:
                     raise
         elif mode == "img2img":
             logger.info("Loading img2img pipeline from %s on %s...", self.model_name, self.target_device)
             from diffusers import StableDiffusionImg2ImgPipeline
 
-            pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
-                self.model_name,
-                torch_dtype=self.torch_dtype,
-                safety_checker=None,
-            ).to(self.target_device)
+            pipe = self._from_pretrained_safe(StableDiffusionImg2ImgPipeline, self.model_name)
         else:
             raise ValueError(f"Unknown generation mode: {mode}")
 
