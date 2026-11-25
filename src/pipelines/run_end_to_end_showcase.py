@@ -26,7 +26,11 @@ from src.common.metrics import calibrate_threshold, compute_laplacian_sharpness
 from src.common.seed import seed_everything
 from src.data.provenance import file_sha256
 from src.models.detector.image_detector import DeepfakeImageDetector
-from src.pipelines.curate_image_dataset import ImageCurationGate, curate_image_manifest
+from src.pipelines.curate_image_dataset import (
+    ImageCurationGate,
+    calibrate_sharpness_from_manifest,
+    curate_image_manifest,
+)
 from src.pipelines.generate_deepfake_images import run_image_generation
 
 logger = get_logger(__name__)
@@ -71,7 +75,7 @@ def _score_manifest_with_checkpoints(
     # Pre-decode tensors once in (N, 3, 512, 512) RGB [0.0, 1.0] to avoid repeated disk I/O
     tensors: List[torch.Tensor] = []
     for item in items:
-        fp = Path(item["file_path"])
+        fp = Path(item.get("file_path") or item.get("image_path") or "")
         with Image.open(fp) as im:
             rgb = im.convert("RGB").resize((512, 512), Image.Resampling.LANCZOS)
             arr = np.array(rgb, dtype=np.float32) / 255.0  # (H, W, 3) RGB
@@ -116,7 +120,7 @@ def _compute_diversity_metrics(items: List[Dict[str, Any]], max_dhash_samples: i
     hashes = set()
     valid_files = 0
     for it in items:
-        fp = Path(it.get("file_path", ""))
+        fp = Path(it.get("file_path") or it.get("image_path") or "")
         if fp.is_file():
             hashes.add(file_sha256(fp))
             valid_files += 1
@@ -125,7 +129,7 @@ def _compute_diversity_metrics(items: List[Dict[str, Any]], max_dhash_samples: i
     sampled = items[::step][:max_dhash_samples]
     dhashes: List[str] = []
     for it in sampled:
-        fp = Path(it.get("file_path", ""))
+        fp = Path(it.get("file_path") or it.get("image_path") or "")
         if fp.is_file():
             with Image.open(fp) as im:
                 dhashes.append(_compute_dhash(im.convert("RGB")))
@@ -147,9 +151,18 @@ def _aggregate_quality_stats(
     rejection_counts: Counter[str] = Counter()
     by_mode: Dict[str, List[Dict[str, Any]]] = {}
 
+    mode_alias = {"text2img": "sd_text2img", "img2img": "sd_img2img", "inpaint": "sd_inpaint"}
     for item in raw_items:
-        mode = str(item.get("manipulation_type") or (item.get("generation") or {}).get("mode") or "unknown")
-        rep = rep_by_id.get(item.get("image_id", ""))
+        raw_mode = str(
+            item.get("manipulation_type")
+            or item.get("task")
+            or (item.get("generation") or {}).get("mode")
+            or "unknown"
+        )
+        mode = mode_alias.get(raw_mode, raw_mode)
+        fp_str = item.get("file_path") or item.get("image_path") or ""
+        img_id = item.get("image_id") or (Path(fp_str).stem if fp_str else "")
+        rep = rep_by_id.get(img_id)
         if rep is None:
             continue
         by_mode.setdefault(mode, []).append(rep)
@@ -313,14 +326,9 @@ def run_end_to_end_showcase(
     # Calibrate sharpness threshold on real raw reference if min_sharpness not specified
     if min_sharpness is None:
         ref_q = float(cfg.get("curation", {}).get("reference_quantile_sharpness", 0.05))
-        real_sharp: List[float] = []
-        for r in _read_jsonl(raw_manifest_p)[:40]:
-            fp = Path(r.get("file_path", ""))
-            if fp.is_file():
-                with Image.open(fp) as im:
-                    arr = np.array(im.convert("RGB"), dtype=np.float32) / 255.0
-                real_sharp.append(compute_laplacian_sharpness(torch.from_numpy(arr).permute(2, 0, 1)))
-        min_sharpness_val = calibrate_threshold(real_sharp, ref_q) if real_sharp else 2.5
+        min_sharpness_val = calibrate_sharpness_from_manifest(
+            raw_manifest_p, ref_quantile=ref_q, max_samples=40, fallback=2.5
+        )
     else:
         min_sharpness_val = float(min_sharpness)
 

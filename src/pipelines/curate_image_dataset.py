@@ -19,6 +19,7 @@ import numpy as np
 from PIL import Image
 import torch
 
+from src.analysis.eda import _compute_dhash
 from src.common.config import cfg_get, load_config
 from src.common.logger import get_logger
 from src.common.metrics import (
@@ -93,6 +94,7 @@ class ImageCurationGate:
         device: str = "cpu",
         face_backend: str = "none",
         dedup: bool = False,
+        perceptual_dedup_threshold: Optional[int] = None,
         extended_audit: bool = False,
     ) -> None:
         self.min_sharpness = min_sharpness
@@ -100,6 +102,7 @@ class ImageCurationGate:
         self.clip_enabled = clip_enabled
         self.face_backend = face_backend
         self.dedup = dedup
+        self.perceptual_dedup_threshold = perceptual_dedup_threshold
         self.extended_audit = extended_audit
         self._clip_scorer: Optional[ClipScorer] = None
         if self.clip_enabled:
@@ -119,6 +122,44 @@ class ImageCurationGate:
         """Evaluate a synthetic face image against sharpness, CLIP alignment, face detection, and optional extended audit."""
         sharpness = compute_laplacian_sharpness(image, bbox_xyxy=bbox_xyxy)
 
+        if self.extended_audit and face_detected is None and self.face_backend != "none":
+            clip_score: Optional[float] = (
+                self._clip_scorer.score(image, prompt) if (self.clip_enabled and self._clip_scorer is not None) else None
+            )
+            ext_rep = audit_image_extended(
+                image,
+                mode=mode,
+                prompt=prompt,
+                source_image=source_image,
+                mask=mask,
+                clip_scorer=None,
+                min_sharpness=self.min_sharpness,
+                image_id=image_id,
+                run_geometry=True,
+                sharpness_score=sharpness,
+            )
+            reasons = list(ext_rep.rejection_reasons)
+            if self.clip_enabled and clip_score is not None and clip_score < self.min_clip_score:
+                reasons.append(f"CLIP score {clip_score:.3f} below threshold {self.min_clip_score:.3f}")
+            face_detected_val = not any("No face" in r or "No valid face" in r for r in reasons)
+            return ImageCurationReport(
+                image_id=image_id,
+                is_valid=len(reasons) == 0,
+                sharpness_score=sharpness,
+                clip_score=clip_score,
+                face_detected=face_detected_val,
+                rejection_reasons=reasons,
+                eye_count=ext_rep.eye_count,
+                sunglasses_occluded=ext_rep.sunglasses_occluded,
+                bilateral_symmetry=ext_rep.bilateral_symmetry,
+                fft_high_freq_ratio=ext_rep.fft_high_freq_ratio,
+                texture_flag=ext_rep.texture_flag,
+                delta_e_lab=ext_rep.delta_e_lab,
+                structure_corr=ext_rep.structure_corr,
+                seam_diff=ext_rep.seam_diff,
+                is_seamless=ext_rep.is_seamless,
+            )
+
         if face_detected is None:
             if self.face_backend == "none":
                 face_detected_val = True
@@ -129,7 +170,7 @@ class ImageCurationGate:
         else:
             face_detected_val = face_detected
 
-        clip_score: Optional[float] = None
+        clip_score = None
         if self.clip_enabled and self._clip_scorer is not None:
             clip_score = self._clip_scorer.score(image, prompt)
 
@@ -153,9 +194,11 @@ class ImageCurationGate:
                 prompt=prompt,
                 source_image=source_image,
                 mask=mask,
-                clip_scorer=None,  # Already scored above if clip_enabled
+                clip_scorer=None,
                 min_sharpness=self.min_sharpness,
                 image_id=image_id,
+                run_geometry=(self.face_backend != "none"),
+                sharpness_score=sharpness,
             )
             ext_kwargs = {
                 "eye_count": ext_rep.eye_count,
@@ -188,14 +231,53 @@ class ImageCurationGate:
         )
 
 
+_POPCOUNT_LUT = np.array([bin(i).count("1") for i in range(256)], dtype=np.uint8)
+_MODE_MAP = {
+    "text2img": "sd_text2img",
+    "img2img": "sd_img2img",
+    "inpaint": "sd_inpaint",
+}
+_SUBREGION_MAP = {"mouth": "lips", "eyes": "periocular"}
+
+
+def calibrate_sharpness_from_manifest(
+    raw_manifest: Path,
+    ref_quantile: float = 0.05,
+    max_samples: int = 50,
+    fallback: float = 10.0,
+) -> float:
+    """Calibrate Laplacian sharpness floor from genuine reference images."""
+    if not Path(raw_manifest).exists():
+        return fallback
+    real_sharpness: List[float] = []
+    with open(raw_manifest, "r", encoding="utf-8") as rf:
+        for line in rf:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            fp = item.get("file_path") or item.get("image_path")
+            if fp and Path(fp).exists():
+                try:
+                    with Image.open(fp) as img:
+                        np_img = np.array(img.convert("RGB"), dtype=np.float32) / 255.0
+                        tensor_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
+                    real_sharpness.append(compute_laplacian_sharpness(tensor_img))
+                    if len(real_sharpness) >= max_samples:
+                        break
+                except Exception:
+                    pass
+    return calibrate_threshold(real_sharpness, ref_quantile) if real_sharpness else fallback
+
+
 def curate_image_manifest(
     input_manifest: Path,
     output_manifest: Path,
     gate: ImageCurationGate,
     curation_report: Optional[Path] = None,
     raw_manifest: Optional[Path] = None,
+    source_dirs: Optional[Sequence[Union[str, Path]]] = None,
 ) -> Dict[str, Any]:
-    """Filter raw image manifest entries through the curation gate."""
+    """Filter raw image manifest entries (SD 1.5 and RV5.1 schemas) through the curation gate."""
     output_manifest.parent.mkdir(parents=True, exist_ok=True)
     if curation_report is not None:
         curation_report.parent.mkdir(parents=True, exist_ok=True)
@@ -207,24 +289,40 @@ def curate_image_manifest(
                 if not line.strip():
                     continue
                 rec = json.loads(line)
-                rid, rfp = rec.get("image_id"), rec.get("file_path")
+                rid = rec.get("image_id")
+                rfp = rec.get("file_path") or rec.get("image_path")
                 if rid and rfp and Path(rfp).exists():
                     raw_lookup[str(rid)] = Path(rfp)
+
+    resolved_src_dirs: List[Path] = []
+    if source_dirs is not None:
+        resolved_src_dirs = [Path(d) for d in source_dirs if Path(d).is_dir()]
+    else:
+        for default_dir in (Path("data/raw/faces/celeba_hq"), Path("data/raw/faces/ffhq")):
+            if default_dir.is_dir():
+                resolved_src_dirs.append(default_dir)
 
     kept_count = 0
     rejected_count = 0
     curated_lines = []
     report_lines = []
     seen_hashes: Set[str] = set()
+    seen_dhashes_u64: List[int] = []
+    seen_dhash_meta: List[Tuple[str, str, Optional[np.ndarray]]] = []
+    source_cache: Dict[Path, np.ndarray] = {}
+    processed_idx = 0
 
     if input_manifest.exists():
         with open(input_manifest, "r", encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue
+                processed_idx += 1
+                if processed_idx % 1000 == 0:
+                    logger.info("Curation progress: processed %d entries from %s...", processed_idx, input_manifest.name)
                 item = json.loads(line)
-                file_path = item.get("file_path")
-                img_id = item.get("image_id", "unknown")
+                file_path = item.get("file_path") or item.get("image_path")
+                img_id = item.get("image_id") or (Path(str(file_path)).stem if file_path else "unknown")
 
                 if not file_path or not Path(file_path).exists():
                     logger.warning("Rejecting %s: image file does not exist (%s)", img_id, file_path)
@@ -240,7 +338,7 @@ def curate_image_manifest(
                     report_lines.append(json.dumps(report.to_dict()) + "\n")
                     continue
 
-                # Dedup check
+                # Exact byte dedup check
                 if gate.dedup:
                     try:
                         f_hash = file_sha256(file_path)
@@ -261,28 +359,136 @@ def curate_image_manifest(
                     except Exception as err:
                         logger.warning("Error computing hash for %s: %s", file_path, err)
 
+                raw_mode = str(
+                    item.get("manipulation_type")
+                    or item.get("task")
+                    or (item.get("generation") or {}).get("mode")
+                    or "sd_text2img"
+                )
+                mode_val = _MODE_MAP.get(raw_mode, raw_mode)
+                cur_src = str(item.get("source_real_id") or item.get("source_real_image") or "")
+
                 try:
                     with Image.open(file_path) as img:
-                        np_img = np.array(img.convert("RGB"), dtype=np.float32) / 255.0
+                        rgb_pil = img.convert("RGB")
+                        dhash_val = int(_compute_dhash(rgb_pil), 16) if gate.perceptual_dedup_threshold is not None else None
+                        thumb32_u8 = (
+                            np.asarray(rgb_pil.resize((32, 32), Image.Resampling.BILINEAR), dtype=np.uint8)
+                            if (dhash_val is not None and cur_src and mode_val in ("sd_img2img", "sd_inpaint"))
+                            else None
+                        )
+                        np_img = np.array(rgb_pil, dtype=np.float32) / 255.0
                         tensor_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
+
+                    # Source-aware perceptual dHash near-duplicate check via vectorized uint64 popcount
+                    if dhash_val is not None and gate.perceptual_dedup_threshold is not None:
+                        is_perceptual_dup = False
+                        if seen_dhashes_u64:
+                            arr_seen = np.array(seen_dhashes_u64, dtype=np.uint64)
+                            xor_bytes = (arr_seen ^ np.uint64(dhash_val)).view(np.uint8).reshape(-1, 8)
+                            dists = _POPCOUNT_LUT[xor_bytes].sum(axis=1)
+                            hit_idxs = np.flatnonzero(dists <= gate.perceptual_dedup_threshold)
+                            for h_idx in hit_idxs:
+                                prev_src, prev_mode, prev_thumb = seen_dhash_meta[int(h_idx)]
+                                if (
+                                    cur_src
+                                    and prev_src == cur_src
+                                    and mode_val in ("sd_img2img", "sd_inpaint")
+                                    and prev_mode in ("sd_img2img", "sd_inpaint")
+                                    and thumb32_u8 is not None
+                                    and prev_thumb is not None
+                                ):
+                                    diff_p95 = float(
+                                        np.percentile(
+                                            np.abs(thumb32_u8.astype(np.float32) - prev_thumb.astype(np.float32)),
+                                            95,
+                                        )
+                                    )
+                                    if diff_p95 <= 2.5:
+                                        is_perceptual_dup = True
+                                        break
+                                else:
+                                    is_perceptual_dup = True
+                                    break
+                        if is_perceptual_dup:
+                            rejected_count += 1
+                            report = ImageCurationReport(
+                                image_id=img_id,
+                                is_valid=False,
+                                sharpness_score=0.0,
+                                clip_score=None,
+                                face_detected=False,
+                                rejection_reasons=["duplicate_perceptual_dhash"],
+                            )
+                            report_lines.append(json.dumps(report.to_dict()) + "\n")
+                            continue
+                        seen_dhashes_u64.append(dhash_val)
+                        seen_dhash_meta.append((cur_src, mode_val, thumb32_u8))
 
                     src_u8 = None
                     mask_t = None
-                    mode_val = item.get("manipulation_type") or (item.get("generation") or {}).get("mode") or "sd_text2img"
                     if gate.extended_audit and mode_val in ("sd_img2img", "sd_inpaint"):
+                        src_path: Optional[Path] = None
                         src_id = item.get("source_real_id")
+                        src_rel = item.get("source_real_image")
                         if src_id and str(src_id) in raw_lookup:
-                            with Image.open(raw_lookup[str(src_id)]) as s_im:
-                                src_u8 = np.array(s_im.convert("RGB"), dtype=np.uint8)
+                            src_path = raw_lookup[str(src_id)]
+                        elif src_rel:
+                            cand_p = Path(str(src_rel))
+                            if cand_p.is_file():
+                                src_path = cand_p
+                            else:
+                                for d in resolved_src_dirs:
+                                    if (d / str(src_rel)).is_file():
+                                        src_path = d / str(src_rel)
+                                        break
+                        if src_path is not None:
+                            src_u8 = source_cache.get(src_path)
+                            if src_u8 is None:
+                                with Image.open(src_path) as s_im:
+                                    s_rgb = s_im.convert("RGB")
+                                    if s_rgb.size != (tensor_img.shape[2], tensor_img.shape[1]):
+                                        s_rgb = s_rgb.resize((tensor_img.shape[2], tensor_img.shape[1]), Image.Resampling.BILINEAR)
+                                    src_u8 = np.array(s_rgb, dtype=np.uint8)
+                                if len(source_cache) >= 512:
+                                    source_cache.clear()
+                                source_cache[src_path] = src_u8
                         if mode_val == "sd_inpaint" and src_u8 is not None:
                             gen_meta = item.get("generation") or {}
-                            box = gen_meta.get("inpaint_mask_box")
-                            bbox_yx = (float(box[1]), float(box[0]), float(box[3]), float(box[2])) if (box and len(box) == 4) else None
-                            mask_t = generate_dynamic_face_mask(
-                                tensor_img,
-                                bbox=bbox_yx,
-                                target_region=str(gen_meta.get("inpaint_mask_target", "full")),
-                            )
+                            raw_box = item.get("bbox") or gen_meta.get("inpaint_mask_box")
+                            bbox_xyxy: Optional[Tuple[float, float, float, float]] = None
+                            if raw_box and len(raw_box) == 4:
+                                box_t = tuple(float(v) for v in raw_box)
+                                if tuple(round(v, 2) for v in box_t) not in ((0.3, 0.25, 0.7, 0.75), (0.25, 0.25, 0.75, 0.75)):
+                                    bbox_xyxy = box_t  # [xmin, ymin, xmax, ymax] / pixel xyxy expected by generate_dynamic_face_mask
+                            raw_region = gen_meta.get("inpaint_mask_target") or item.get("sub_region")
+                            src_t = torch.from_numpy(src_u8.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
+                            if raw_region:
+                                target_region = _SUBREGION_MAP.get(str(raw_region), str(raw_region))
+                                mask_t = generate_dynamic_face_mask(
+                                    src_t,
+                                    bbox=bbox_xyxy,
+                                    target_region=target_region,
+                                )
+                            else:
+                                diff_mask = (
+                                    np.mean(np.abs(np.rint(np_img * 255.0) - src_u8.astype(np.float32)), axis=2) > 15.0
+                                )
+                                if np.any(diff_mask):
+                                    best_iou = -1.0
+                                    best_mask: Optional[torch.Tensor] = None
+                                    for cand_reg in ("full", "periocular", "lips"):
+                                        cand_m = generate_dynamic_face_mask(src_t, bbox=bbox_xyxy, target_region=cand_reg)
+                                        cand_bin = cand_m[0].numpy() > 0.5
+                                        inter = float(np.sum(cand_bin & diff_mask))
+                                        union = float(np.sum(cand_bin | diff_mask)) + 1e-6
+                                        iou = inter / union
+                                        if iou > best_iou:
+                                            best_iou = iou
+                                            best_mask = cand_m
+                                    mask_t = best_mask
+                                if mask_t is None:
+                                    mask_t = generate_dynamic_face_mask(src_t, bbox=bbox_xyxy, target_region="full")
 
                     report = gate.evaluate_image(
                         tensor_img,
@@ -388,31 +594,13 @@ def main() -> None:
 
         if ref_quantile is not None and raw_manifest.exists():
             logger.info("Calibrating sharpness threshold from %s (quantile=%.2f)...", raw_manifest, ref_quantile)
-            real_sharpness = []
-            with open(raw_manifest, "r", encoding="utf-8") as rf:
-                for line in rf:
-                    if not line.strip():
-                        continue
-                    item = json.loads(line)
-                    fp = item.get("file_path")
-                    if fp and Path(fp).exists():
-                        try:
-                            with Image.open(fp) as img:
-                                np_img = np.array(img.convert("RGB"), dtype=np.float32) / 255.0
-                                tensor_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
-                            real_sharpness.append(compute_laplacian_sharpness(tensor_img))
-                            if len(real_sharpness) >= 50:
-                                break
-                        except Exception:
-                            pass
-            if real_sharpness:
-                min_sharpness_val = calibrate_threshold(real_sharpness, ref_quantile)
-                logger.info("Calibrated min_sharpness: %.2f", min_sharpness_val)
-
-        if min_sharpness_val is None:
+            min_sharpness_val = calibrate_sharpness_from_manifest(raw_manifest, ref_quantile=ref_quantile)
+            logger.info("Calibrated min_sharpness: %.2f", min_sharpness_val)
+        else:
             min_sharpness_val = 10.0
 
     extended_audit = bool(_res(args.extended_audit, "curation.extended_audit", False))
+    perceptual_thresh = _res(None, "curation.perceptual_dedup_threshold", None)
     gate = ImageCurationGate(
         min_sharpness=min_sharpness_val,
         min_clip_score=min_clip_score,
@@ -420,6 +608,7 @@ def main() -> None:
         clip_model_id=clip_model_id,
         face_backend=face_backend,
         dedup=dedup,
+        perceptual_dedup_threshold=int(perceptual_thresh) if perceptual_thresh is not None else None,
         extended_audit=extended_audit,
     )
     curate_image_manifest(
@@ -437,19 +626,32 @@ def curate_dataset(
     report_path: Optional[Path] = None,
     curation_report: Optional[Path] = None,
     gate: Optional[ImageCurationGate] = None,
-    min_sharpness: float = 1.25,
+    min_sharpness: Optional[float] = None,
     face_backend: str = "opencv_haar",
     dedup: bool = True,
+    perceptual_dedup_threshold: Optional[int] = None,
     extended_audit: bool = False,
     raw_manifest: Optional[Path] = None,
+    reference_quantile_sharpness: float = 0.05,
 ) -> Dict[str, Any]:
-    """High-level wrapper to curate a synthetic dataset manifest."""
+    """High-level wrapper to curate a synthetic dataset manifest with optional sharpness auto-calibration."""
+    if min_sharpness is None:
+        if raw_manifest is not None and Path(raw_manifest).exists():
+            min_sharpness_val = calibrate_sharpness_from_manifest(
+                Path(raw_manifest), ref_quantile=reference_quantile_sharpness, fallback=1.25
+            )
+        else:
+            min_sharpness_val = 1.25
+    else:
+        min_sharpness_val = float(min_sharpness)
+
     if gate is None:
         gate = ImageCurationGate(
-            min_sharpness=min_sharpness,
+            min_sharpness=min_sharpness_val,
             face_backend=face_backend,
             clip_enabled=False,
             dedup=dedup,
+            perceptual_dedup_threshold=perceptual_dedup_threshold,
             extended_audit=extended_audit,
         )
     rep = report_path or curation_report

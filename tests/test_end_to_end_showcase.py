@@ -255,3 +255,123 @@ def test_curate_dataset_forwards_extended_audit_and_groups_reasons(tmp_path: Pat
         ],
     )
     assert agg["rejection_counts"] == {"CIELab color drift threshold": 2}
+
+
+@pytest.mark.smoke
+def test_curate_manifest_supports_rv51_schema_celeba_source_and_dhash_dedup(tmp_path: Path) -> None:
+    """curate_image_manifest handles RV5.1 keys (image_path, task, sub_region, source_real_image) and dHash dedup."""
+    from src.pipelines.curate_image_dataset import ImageCurationGate, curate_image_manifest
+
+    celeba_dir = tmp_path / "celeba_hq"
+    celeba_dir.mkdir()
+    src_img = celeba_dir / "0.jpg"
+    yy, xx = np.indices((256, 256))
+    base_arr = np.stack([
+        (110 + (xx // 4) % 70).astype(np.uint8),
+        (100 + (yy // 4) % 60).astype(np.uint8),
+        np.full((256, 256), 120, dtype=np.uint8),
+    ], axis=-1)
+    base_arr[90:150, 90:166, :] = 175
+    Image.fromarray(base_arr).save(src_img)
+
+    # First RV5.1 inpaint image, distinct same-source img2img variant (shares background -> close dHash!),
+    # and an actual near-duplicate re-save of syn1 (1-pixel tweak -> SHA-256 differs, thumbdiff < 2.5)
+    syn1 = tmp_path / "0_inpaint.png"
+    syn_img2img = tmp_path / "0_img2img.png"
+    syn2 = tmp_path / "1_inpaint.png"
+    syn1_arr = base_arr.copy()
+    syn1_arr[160:190, 90:166, :] = np.clip(syn1_arr[160:190, 90:166, :].astype(int) + 5, 0, 255).astype(np.uint8)
+    Image.fromarray(syn1_arr).save(syn1)
+
+    syn_var_arr = base_arr.copy()
+    syn_var_arr[110:190, 100:156, :] = np.clip(syn_var_arr[110:190, 100:156, :].astype(int) + 35, 0, 255).astype(np.uint8)
+    Image.fromarray(syn_var_arr).save(syn_img2img)
+
+    syn2_arr = syn1_arr.copy()
+    syn2_arr[0, 0, 0] = (int(syn2_arr[0, 0, 0]) + 1) % 255  # 1-pixel tweak defeats SHA-256, preserves dHash & thumb
+    Image.fromarray(syn2_arr).save(syn2)
+
+    rv_manifest = tmp_path / "rv51_fake.jsonl"
+    rv_manifest.write_text(
+        json.dumps({"image_path": str(syn1), "task": "inpaint", "sub_region": "mouth", "source_real_image": "0.jpg", "prompt": "smiling"}) + "\n"
+        + json.dumps({"image_path": str(syn_img2img), "task": "img2img", "source_real_image": "0.jpg", "prompt": "natural smile"}) + "\n"
+        + json.dumps({"image_path": str(syn2), "task": "inpaint", "sub_region": "mouth", "source_real_image": "0.jpg", "prompt": "smiling"}) + "\n",
+        encoding="utf-8",
+    )
+
+    out_m = tmp_path / "rv51_curated.jsonl"
+    rep_m = tmp_path / "rv51_report.jsonl"
+    gate = ImageCurationGate(
+        min_sharpness=0.0,
+        clip_enabled=False,
+        face_backend="none",
+        dedup=True,
+        perceptual_dedup_threshold=4,
+        extended_audit=True,
+    )
+    summary = curate_image_manifest(
+        input_manifest=rv_manifest,
+        output_manifest=out_m,
+        gate=gate,
+        curation_report=rep_m,
+        source_dirs=[celeba_dir],
+    )
+    assert summary["total"] == 3
+    assert summary["kept"] == 2
+    assert summary["rejected"] == 1
+    reports = [json.loads(l) for l in rep_m.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert reports[0]["image_id"] == "0_inpaint"
+    assert reports[0]["seam_diff"] is not None
+    assert reports[1]["image_id"] == "0_img2img"
+    assert reports[1]["is_valid"] is True
+    assert "duplicate_perceptual_dhash" in reports[2]["rejection_reasons"]
+
+
+@pytest.mark.smoke
+def test_curate_manifest_ignores_static_config_inpaint_box_and_uses_source_mask(tmp_path: Path) -> None:
+    """When provenance stores dummy static inpaint_mask_box=[0.3, 0.25, 0.7, 0.75], curation uses source-detected mask."""
+    from src.models.diffusion.stable_diffusion_engine import generate_dynamic_face_mask
+    from src.pipelines.curate_image_dataset import ImageCurationGate, curate_image_manifest
+
+    ffhq_sample = Path("data/raw/faces/ffhq/00004.png")
+    if not ffhq_sample.is_file():
+        pytest.skip("FFHQ 00004 sample not available")
+
+    src_u8 = np.array(Image.open(ffhq_sample).convert("RGB").resize((512, 512)), dtype=np.uint8)
+    src_t = torch.from_numpy(src_u8.astype(np.float32) / 255.0).permute(2, 0, 1)
+    true_mask = generate_dynamic_face_mask(src_t, bbox=None, blur_radius=18, target_region="full")
+    # Paint an in-mask modification with feathered blend matching generation (no boundary seam!)
+    interior = src_t.clone()
+    interior[0] = torch.clamp(interior[0] + 0.08, 0.0, 1.0)
+    syn_t = true_mask * interior + (1.0 - true_mask) * src_t
+    syn_u8 = np.rint(syn_t.permute(1, 2, 0).numpy() * 255.0).astype(np.uint8)
+
+    raw_p = tmp_path / "00004.png"
+    syn_p = tmp_path / "syn_00004.png"
+    Image.fromarray(src_u8).save(raw_p)
+    Image.fromarray(syn_u8).save(syn_p)
+
+    raw_m = tmp_path / "raw.jsonl"
+    raw_m.write_text(json.dumps({"image_id": "ffhq_00004", "file_path": str(raw_p), "bbox": [0, 0, 1024, 1024]}) + "\n", encoding="utf-8")
+    fake_m = tmp_path / "fake.jsonl"
+    fake_m.write_text(
+        json.dumps(
+            {
+                "image_id": "fake_00004",
+                "manipulation_type": "sd_inpaint",
+                "source_real_id": "ffhq_00004",
+                "file_path": str(syn_p),
+                "generation": {"inpaint_mask_box": [0.3, 0.25, 0.7, 0.75], "inpaint_mask_target": "full"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    out_m = tmp_path / "curated.jsonl"
+    rep_m = tmp_path / "rep.jsonl"
+    gate = ImageCurationGate(min_sharpness=0.0, clip_enabled=False, face_backend="opencv_haar", dedup=False, extended_audit=True)
+    summary = curate_image_manifest(fake_m, out_m, gate, curation_report=rep_m, raw_manifest=raw_m)
+    assert summary["kept"] == 1
+    rep = json.loads(rep_m.read_text(encoding="utf-8").strip())
+    assert rep["seam_diff"] is not None
+    assert rep["seam_diff"] < 15.0

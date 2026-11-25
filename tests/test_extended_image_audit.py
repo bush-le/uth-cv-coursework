@@ -208,3 +208,63 @@ def test_audit_image_extended_handles_all_three_modes() -> None:
     rep_inp = audit_image_extended(img, mode="sd_inpaint", source_image=img, mask=mask, image_id="inp_1")
     assert rep_inp.seam_diff is not None
     assert rep_inp.is_seamless is True
+
+
+@pytest.mark.smoke
+def test_sunglasses_inpaint_permits_dark_lenses_but_rejects_bg_drift() -> None:
+    """Sunglasses inpaint tolerates dark lens delta-E inside mask while catching background drift."""
+    src = np.full((256, 256, 3), 180, dtype=np.uint8)
+    mask = torch.zeros((1, 256, 256), dtype=torch.float32)
+    mask[:, 70:115, 75:181] = 1.0
+
+    # Valid black sunglasses inside mask, feathered seam, preserved background
+    syn_ok = src.copy()
+    syn_ok[80:105, 85:171, :] = 20
+    rep_ok = audit_image_extended(
+        syn_ok,
+        mode="sd_inpaint",
+        prompt="wearing stylish black sunglasses, realistic skin",
+        source_image=src,
+        mask=mask,
+        min_sharpness=0.0,
+        run_geometry=False,
+    )
+    assert not any("CIELab color drift" in r for r in rep_ok.rejection_reasons)
+
+    # Corrupted background outside mask must still fail Background CIELab drift
+    syn_bg_bad = syn_ok.copy()
+    syn_bg_bad[0:60, :, :] = 40
+    rep_bad = audit_image_extended(
+        syn_bg_bad,
+        mode="sd_inpaint",
+        prompt="wearing stylish black sunglasses",
+        source_image=src,
+        mask=mask,
+        min_sharpness=0.0,
+        run_geometry=False,
+    )
+    assert any("Background CIELab drift" in r for r in rep_bad.rejection_reasons)
+    assert rep_bad.is_valid is False
+
+
+@pytest.mark.smoke
+def test_verify_eye_pair_clear_eyes_not_flagged_sunglasses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Portraits with 2 detected eyes must not falsely set sunglasses_occluded without glasses prompt."""
+    class _StubTwoEyes:
+        def empty(self) -> bool:
+            return False
+
+        def detectMultiScale(self, *args, **kwargs):
+            return np.array([(25, 25, 24, 24), (115, 25, 24, 24)], dtype=np.int32)
+
+    monkeypatch.setattr(
+        "src.common.metrics._get_eye_classifiers",
+        lambda: (_StubTwoEyes(), _StubTwoEyes()),
+    )
+    img = np.full((256, 256, 3), 180, dtype=np.uint8)
+    # Dark eyebrows/shadow band (~40% dark) with both eyes clearly visible
+    img[78:100, 50:205, :] = 20
+    res = verify_eye_pair(img, face_bbox_xyxy=(32, 32, 224, 224), prompt="a smiling mouth")
+    assert res["eyes_detected"] is True
+    assert res["sunglasses_occluded"] is False
+    assert res["passed"] is True
