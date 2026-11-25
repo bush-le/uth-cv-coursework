@@ -914,3 +914,65 @@ def verify_eye_pair(
         "reasons": reasons,
     }
 
+
+def compute_fft_high_freq_ratio(
+    image: Union[np.ndarray, torch.Tensor],
+    cutoff_ratio: float = 0.25,
+    min_ratio: float = 0.02,
+    max_ratio: float = 0.65,
+    bbox_xyxy: Optional[Sequence[int]] = None,
+) -> Dict[str, Any]:
+    """Measure 2D FFT high-frequency energy ratio to detect waxy smooth or crunchy noisy textures.
+
+    Args:
+        image: Input RGB image as (H, W, 3) array or (3, H, W) tensor.
+        cutoff_ratio: Normalized radial frequency cutoff relative to half min(H, W).
+        min_ratio: Minimum ratio below which skin/texture is flagged as waxy/over-smoothed.
+        max_ratio: Maximum ratio above which texture is flagged as crunchy/over-sharpened.
+        bbox_xyxy: Optional ROI bounding box [x1, y1, x2, y2] in pixel coordinates.
+
+    Returns:
+        Dictionary with high_freq_ratio, texture_flag ('waxy_low_freq'|'normal'|'crunchy_high_freq'), and passed.
+    """
+    import cv2
+
+    rgb = _to_rgb_uint8(image)
+    h, w = rgb.shape[:2]
+    if bbox_xyxy is not None and len(bbox_xyxy) == 4:
+        x1, y1, x2, y2 = [int(round(v)) for v in bbox_xyxy]
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w, max(x1 + 2, x2)), min(h, max(y1 + 2, y2))
+        rgb = rgb[y1:y2, x1:x2]
+
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).astype(np.float32)
+    gh, gw = gray.shape[:2]
+    if gh < 4 or gw < 4:
+        return {"high_freq_ratio": 0.0, "texture_flag": "waxy_low_freq", "passed": False}
+
+    centered = gray - float(np.mean(gray))
+    spectrum = np.fft.fftshift(np.fft.fft2(centered))
+    power = np.abs(spectrum) ** 2
+    total_energy = float(np.sum(power))
+    if total_energy <= 1e-12:
+        return {"high_freq_ratio": 0.0, "texture_flag": "waxy_low_freq", "passed": False}
+
+    cy, cx = gh / 2.0, gw / 2.0
+    yy, xx = np.ogrid[:gh, :gw]
+    dist = np.sqrt((yy - cy) ** 2 + (xx - cx) ** 2)
+    radius = float(cutoff_ratio) * (min(gh, gw) / 2.0)
+    high_energy = float(np.sum(power[dist > radius]))
+    ratio = float(np.clip(high_energy / total_energy, 0.0, 1.0))
+
+    if ratio < min_ratio:
+        flag = "waxy_low_freq"
+    elif ratio > max_ratio:
+        flag = "crunchy_high_freq"
+    else:
+        flag = "normal"
+
+    return {
+        "high_freq_ratio": ratio,
+        "texture_flag": flag,
+        "passed": flag == "normal",
+    }
+
