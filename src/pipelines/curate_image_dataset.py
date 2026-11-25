@@ -13,7 +13,7 @@ import argparse
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Optional, Sequence, Set, Union
 
 import numpy as np
 from PIL import Image
@@ -23,12 +23,14 @@ from src.common.config import cfg_get, load_config
 from src.common.logger import get_logger
 from src.common.metrics import (
     ClipScorer,
+    audit_image_extended,
     calibrate_threshold,
     compute_laplacian_sharpness,
     detect_faces,
     verify_facial_geometry,
 )
 from src.data.provenance import file_sha256
+from src.models.diffusion.stable_diffusion_engine import generate_dynamic_face_mask
 
 logger = get_logger(__name__)
 
@@ -43,9 +45,18 @@ class ImageCurationReport:
     clip_score: Optional[float]
     face_detected: bool
     rejection_reasons: List[str] = field(default_factory=list)
+    eye_count: Optional[int] = None
+    sunglasses_occluded: Optional[bool] = None
+    bilateral_symmetry: Optional[float] = None
+    fft_high_freq_ratio: Optional[float] = None
+    texture_flag: Optional[str] = None
+    delta_e_lab: Optional[float] = None
+    structure_corr: Optional[float] = None
+    seam_diff: Optional[float] = None
+    is_seamless: Optional[bool] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        payload: Dict[str, Any] = {
             "image_id": self.image_id,
             "is_valid": self.is_valid,
             "sharpness_score": self.sharpness_score,
@@ -53,6 +64,21 @@ class ImageCurationReport:
             "face_detected": self.face_detected,
             "rejection_reasons": self.rejection_reasons,
         }
+        for key in (
+            "eye_count",
+            "sunglasses_occluded",
+            "bilateral_symmetry",
+            "fft_high_freq_ratio",
+            "texture_flag",
+            "delta_e_lab",
+            "structure_corr",
+            "seam_diff",
+            "is_seamless",
+        ):
+            val = getattr(self, key)
+            if val is not None:
+                payload[key] = val
+        return payload
 
 
 class ImageCurationGate:
@@ -67,12 +93,14 @@ class ImageCurationGate:
         device: str = "cpu",
         face_backend: str = "none",
         dedup: bool = False,
+        extended_audit: bool = False,
     ) -> None:
         self.min_sharpness = min_sharpness
         self.min_clip_score = min_clip_score
         self.clip_enabled = clip_enabled
         self.face_backend = face_backend
         self.dedup = dedup
+        self.extended_audit = extended_audit
         self._clip_scorer: Optional[ClipScorer] = None
         if self.clip_enabled:
             self._clip_scorer = ClipScorer(model_id=clip_model_id, device=device)
@@ -84,23 +112,13 @@ class ImageCurationGate:
         face_detected: Optional[bool] = None,
         image_id: str = "unknown",
         bbox_xyxy: Optional[Sequence[float]] = None,
+        mode: str = "sd_text2img",
+        source_image: Optional[Union[np.ndarray, torch.Tensor]] = None,
+        mask: Optional[Union[np.ndarray, torch.Tensor]] = None,
     ) -> ImageCurationReport:
-        """Evaluate a synthetic face image against sharpness, CLIP alignment, and face detection.
-
-        Args:
-            image: Tensor of shape (3, H, W) in [0.0, 1.0].
-            prompt: Text prompt used for generation.
-            face_detected: Boolean indicating if a face was detected, or None to detect automatically.
-            image_id: String identifier.
-            bbox_xyxy: Optional bounding box [x1, y1, x2, y2] to isolate facial ROI for sharpness.
-
-        Returns:
-            ImageCurationReport with validation decision.
-        """
+        """Evaluate a synthetic face image against sharpness, CLIP alignment, face detection, and optional extended audit."""
         sharpness = compute_laplacian_sharpness(image, bbox_xyxy=bbox_xyxy)
 
-
-        # Detect face if not explicitly provided
         if face_detected is None:
             if self.face_backend == "none":
                 face_detected_val = True
@@ -127,6 +145,37 @@ class ImageCurationGate:
         if self.clip_enabled and clip_score is not None and clip_score < self.min_clip_score:
             reasons.append(f"CLIP score {clip_score:.3f} below threshold {self.min_clip_score:.3f}")
 
+        ext_kwargs: Dict[str, Any] = {}
+        if self.extended_audit:
+            ext_rep = audit_image_extended(
+                image,
+                mode=mode,
+                prompt=prompt,
+                source_image=source_image,
+                mask=mask,
+                clip_scorer=None,  # Already scored above if clip_enabled
+                min_sharpness=self.min_sharpness,
+                image_id=image_id,
+            )
+            ext_kwargs = {
+                "eye_count": ext_rep.eye_count,
+                "sunglasses_occluded": ext_rep.sunglasses_occluded,
+                "bilateral_symmetry": ext_rep.bilateral_symmetry,
+                "fft_high_freq_ratio": ext_rep.fft_high_freq_ratio,
+                "texture_flag": ext_rep.texture_flag,
+                "delta_e_lab": ext_rep.delta_e_lab,
+                "structure_corr": ext_rep.structure_corr,
+                "seam_diff": ext_rep.seam_diff,
+                "is_seamless": ext_rep.is_seamless,
+            }
+            for r in ext_rep.rejection_reasons:
+                if self.face_backend == "none" and any(
+                    k in r for k in ("No face", "Multiple faces", "Abnormal facial", "Face ", "Forehead", "Chin", "Severe ", "Expected >= 2 eyes", "Low bilateral")
+                ):
+                    continue
+                if r not in reasons and not r.startswith("Sharpness "):
+                    reasons.append(r)
+
         is_valid = len(reasons) == 0
         return ImageCurationReport(
             image_id=image_id,
@@ -135,6 +184,7 @@ class ImageCurationGate:
             clip_score=clip_score,
             face_detected=face_detected_val,
             rejection_reasons=reasons,
+            **ext_kwargs,
         )
 
 
@@ -143,11 +193,23 @@ def curate_image_manifest(
     output_manifest: Path,
     gate: ImageCurationGate,
     curation_report: Optional[Path] = None,
+    raw_manifest: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """Filter raw image manifest entries through the curation gate."""
     output_manifest.parent.mkdir(parents=True, exist_ok=True)
     if curation_report is not None:
         curation_report.parent.mkdir(parents=True, exist_ok=True)
+
+    raw_lookup: Dict[str, Path] = {}
+    if gate.extended_audit and raw_manifest is not None and Path(raw_manifest).exists():
+        with open(raw_manifest, "r", encoding="utf-8") as rf:
+            for line in rf:
+                if not line.strip():
+                    continue
+                rec = json.loads(line)
+                rid, rfp = rec.get("image_id"), rec.get("file_path")
+                if rid and rfp and Path(rfp).exists():
+                    raw_lookup[str(rid)] = Path(rfp)
 
     kept_count = 0
     rejected_count = 0
@@ -204,10 +266,31 @@ def curate_image_manifest(
                         np_img = np.array(img.convert("RGB"), dtype=np.float32) / 255.0
                         tensor_img = torch.from_numpy(np_img).permute(2, 0, 1).contiguous()
 
+                    src_u8 = None
+                    mask_t = None
+                    mode_val = item.get("manipulation_type") or (item.get("generation") or {}).get("mode") or "sd_text2img"
+                    if gate.extended_audit and mode_val in ("sd_img2img", "sd_inpaint"):
+                        src_id = item.get("source_real_id")
+                        if src_id and str(src_id) in raw_lookup:
+                            with Image.open(raw_lookup[str(src_id)]) as s_im:
+                                src_u8 = np.array(s_im.convert("RGB"), dtype=np.uint8)
+                        if mode_val == "sd_inpaint" and src_u8 is not None:
+                            gen_meta = item.get("generation") or {}
+                            box = gen_meta.get("inpaint_mask_box")
+                            bbox_yx = (float(box[1]), float(box[0]), float(box[3]), float(box[2])) if (box and len(box) == 4) else None
+                            mask_t = generate_dynamic_face_mask(
+                                tensor_img,
+                                bbox=bbox_yx,
+                                target_region=str(gen_meta.get("inpaint_mask_target", "full")),
+                            )
+
                     report = gate.evaluate_image(
                         tensor_img,
                         prompt=item.get("prompt", ""),
                         image_id=img_id,
+                        mode=mode_val,
+                        source_image=src_u8,
+                        mask=mask_t,
                     )
                     report_lines.append(json.dumps(report.to_dict()) + "\n")
 
@@ -256,6 +339,7 @@ def main() -> None:
     parser.add_argument("--min-clip", type=float, default=None)
     parser.add_argument("--enable-clip", action="store_true", default=None)
     parser.add_argument("--disable-clip", action="store_true", default=None)
+    parser.add_argument("--extended-audit", action="store_true", default=False)
     args = parser.parse_args()
 
     cfg: Dict[str, Any] = {}
@@ -335,12 +419,14 @@ def main() -> None:
         clip_model_id=clip_model_id,
         face_backend=face_backend,
         dedup=dedup,
+        extended_audit=bool(args.extended_audit),
     )
     curate_image_manifest(
         input_manifest=in_manifest,
         output_manifest=out_manifest,
         gate=gate,
         curation_report=curation_report,
+        raw_manifest=raw_manifest,
     )
 
 

@@ -72,8 +72,12 @@ case "${STAGE}" in
         echo "Launching dinoViT inference pipeline..."
         ${PYTHON} -m src.pipelines.infer --config "${CONFIG}" "${@:3}"
         ;;
+    "showcase"|"end-to-end")
+        echo "[End-to-End] Running N-image SD1.5 Generate -> Curate/Audit -> Mine/Infer showcase..."
+        ${PYTHON} -m src.pipelines.run_end_to_end_showcase "${@:2}"
+        ;;
     *)
-        echo "Error: Unknown stage '${STAGE}'. Allowed: clean-10k, block1, active-learning, generate, curate, mine, train, eval, infer."
+        echo "Error: Unknown stage '${STAGE}'. Allowed: clean-10k, block1, active-learning, generate, curate, mine, train, eval, infer, showcase."
         exit 1
         ;;
 esac
