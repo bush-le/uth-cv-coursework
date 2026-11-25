@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 import torch
 
-from src.common.metrics import compute_fft_high_freq_ratio, verify_eye_pair
+from src.common.metrics import (
+    ExtendedImageAuditReport,
+    audit_image_extended,
+    compute_fft_high_freq_ratio,
+    compute_pair_color_and_structure,
+    verify_eye_pair,
+)
 
 
 @pytest.mark.smoke
@@ -70,3 +76,49 @@ def test_fft_high_freq_ratio_distinguishes_smooth_vs_noisy() -> None:
     assert res_smooth["high_freq_ratio"] < res_crunchy["high_freq_ratio"]
     assert res_crunchy["texture_flag"] == "crunchy_high_freq"
     assert res_crunchy["passed"] is False
+
+
+@pytest.mark.smoke
+def test_pair_color_and_structure_resizes_and_checks_seam() -> None:
+    """Paired color/structure metric resizes mismatched source images and detects seam/color drift."""
+    src = np.full((512, 512, 3), 150, dtype=np.uint8)
+    src[100:400, 150:350, 0] = 200
+    src_hi = np.repeat(np.repeat(src, 2, axis=0), 2, axis=1)
+
+    syn_ok = src.copy()
+    mask = torch.zeros((1, 512, 512), dtype=torch.float32)
+    mask[:, 280:360, 180:330] = 1.0
+    res_ok = compute_pair_color_and_structure(syn_ok, src_hi, mask=mask)
+    assert res_ok["delta_e_lab"] < 1.0
+    assert res_ok["structure_corr"] > 0.90
+    assert res_ok["is_seamless"] is True
+    assert res_ok["passed"] is True
+
+    syn_bad = src.copy()
+    syn_bad[280:360, 180:330, :] = [20, 220, 240]
+    res_bad = compute_pair_color_and_structure(syn_bad, src_hi, mask=mask, max_delta_e=10.0)
+    assert res_bad["delta_e_lab"] > 10.0
+    assert res_bad["is_seamless"] is False
+    assert res_bad["passed"] is False
+
+
+@pytest.mark.smoke
+def test_audit_image_extended_handles_all_three_modes() -> None:
+    """Unified audit_image_extended dispatches mode-specific checks across text2img, img2img, and inpaint."""
+    img = torch.full((3, 512, 512), 0.6, dtype=torch.float32)
+    rep_t2i = audit_image_extended(img, mode="sd_text2img", prompt="portrait", clip_scorer=None, image_id="t2i_1")
+    assert isinstance(rep_t2i, ExtendedImageAuditReport)
+    assert rep_t2i.mode == "sd_text2img"
+    assert rep_t2i.clip_score is None
+    assert rep_t2i.delta_e_lab is None
+    assert rep_t2i.seam_diff is None
+
+    rep_i2i = audit_image_extended(img, mode="sd_img2img", source_image=img, image_id="i2i_1")
+    assert rep_i2i.delta_e_lab == pytest.approx(0.0, abs=1e-4)
+    assert rep_i2i.seam_diff is None
+
+    mask = torch.zeros((1, 512, 512), dtype=torch.float32)
+    mask[:, 150:350, 150:350] = 1.0
+    rep_inp = audit_image_extended(img, mode="sd_inpaint", source_image=img, mask=mask, image_id="inp_1")
+    assert rep_inp.seam_diff is not None
+    assert rep_inp.is_seamless is True

@@ -1,5 +1,6 @@
 """Evaluation and quality curation metrics for 2D Deepfake Detection and Hard-Sample Mining."""
 
+from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import threading
 import numpy as np
@@ -975,4 +976,215 @@ def compute_fft_high_freq_ratio(
         "texture_flag": flag,
         "passed": flag == "normal",
     }
+
+
+def compute_pair_color_and_structure(
+    synthetic: Union[np.ndarray, torch.Tensor],
+    source: Union[np.ndarray, torch.Tensor],
+    mask: Optional[Union[np.ndarray, torch.Tensor]] = None,
+    max_delta_e: float = 18.0,
+    min_structure_corr: float = 0.35,
+    max_seam_diff: float = 35.0,
+) -> Dict[str, Any]:
+    """Compare synthetic face against its source image via CIELab delta-E, structure correlation, and mask seam.
+
+    Args:
+        synthetic: Generated RGB image as (H, W, 3) array or (3, H, W) tensor.
+        source: Source real RGB image as (H, W, 3) array or (3, H, W) tensor.
+        mask: Optional inpaint mask of shape (1, H, W) or (H, W) in [0.0, 1.0].
+        max_delta_e: Maximum acceptable mean CIELab color drift.
+        min_structure_corr: Minimum acceptable grayscale Pearson correlation.
+        max_seam_diff: Maximum acceptable boundary gradient difference passed to verify_boundary_seam.
+
+    Returns:
+        Dictionary with delta_e_lab, structure_corr, seam_diff, is_seamless, passed, and reasons.
+    """
+    import cv2
+
+    syn_rgb = _to_rgb_uint8(synthetic)
+    src_rgb = _to_rgb_uint8(source)
+    sh, sw = syn_rgb.shape[:2]
+    if src_rgb.shape[:2] != (sh, sw):
+        src_rgb = cv2.resize(src_rgb, (sw, sh), interpolation=cv2.INTER_AREA)
+
+    # Convert RGB -> CIELab scaled to standard L* in [0, 100], a*/b* in [-128, 127]
+    syn_lab = cv2.cvtColor(syn_rgb, cv2.COLOR_RGB2Lab).astype(np.float32)
+    src_lab = cv2.cvtColor(src_rgb, cv2.COLOR_RGB2Lab).astype(np.float32)
+    for lab in (syn_lab, src_lab):
+        lab[:, :, 0] *= 100.0 / 255.0
+        lab[:, :, 1] -= 128.0
+        lab[:, :, 2] -= 128.0
+    lab_diff_map = np.linalg.norm(syn_lab - src_lab, axis=-1)
+
+    # Grayscale structural Pearson correlation
+    syn_g = cv2.cvtColor(syn_rgb, cv2.COLOR_RGB2GRAY).astype(np.float32)
+    src_g = cv2.cvtColor(src_rgb, cv2.COLOR_RGB2GRAY).astype(np.float32)
+    syn_std, src_std = float(np.std(syn_g)), float(np.std(src_g))
+    if syn_std < 1e-6 and src_std < 1e-6:
+        structure_corr = 1.0 if float(np.mean(np.abs(syn_g - src_g))) < 1e-3 else 0.0
+    elif syn_std < 1e-6 or src_std < 1e-6:
+        structure_corr = 0.0
+    else:
+        corr = float(np.corrcoef(syn_g.ravel(), src_g.ravel())[0, 1])
+        structure_corr = float(np.clip(corr if np.isfinite(corr) else 0.0, -1.0, 1.0))
+
+    seam_diff: Optional[float] = None
+    is_seamless: Optional[bool] = None
+    m_f32: Optional[np.ndarray] = None
+    if mask is not None:
+        if isinstance(mask, torch.Tensor):
+            m_arr = mask.detach().cpu().numpy()
+        else:
+            m_arr = np.asarray(mask)
+        if m_arr.ndim == 4:
+            m_arr = m_arr[0]
+        if m_arr.ndim == 3:
+            m_arr = m_arr[0] if m_arr.shape[0] <= 3 else m_arr[:, :, 0]
+        m_f32 = m_arr.astype(np.float32)
+        if float(np.max(m_f32)) > 1.0 + 1e-3:
+            m_f32 = m_f32 / 255.0
+        if m_f32.shape[:2] != (sh, sw):
+            m_f32 = cv2.resize(m_f32, (sw, sh), interpolation=cv2.INTER_NEAREST)
+
+        syn_t = torch.from_numpy(syn_rgb.astype(np.float32) / 255.0).permute(2, 0, 1)
+        src_t = torch.from_numpy(src_rgb.astype(np.float32) / 255.0).permute(2, 0, 1)
+        mask_t = torch.from_numpy(np.clip(m_f32, 0.0, 1.0)).unsqueeze(0)
+        is_seamless_val, seam_diff_val = verify_boundary_seam(
+            syn_t, src_t, mask_t, max_gradient_diff=max_seam_diff
+        )
+        is_seamless = bool(is_seamless_val)
+        seam_diff = float(seam_diff_val)
+
+    if m_f32 is not None and np.any(m_f32 > 0.5):
+        delta_e_lab = float(np.mean(lab_diff_map[m_f32 > 0.5]))
+    else:
+        delta_e_lab = float(np.mean(lab_diff_map))
+
+    reasons: List[str] = []
+    if delta_e_lab > max_delta_e:
+        reasons.append(f"CIELab color drift {delta_e_lab:.2f} exceeds {max_delta_e:.2f}")
+    if structure_corr < min_structure_corr:
+        reasons.append(f"Structure correlation {structure_corr:.3f} below {min_structure_corr:.2f}")
+    if is_seamless is False and seam_diff is not None:
+        reasons.append(f"Boundary seam discontinuity {seam_diff:.2f} exceeds {max_seam_diff:.2f}")
+
+    return {
+        "delta_e_lab": delta_e_lab,
+        "structure_corr": structure_corr,
+        "seam_diff": seam_diff,
+        "is_seamless": is_seamless,
+        "passed": len(reasons) == 0,
+        "reasons": reasons,
+    }
+
+
+@dataclass
+class ExtendedImageAuditReport:
+    """Comprehensive mode-aware quality audit report for synthetic or real faces."""
+
+    image_id: str
+    mode: str
+    sharpness_score: float
+    geometry_valid: bool
+    eye_count: int
+    sunglasses_occluded: bool
+    bilateral_symmetry: float
+    fft_high_freq_ratio: float
+    texture_flag: str
+    clip_score: Optional[float]
+    delta_e_lab: Optional[float]
+    structure_corr: Optional[float]
+    seam_diff: Optional[float]
+    is_seamless: Optional[bool]
+    is_valid: bool
+    rejection_reasons: List[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+def audit_image_extended(
+    image: Union[np.ndarray, torch.Tensor],
+    mode: str = "sd_text2img",
+    prompt: str = "",
+    source_image: Optional[Union[np.ndarray, torch.Tensor]] = None,
+    mask: Optional[Union[np.ndarray, torch.Tensor]] = None,
+    clip_scorer: Optional[ClipScorer] = None,
+    min_clip_score: float = 0.20,
+    min_sharpness: float = 3.0,
+    image_id: str = "unknown",
+) -> ExtendedImageAuditReport:
+    """Run unified mode-aware extended quality checks across text2img, img2img, and inpaint.
+
+    Args:
+        image: Target RGB image as (H, W, 3) array or (3, H, W) tensor.
+        mode: Generation/source mode ('real', 'sd_text2img', 'sd_img2img', 'sd_inpaint').
+        prompt: Generation prompt (used only when clip_scorer is provided).
+        source_image: Optional source real image for paired img2img/inpaint evaluation.
+        mask: Optional inpaint mask of shape (1, H, W) or (H, W) for sd_inpaint seam check.
+        clip_scorer: Optional ClipScorer instance; when None, skips CLIP scoring offline-safely.
+        min_clip_score: Minimum acceptable CLIP alignment score when clip_scorer is enabled.
+        min_sharpness: Minimum Laplacian sharpness threshold.
+        image_id: Identifier for reporting.
+
+    Returns:
+        ExtendedImageAuditReport containing all applicable metrics and aggregated validity.
+    """
+    rgb_u8 = _to_rgb_uint8(image)
+    tensor_chw = torch.from_numpy(rgb_u8.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
+
+    sharpness = compute_laplacian_sharpness(tensor_chw)
+    geom_valid, geom_reasons = verify_facial_geometry(rgb_u8)
+    eye_res = verify_eye_pair(rgb_u8)
+    fft_res = compute_fft_high_freq_ratio(rgb_u8)
+
+    reasons: List[str] = []
+    if sharpness < min_sharpness:
+        reasons.append(f"Sharpness {sharpness:.2f} below {min_sharpness:.2f}")
+    if not geom_valid:
+        reasons.extend(geom_reasons)
+    if not eye_res["passed"]:
+        reasons.extend(eye_res["reasons"])
+    if not fft_res["passed"]:
+        reasons.append(f"FFT texture flag {fft_res['texture_flag']} ({fft_res['high_freq_ratio']:.3f})")
+
+    clip_score: Optional[float] = None
+    if clip_scorer is not None and prompt:
+        clip_score = float(clip_scorer.score(tensor_chw, prompt))
+        if clip_score < min_clip_score:
+            reasons.append(f"CLIP score {clip_score:.3f} below {min_clip_score:.3f}")
+
+    delta_e_lab: Optional[float] = None
+    structure_corr: Optional[float] = None
+    seam_diff: Optional[float] = None
+    is_seamless: Optional[bool] = None
+
+    if mode in ("sd_img2img", "sd_inpaint") and source_image is not None:
+        pair_mask = mask if mode == "sd_inpaint" else None
+        pair_res = compute_pair_color_and_structure(rgb_u8, source_image, mask=pair_mask)
+        delta_e_lab = float(pair_res["delta_e_lab"])
+        structure_corr = float(pair_res["structure_corr"])
+        seam_diff = pair_res["seam_diff"]
+        is_seamless = pair_res["is_seamless"]
+        if not pair_res["passed"]:
+            reasons.extend(pair_res["reasons"])
+
+    return ExtendedImageAuditReport(
+        image_id=image_id,
+        mode=mode,
+        sharpness_score=float(sharpness),
+        geometry_valid=bool(geom_valid),
+        eye_count=int(eye_res["eye_count"]),
+        sunglasses_occluded=bool(eye_res["sunglasses_occluded"]),
+        bilateral_symmetry=float(eye_res["bilateral_symmetry"]),
+        fft_high_freq_ratio=float(fft_res["high_freq_ratio"]),
+        texture_flag=str(fft_res["texture_flag"]),
+        clip_score=clip_score,
+        delta_e_lab=delta_e_lab,
+        structure_corr=structure_corr,
+        seam_diff=seam_diff,
+        is_seamless=is_seamless,
+        is_valid=len(reasons) == 0,
+        rejection_reasons=reasons,
+    )
 
