@@ -1,6 +1,6 @@
 """Evaluation and quality curation metrics for 2D Deepfake Detection and Hard-Sample Mining."""
 
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import threading
 import numpy as np
 import torch
@@ -747,4 +747,170 @@ def simulate_cascaded_defense(
             results["false_positive_rate"] = 0.0
 
     return results
+
+
+_HAAR_EYE_CLASSIFIER: Optional[Any] = None
+_HAAR_GLASSES_EYE_CLASSIFIER: Optional[Any] = None
+
+
+def _to_rgb_uint8(image: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
+    """Convert a (C, H, W) or (H, W, C) image tensor/array to a contiguous (H, W, 3) RGB uint8 array.
+
+    Args:
+        image: Input RGB/grayscale image as torch.Tensor or np.ndarray.
+
+    Returns:
+        Contiguous NumPy array of shape (H, W, 3) with dtype uint8 in [0, 255].
+    """
+    if isinstance(image, torch.Tensor):
+        t = image.detach().cpu()
+        if t.ndim == 4:
+            t = t[0]
+        if t.ndim == 3 and t.shape[0] in (1, 3):
+            t = t.permute(1, 2, 0)
+        arr = t.numpy()
+    else:
+        arr = np.asarray(image)
+        if arr.ndim == 4:
+            arr = arr[0]
+        if arr.ndim == 3 and arr.shape[0] in (1, 3) and arr.shape[-1] not in (1, 3):
+            arr = np.transpose(arr, (1, 2, 0))
+
+    if np.issubdtype(arr.dtype, np.floating):
+        finite = arr[np.isfinite(arr)]
+        max_v = float(np.max(finite)) if finite.size else 0.0
+        scale = 255.0 if max_v <= 1.0 + 1e-3 else 1.0
+        arr_u8 = np.clip(np.nan_to_num(arr, nan=0.0) * scale, 0.0, 255.0).astype(np.uint8)
+    else:
+        arr_u8 = np.clip(arr, 0, 255).astype(np.uint8)
+
+    if arr_u8.ndim == 2:
+        arr_u8 = np.repeat(arr_u8[:, :, None], 3, axis=2)
+    elif arr_u8.shape[2] == 1:
+        arr_u8 = np.repeat(arr_u8, 3, axis=2)
+    elif arr_u8.shape[2] > 3:
+        arr_u8 = arr_u8[:, :, :3]
+
+    return np.ascontiguousarray(arr_u8)
+
+
+def _get_eye_classifiers() -> Tuple[Any, Any]:
+    """Return cached thread-safe singleton Haar classifiers for eyes and eyeglasses."""
+    global _HAAR_EYE_CLASSIFIER, _HAAR_GLASSES_EYE_CLASSIFIER
+    with _HAAR_LOCK:
+        if _HAAR_EYE_CLASSIFIER is None or _HAAR_GLASSES_EYE_CLASSIFIER is None:
+            import cv2
+
+            _HAAR_EYE_CLASSIFIER = cv2.CascadeClassifier(
+                cv2.data.haarcascades + "haarcascade_eye.xml"
+            )
+            _HAAR_GLASSES_EYE_CLASSIFIER = cv2.CascadeClassifier(
+                cv2.data.haarcascades + "haarcascade_eye_tree_eyeglasses.xml"
+            )
+        return _HAAR_EYE_CLASSIFIER, _HAAR_GLASSES_EYE_CLASSIFIER
+
+
+def _deduplicate_boxes_xywh(boxes: Sequence[Sequence[int]], iou_thresh: float = 0.30) -> List[Tuple[int, int, int, int]]:
+    """Suppress overlapping (x, y, w, h) boxes greedily by area."""
+    ordered = sorted((tuple(int(v) for v in b) for b in boxes), key=lambda b: b[2] * b[3], reverse=True)
+    kept: List[Tuple[int, int, int, int]] = []
+    for cand in ordered:
+        if all(compute_iou(cand, prev, box_format="xywh") <= iou_thresh for prev in kept):
+            kept.append(cand)
+    return kept
+
+
+def verify_eye_pair(
+    image: Union[np.ndarray, torch.Tensor],
+    face_bbox_xyxy: Optional[Sequence[int]] = None,
+    min_symmetry: float = 0.55,
+) -> Dict[str, Any]:
+    """Audit eye-pair presence, sunglasses occlusion, and bilateral facial symmetry.
+
+    Args:
+        image: Input RGB image as (H, W, 3) array or (3, H, W) tensor.
+        face_bbox_xyxy: Optional face bounding box [x1, y1, x2, y2] in pixel coordinates.
+        min_symmetry: Minimum acceptable bilateral symmetry score in [0.0, 1.0].
+
+    Returns:
+        Dictionary containing eye_count, eyes_detected, sunglasses_occluded,
+        bilateral_symmetry, passed, and rejection reasons.
+    """
+    import cv2
+
+    rgb = _to_rgb_uint8(image)
+    h, w = rgb.shape[:2]
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+
+    # Resolve face ROI (explicit box -> Haar detector -> full canvas fallback)
+    if face_bbox_xyxy is not None and len(face_bbox_xyxy) == 4:
+        x1, y1, x2, y2 = [int(round(v)) for v in face_bbox_xyxy]
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w, max(x1 + 1, x2)), min(h, max(y1 + 1, y2))
+    else:
+        face_cascade = get_haar_face_classifier()
+        faces = (
+            face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
+            if not face_cascade.empty()
+            else ()
+        )
+        if len(faces) > 0:
+            fx, fy, fw, fh = max((tuple(int(v) for v in b) for b in faces), key=lambda b: b[2] * b[3])
+            x1, y1, x2, y2 = fx, fy, min(w, fx + fw), min(h, fy + fh)
+        else:
+            x1, y1, x2, y2 = 0, 0, w, h
+
+    roi = gray[y1:y2, x1:x2]
+    rh, rw = roi.shape[:2]
+    if rh < 4 or rw < 4:
+        return {
+            "eye_count": 0,
+            "eyes_detected": False,
+            "sunglasses_occluded": False,
+            "bilateral_symmetry": 0.0,
+            "passed": False,
+            "reasons": ["Invalid or empty face ROI for eye-pair check"],
+        }
+
+    # Bilateral left-right facial symmetry score
+    roi_f = roi.astype(np.float32)
+    flipped = np.fliplr(roi_f)
+    sym = float(np.clip(1.0 - (np.mean(np.abs(roi_f - flipped)) / 255.0), 0.0, 1.0))
+
+    # Inspect upper face band (20%-55% height) for eye pair and sunglasses occlusion
+    band_top = int(0.20 * rh)
+    band_bot = max(band_top + 2, int(0.55 * rh))
+    upper_band = roi[band_top:band_bot, :]
+
+    sg_top = int(0.25 * rh)
+    sg_bot = max(sg_top + 2, int(0.48 * rh))
+    sg_band = roi[sg_top:sg_bot, int(0.10 * rw) : max(int(0.10 * rw) + 2, int(0.90 * rw))]
+    sunglasses_occluded = bool(sg_band.size > 0 and float(np.mean(sg_band < 45)) >= 0.35)
+
+    eye_cascade, glasses_cascade = _get_eye_classifiers()
+    raw_eyes: List[Tuple[int, int, int, int]] = []
+    if not eye_cascade.empty() and upper_band.shape[0] >= 12 and upper_band.shape[1] >= 12:
+        detected = eye_cascade.detectMultiScale(upper_band, scaleFactor=1.08, minNeighbors=3, minSize=(14, 14))
+        if len(detected) < 2 and not glasses_cascade.empty():
+            detected = glasses_cascade.detectMultiScale(upper_band, scaleFactor=1.08, minNeighbors=3, minSize=(14, 14))
+        raw_eyes = [tuple(int(v) for v in b) for b in detected]
+
+    deduped_eyes = _deduplicate_boxes_xywh(raw_eyes, iou_thresh=0.30)
+    eye_count = len(deduped_eyes)
+    eyes_detected = eye_count >= 2
+
+    reasons: List[str] = []
+    if sym < min_symmetry:
+        reasons.append(f"Low bilateral facial symmetry ({sym:.3f} < {min_symmetry:.2f})")
+    if not eyes_detected and not sunglasses_occluded:
+        reasons.append(f"Expected >= 2 eyes in upper face ROI, detected {eye_count}")
+
+    return {
+        "eye_count": int(eye_count),
+        "eyes_detected": bool(eyes_detected),
+        "sunglasses_occluded": sunglasses_occluded,
+        "bilateral_symmetry": sym,
+        "passed": len(reasons) == 0,
+        "reasons": reasons,
+    }
 
