@@ -44,12 +44,14 @@ generation:
 curation:
   reference_quantile_sharpness: 0.05
   clip:
-    enabled: false
+    enabled: true
     model_id: "openai/clip-vit-base-patch32"
     min_score: 0.20
   face_check:
-    backend: "opencv_haar"
+    backend: "yunet"
   dedup: true
+  perceptual_dedup_threshold: 2
+  extended_audit: true
 
 hardness:
   method: "real_manifold"

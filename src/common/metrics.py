@@ -1,6 +1,7 @@
 """Evaluation and quality curation metrics for 2D Deepfake Detection and Hard-Sample Mining."""
 
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import threading
 import numpy as np
@@ -301,18 +302,105 @@ def calibrate_threshold(reference_scores: Sequence[float], quantile: float) -> f
     return float(np.quantile(arr, quantile))
 
 
+_YUNET_DETECTOR: Optional[Any] = None
+_YUNET_LOCK = threading.Lock()
+_DEFAULT_YUNET_MODEL = Path(__file__).resolve().parents[2] / ".cache" / "models" / "face_detection_yunet_2023mar.onnx"
+
+
+def _get_yunet_detector(model_path: Optional[Union[str, Path]] = None) -> Optional[Any]:
+    """Return cached OpenCV YuNet FaceDetectorYN singleton if ONNX weights are available locally."""
+    global _YUNET_DETECTOR
+    path_obj = Path(model_path) if model_path is not None else _DEFAULT_YUNET_MODEL
+    if not path_obj.is_file():
+        return None
+    with _YUNET_LOCK:
+        if _YUNET_DETECTOR is None:
+            import cv2
+
+            if not hasattr(cv2, "FaceDetectorYN_create"):
+                return None
+            _YUNET_DETECTOR = cv2.FaceDetectorYN_create(
+                str(path_obj), "", (512, 512), score_threshold=0.60, nms_threshold=0.30, top_k=5000
+            )
+        return _YUNET_DETECTOR
+
+
+def detect_face_yunet(
+    image_rgb: Union[np.ndarray, torch.Tensor],
+    score_threshold: float = 0.60,
+    model_path: Optional[Union[str, Path]] = None,
+) -> Optional[Dict[str, Any]]:
+    """Detect dominant portrait and 5 facial landmarks via OpenCV YuNet ONNX.
+
+    Returns None when YuNet weights are unavailable or no face >= score_threshold is found.
+    """
+    import cv2
+
+    det = _get_yunet_detector(model_path=model_path)
+    if det is None:
+        return None
+
+    rgb = _to_rgb_uint8(image_rgb)
+    h, w = rgb.shape[:2]
+    if h < 16 or w < 16:
+        return None
+    bgr_512 = cv2.cvtColor(cv2.resize(rgb, (512, 512)) if (h, w) != (512, 512) else rgb, cv2.COLOR_RGB2BGR)
+
+    with _YUNET_LOCK:
+        det.setInputSize((512, 512))
+        _, raw_faces = det.detect(bgr_512)
+
+    if raw_faces is None or len(raw_faces) == 0:
+        return None
+
+    faces = [row for row in raw_faces if float(row[14]) >= score_threshold]
+    if not faces:
+        return None
+
+    faces.sort(key=lambda r: float(r[2] * r[3] * r[14]), reverse=True)
+    dom = faces[0]
+    dom_area = float(dom[2] * dom[3])
+    sig_faces = [r for r in faces if (float(r[2] * r[3]) >= 0.20 * dom_area) and (float(r[2] * r[3]) >= 0.05 * 512.0 * 512.0)]
+    sx, sy = float(w) / 512.0, float(h) / 512.0
+    x1 = max(0, int(round(float(dom[0]) * sx)))
+    y1 = max(0, int(round(float(dom[1]) * sy)))
+    x2 = min(w, max(x1 + 1, int(round(float(dom[0] + dom[2]) * sx))))
+    y2 = min(h, max(y1 + 1, int(round(float(dom[1] + dom[3]) * sy))))
+
+    return {
+        "bbox_xyxy": (x1, y1, x2, y2),
+        "score": float(dom[14]),
+        "significant_face_count": len(sig_faces),
+        "area_ratio": float((dom[2] * dom[3]) / (512.0 * 512.0)),
+        "landmarks": {
+            "right_eye": (float(dom[4]) * sx, float(dom[5]) * sy),
+            "left_eye": (float(dom[6]) * sx, float(dom[7]) * sy),
+            "nose": (float(dom[8]) * sx, float(dom[9]) * sy),
+            "mouth_right": (float(dom[10]) * sx, float(dom[11]) * sy),
+            "mouth_left": (float(dom[12]) * sx, float(dom[13]) * sy),
+        },
+    }
+
+
 def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "opencv_haar") -> int:
-    """Detect faces in an RGB uint8 image using classical or lightweight detector.
+    """Detect faces in an RGB uint8 image using YuNet or Haar cascade detector.
 
     Args:
         image_rgb: NumPy array of shape (H, W, 3) in uint8 RGB format or torch.Tensor.
-        backend: Face detector backend ('opencv_haar' or 'none').
+        backend: Face detector backend ('yunet', 'opencv_haar', or 'none').
 
     Returns:
         Number of faces detected.
     """
     if backend == "none":
         return 1
+
+    if backend == "yunet":
+        det = _get_yunet_detector()
+        if det is not None:
+            res = detect_face_yunet(image_rgb)
+            return int(res["significant_face_count"]) if res is not None else 0
+        backend = "opencv_haar"
 
     if backend in ("opencv", "opencv_haar"):
         import cv2
@@ -363,30 +451,22 @@ def detect_faces(image_rgb: Union[np.ndarray, torch.Tensor], backend: str = "ope
 
 def verify_facial_geometry(
     image: Union[np.ndarray, torch.Tensor],
+    face_backend: str = "yunet",
+    yunet_face: Optional[Dict[str, Any]] = None,
 ) -> Tuple[bool, List[str]]:
     """Verify biometric facial geometry and reject anatomical anomalies (e.g. dual mouths, distorted proportions).
 
     Args:
         image: Image array (H, W, 3) in uint8 or float, or torch.Tensor (C, H, W).
+        face_backend: Detector backend ('yunet' with Haar fallback, or 'opencv_haar').
+        yunet_face: Optional pre-computed output from detect_face_yunet resized to 512x512.
 
     Returns:
         (is_valid, list of rejection reasons).
     """
     import cv2
 
-    if isinstance(image, torch.Tensor):
-        t = image.detach().cpu()
-        if t.ndim == 3 and t.shape[0] in (1, 3):
-            t = t.permute(1, 2, 0)
-        if t.dtype in (torch.float32, torch.float64):
-            t = (t.clamp(0.0, 1.0) * 255.0).to(torch.uint8)
-        image = t.numpy()
-
-    if not isinstance(image, np.ndarray) or image.dtype != np.uint8:
-        image = np.clip(
-            image * 255.0 if np.issubdtype(image.dtype, np.floating) else image, 0, 255
-        ).astype(np.uint8)
-
+    image = _to_rgb_uint8(image)
     reasons: List[str] = []
     h, w = image.shape[:2]
     if (h, w) != (512, 512):
@@ -394,45 +474,67 @@ def verify_facial_geometry(
         h, w = 512, 512
 
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    face_cascade = get_haar_face_classifier()
-    if face_cascade.empty():
-        return True, []
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
-    if len(faces) == 0:
-        # Fallback to relaxed detection for tilted faces or dark eyeglasses
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2, minSize=(40, 40))
 
-    if len(faces) == 0:
-        return False, ["No face landmark detected"]
+    used_yunet = False
+    if face_backend == "yunet" and _get_yunet_detector() is not None:
+        y_res = yunet_face if yunet_face is not None else detect_face_yunet(image)
+        if y_res is None:
+            return False, ["No face landmark detected"]
+        used_yunet = True
+        if y_res["significant_face_count"] > 1:
+            return False, [
+                f"Multiple faces detected ({y_res['significant_face_count']}), expecting single portrait"
+            ]
+        x1, y1, x2, y2 = y_res["bbox_xyxy"]
+        fx, fy, fw, fh = x1, y1, max(1, x2 - x1), max(1, y2 - y1)
+    else:
+        face_cascade = get_haar_face_classifier()
+        if face_cascade.empty():
+            return True, []
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
+        if len(faces) == 0:
+            # Fallback to relaxed detection for tilted faces or dark eyeglasses
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2, minSize=(40, 40))
 
-    # Filter out spurious Haar noise boxes (e.g. tiny patches on clothing/textures)
-    # when a prominent dominant portrait face exists
-    faces_list = [tuple(b) for b in faces]
-    faces_list.sort(key=lambda b: b[2] * b[3], reverse=True)
-    dominant_box = faces_list[0]
-    dom_area = dominant_box[2] * dominant_box[3]
-    total_area = float(w * h)
+        if len(faces) == 0:
+            return False, ["No face landmark detected"]
 
-    # Significant faces must be at least 20% of the dominant face area and at least 5% of total frame
-    significant_faces = [
-        b for b in faces_list
-        if (b[2] * b[3]) >= 0.20 * dom_area and (b[2] * b[3]) >= 0.05 * total_area
-    ]
+        # Filter out spurious Haar noise boxes (e.g. tiny patches on clothing/textures)
+        # when a prominent dominant portrait face exists
+        faces_list = [tuple(b) for b in faces]
+        faces_list.sort(key=lambda b: b[2] * b[3], reverse=True)
+        dominant_box = faces_list[0]
+        dom_area = dominant_box[2] * dominant_box[3]
+        total_area = float(w * h)
 
-    if len(significant_faces) > 1:
-        return False, [f"Multiple faces detected ({len(significant_faces)}), expecting single portrait"]
+        # Significant faces must be at least 20% of the dominant face area and at least 5% of total frame
+        significant_faces = [
+            b for b in faces_list
+            if (b[2] * b[3]) >= 0.20 * dom_area and (b[2] * b[3]) >= 0.05 * total_area
+        ]
 
-    fx, fy, fw, fh = dominant_box
+        if len(significant_faces) > 1:
+            return False, [f"Multiple faces detected ({len(significant_faces)}), expecting single portrait"]
+
+        fx, fy, fw, fh = dominant_box
+
     aspect_ratio = fh / max(1, fw)
-    if aspect_ratio < 0.65 or aspect_ratio > 1.6:
+    max_ar = 1.75 if used_yunet else 1.60
+    if aspect_ratio < 0.65 or aspect_ratio > max_ar:
         reasons.append(f"Abnormal facial aspect ratio: {aspect_ratio:.2f}")
 
-    # Area ratio check (face must occupy 20% to 65% of frame, rejecting miniature mirror faces and extreme crops)
+    # Area ratio check (YuNet crops tightly forehead->chin [0.15..0.72]; Haar [0.20..0.65])
     face_area_ratio = (fw * fh) / float(w * h)
-    if face_area_ratio < 0.20:
-        reasons.append(f"Face occupies too small area of frame ({face_area_ratio:.2%} < 20%): likely vignette/distant frame")
-    elif face_area_ratio > 0.65:
-        reasons.append(f"Face occupies too large area of frame ({face_area_ratio:.2%} > 65%): extreme crop / runaway zoom")
+    min_area_thresh = 0.15 if used_yunet else 0.20
+    max_area_thresh = 0.72 if used_yunet else 0.65
+    if face_area_ratio < min_area_thresh:
+        reasons.append(
+            f"Face occupies too small area of frame ({face_area_ratio:.2%} < {min_area_thresh:.0%}): likely vignette/distant frame"
+        )
+    elif face_area_ratio > max_area_thresh:
+        reasons.append(
+            f"Face occupies too large area of frame ({face_area_ratio:.2%} > {max_area_thresh:.0%}): extreme crop / runaway zoom"
+        )
 
     # Check if face box itself touches canvas boundaries (amputated forehead or chin by runaway zoom)
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
@@ -441,7 +543,12 @@ def verify_facial_geometry(
     bot_skin_pct = float(np.mean(skin_mask[-16:, :]))
     if fy <= int(0.04 * h) and top_skin_pct > 0.35:
         reasons.append(f"Forehead / scalp amputated by top canvas border (box_top={fy}, skin={top_skin_pct:.1%})")
-    if (fy + fh) >= int(0.96 * h) and bot_skin_pct > 0.35:
+    if used_yunet and y_res is not None and "landmarks" in y_res:
+        lms_y = y_res["landmarks"]
+        mouth_bot = max(float(lms_y["mouth_left"][1]), float(lms_y["mouth_right"][1]))
+        if (fy + fh) >= int(0.98 * h) and mouth_bot >= 0.88 * h and bot_skin_pct > 0.35:
+            reasons.append(f"Chin / jaw amputated by bottom canvas border (box_bottom={fy+fh}, skin={bot_skin_pct:.1%})")
+    elif (fy + fh) >= int(0.96 * h) and bot_skin_pct > 0.35:
         reasons.append(f"Chin / jaw amputated by bottom canvas border (box_bottom={fy+fh}, skin={bot_skin_pct:.1%})")
 
     # Highlight blowout check localized strictly to face ROI (strict 3-channel blowout check)
@@ -524,37 +631,56 @@ class ClipScorer:
         if self._model is None:
             from transformers import CLIPModel, CLIPProcessor
 
-            self._processor = CLIPProcessor.from_pretrained(self.model_id)
-            self._model = CLIPModel.from_pretrained(self.model_id).to(self.device)
+            try:
+                self._processor = CLIPProcessor.from_pretrained(self.model_id, local_files_only=True)
+                self._model = CLIPModel.from_pretrained(self.model_id, local_files_only=True).to(self.device)
+            except Exception:
+                self._processor = CLIPProcessor.from_pretrained(self.model_id)
+                self._model = CLIPModel.from_pretrained(self.model_id).to(self.device)
             self._model.eval()
 
-    def score(self, image: torch.Tensor, prompt: str) -> float:
-        """Compute cosine similarity between image (3, H, W) and prompt text."""
+    @staticmethod
+    def _extract_embeds(model: Any, inputs: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Extract normalized image & text embeddings compatibly across transformers v4/v5."""
+        outputs = model(**inputs)
+        if hasattr(outputs, "image_embeds") and hasattr(outputs, "text_embeds"):
+            return outputs.image_embeds, outputs.text_embeds
+        img_out = model.get_image_features(pixel_values=inputs["pixel_values"])
+        txt_out = model.get_text_features(
+            input_ids=inputs["input_ids"], attention_mask=inputs.get("attention_mask")
+        )
+        img_f = getattr(img_out, "pooler_output", img_out)
+        txt_f = getattr(txt_out, "pooler_output", txt_out)
+        return img_f, txt_f
+
+    def score_batch(self, images: Sequence[Union[torch.Tensor, np.ndarray]], prompts: Sequence[str]) -> List[float]:
+        """Compute batched cosine similarities for pairs of images and prompts."""
+        if not images:
+            return []
         self._ensure_loaded()
         from PIL import Image
 
-        img_tensor = image.detach().cpu().clamp(0.0, 1.0)
-        np_arr = (img_tensor.permute(1, 2, 0).numpy() * 255.0).astype(np.uint8)
-        pil_img = Image.fromarray(np_arr)
-
+        pil_imgs = [Image.fromarray(_to_rgb_uint8(im)) for im in images]
+        clean_prompts = [str(p or "portrait")[:200] for p in prompts]
         inputs = self._processor(
-            text=[prompt],
-            images=pil_img,
+            text=clean_prompts,
+            images=pil_imgs,
             return_tensors="pt",
             padding=True,
+            truncation=True,
+            max_length=77,
         ).to(self.device)
 
         with torch.no_grad():
-            img_feats = self._model.get_image_features(pixel_values=inputs["pixel_values"])
-            txt_feats = self._model.get_text_features(
-                input_ids=inputs["input_ids"], attention_mask=inputs.get("attention_mask")
-            )
+            img_feats, txt_feats = self._extract_embeds(self._model, inputs)
+            img_feats = img_feats / img_feats.norm(dim=-1, keepdim=True).clamp(min=1e-8)
+            txt_feats = txt_feats / txt_feats.norm(dim=-1, keepdim=True).clamp(min=1e-8)
+            sims = (img_feats * txt_feats).sum(dim=-1).detach().cpu().tolist()
+        return [float(np.clip(s, -1.0, 1.0)) for s in sims]
 
-            img_feats = img_feats / img_feats.norm(dim=-1, keepdim=True)
-            txt_feats = txt_feats / txt_feats.norm(dim=-1, keepdim=True)
-            sim = (img_feats * txt_feats).sum(dim=-1).item()
-
-        return float(np.clip(sim, -1.0, 1.0))
+    def score(self, image: Union[torch.Tensor, np.ndarray], prompt: str) -> float:
+        """Compute cosine similarity between image (3, H, W) and prompt text."""
+        return self.score_batch([image], [prompt])[0]
 
 
 def expected_calibration_error(
@@ -854,6 +980,7 @@ def verify_eye_pair(
     face_bbox_xyxy: Optional[Sequence[int]] = None,
     min_symmetry: float = 0.55,
     prompt: str = "",
+    yunet_face: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Audit eye-pair presence, sunglasses occlusion, and bilateral facial symmetry.
 
@@ -861,6 +988,8 @@ def verify_eye_pair(
         image: Input RGB image as (H, W, 3) array or (3, H, W) tensor.
         face_bbox_xyxy: Optional face bounding box [x1, y1, x2, y2] in pixel coordinates.
         min_symmetry: Minimum acceptable bilateral symmetry score in [0.0, 1.0].
+        prompt: Optional prompt string to detect intentional sunglasses occlusion.
+        yunet_face: Optional pre-computed YuNet detection dict with 5 landmarks.
 
     Returns:
         Dictionary containing eye_count, eyes_detected, sunglasses_occluded,
@@ -872,9 +1001,13 @@ def verify_eye_pair(
     h, w = rgb.shape[:2]
     gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
 
-    # Resolve face ROI (explicit box -> normalized strict/relaxed Haar -> full canvas fallback)
+    # Resolve face ROI (explicit box -> YuNet bbox -> Haar -> central canvas fallback)
     if face_bbox_xyxy is not None and len(face_bbox_xyxy) == 4:
         x1, y1, x2, y2 = [int(round(v)) for v in face_bbox_xyxy]
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w, max(x1 + 1, x2)), min(h, max(y1 + 1, y2))
+    elif yunet_face is not None and "bbox_xyxy" in yunet_face:
+        x1, y1, x2, y2 = [int(round(v)) for v in yunet_face["bbox_xyxy"]]
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(w, max(x1 + 1, x2)), min(h, max(y1 + 1, y2))
     else:
@@ -945,7 +1078,6 @@ def verify_eye_pair(
                 if not glasses_cascade.empty():
                     det_fb_g = glasses_cascade.detectMultiScale(up_256, scaleFactor=1.08, minNeighbors=3, minSize=(20, 20))
                     fb_raw.extend(tuple(int(v) for v in b) for b in det_fb_g)
-                # Guard against invariant test-double stubs returning identical fixed boxes regardless of image
                 if fb_raw and not (native_set and set(fb_raw) <= native_set):
                     mapped = [
                         (
@@ -962,9 +1094,65 @@ def verify_eye_pair(
 
     eye_count = len(deduped_eyes)
     eyes_detected = eye_count >= 2
+
+    # Roll-aligned Haar + YuNet 5-landmark eye-patch contrast/symmetry verification
+    landmark_dark_sg = False
+    if not eyes_detected and yunet_face is not None and "landmarks" in yunet_face:
+        lms = yunet_face["landmarks"]
+        re_x, re_y = lms["right_eye"]
+        le_x, le_y = lms["left_eye"]
+        eye_dist = float(np.hypot(le_x - re_x, le_y - re_y))
+        if 0.18 * rw <= eye_dist <= 0.78 * rw:
+            # 1) Try roll-aligned Haar if head tilt prevented detection
+            eye_cx, eye_cy = (re_x + le_x) / 2.0, (re_y + le_y) / 2.0
+            angle = float(np.degrees(np.arctan2(le_y - re_y, le_x - re_x)))
+            if abs(angle) > 3.0 and not eye_cascade.empty():
+                rot_m = cv2.getRotationMatrix2D((float(eye_cx), float(eye_cy)), angle, 1.0)
+                rot_gray = cv2.warpAffine(gray, rot_m, (w, h), flags=cv2.INTER_LINEAR)
+                rx1, ry1 = max(0, x1), max(0, int(round(eye_cy - 0.18 * rh)))
+                rx2, ry2 = min(w, x2), min(h, int(round(eye_cy + 0.18 * rh)))
+                if rx2 - rx1 >= 24 and ry2 - ry1 >= 16:
+                    band_rot = rot_gray[ry1:ry2, rx1:rx2]
+                    sc_r = 256.0 / max(1.0, float(band_rot.shape[1]))
+                    b_r256 = cv2.resize(band_rot, (256, max(16, int(round(band_rot.shape[0] * sc_r)))))
+                    r_hits = list(eye_cascade.detectMultiScale(b_r256, 1.08, 3, minSize=(18, 18)))
+                    if len(_deduplicate_boxes_xywh(r_hits, 0.30)) < 2 and not glasses_cascade.empty():
+                        r_hits.extend(glasses_cascade.detectMultiScale(b_r256, 1.08, 3, minSize=(18, 18)))
+                    rot_count = len(_deduplicate_boxes_xywh(r_hits, 0.30))
+                    if rot_count >= 2:
+                        eye_count = rot_count
+                        eyes_detected = True
+
+            # 2) Landmark eye-patch Sobel edge & contrast verification for clean high-conf YuNet faces
+            if not eyes_detected:
+                rad = max(8, int(round(0.11 * rw)))
+                patch_edges, patch_stds, patch_darks = [], [], []
+                for px_c, py_c in ((re_x, re_y), (le_x, le_y)):
+                    px1, py1 = max(0, int(round(px_c - rad))), max(0, int(round(py_c - rad * 0.8)))
+                    px2, py2 = min(w, int(round(px_c + rad))), min(h, int(round(py_c + rad * 0.8)))
+                    if px2 - px1 >= 6 and py2 - py1 >= 6:
+                        p_rs = cv2.resize(gray[py1:py2, px1:px2], (32, 24)).astype(np.float32)
+                        patch_stds.append(float(np.std(p_rs)))
+                        sx = np.abs(cv2.Sobel(p_rs, cv2.CV_32F, 1, 0, ksize=3))
+                        sy = np.abs(cv2.Sobel(p_rs, cv2.CV_32F, 0, 1, ksize=3))
+                        patch_edges.append(float(np.mean(sx + sy)))
+                        patch_darks.append(float(np.mean(p_rs < 45.0)))
+                if len(patch_edges) == 2:
+                    landmark_dark_sg = min(patch_darks) >= 0.45
+                    e_min = min(patch_edges)
+                    e_ratio = e_min / (max(patch_edges) + 1e-4)
+                    if (
+                        float(yunet_face.get("score", 0.0)) >= 0.80
+                        and e_min >= 18.0
+                        and e_ratio >= 0.35
+                        and min(patch_stds) >= 7.5
+                    ):
+                        eyes_detected = True
+                        eye_count = max(eye_count, 2)
+
     sunglasses_occluded = bool(
-        (not eyes_detected and dark_frac_strict >= 0.50)
-        or (has_sg_hint and dark_frac_soft >= 0.15)
+        (not eyes_detected and (dark_frac_strict >= 0.50 or landmark_dark_sg or (has_sg_hint and dark_frac_soft >= 0.20)))
+        or (has_sg_hint and dark_frac_strict >= 0.30)
     )
 
     reasons: List[str] = []
@@ -1042,6 +1230,96 @@ def compute_fft_high_freq_ratio(
         "high_freq_ratio": ratio,
         "texture_flag": flag,
         "passed": flag == "normal",
+    }
+
+
+def compute_cheek_skin_fft(
+    image: Union[np.ndarray, torch.Tensor],
+    yunet_face: Optional[Dict[str, Any]] = None,
+    cutoff_ratio: float = 0.25,
+    min_cheek_ratio: float = 0.005,
+) -> Dict[str, Any]:
+    """Measure localized cheek-skin 2D Hann-windowed FFT high-frequency detail via YCrCb skin masking.
+
+    Normalizes faces to 512x512 and isolates left/right cheek skin patches strictly below the eyes
+    and outside the nose/mouth, using a 2D Hann window to prevent patch-border spectral leakage.
+    """
+    import cv2
+
+    rgb = _to_rgb_uint8(image)
+    orig_h, orig_w = rgb.shape[:2]
+    if (orig_h, orig_w) != (512, 512):
+        rgb_512 = cv2.resize(rgb, (512, 512), interpolation=cv2.INTER_AREA)
+        sx, sy = 512.0 / max(1.0, float(orig_w)), 512.0 / max(1.0, float(orig_h))
+        if yunet_face is not None and "landmarks" in yunet_face:
+            bx1, by1, bx2, by2 = yunet_face["bbox_xyxy"]
+            y_res = {
+                "bbox_xyxy": (int(round(bx1 * sx)), int(round(by1 * sy)), int(round(bx2 * sx)), int(round(by2 * sy))),
+                "landmarks": {k: (pt[0] * sx, pt[1] * sy) for k, pt in yunet_face["landmarks"].items()},
+            }
+        else:
+            y_res = detect_face_yunet(rgb_512)
+    else:
+        rgb_512 = rgb
+        y_res = yunet_face if yunet_face is not None else detect_face_yunet(rgb_512)
+
+    if y_res is None or "landmarks" not in y_res:
+        return {"cheek_fft_ratio": None, "texture_flag": "unknown", "passed": True}
+
+    x1, y1, x2, y2 = y_res["bbox_xyxy"]
+    fw, fh = max(1, x2 - x1), max(1, y2 - y1)
+    lms = y_res["landmarks"]
+    re_y, le_y = lms["right_eye"][1], lms["left_eye"][1]
+    nose_x = lms["nose"][0]
+    rm_y, lm_y = lms["mouth_right"][1], lms["mouth_left"][1]
+
+    cy1 = max(0, min(512, int(round(max(re_y, le_y) + 0.12 * fh))))
+    cy2 = max(0, min(512, int(round(max(rm_y, lm_y) - 0.04 * fh))))
+    if cy2 - cy1 < 14:
+        return {"cheek_fft_ratio": None, "texture_flag": "unknown", "passed": True}
+
+    gray = cv2.cvtColor(rgb_512, cv2.COLOR_RGB2GRAY).astype(np.float32)
+    ycrcb = cv2.cvtColor(rgb_512, cv2.COLOR_RGB2YCrCb)
+    _clip512 = lambda v: max(0, min(512, int(round(v))))
+    cheek_boxes = [
+        (_clip512(x1 + 0.08 * fw), _clip512(nose_x - 0.06 * fw)),
+        (_clip512(nose_x + 0.06 * fw), _clip512(x1 + 0.92 * fw)),
+    ]
+
+    patch_ratios: List[float] = []
+    for bx1, bx2 in cheek_boxes:
+        if bx2 - bx1 < 14:
+            continue
+        sub_yc = ycrcb[cy1:cy2, bx1:bx2]
+        if sub_yc.shape[0] < 14 or sub_yc.shape[1] < 14:
+            continue
+        skin_mask = (sub_yc[:, :, 1] >= 130) & (sub_yc[:, :, 1] <= 178) & (sub_yc[:, :, 2] >= 75) & (sub_yc[:, :, 2] <= 135)
+        if float(np.mean(skin_mask)) < 0.30:
+            continue
+        patch_g = gray[cy1:cy2, bx1:bx2]
+        gh, gw = patch_g.shape
+        if gh < 14 or gw < 14:
+            continue
+        win = np.outer(np.hanning(gh), np.hanning(gw)).astype(np.float32)
+        centered = (patch_g - float(np.mean(patch_g))) * win
+        power = np.abs(np.fft.fftshift(np.fft.fft2(centered))) ** 2
+        total_e = float(np.sum(power))
+        if total_e <= 1e-12:
+            continue
+        yy, xx = np.ogrid[:gh, :gw]
+        dist = np.sqrt((yy - gh / 2.0) ** 2 + (xx - gw / 2.0) ** 2)
+        radius = float(cutoff_ratio) * (min(gh, gw) / 2.0)
+        patch_ratios.append(float(np.clip(np.sum(power[dist > radius]) / total_e, 0.0, 1.0)))
+
+    if not patch_ratios:
+        return {"cheek_fft_ratio": None, "texture_flag": "unknown", "passed": True}
+
+    mean_ratio = float(np.mean(patch_ratios))
+    is_plastic = mean_ratio < min_cheek_ratio
+    return {
+        "cheek_fft_ratio": mean_ratio,
+        "texture_flag": "waxy_plastic_skin" if is_plastic else "normal",
+        "passed": not is_plastic,
     }
 
 
@@ -1176,6 +1454,56 @@ class ExtendedImageAuditReport:
         return asdict(self)
 
 
+def resolve_effective_min_clip(min_clip_score: float, mode: str = "sd_text2img") -> float:
+    """Resolve mode-aware CLIP threshold so paired modes avoid tag/patch prompt false rejects."""
+    base = float(min_clip_score)
+    if mode in ("sd_img2img", "sd_inpaint"):
+        return min(base, 0.12)
+    return base
+
+
+def extract_face_biometrics_rgb(image_rgb: np.ndarray, prompt: str = "") -> Dict[str, Any]:
+    """Extract YuNet-first (Haar-fallback) facial bounding box and eye-pair telemetry from (H, W, 3) RGB uint8."""
+    import cv2
+
+    rgb = _to_rgb_uint8(image_rgb)
+    h, w = rgb.shape[:2]
+    y_res = detect_face_yunet(rgb)
+    n_faces = detect_faces(rgb, backend="yunet")
+    face_box: Optional[Tuple[float, float, float, float]] = None
+
+    if y_res is not None:
+        bx1, by1, bx2, by2 = y_res["bbox_xyxy"]
+        face_box = (bx1, by1, bx2, by2)
+    else:
+        gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+        det_box = _detect_dominant_face_box(gray)
+        if det_box is not None:
+            face_box = tuple(float(v) for v in det_box)
+
+    face_ratio = 0.0
+    face_center = (0.5, 0.5)
+    aspect_ratio = 1.0
+    if face_box is not None and h > 0 and w > 0:
+        bx1, by1, bx2, by2 = face_box
+        fw = max(1.0, bx2 - bx1)
+        fh = max(1.0, by2 - by1)
+        face_ratio = float((fw * fh) / float(h * w))
+        face_center = (float((bx1 + fw / 2.0) / float(w)), float((by1 + fh / 2.0) / float(h)))
+        aspect_ratio = float(fh / fw)
+
+    eye_box = None if y_res is not None else ([int(round(v)) for v in face_box] if face_box is not None else None)
+    eye_res = verify_eye_pair(rgb, face_bbox_xyxy=eye_box, prompt=prompt, yunet_face=y_res)
+    return {
+        "faces_detected": int(n_faces),
+        "face_area_ratio": round(face_ratio, 4),
+        "face_center": (round(face_center[0], 3), round(face_center[1], 3)),
+        "face_aspect_ratio": round(aspect_ratio, 3),
+        "eyes_detected": int(eye_res["eye_count"]),
+        "sunglasses_occluded": bool(eye_res["sunglasses_occluded"]),
+    }
+
+
 def audit_image_extended(
     image: Union[np.ndarray, torch.Tensor],
     mode: str = "sd_text2img",
@@ -1188,19 +1516,25 @@ def audit_image_extended(
     image_id: str = "unknown",
     run_geometry: bool = True,
     sharpness_score: Optional[float] = None,
+    face_backend: str = "yunet",
+    clip_score_override: Optional[float] = None,
 ) -> ExtendedImageAuditReport:
     """Run unified mode-aware extended quality checks across text2img, img2img, and inpaint.
 
     Args:
         image: Target RGB image as (H, W, 3) array or (3, H, W) tensor.
         mode: Generation/source mode ('real', 'sd_text2img', 'sd_img2img', 'sd_inpaint').
-        prompt: Generation prompt (used only when clip_scorer is provided).
+        prompt: Generation prompt (used when clip_scorer or clip_score_override is provided).
         source_image: Optional source real image for paired img2img/inpaint evaluation.
         mask: Optional inpaint mask of shape (1, H, W) or (H, W) for sd_inpaint seam check.
         clip_scorer: Optional ClipScorer instance; when None, skips CLIP scoring offline-safely.
         min_clip_score: Minimum acceptable CLIP alignment score when clip_scorer is enabled.
         min_sharpness: Minimum Laplacian sharpness threshold.
         image_id: Identifier for reporting.
+        run_geometry: Whether to execute full face geometry checks.
+        sharpness_score: Optional pre-computed sharpness score.
+        face_backend: Face detector backend ('yunet' with Haar fallback, or 'opencv_haar').
+        clip_score_override: Optional pre-computed CLIP similarity score (for batched CUDA throughput).
 
     Returns:
         ExtendedImageAuditReport containing all applicable metrics and aggregated validity.
@@ -1210,15 +1544,26 @@ def audit_image_extended(
     rgb_u8 = _to_rgb_uint8(image)
     tensor_chw = torch.from_numpy(rgb_u8.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
     gray_u8 = cv2.cvtColor(rgb_u8, cv2.COLOR_RGB2GRAY)
-    face_box = _detect_dominant_face_box(gray_u8)
+
+    yunet_res: Optional[Dict[str, Any]] = None
+    if face_backend == "yunet" and _get_yunet_detector() is not None:
+        yunet_res = detect_face_yunet(rgb_u8)
+        face_box = yunet_res["bbox_xyxy"] if yunet_res is not None else None
+    else:
+        face_box = _detect_dominant_face_box(gray_u8)
 
     sharpness = float(sharpness_score) if sharpness_score is not None else compute_laplacian_sharpness(tensor_chw)
     if run_geometry:
-        geom_valid, geom_reasons = verify_facial_geometry(rgb_u8)
+        # verify_facial_geometry operates at 512x512; pass pre-detected yunet_res only when already 512x512
+        y_512 = yunet_res if rgb_u8.shape[:2] == (512, 512) else None
+        geom_valid, geom_reasons = verify_facial_geometry(rgb_u8, face_backend=face_backend, yunet_face=y_512)
     else:
         geom_valid, geom_reasons = True, []
-    eye_res = verify_eye_pair(rgb_u8, face_bbox_xyxy=face_box, prompt=prompt)
+
+    eye_face_arg = None if yunet_res is not None else face_box
+    eye_res = verify_eye_pair(rgb_u8, face_bbox_xyxy=eye_face_arg, prompt=prompt, yunet_face=yunet_res)
     fft_res = compute_fft_high_freq_ratio(rgb_u8, bbox_xyxy=face_box)
+    cheek_res = compute_cheek_skin_fft(rgb_u8, yunet_face=yunet_res) if yunet_res is not None else {"passed": True}
 
     reasons: List[str] = []
     if sharpness < min_sharpness:
@@ -1227,14 +1572,25 @@ def audit_image_extended(
         reasons.extend(geom_reasons)
     if not eye_res["passed"]:
         reasons.extend(eye_res["reasons"])
+
+    fft_ratio_out = float(fft_res["high_freq_ratio"])
+    texture_flag_out = str(fft_res["texture_flag"])
     if not fft_res["passed"]:
         reasons.append(f"FFT texture flag {fft_res['texture_flag']} ({fft_res['high_freq_ratio']:.3f})")
+    elif not cheek_res["passed"] and cheek_res.get("cheek_fft_ratio") is not None:
+        c_val = float(cheek_res["cheek_fft_ratio"])
+        texture_flag_out = "waxy_plastic_skin"
+        fft_ratio_out = c_val
+        reasons.append(f"Plastic/waxy cheek skin texture ({c_val:.4f} below 0.0050)")
 
     clip_score: Optional[float] = None
-    if clip_scorer is not None and prompt:
+    if clip_score_override is not None:
+        clip_score = float(clip_score_override)
+    elif clip_scorer is not None and prompt:
         clip_score = float(clip_scorer.score(tensor_chw, prompt))
-        if clip_score < min_clip_score:
-            reasons.append(f"CLIP score {clip_score:.3f} below {min_clip_score:.3f}")
+    eff_min_clip = resolve_effective_min_clip(min_clip_score, mode)
+    if clip_score is not None and clip_score < eff_min_clip:
+        reasons.append(f"CLIP score {clip_score:.3f} below {eff_min_clip:.3f}")
 
     delta_e_lab: Optional[float] = None
     structure_corr: Optional[float] = None
@@ -1269,8 +1625,8 @@ def audit_image_extended(
         eye_count=int(eye_res["eye_count"]),
         sunglasses_occluded=bool(eye_res["sunglasses_occluded"]),
         bilateral_symmetry=float(eye_res["bilateral_symmetry"]),
-        fft_high_freq_ratio=float(fft_res["high_freq_ratio"]),
-        texture_flag=str(fft_res["texture_flag"]),
+        fft_high_freq_ratio=fft_ratio_out,
+        texture_flag=texture_flag_out,
         clip_score=clip_score,
         delta_e_lab=delta_e_lab,
         structure_corr=structure_corr,

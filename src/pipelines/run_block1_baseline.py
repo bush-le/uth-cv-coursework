@@ -13,7 +13,6 @@ Lifecycle:
 5. Saves checkpoints/baseline_d0_best.pt and logs baseline metrics.
 """
 
-import os
 from pathlib import Path
 import sys
 
@@ -24,11 +23,9 @@ if str(_ROOT) not in sys.path:
 
 import argparse
 import json
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 import torch
 
-from src.common.config import load_config
 from src.common.logger import get_logger
 from src.common.seed import seed_everything
 from src.data.image_datamodule import DeepfakeImageDataModule
@@ -155,6 +152,8 @@ def synthesize_and_curate_quota(
             input_manifest=att_raw,
             output_manifest=att_cur,
             report_path=att_rep,
+            extended_audit=True,
+            raw_manifest=input_manifest,
         )
 
         new_samples = load_metadata_manifest(att_cur)

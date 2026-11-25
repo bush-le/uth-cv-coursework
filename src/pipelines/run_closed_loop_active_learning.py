@@ -11,7 +11,6 @@ Coordinates iterative cycles of:
 8. Rigorous evaluation on the frozen, identity-disjoint test set.
 """
 
-import os
 from pathlib import Path
 import sys
 
@@ -22,12 +21,9 @@ if str(_ROOT) not in sys.path:
 
 import argparse
 import json
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import random
-import numpy as np
 import torch
-import yaml
 
 from src.common.config import load_config
 from src.common.logger import get_logger
@@ -475,6 +471,8 @@ def run_active_learning_loop(
             input_manifest=candidates_raw_path,
             output_manifest=candidates_curated_path,
             report_path=curation_report_path,
+            extended_audit=True,
+            raw_manifest=raw_manifest_path,
         )
 
         # Load curated candidates

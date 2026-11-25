@@ -1,6 +1,5 @@
 """Multi-modal automated curation gate for synthetic deepfake image datasets."""
 
-import os
 from pathlib import Path
 import sys
 
@@ -12,7 +11,6 @@ if str(_ROOT) not in sys.path:
 import argparse
 from dataclasses import dataclass, field
 import json
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Union
 
 import numpy as np
@@ -28,6 +26,7 @@ from src.common.metrics import (
     calibrate_threshold,
     compute_laplacian_sharpness,
     detect_faces,
+    resolve_effective_min_clip,
     verify_facial_geometry,
 )
 from src.data.provenance import file_sha256
@@ -88,10 +87,10 @@ class ImageCurationGate:
     def __init__(
         self,
         min_sharpness: float = 1.25,
-        min_clip_score: float = 0.28,
+        min_clip_score: float = 0.20,
         clip_enabled: bool = False,
         clip_model_id: str = "openai/clip-vit-base-patch32",
-        device: str = "cpu",
+        device: str = "auto",
         face_backend: str = "none",
         dedup: bool = False,
         perceptual_dedup_threshold: Optional[int] = None,
@@ -104,9 +103,10 @@ class ImageCurationGate:
         self.dedup = dedup
         self.perceptual_dedup_threshold = perceptual_dedup_threshold
         self.extended_audit = extended_audit
+        resolved_device = ("cuda" if torch.cuda.is_available() else "cpu") if device == "auto" else device
         self._clip_scorer: Optional[ClipScorer] = None
         if self.clip_enabled:
-            self._clip_scorer = ClipScorer(model_id=clip_model_id, device=device)
+            self._clip_scorer = ClipScorer(model_id=clip_model_id, device=resolved_device)
 
     def evaluate_image(
         self,
@@ -118,14 +118,16 @@ class ImageCurationGate:
         mode: str = "sd_text2img",
         source_image: Optional[Union[np.ndarray, torch.Tensor]] = None,
         mask: Optional[Union[np.ndarray, torch.Tensor]] = None,
+        clip_score_override: Optional[float] = None,
     ) -> ImageCurationReport:
         """Evaluate a synthetic face image against sharpness, CLIP alignment, face detection, and optional extended audit."""
         sharpness = compute_laplacian_sharpness(image, bbox_xyxy=bbox_xyxy)
 
+        has_prompt = bool(prompt and str(prompt).strip())
         if self.extended_audit and face_detected is None and self.face_backend != "none":
-            clip_score: Optional[float] = (
-                self._clip_scorer.score(image, prompt) if (self.clip_enabled and self._clip_scorer is not None) else None
-            )
+            clip_score: Optional[float] = clip_score_override if has_prompt else None
+            if clip_score is None and has_prompt and self.clip_enabled and self._clip_scorer is not None:
+                clip_score = self._clip_scorer.score(image, prompt)
             ext_rep = audit_image_extended(
                 image,
                 mode=mode,
@@ -133,14 +135,15 @@ class ImageCurationGate:
                 source_image=source_image,
                 mask=mask,
                 clip_scorer=None,
+                min_clip_score=self.min_clip_score,
                 min_sharpness=self.min_sharpness,
                 image_id=image_id,
                 run_geometry=True,
                 sharpness_score=sharpness,
+                face_backend=self.face_backend,
+                clip_score_override=clip_score,
             )
             reasons = list(ext_rep.rejection_reasons)
-            if self.clip_enabled and clip_score is not None and clip_score < self.min_clip_score:
-                reasons.append(f"CLIP score {clip_score:.3f} below threshold {self.min_clip_score:.3f}")
             face_detected_val = not any("No face" in r or "No valid face" in r for r in reasons)
             return ImageCurationReport(
                 image_id=image_id,
@@ -170,21 +173,22 @@ class ImageCurationGate:
         else:
             face_detected_val = face_detected
 
-        clip_score = None
-        if self.clip_enabled and self._clip_scorer is not None:
+        clip_score = clip_score_override if has_prompt else None
+        if clip_score is None and has_prompt and self.clip_enabled and self._clip_scorer is not None:
             clip_score = self._clip_scorer.score(image, prompt)
 
         reasons = []
         if not face_detected_val:
             reasons.append("No valid face landmark detected")
         elif self.face_backend != "none":
-            geom_valid, geom_reasons = verify_facial_geometry(image)
+            geom_valid, geom_reasons = verify_facial_geometry(image, face_backend=self.face_backend)
             if not geom_valid:
                 reasons.extend(geom_reasons)
         if sharpness < self.min_sharpness:
             reasons.append(f"Sharpness {sharpness:.2f} below threshold {self.min_sharpness:.2f}")
-        if self.clip_enabled and clip_score is not None and clip_score < self.min_clip_score:
-            reasons.append(f"CLIP score {clip_score:.3f} below threshold {self.min_clip_score:.3f}")
+        eff_min_clip = resolve_effective_min_clip(self.min_clip_score, mode)
+        if has_prompt and self.clip_enabled and clip_score is not None and clip_score < eff_min_clip:
+            reasons.append(f"CLIP score {clip_score:.3f} below threshold {eff_min_clip:.3f}")
 
         ext_kwargs: Dict[str, Any] = {}
         if self.extended_audit:
@@ -199,6 +203,7 @@ class ImageCurationGate:
                 image_id=image_id,
                 run_geometry=(self.face_backend != "none"),
                 sharpness_score=sharpness,
+                face_backend=self.face_backend,
             )
             ext_kwargs = {
                 "eye_count": ext_rep.eye_count,
@@ -311,6 +316,59 @@ def curate_image_manifest(
     seen_dhash_meta: List[Tuple[str, str, Optional[np.ndarray]]] = []
     source_cache: Dict[Path, np.ndarray] = {}
     processed_idx = 0
+
+    pending_batch: List[Tuple[Dict[str, Any], torch.Tensor, str, str, Optional[np.ndarray], Optional[torch.Tensor], str]] = []
+
+    def _flush_pending_batch() -> None:
+        nonlocal kept_count, rejected_count
+        if not pending_batch:
+            return
+        batch_items = list(pending_batch)
+        pending_batch.clear()
+        clip_scores: List[Optional[float]] = [None] * len(batch_items)
+        if gate.clip_enabled and gate._clip_scorer is not None:
+            prompted_indices = [idx for idx, row in enumerate(batch_items) if str(row[6] or "").strip()]
+            if prompted_indices:
+                imgs_b = [batch_items[idx][1] for idx in prompted_indices]
+                prompts_b = [batch_items[idx][6] for idx in prompted_indices]
+                try:
+                    scored = gate._clip_scorer.score_batch(imgs_b, prompts_b)
+                    for idx, val in zip(prompted_indices, scored):
+                        clip_scores[idx] = float(val)
+                except Exception as clip_err:
+                    logger.warning("Batched CLIP scoring error (%s), falling back per-item.", clip_err)
+                    for idx in prompted_indices:
+                        try:
+                            clip_scores[idx] = float(gate._clip_scorer.score(batch_items[idx][1], batch_items[idx][6]))
+                        except Exception:
+                            clip_scores[idx] = None
+        for (b_item, b_ten, b_id, b_mode, b_src, b_mask, b_prompt), b_clip in zip(batch_items, clip_scores):
+            try:
+                b_rep = gate.evaluate_image(
+                    b_ten,
+                    prompt=b_prompt,
+                    image_id=b_id,
+                    mode=b_mode,
+                    source_image=b_src,
+                    mask=b_mask,
+                    clip_score_override=b_clip,
+                )
+            except Exception as eval_err:
+                logger.warning("Evaluation error on %s (%s), rejecting entry.", b_id, eval_err)
+                b_rep = ImageCurationReport(
+                    image_id=b_id,
+                    is_valid=False,
+                    sharpness_score=0.0,
+                    clip_score=b_clip,
+                    face_detected=False,
+                    rejection_reasons=[f"eval_error: {eval_err}"],
+                )
+            report_lines.append(json.dumps(b_rep.to_dict()) + "\n")
+            if b_rep.is_valid:
+                curated_lines.append(json.dumps(b_item) + "\n")
+                kept_count += 1
+            else:
+                rejected_count += 1
 
     if input_manifest.exists():
         with open(input_manifest, "r", encoding="utf-8") as f:
@@ -490,21 +548,9 @@ def curate_image_manifest(
                                 if mask_t is None:
                                     mask_t = generate_dynamic_face_mask(src_t, bbox=bbox_xyxy, target_region="full")
 
-                    report = gate.evaluate_image(
-                        tensor_img,
-                        prompt=item.get("prompt", ""),
-                        image_id=img_id,
-                        mode=mode_val,
-                        source_image=src_u8,
-                        mask=mask_t,
-                    )
-                    report_lines.append(json.dumps(report.to_dict()) + "\n")
-
-                    if report.is_valid:
-                        curated_lines.append(json.dumps(item) + "\n")
-                        kept_count += 1
-                    else:
-                        rejected_count += 1
+                    pending_batch.append((item, tensor_img, img_id, mode_val, src_u8, mask_t, item.get("prompt", "")))
+                    if not (gate.clip_enabled and gate._clip_scorer is not None) or len(pending_batch) >= 32:
+                        _flush_pending_batch()
                 except Exception as err:
                     logger.warning("Error reading %s for curation (%s), skipping.", file_path, err)
                     rejected_count += 1
@@ -517,6 +563,8 @@ def curate_image_manifest(
                         rejection_reasons=[f"read_error: {err}"],
                     )
                     report_lines.append(json.dumps(report.to_dict()) + "\n")
+
+    _flush_pending_batch()
 
     with open(output_manifest, "w", encoding="utf-8") as f:
         f.writelines(curated_lines)
@@ -579,8 +627,8 @@ def main() -> None:
         clip_enabled = clip_enabled_default
 
     clip_model_id = str(_res(None, "curation.clip.model_id", "openai/clip-vit-base-patch32"))
-    min_clip_score = float(_res(args.min_clip, "curation.clip.min_score", 0.15))
-    face_backend = str(_res(None, "curation.face_check.backend", "none"))
+    min_clip_score = float(_res(args.min_clip, "curation.clip.min_score", 0.20))
+    face_backend = str(_res(None, "curation.face_check.backend", "yunet"))
     dedup = bool(_res(None, "curation.dedup", True))
 
     # Sharpness calibration against reference real images if available
@@ -627,7 +675,9 @@ def curate_dataset(
     curation_report: Optional[Path] = None,
     gate: Optional[ImageCurationGate] = None,
     min_sharpness: Optional[float] = None,
-    face_backend: str = "opencv_haar",
+    face_backend: str = "yunet",
+    clip_enabled: Optional[bool] = None,
+    min_clip_score: float = 0.20,
     dedup: bool = True,
     perceptual_dedup_threshold: Optional[int] = None,
     extended_audit: bool = False,
@@ -645,11 +695,14 @@ def curate_dataset(
     else:
         min_sharpness_val = float(min_sharpness)
 
+    resolved_clip = (face_backend != "none") if clip_enabled is None else bool(clip_enabled)
     if gate is None:
         gate = ImageCurationGate(
             min_sharpness=min_sharpness_val,
+            min_clip_score=min_clip_score,
             face_backend=face_backend,
-            clip_enabled=False,
+            clip_enabled=resolved_clip,
+            device="auto",
             dedup=dedup,
             perceptual_dedup_threshold=perceptual_dedup_threshold,
             extended_audit=extended_audit,

@@ -268,3 +268,118 @@ def test_verify_eye_pair_clear_eyes_not_flagged_sunglasses(monkeypatch: pytest.M
     assert res["eyes_detected"] is True
     assert res["sunglasses_occluded"] is False
     assert res["passed"] is True
+
+
+@pytest.mark.smoke
+def test_yunet_cheek_skin_texture_and_clip_scorer() -> None:
+    """Verify YuNet 5-landmark geometry, cheek skin plastic-texture flag, and transformers v5 ClipScorer."""
+    from pathlib import Path
+    import cv2
+    from PIL import Image
+    from src.common.metrics import (
+        ClipScorer,
+        _get_yunet_detector,
+        compute_cheek_skin_fft,
+        detect_face_yunet,
+        verify_facial_geometry,
+    )
+
+    ffhq_sample = Path("data/raw/faces/ffhq/00000.png")
+    if not ffhq_sample.is_file() or _get_yunet_detector() is None:
+        pytest.skip("FFHQ sample or YuNet ONNX cache not available")
+
+    arr = np.array(Image.open(ffhq_sample).convert("RGB").resize((512, 512)), dtype=np.uint8)
+    y_res = detect_face_yunet(arr)
+    assert y_res is not None and y_res["score"] >= 0.70
+    assert set(y_res["landmarks"].keys()) == {"right_eye", "left_eye", "nose", "mouth_right", "mouth_left"}
+
+    geom_ok, geom_reasons = verify_facial_geometry(arr, face_backend="yunet")
+    assert geom_ok is True, f"Unexpected real FFHQ rejection: {geom_reasons}"
+
+    # Real FFHQ cheek skin must pass natural micro-texture check
+    real_skin = compute_cheek_skin_fft(arr, yunet_face=y_res, min_cheek_ratio=0.005)
+    assert real_skin["cheek_fft_ratio"] is not None
+    assert real_skin["passed"] is True
+
+    # Heavily smoothed/airbrushed cheeks simulating plastic CGI skin must flag waxy_plastic_skin
+    smooth = cv2.GaussianBlur(arr, (21, 21), 8.0)
+    plastic_skin = compute_cheek_skin_fft(smooth, yunet_face=y_res, min_cheek_ratio=0.005)
+    assert plastic_skin["texture_flag"] == "waxy_plastic_skin"
+    assert plastic_skin["passed"] is False
+
+    # Verify offline cached ClipScorer compatibility (transformers v4/v5)
+    scorer = ClipScorer(device="cpu")
+    try:
+        s_match = scorer.score(arr, "a portrait of a baby toddler")
+        s_mismatch = scorer.score(arr, "a red sports car on a race track")
+    except Exception as err:
+        pytest.skip(f"CLIP cache unavailable in offline env: {err}")
+    assert s_match > s_mismatch
+    assert s_match > 0.20
+
+    # Negative/out-of-bounds YuNet landmarks near canvas edges must never raise FFT empty-slice error
+    oob_face = {
+        "bbox_xyxy": (0, 50, 220, 420),
+        "landmarks": {
+            "right_eye": (-30.0, 120.0),
+            "left_eye": (40.0, 125.0),
+            "nose": (-15.0, 200.0),
+            "mouth_right": (-20.0, 310.0),
+            "mouth_left": (35.0, 315.0),
+        },
+    }
+    res_oob = compute_cheek_skin_fft(arr, yunet_face=oob_face)
+    assert res_oob["passed"] is True
+    assert res_oob["texture_flag"] in ("unknown", "normal")
+
+
+@pytest.mark.smoke
+def test_mode_aware_clip_threshold_and_bare_eye_sunglasses_guard(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Paired modes avoid false CLIP rejections on style/patch prompts and bare eyes with sg prompt do not trigger sunglasses."""
+    from pathlib import Path
+    from PIL import Image
+    from src.common.metrics import extract_face_biometrics_rgb, resolve_effective_min_clip
+
+    assert resolve_effective_min_clip(0.20, "sd_text2img") == pytest.approx(0.20)
+    assert resolve_effective_min_clip(0.20, "sd_img2img") == pytest.approx(0.12)
+    assert resolve_effective_min_clip(0.20, "sd_inpaint") == pytest.approx(0.12)
+    assert resolve_effective_min_clip(0.08, "sd_img2img") == pytest.approx(0.08)
+
+    img = np.full((256, 256, 3), 210, dtype=np.uint8)
+    # 20% mid-dark pixels (intensity 60, < 75 soft, >= 45 strict) mimicking eyelashes/mascara
+    img[75:92, 65:190, :] = 60
+
+    class _StubTwoEyes:
+        def empty(self) -> bool:
+            return False
+
+        def detectMultiScale(self, *args, **kwargs):
+            return np.array([(25, 25, 24, 24), (115, 25, 24, 24)], dtype=np.int32)
+
+    monkeypatch.setattr("src.common.metrics._get_eye_classifiers", lambda: (_StubTwoEyes(), _StubTwoEyes()))
+    eye_res = verify_eye_pair(img, face_bbox_xyxy=(32, 32, 224, 224), prompt="wearing stylish black sunglasses")
+    assert eye_res["eyes_detected"] is True
+    assert eye_res["sunglasses_occluded"] is False
+
+    # Unpaired text2img at CLIP=0.18 must fail, while paired img2img/inpaint at 0.18 passes (0.09 fails collapse)
+    rep_t2i = audit_image_extended(
+        img, mode="sd_text2img", prompt="portrait", min_sharpness=0.0, run_geometry=False, clip_score_override=0.18
+    )
+    assert any("CLIP score" in r for r in rep_t2i.rejection_reasons)
+
+    rep_i2i_ok = audit_image_extended(
+        img, mode="sd_img2img", prompt="style tags", source_image=img, min_sharpness=0.0, run_geometry=False, clip_score_override=0.18
+    )
+    assert not any("CLIP score" in r for r in rep_i2i_ok.rejection_reasons)
+
+    rep_i2i_bad = audit_image_extended(
+        img, mode="sd_img2img", prompt="style tags", source_image=img, min_sharpness=0.0, run_geometry=False, clip_score_override=0.09
+    )
+    assert any("CLIP score" in r for r in rep_i2i_bad.rejection_reasons)
+
+    ffhq_sample = Path("data/raw/faces/ffhq/00000.png")
+    if ffhq_sample.is_file():
+        arr = np.array(Image.open(ffhq_sample).convert("RGB").resize((512, 512)), dtype=np.uint8)
+        bio = extract_face_biometrics_rgb(arr)
+        assert bio["faces_detected"] >= 1
+        assert bio["eyes_detected"] >= 2

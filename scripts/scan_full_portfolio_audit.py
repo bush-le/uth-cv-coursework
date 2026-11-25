@@ -46,8 +46,10 @@ def _scan_one_pool(
 
     gate = ImageCurationGate(
         min_sharpness=min_sharp,
-        clip_enabled=False,
-        face_backend="opencv_haar",
+        min_clip_score=0.20,
+        clip_enabled=True,
+        device="auto",
+        face_backend="yunet",
         dedup=True,
         perceptual_dedup_threshold=perceptual_dedup_threshold,
         extended_audit=True,
@@ -113,7 +115,8 @@ def scan_portfolio(
         existing = json.loads(summary_out.read_text(encoding="utf-8"))
         pool_results.update(existing.get("pools", {}))
 
-    with ProcessPoolExecutor(max_workers=min(4, max(1, len(tasks)))) as ex:
+    # Cap workers at 2 so concurrent CLIP ViT-B/32 CUDA instances stay comfortably within 4GB VRAM
+    with ProcessPoolExecutor(max_workers=min(2, max(1, len(tasks)))) as ex:
         futures = [ex.submit(_scan_one_pool, t) for t in tasks]
         for fut in as_completed(futures):
             p_name, p_res = fut.result()

@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import re
 import sys
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
@@ -20,9 +20,8 @@ from PIL import Image
 import torch
 
 from src.analysis.eda import _compute_dhash, _hamming_distance
-from src.common.config import cfg_get, load_config, load_yaml_with_defaults
+from src.common.config import load_config, load_yaml_with_defaults
 from src.common.logger import get_logger
-from src.common.metrics import calibrate_threshold, compute_laplacian_sharpness
 from src.common.seed import seed_everything
 from src.data.provenance import file_sha256
 from src.models.detector.image_detector import DeepfakeImageDetector
@@ -51,6 +50,15 @@ def compute_mode_quotas(total_images: int) -> Dict[str, int]:
     return {m: base + (1 if i < rem else 0) for i, m in enumerate(modes)}
 
 
+def _resolve_repo_path(path_val: Union[str, Path]) -> Path:
+    """Resolve existing path relative to cwd or repository root (_ROOT)."""
+    p = Path(path_val)
+    if p.exists() or p.is_absolute():
+        return p
+    cand = _ROOT / p
+    return cand if cand.exists() else p
+
+
 def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
     if not path.is_file():
         return []
@@ -68,14 +76,15 @@ def _score_manifest_with_checkpoints(
     if not items:
         return {name: [] for name in checkpoints}
 
-    cfg = load_yaml_with_defaults(str(config_path)) if Path(config_path).is_file() else {}
+    cfg_p = _resolve_repo_path(config_path)
+    cfg = load_yaml_with_defaults(str(cfg_p)) if cfg_p.is_file() else {}
     backbone = cfg.get("detection", {}).get("model", {}).get("spatial_backbone", "dinov2_small")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Pre-decode tensors once in (N, 3, 512, 512) RGB [0.0, 1.0] to avoid repeated disk I/O
     tensors: List[torch.Tensor] = []
     for item in items:
-        fp = Path(item.get("file_path") or item.get("image_path") or "")
+        fp = _resolve_repo_path(item.get("file_path") or item.get("image_path") or "")
         with Image.open(fp) as im:
             rgb = im.convert("RGB").resize((512, 512), Image.Resampling.LANCZOS)
             arr = np.array(rgb, dtype=np.float32) / 255.0  # (H, W, 3) RGB
@@ -84,7 +93,7 @@ def _score_manifest_with_checkpoints(
 
     scores_by_model: Dict[str, List[float]] = {}
     for model_label, ckpt_path_str in checkpoints.items():
-        ckpt_file = Path(ckpt_path_str)
+        ckpt_file = _resolve_repo_path(ckpt_path_str)
         if not ckpt_file.is_file():
             raise FileNotFoundError(f"Verified checkpoint not found at: {ckpt_file}")
 
@@ -120,8 +129,9 @@ def _compute_diversity_metrics(items: List[Dict[str, Any]], max_dhash_samples: i
     hashes = set()
     valid_files = 0
     for it in items:
-        fp = Path(it.get("file_path") or it.get("image_path") or "")
-        if fp.is_file():
+        fp_str = it.get("file_path") or it.get("image_path") or ""
+        fp = _resolve_repo_path(fp_str) if fp_str else Path("")
+        if fp_str and fp.is_file():
             hashes.add(file_sha256(fp))
             valid_files += 1
 
@@ -129,8 +139,9 @@ def _compute_diversity_metrics(items: List[Dict[str, Any]], max_dhash_samples: i
     sampled = items[::step][:max_dhash_samples]
     dhashes: List[str] = []
     for it in sampled:
-        fp = Path(it.get("file_path") or it.get("image_path") or "")
-        if fp.is_file():
+        fp_str = it.get("file_path") or it.get("image_path") or ""
+        fp = _resolve_repo_path(fp_str) if fp_str else Path("")
+        if fp_str and fp.is_file():
             with Image.open(fp) as im:
                 dhashes.append(_compute_dhash(im.convert("RGB")))
 
@@ -168,7 +179,7 @@ def _aggregate_quality_stats(
         by_mode.setdefault(mode, []).append(rep)
         for reason in rep.get("rejection_reasons", []):
             key = reason.split(":")[0].split("(")[0].strip()
-            key = re.sub(r"\s+\d+(?:\.\d+)?\s+(?:exceeds|below)\s+\d+(?:\.\d+)?$", " threshold", key)
+            key = re.sub(r"\s+\d+(?:\.\d+)?\s+(?:exceeds|below(?:\s+threshold)?)\s+\d+(?:\.\d+)?$", " threshold", key)
             rejection_counts[key] += 1
 
     def _summarize(reps: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -177,6 +188,7 @@ def _aggregate_quality_stats(
         n = len(reps)
         valid_n = sum(1 for r in reps if r.get("is_valid"))
         sharp = [float(r["sharpness_score"]) for r in reps if r.get("sharpness_score") is not None]
+        clips = [float(r["clip_score"]) for r in reps if r.get("clip_score") is not None]
         sym = [float(r["bilateral_symmetry"]) for r in reps if r.get("bilateral_symmetry") is not None]
         fft = [float(r["fft_high_freq_ratio"]) for r in reps if r.get("fft_high_freq_ratio") is not None]
         de = [float(r["delta_e_lab"]) for r in reps if r.get("delta_e_lab") is not None]
@@ -186,6 +198,7 @@ def _aggregate_quality_stats(
             1 for r in reps if (r.get("eye_count", 0) >= 2) or r.get("sunglasses_occluded") is True
         )
         fft_ok = sum(1 for r in reps if r.get("texture_flag") == "normal")
+        plastic_n = sum(1 for r in reps if r.get("texture_flag") == "waxy_plastic_skin")
         return {
             "total": n,
             "passed": valid_n,
@@ -193,11 +206,13 @@ def _aggregate_quality_stats(
             "pass_rate": valid_n / n,
             "face_detected_rate": sum(1 for r in reps if r.get("face_detected")) / n,
             "sharpness_mean": float(np.mean(sharp)) if sharp else 0.0,
+            "clip_score_mean": float(np.mean(clips)) if clips else None,
             "eye_pair_pass_rate": eye_ok / n if sym else None,
             "sunglasses_count": sum(1 for r in reps if r.get("sunglasses_occluded")),
             "bilateral_symmetry_mean": float(np.mean(sym)) if sym else None,
             "fft_high_freq_mean": float(np.mean(fft)) if fft else None,
             "fft_normal_rate": fft_ok / n if fft else None,
+            "plastic_skin_count": plastic_n,
             "delta_e_lab_mean": float(np.mean(de)) if de else None,
             "structure_corr_mean": float(np.mean(corr)) if corr else None,
             "seam_diff_mean": float(np.mean(seam)) if seam else None,
@@ -216,7 +231,11 @@ def _sample_pregenerated_manifest(
     seed: int = 42,
 ) -> List[Dict[str, Any]]:
     """Sample N balanced records across SD 1.5 modes from a pre-generated manifest."""
-    items = [r for r in _read_jsonl(pregenerated_manifest) if Path(r.get("file_path", "")).is_file()]
+    items = [
+        r for r in _read_jsonl(pregenerated_manifest)
+        if (r.get("file_path") or r.get("image_path"))
+        and _resolve_repo_path(r.get("file_path") or r.get("image_path")).is_file()
+    ]
     if not items:
         raise ValueError(f"No valid images found in pregenerated manifest: {pregenerated_manifest}")
 
@@ -266,7 +285,7 @@ def run_end_to_end_showcase(
     checkpoints: Optional[Dict[str, str]] = None,
     threshold: float = 0.50,
     min_sharpness: Optional[float] = None,
-    face_backend: str = "opencv_haar",
+    face_backend: str = "yunet",
     extended_audit: bool = True,
     steps: Optional[int] = None,
     seed: int = 42,
@@ -277,11 +296,12 @@ def run_end_to_end_showcase(
     seed_everything(seed)
     out_root = Path(output_dir)
     out_root.mkdir(parents=True, exist_ok=True)
-    raw_manifest_p = Path(raw_manifest)
+    raw_manifest_p = _resolve_repo_path(raw_manifest)
     if not raw_manifest_p.is_file():
         raise FileNotFoundError(f"Raw manifest not found: {raw_manifest_p}")
 
-    cfg = load_config(Path(factory_config)) if Path(factory_config).is_file() else {}
+    factory_cfg_p = _resolve_repo_path(factory_config)
+    cfg = load_config(factory_cfg_p) if factory_cfg_p.is_file() else {}
     quotas = compute_mode_quotas(total_images)
 
     fake_manifest = out_root / "fake_manifest.jsonl"
@@ -294,7 +314,7 @@ def run_end_to_end_showcase(
 
     # Stage 1: Either sample N balanced pre-generated SD 1.5 images OR generate live with SD 1.5
     if pregenerated_manifest is not None:
-        pre_p = Path(pregenerated_manifest)
+        pre_p = _resolve_repo_path(pregenerated_manifest)
         if not pre_p.is_file():
             raise FileNotFoundError(f"Pregenerated manifest not found: {pre_p}")
         source_mode = "pregenerated"
@@ -332,11 +352,22 @@ def run_end_to_end_showcase(
     else:
         min_sharpness_val = float(min_sharpness)
 
-    # Stage 2: Curation Gate + Mode-Aware Extended Quality Audit
-    logger.info("Stage 2: Running CurationGate (extended_audit=%s, min_sharpness=%.2f)...", extended_audit, min_sharpness_val)
+    # Stage 2: Curation Gate + Mode-Aware Extended Quality Audit (YuNet + Cheek Skin + CLIP)
+    clip_cfg = cfg.get("curation", {}).get("clip", {}) if isinstance(cfg, dict) else {}
+    clip_enabled_flag = bool(clip_cfg.get("enabled", True)) and (face_backend != "none")
+    min_clip_val = float(clip_cfg.get("min_score", 0.20))
+    logger.info(
+        "Stage 2: Running CurationGate (backend=%s, clip=%s, extended_audit=%s, min_sharpness=%.2f)...",
+        face_backend,
+        clip_enabled_flag,
+        extended_audit,
+        min_sharpness_val,
+    )
     gate = ImageCurationGate(
         min_sharpness=min_sharpness_val,
-        clip_enabled=False,
+        min_clip_score=min_clip_val,
+        clip_enabled=clip_enabled_flag,
+        device="auto",
         face_backend=face_backend,
         dedup=True,
         extended_audit=extended_audit,

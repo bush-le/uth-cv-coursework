@@ -1,7 +1,6 @@
 """Script to generate a 30-sample multi-modal deepfake audit batch (10 T2I, 10 I2I, 10 Inpaint),
 curate them with the hardened Curation Gate, and perform exhaustive biometric scan."""
 
-import os
 from pathlib import Path
 import sys
 
@@ -11,15 +10,13 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import json
-from pathlib import Path
 from typing import Any, Dict, List
 import cv2
 import numpy as np
-from PIL import Image
 import torch
 
 from src.common.logger import get_logger
-from src.common.metrics import compute_laplacian_sharpness, verify_facial_geometry
+from src.common.metrics import compute_laplacian_sharpness, extract_face_biometrics_rgb, verify_facial_geometry
 from src.models.diffusion.prompt_engine import PromptGrammarEngine
 from src.pipelines.curate_image_dataset import ImageCurationGate, curate_image_manifest
 from src.pipelines.generate_deepfake_images import run_image_generation
@@ -59,24 +56,26 @@ def run_audit(
         resume=False,
     )
 
-    logger.info(">>> Step 2: Running Hardened Curation Gate (opencv_haar, min_sharpness=3.5)...")
+    logger.info(">>> Step 2: Running Hardened Curation Gate (yunet + cheek_skin_fft + CLIP >= 0.20)...")
     gate = ImageCurationGate(
-        min_sharpness=3.5,
-        face_backend="opencv_haar",
-        clip_enabled=False,
+        min_sharpness=1.29,
+        min_clip_score=0.20,
+        face_backend="yunet",
+        clip_enabled=True,
+        device="auto",
         dedup=True,
+        extended_audit=True,
     )
     curation_summary = curate_image_manifest(
         input_manifest=raw_manifest,
         output_manifest=curated_manifest,
         gate=gate,
         curation_report=curation_report,
+        raw_manifest=Path("data/raw/manifest.jsonl"),
     )
     logger.info("Curation Gate Result: %s", curation_summary)
 
     logger.info(">>> Step 3: Conducting Deep Biometric & Optical Scan on All %d Images...", samples_per_mode * 3)
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml")
 
     # Read curation report entries
     curation_map = {}
@@ -101,31 +100,16 @@ def run_audit(
         if img_bgr is None:
             continue
         h, w, c = img_bgr.shape
-        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(50, 50))
-        if len(faces) == 0:
-            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2, minSize=(40, 40))
-
-        eyes = eye_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20))
 
         # Sharpness
-        np_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+        np_rgb = img_rgb.astype(np.float32) / 255.0
         t_img = torch.from_numpy(np_rgb).permute(2, 0, 1)
         sharpness = compute_laplacian_sharpness(t_img)
 
-        # Facial geometry verification
-        geom_valid, geom_reasons = verify_facial_geometry(img_bgr)
-
-        # Biometric measurements
-        face_ratio = 0.0
-        face_center = (0.5, 0.5)
-        aspect_ratio = 1.0
-        if len(faces) >= 1:
-            fx, fy, fw, fh = faces[0]
-            face_ratio = float((fw * fh) / (h * w))
-            face_center = (float((fx + fw / 2.0) / w), float((fy + fh / 2.0) / h))
-            aspect_ratio = float(fh / max(1, fw))
+        # Facial geometry & YuNet-first biometric telemetry (expects RGB, not BGR)
+        geom_valid, geom_reasons = verify_facial_geometry(img_rgb, face_backend="yunet")
+        bio = extract_face_biometrics_rgb(img_rgb, prompt=prompt)
 
         # Dynamic range & clipping
         white_clip = float(np.mean(img_bgr >= 252))
@@ -141,11 +125,11 @@ def run_audit(
             "file_path": file_path,
             "size": [w, h],
             "sharpness": round(sharpness, 2),
-            "faces_detected": int(len(faces)),
-            "face_area_ratio": round(face_ratio, 4),
-            "face_center": (round(face_center[0], 3), round(face_center[1], 3)),
-            "face_aspect_ratio": round(aspect_ratio, 3),
-            "eyes_detected": int(len(eyes)),
+            "faces_detected": bio["faces_detected"],
+            "face_area_ratio": bio["face_area_ratio"],
+            "face_center": bio["face_center"],
+            "face_aspect_ratio": bio["face_aspect_ratio"],
+            "eyes_detected": gate_res.get("eye_count", bio["eyes_detected"]),
             "white_clip_pct": round(white_clip * 100, 2),
             "black_clip_pct": round(black_clip * 100, 2),
             "curation_valid": is_curated_valid,

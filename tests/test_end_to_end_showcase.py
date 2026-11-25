@@ -248,13 +248,45 @@ def test_curate_dataset_forwards_extended_audit_and_groups_reasons(tmp_path: Pat
     assert rep["delta_e_lab"] is not None
 
     agg = _aggregate_quality_stats(
-        [{"image_id": "a", "manipulation_type": "sd_inpaint"}, {"image_id": "b", "manipulation_type": "sd_inpaint"}],
         [
-            {"image_id": "a", "is_valid": False, "rejection_reasons": ["CIELab color drift 20.12 exceeds 18.00"]},
-            {"image_id": "b", "is_valid": False, "rejection_reasons": ["CIELab color drift 25.44 exceeds 18.00"]},
+            {"image_id": "a", "manipulation_type": "sd_inpaint"},
+            {"image_id": "b", "manipulation_type": "sd_inpaint"},
+            {"image_id": "c", "manipulation_type": "sd_text2img"},
+        ],
+        [
+            {
+                "image_id": "a",
+                "is_valid": False,
+                "clip_score": 0.28,
+                "texture_flag": "waxy_plastic_skin",
+                "rejection_reasons": ["CIELab color drift 20.12 exceeds 18.00"],
+            },
+            {
+                "image_id": "b",
+                "is_valid": False,
+                "clip_score": 0.32,
+                "texture_flag": "normal",
+                "rejection_reasons": [
+                    "CIELab color drift 25.44 exceeds 18.00",
+                    "Semantic-structure correlation 0.350 below 0.550",
+                ],
+            },
+            {
+                "image_id": "c",
+                "is_valid": False,
+                "clip_score": 0.15,
+                "texture_flag": "normal",
+                "rejection_reasons": ["CLIP score 0.150 below threshold 0.200"],
+            },
         ],
     )
-    assert agg["rejection_counts"] == {"CIELab color drift threshold": 2}
+    assert agg["rejection_counts"] == {
+        "CIELab color drift threshold": 2,
+        "Semantic-structure correlation threshold": 1,
+        "CLIP score threshold": 1,
+    }
+    assert agg["overall"]["plastic_skin_count"] == 1
+    assert agg["overall"]["clip_score_mean"] == pytest.approx(0.25)
 
 
 @pytest.mark.smoke
@@ -375,3 +407,55 @@ def test_curate_manifest_ignores_static_config_inpaint_box_and_uses_source_mask(
     rep = json.loads(rep_m.read_text(encoding="utf-8").strip())
     assert rep["seam_diff"] is not None
     assert rep["seam_diff"] < 15.0
+
+
+@pytest.mark.smoke
+def test_curate_manifest_batch_flush_isolates_single_item_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """An exception evaluating one image in a flush batch must not poison remaining items in the batch."""
+    from src.pipelines.curate_image_dataset import ImageCurationGate, curate_image_manifest
+
+    p1 = tmp_path / "good1.png"
+    p2 = tmp_path / "bad.png"
+    p3 = tmp_path / "good2.png"
+    arr = np.full((64, 64, 3), 150, dtype=np.uint8)
+    for p in (p1, p2, p3):
+        Image.fromarray(arr).save(p)
+
+    m_in = tmp_path / "in.jsonl"
+    m_in.write_text(
+        json.dumps({"image_id": "good1", "file_path": str(p1)}) + "\n"
+        + json.dumps({"image_id": "bad", "file_path": str(p2)}) + "\n"
+        + json.dumps({"image_id": "good2", "file_path": str(p3)}) + "\n",
+        encoding="utf-8",
+    )
+    gate = ImageCurationGate(min_sharpness=0.0, clip_enabled=False, face_backend="none", dedup=False)
+    orig_eval = gate.evaluate_image
+
+    def _flaky_eval(image, **kwargs):
+        if kwargs.get("image_id") == "bad":
+            raise RuntimeError("simulated single-item failure")
+        return orig_eval(image, **kwargs)
+
+    monkeypatch.setattr(gate, "evaluate_image", _flaky_eval)
+    out_m = tmp_path / "out.jsonl"
+    rep_m = tmp_path / "rep.jsonl"
+    summary = curate_image_manifest(m_in, out_m, gate, curation_report=rep_m)
+    assert summary["total"] == 3
+    assert summary["kept"] == 2
+    assert summary["rejected"] == 1
+    reps = [json.loads(l) for l in rep_m.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert [r["image_id"] for r in reps] == ["good1", "bad", "good2"]
+    assert reps[1]["rejection_reasons"] == ["eval_error: simulated single-item failure"]
+
+    # When clip_enabled=True but prompt is empty "", CLIP is cleanly skipped without penalizing real images
+    gate_clip = ImageCurationGate(min_sharpness=0.0, min_clip_score=0.20, clip_enabled=True, face_backend="none")
+    rep_empty_prompt = gate_clip.evaluate_image(torch.full((3, 64, 64), 0.5), prompt="", image_id="real_no_prompt")
+    assert rep_empty_prompt.clip_score is None
+    assert rep_empty_prompt.is_valid is True
+
+    # Repo-relative config paths resolve cleanly even when launched from notebooks/coursework/
+    from src.pipelines.run_end_to_end_showcase import _resolve_repo_path
+
+    monkeypatch.chdir(tmp_path)
+    resolved_cfg = _resolve_repo_path("configs/config.yaml")
+    assert resolved_cfg.is_file() and resolved_cfg.name == "config.yaml"

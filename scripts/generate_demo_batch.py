@@ -3,7 +3,6 @@
 and detailed biometric/optical audit for thorough manual and automated inspection.
 """
 
-import os
 from pathlib import Path
 import sys
 
@@ -13,19 +12,17 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import json
-from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional
-import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 import torch
 
 from src.common.logger import get_logger
-from src.common.metrics import compute_laplacian_sharpness, verify_facial_geometry
+from src.common.metrics import extract_face_biometrics_rgb
 from src.models.diffusion.prompt_engine import PromptGrammarEngine
 from src.models.diffusion.stable_diffusion_engine import StableDiffusionEngine, generate_dynamic_face_mask
-from src.pipelines.curate_image_dataset import ImageCurationGate, curate_image_manifest
+from src.pipelines.curate_image_dataset import ImageCurationGate
 
 logger = get_logger(__name__)
 
@@ -87,10 +84,13 @@ def assemble_demo_batch(
     images_dir.mkdir(parents=True, exist_ok=True)
 
     gate = ImageCurationGate(
-        min_sharpness=3.5,
-        face_backend="opencv_haar",
-        clip_enabled=False,
+        min_sharpness=1.29,
+        min_clip_score=0.20,
+        face_backend="yunet",
+        clip_enabled=True,
+        device="auto",
         dedup=True,
+        extended_audit=True,
     )
     prompt_eng = PromptGrammarEngine(seed=seed)
 
@@ -187,27 +187,18 @@ def assemble_demo_batch(
                 # Evaluate through Curation Gate
                 rep = gate.evaluate_image(out_t.detach().cpu(), prompt=prompt_used, image_id=fake_id)
                 if rep.is_valid:
-                    # Biometric scan
-                    img_bgr = cv2.cvtColor(np_arr, cv2.COLOR_RGB2BGR)
-                    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-                    face_casc = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-                    eye_casc = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml")
-                    faces = face_casc.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(50, 50))
-                    if len(faces) == 0:
-                        faces = face_casc.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2, minSize=(40, 40))
-                    eyes = eye_casc.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20))
-
-                    faces_sorted = sorted(faces, key=lambda b: b[2] * b[3], reverse=True) if len(faces) > 0 else []
-                    face_ratio = (faces_sorted[0][2] * faces_sorted[0][3]) / (512.0 * 512.0) if faces_sorted else 0.0
+                    # YuNet-first biometric scan matching ImageCurationGate
+                    bio = extract_face_biometrics_rgb(np_arr, prompt=prompt_used)
+                    face_ratio = bio["face_area_ratio"]
                     entry = {
                         "image_id": fake_id,
                         "mode": m,
                         "file_path": str(out_path),
                         "size": [512, 512],
                         "sharpness": round(rep.sharpness_score, 2),
-                        "faces_detected": int(len(faces_sorted)),
-                        "face_area_ratio": round(face_ratio, 4),
-                        "eyes_detected": int(len(eyes)),
+                        "faces_detected": bio["faces_detected"],
+                        "face_area_ratio": face_ratio,
+                        "eyes_detected": rep.eye_count if rep.eye_count is not None else bio["eyes_detected"],
                         "curation_valid": True,
                         "rejection_reasons": [],
                         "prompt": prompt_used[:80] + "..." if len(prompt_used) > 80 else prompt_used,
