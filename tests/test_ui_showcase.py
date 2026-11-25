@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+import subprocess
+
 import numpy as np
+from PIL import Image
 import pytest
 import torch
 
@@ -15,8 +19,13 @@ from src.analysis.ui_showcase import (
     build_before_after_wipe_html,
     compute_cheek_roi_boxes,
     compute_dinov2_patch_heatmap,
+    inspect_pipeline_sample,
+    launch_live_sd_worker,
+    load_detector_bundle,
     render_face_audit_overlay,
     render_latent_noise_preview,
+    score_image_with_bundle,
+    unload_detector_bundle,
 )
 from src.models.detector.image_detector import DeepfakeImageDetector
 
@@ -212,3 +221,171 @@ def test_compute_dinov2_patch_heatmap_produces_valid_overlay_map() -> None:
     assert entry.sample_id == "s1"
     assert bundle.device.type == "cpu"
     assert insp.metrics[0].passed is True
+
+
+def test_load_real_detector_bundle_and_inspect_real_ffhq_and_hard_inpaint() -> None:
+    """Verify real M0/M2*/M3 checkpoints inspect real FFHQ and paired hard inpaint sample end-to-end."""
+    ckpts = [
+        Path("experiments/checkpoints/baseline_d0_best.pt"),
+        Path("experiments/checkpoints/active_learning_m2_best.pt"),
+        Path("experiments/checkpoints/active_learning_m3_best.pt"),
+    ]
+    real_path = Path("data/raw/faces/ffhq/00820.png")
+    fake_path = Path("data/synthetic/master_test_images/inpainting/fake_ffhq_00820_3.png")
+    if not all(p.is_file() for p in ckpts) or not real_path.is_file() or not fake_path.is_file():
+        pytest.skip("Required real checkpoints or FFHQ/inpaint sample files missing locally.")
+
+    bundle = load_detector_bundle()
+    try:
+        assert set(bundle.models.keys()) == {"M0", "M2*", "M3"}
+
+        real_res = inspect_pipeline_sample(
+            real_path,
+            bundle=bundle,
+            mode="real_ffhq",
+            ground_truth_label=0,
+        )
+        assert real_res.gate_passed is True
+        assert real_res.measured["cheek_fft_ratio"] is not None
+        assert real_res.before_after_html is None
+        assert real_res.detector_scores["M3"] < 0.50
+        assert real_res.heatmaps["M0"].shape == (512, 512, 3)
+        assert real_res.heatmaps["M0"].dtype == np.uint8
+        assert real_res.heatmaps["M3"].shape == (512, 512, 3)
+        assert real_res.heatmaps["M3"].dtype == np.uint8
+        assert "total" in real_res.latencies_ms and real_res.latencies_ms["total"] > 0.0
+
+        inpaint_prompt = (
+            "seamless natural facial features, authentic skin texture, man face, masculine contours, "
+            "adult portrait, natural skin, dark sunglasses with subtle lens glare, candid neutral glance, "
+            "contemplative look, natural expression, dramatic cinematic side lighting, chiaroscuro shadows, "
+            "sculpted cheekbones"
+        )
+        fake_res = inspect_pipeline_sample(
+            fake_path,
+            bundle=bundle,
+            source_image=real_path,
+            mask_region="lips",
+            mode="sd_inpaint",
+            prompt=inpaint_prompt,
+            ground_truth_label=1,
+        )
+        assert fake_res.gate_passed is True
+        assert fake_res.measured["cheek_fft_ratio"] is not None
+        assert "M3" in fake_res.detector_scores
+        assert 0.0 <= fake_res.detector_scores["M3"] <= 1.0
+        assert fake_res.detector_scores["M3"] >= 0.50
+        assert fake_res.heatmaps["M0"].shape == (512, 512, 3)
+        assert fake_res.heatmaps["M0"].dtype == np.uint8
+        assert fake_res.heatmaps["M3"].shape == (512, 512, 3)
+        assert fake_res.heatmaps["M3"].dtype == np.uint8
+        assert fake_res.before_after_html is not None
+        assert "detector" in fake_res.latencies_ms and "heatmaps" in fake_res.latencies_ms
+    finally:
+        unload_detector_bundle(bundle)
+
+
+def test_inspect_non_face_rgba_upload_fails_gate_and_honors_force_flag(tmp_path: Path) -> None:
+    """Verify random RGBA non-face upload fails curation gate and respects run_detector_if_rejected."""
+    ckpts = [
+        Path("experiments/checkpoints/baseline_d0_best.pt"),
+        Path("experiments/checkpoints/active_learning_m2_best.pt"),
+        Path("experiments/checkpoints/active_learning_m3_best.pt"),
+    ]
+    if not all(p.is_file() for p in ckpts):
+        pytest.skip("Required real checkpoints missing locally.")
+
+    rng = np.random.default_rng(123)
+    rgba_arr = rng.integers(0, 256, size=(160, 240, 4), dtype=np.uint8)
+    rgba_path = tmp_path / "non_face_rgba.png"
+    Image.fromarray(rgba_arr, mode="RGBA").save(rgba_path)
+
+    bundle = load_detector_bundle()
+    try:
+        blocked = inspect_pipeline_sample(
+            rgba_path,
+            bundle=bundle,
+            mode="custom_upload",
+            prompt="portrait",
+            run_detector_if_rejected=False,
+        )
+        assert blocked.image_512_rgb.shape == (512, 512, 3)
+        assert blocked.image_512_rgb.dtype == np.uint8
+        assert blocked.gate_passed is False
+        assert any(
+            ("No valid face" in r or "No face" in r or "geometry" in r.lower() or "aspect" in r.lower())
+            for r in blocked.rejection_reasons
+        )
+        assert blocked.detector_scores == {}
+
+        forced = inspect_pipeline_sample(
+            rgba_arr,
+            bundle=bundle,
+            mode="custom_upload",
+            prompt="portrait",
+            run_detector_if_rejected=True,
+            compute_heatmaps=False,
+        )
+        assert forced.gate_passed is False
+        assert set(forced.detector_scores.keys()) == {"M0", "M2*", "M3"}
+        assert all(0.0 <= val <= 1.0 for val in forced.detector_scores.values())
+    finally:
+        unload_detector_bundle(bundle)
+
+
+def test_inspect_offline_clip_and_unpaired_rv51_graceful_handling(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify CLIP Hub/cache failure degrades to clip_score=None and unpaired rv51_ood skips pair metrics."""
+    import src.analysis.ui_showcase as ui_mod
+    import src.common.metrics as metrics_mod
+
+    class FailingClipScorer:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def score(self, *args: object, **kwargs: object) -> float:
+            raise OSError("Simulated offline HF Hub failure")
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(ui_mod, "ClipScorer", FailingClipScorer)
+    monkeypatch.setattr(metrics_mod, "ClipScorer", FailingClipScorer)
+
+    img = np.full((512, 512, 3), 128, dtype=np.uint8)
+    res = inspect_pipeline_sample(
+        img,
+        bundle=None,
+        source_image=None,
+        mode="rv51_ood",
+        prompt="studio headshot portrait",
+    )
+    assert res.measured["clip_score"] is None
+    assert res.measured["delta_e_lab"] is None
+    assert res.measured["seam_diff"] is None
+    assert res.before_after_html is None
+    assert len(res.warnings) >= 1
+
+
+def test_launch_live_sd_worker_raises_contextual_error_on_nonzero_exit(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Verify launch_live_sd_worker raises RuntimeError with stderr context and cleans failed output dir."""
+
+    def fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=1,
+            stdout="",
+            stderr="RuntimeError: CUDA out of memory while allocating VAE",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="CUDA out of memory"):
+        launch_live_sd_worker(
+            mode="text2img",
+            prompt="a studio portrait of a person",
+            output_root=tmp_path,
+        )
+
+    assert list(tmp_path.iterdir()) == []
