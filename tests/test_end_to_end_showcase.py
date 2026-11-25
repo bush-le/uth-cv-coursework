@@ -210,3 +210,48 @@ def test_run_end_to_end_showcase_with_pregenerated_manifest(tmp_path: Path, monk
     assert summary["source_mode"] == "pregenerated"
     assert summary["generated_images"] == 3
     assert summary["curated_images"] == 3
+
+
+@pytest.mark.smoke
+def test_curate_dataset_forwards_extended_audit_and_groups_reasons(tmp_path: Path) -> None:
+    """curate_dataset forwards extended_audit/raw_manifest and _aggregate_quality_stats groups numeric reasons."""
+    from src.pipelines.curate_image_dataset import curate_dataset
+    from src.pipelines.run_end_to_end_showcase import _aggregate_quality_stats
+
+    src_p = tmp_path / "src.png"
+    syn_p = tmp_path / "syn.png"
+    arr = np.full((128, 128, 3), 160, dtype=np.uint8)
+    arr[40:90, 40:90, 0] = 210
+    Image.fromarray(arr).save(src_p)
+    Image.fromarray(arr).save(syn_p)
+
+    raw_m = tmp_path / "raw.jsonl"
+    raw_m.write_text(json.dumps({"image_id": "r0", "label": 0, "file_path": str(src_p)}) + "\n", encoding="utf-8")
+    fake_m = tmp_path / "fake.jsonl"
+    fake_m.write_text(
+        json.dumps({"image_id": "f0", "label": 1, "manipulation_type": "sd_img2img", "source_real_id": "r0", "file_path": str(syn_p)}) + "\n",
+        encoding="utf-8",
+    )
+    out_m = tmp_path / "curated.jsonl"
+    rep_m = tmp_path / "rep.jsonl"
+    summary = curate_dataset(
+        fake_m,
+        out_m,
+        report_path=rep_m,
+        min_sharpness=0.0,
+        face_backend="none",
+        extended_audit=True,
+        raw_manifest=raw_m,
+    )
+    assert summary["kept"] == 1
+    rep = json.loads(rep_m.read_text(encoding="utf-8").strip())
+    assert rep["delta_e_lab"] is not None
+
+    agg = _aggregate_quality_stats(
+        [{"image_id": "a", "manipulation_type": "sd_inpaint"}, {"image_id": "b", "manipulation_type": "sd_inpaint"}],
+        [
+            {"image_id": "a", "is_valid": False, "rejection_reasons": ["CIELab color drift 20.12 exceeds 18.00"]},
+            {"image_id": "b", "is_valid": False, "rejection_reasons": ["CIELab color drift 25.44 exceeds 18.00"]},
+        ],
+    )
+    assert agg["rejection_counts"] == {"CIELab color drift threshold": 2}

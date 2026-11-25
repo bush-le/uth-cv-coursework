@@ -339,7 +339,7 @@ def main() -> None:
     parser.add_argument("--min-clip", type=float, default=None)
     parser.add_argument("--enable-clip", action="store_true", default=None)
     parser.add_argument("--disable-clip", action="store_true", default=None)
-    parser.add_argument("--extended-audit", action="store_true", default=False)
+    parser.add_argument("--extended-audit", action="store_true", default=None)
     args = parser.parse_args()
 
     cfg: Dict[str, Any] = {}
@@ -412,6 +412,7 @@ def main() -> None:
         if min_sharpness_val is None:
             min_sharpness_val = 10.0
 
+    extended_audit = bool(_res(args.extended_audit, "curation.extended_audit", False))
     gate = ImageCurationGate(
         min_sharpness=min_sharpness_val,
         min_clip_score=min_clip_score,
@@ -419,7 +420,7 @@ def main() -> None:
         clip_model_id=clip_model_id,
         face_backend=face_backend,
         dedup=dedup,
-        extended_audit=bool(args.extended_audit),
+        extended_audit=extended_audit,
     )
     curate_image_manifest(
         input_manifest=in_manifest,
@@ -439,6 +440,8 @@ def curate_dataset(
     min_sharpness: float = 1.25,
     face_backend: str = "opencv_haar",
     dedup: bool = True,
+    extended_audit: bool = False,
+    raw_manifest: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """High-level wrapper to curate a synthetic dataset manifest."""
     if gate is None:
@@ -447,6 +450,7 @@ def curate_dataset(
             face_backend=face_backend,
             clip_enabled=False,
             dedup=dedup,
+            extended_audit=extended_audit,
         )
     rep = report_path or curation_report
     return curate_image_manifest(
@@ -454,6 +458,7 @@ def curate_dataset(
         output_manifest=Path(output_manifest),
         gate=gate,
         curation_report=Path(rep) if rep else None,
+        raw_manifest=Path(raw_manifest) if raw_manifest else None,
     )
 
 

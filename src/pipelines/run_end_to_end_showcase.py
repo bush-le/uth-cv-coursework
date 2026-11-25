@@ -7,6 +7,7 @@ from collections import Counter
 from itertools import combinations
 import json
 from pathlib import Path
+import re
 import sys
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -154,6 +155,7 @@ def _aggregate_quality_stats(
         by_mode.setdefault(mode, []).append(rep)
         for reason in rep.get("rejection_reasons", []):
             key = reason.split(":")[0].split("(")[0].strip()
+            key = re.sub(r"\s+\d+(?:\.\d+)?\s+(?:exceeds|below)\s+\d+(?:\.\d+)?$", " threshold", key)
             rejection_counts[key] += 1
 
     def _summarize(reps: List[Dict[str, Any]]) -> Dict[str, Any]:
