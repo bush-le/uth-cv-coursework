@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import subprocess
 
@@ -19,8 +20,10 @@ from src.analysis.ui_showcase import (
     build_before_after_wipe_html,
     compute_cheek_roi_boxes,
     compute_dinov2_patch_heatmap,
+    get_golden_presets,
     inspect_pipeline_sample,
     launch_live_sd_worker,
+    load_curated_showcase_catalog,
     load_detector_bundle,
     render_face_audit_overlay,
     render_latent_noise_preview,
@@ -389,3 +392,121 @@ def test_launch_live_sd_worker_raises_contextual_error_on_nonzero_exit(
         )
 
     assert list(tmp_path.iterdir()) == []
+
+
+def test_catalog_entries_passed_are_strictly_held_out_and_cover_all_tabs() -> None:
+    """Verify UI catalog covers all 4 tabs with strictly held-out passed items, failed items, and cheek_fft_ratio."""
+    catalog = load_curated_showcase_catalog()
+    assert set(catalog.keys()) == {"sd_text2img", "sd_img2img", "sd_inpaint", "ood_and_real"}
+
+    for tab in ("sd_text2img", "sd_img2img", "sd_inpaint"):
+        entries = catalog[tab]
+        passed = [e for e in entries if e.gate_passed]
+        failed = [e for e in entries if not e.gate_passed]
+        assert len(passed) >= 1, f"Expected passed entries in {tab}"
+        assert len(failed) >= 1, f"Expected failed entries in {tab}"
+
+        for entry in passed:
+            assert entry.split_provenance in {"master_frozen_test", "cumulative_challenge_test"}
+            assert "d0_train_images" not in entry.image_path
+
+        for entry in entries:
+            assert set(entry.scores.keys()) >= {"M0", "M2*", "M3"}
+            assert all(0.0 <= float(v) <= 1.0 for v in entry.scores.values())
+            assert Path(entry.image_path).is_file(), f"Missing image: {entry.image_path}"
+            if entry.source_image_path is not None:
+                assert Path(entry.source_image_path).is_file(), f"Missing source: {entry.source_image_path}"
+            if entry.measured.get("face_detected") is True:
+                assert entry.cheek_fft_ratio is not None
+
+    ood_real_entries = catalog["ood_and_real"]
+    ood = [e for e in ood_real_entries if e.mode == "rv51_ood"]
+    real = [e for e in ood_real_entries if e.label == 0]
+    assert len(ood) >= 1
+    assert len(real) >= 1
+    assert all(e.split_provenance == "unseen_rv51_test" for e in ood)
+    assert all(
+        e.mode == "real_ffhq" and e.split_provenance in {"master_frozen_test", "cumulative_challenge_test"}
+        for e in real
+    )
+    for entry in ood_real_entries:
+        assert set(entry.scores.keys()) >= {"M0", "M2*", "M3"}
+        assert all(0.0 <= float(v) <= 1.0 for v in entry.scores.values())
+        assert Path(entry.image_path).is_file(), f"Missing image: {entry.image_path}"
+        if entry.measured.get("face_detected") is True:
+            assert entry.cheek_fft_ratio is not None
+
+
+def test_golden_presets_cover_all_four_presentation_scenarios() -> None:
+    """Verify get_golden_presets returns 4 scenario presets backed by existing catalog entries and live scores."""
+    catalog = load_curated_showcase_catalog()
+    by_id = {e.sample_id: e for entries in catalog.values() for e in entries}
+
+    presets = get_golden_presets(catalog)
+    assert len(presets) == 4
+    tabs = {p["tab"] for p in presets}
+    assert tabs == {"sd_text2img", "sd_img2img", "sd_inpaint", "ood_and_real"}
+
+    labels_joined = " | ".join(str(p.get("label", "")) for p in presets)
+    for expected_kw in ("Text2Img", "Img2Img", "Inpaint", "OOD RV5.1 & Real FFHQ"):
+        assert expected_kw in labels_joined
+
+    for preset in presets:
+        primary_id = preset["primary_sample_id"]
+        secondary_id = preset["secondary_sample_id"]
+        assert primary_id in by_id
+        assert secondary_id in by_id
+        assert by_id[primary_id].tab == preset["tab"]
+        assert by_id[secondary_id].tab == preset["tab"]
+
+        metrics = preset["checkpoint_metrics"]
+        assert set(metrics.keys()) >= {"M0", "M2*", "M3"}
+        assert all(0.0 <= float(v) <= 1.0 for v in metrics.values())
+
+
+def test_sd15_pregen_200_scores_match_live_checkpoints() -> None:
+    """Verify sd15_pregen_200/scored_manifest.jsonl contains all 200 items and matches live M0/M2*/M3 scores."""
+    scored_path = Path("experiments/demo_runs/sd15_pregen_200/scored_manifest.jsonl")
+    assert scored_path.is_file()
+
+    rows = [json.loads(line) for line in scored_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(rows) == 200
+    by_id = {r["image_id"]: r for r in rows}
+
+    assert "fake_ffhq_00500_4" in by_id
+    assert "fake_ffhq_00032_1" in by_id
+    assert by_id["fake_ffhq_00500_4"]["is_curated"] is True
+    assert by_id["fake_ffhq_00032_1"]["is_curated"] is False
+
+    target_rec = by_id["fake_ffhq_00500_4"]
+    img_path = Path(target_rec["file_path"])
+    assert img_path.is_file()
+
+    ckpts = [
+        Path("experiments/checkpoints/baseline_d0_best.pt"),
+        Path("experiments/checkpoints/active_learning_m2_best.pt"),
+        Path("experiments/checkpoints/active_learning_m3_best.pt"),
+    ]
+    if not all(p.is_file() for p in ckpts):
+        pytest.skip("Required real checkpoints missing locally.")
+
+    bundle = load_detector_bundle()
+    try:
+        with Image.open(img_path) as raw_im:
+            rgb_512 = np.asarray(
+                raw_im.convert("RGB").resize((512, 512), Image.Resampling.LANCZOS),
+                dtype=np.uint8,
+            )
+        live_scores = score_image_with_bundle(bundle, rgb_512)
+    finally:
+        unload_detector_bundle(bundle)
+
+    rec_scores = target_rec["detector_scores"]
+    key_map = {
+        "M0": "M0 (Baseline)",
+        "M2*": "M2* (Active R2)",
+        "M3": "M3 (Champion)",
+    }
+    for short_key, full_key in key_map.items():
+        recorded = float(rec_scores.get(short_key, rec_scores.get(full_key)))
+        assert abs(recorded - live_scores[short_key]) <= 1e-3

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import base64
 from dataclasses import asdict, dataclass, field
 import gc
@@ -34,6 +35,7 @@ from src.common.metrics import (
     extract_face_biometrics_rgb,
     resolve_effective_min_clip,
 )
+from src.common.seed import seed_everything
 from src.models.detector.image_detector import DeepfakeImageDetector
 from src.models.diffusion.stable_diffusion_engine import generate_dynamic_face_mask
 
@@ -43,6 +45,16 @@ _ORIG_CLIP_SCORER = ClipScorer
 _IMAGENET_MEAN: Tuple[float, float, float] = (0.485, 0.456, 0.406)
 _IMAGENET_STD: Tuple[float, float, float] = (0.229, 0.224, 0.225)
 _MIN_CUDA_FREE_BYTES: int = 900 * 1024 * 1024
+_CANONICAL_MODE_MAP: Dict[str, str] = {
+    "text2img": "sd_text2img",
+    "img2img": "sd_img2img",
+    "inpaint": "sd_inpaint",
+}
+_FULL_MODEL_LABELS: Dict[str, str] = {
+    "M0": "M0 (Baseline)",
+    "M2*": "M2* (Active R2)",
+    "M3": "M3 (Champion)",
+}
 DEFAULT_CHECKPOINT_MAP: Dict[str, str] = {
     "M0": "experiments/checkpoints/baseline_d0_best.pt",
     "M2*": "experiments/checkpoints/active_learning_m2_best.pt",
@@ -1042,6 +1054,7 @@ def inspect_pipeline_sample(
         Populated `InspectionResult` dataclass.
     """
     t_total_start = time.perf_counter()
+    mode = _CANONICAL_MODE_MAP.get(str(mode), str(mode))
     latencies_ms: Dict[str, float] = {}
     warnings: List[str] = []
 
@@ -1382,3 +1395,865 @@ def launch_live_sd_worker(
     if (run_dir / "mask.png").is_file():
         result["mask_path"] = str(run_dir / "mask.png")
     return result
+
+
+def _read_jsonl_records(path: Path) -> List[Dict[str, Any]]:
+    """Read non-empty JSON lines from a manifest or report file."""
+    if not path.is_file():
+        return []
+    with open(path, "r", encoding="utf-8") as handle:
+        return [json.loads(line) for line in handle if line.strip()]
+
+
+def _write_jsonl_records(path: Path, records: Sequence[Dict[str, Any]]) -> None:
+    """Write a sequence of dictionaries as UTF-8 JSONL lines."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        for rec in records:
+            handle.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def _score_images_batched(
+    bundle: DetectorBundle,
+    image_paths: Sequence[Union[Path, str]],
+    batch_size: int = 16,
+) -> List[Dict[str, float]]:
+    """Run batched eval-mode inference across all checkpoints in `bundle` on 512x512 LANCZOS RGB tensors.
+
+    Args:
+        bundle: Loaded `DetectorBundle` (`M0`, `M2*`, `M3`).
+        image_paths: Sequence of image paths to decode and score.
+        batch_size: Inference batch size protecting low-VRAM devices.
+
+    Returns:
+        List of `{model_label: P(fake)}` dicts aligned 1-to-1 with `image_paths`.
+    """
+    if not image_paths:
+        return []
+
+    step = max(1, int(batch_size))
+    use_amp = bundle.device.type == "cuda"
+    per_model_probs: Dict[str, List[float]] = {label: [] for label in bundle.models}
+
+    with torch.no_grad():
+        for start in range(0, len(image_paths), step):
+            batch_tensors: List[torch.Tensor] = []
+            for path_item in image_paths[start : start + step]:
+                rgb_512 = _to_512_rgb_u8(Path(path_item))
+                # Normalized tensor shape: (C=3, H=512, W=512) float32 RGB in [0.0, 1.0]
+                tensor_chw = torch.from_numpy(rgb_512.astype(np.float32) / 255.0).permute(2, 0, 1)
+                batch_tensors.append(tensor_chw)
+
+            batch = torch.stack(batch_tensors, dim=0).to(bundle.device)  # (B, 3, 512, 512)
+            del batch_tensors
+            for label, model in bundle.models.items():
+                model.eval()
+                with torch.amp.autocast("cuda", enabled=use_amp):
+                    logits = model(batch)
+                    if logits.ndim == 2 and logits.shape[1] > 1:
+                        probs = torch.softmax(logits.float(), dim=-1)[:, 1]
+                    else:
+                        probs = torch.sigmoid(logits.float().view(-1))
+                per_model_probs[label].extend(float(np.clip(p, 0.0, 1.0)) for p in probs.detach().cpu().tolist())
+            del batch
+
+    results: List[Dict[str, float]] = []
+    for idx in range(len(image_paths)):
+        results.append({label: per_model_probs[label][idx] for label in bundle.models})
+    return results
+
+
+def resync_demo_run_scores(
+    demo_dir: Path = Path("experiments/demo_runs/sd15_pregen_200"),
+    threshold: float = 0.50,
+    *,
+    bundle: Optional[DetectorBundle] = None,
+    batch_size: int = 1,
+) -> Dict[str, Any]:
+    """Re-score ALL items in `fake_manifest.jsonl` (curated and rejected) with live checkpoints.
+
+    Updates `scored_manifest.jsonl` (all 200 items with `"is_curated": bool`),
+    `hard_samples_manifest.jsonl` (subset of curated items with `M0 < threshold`), and
+    `e2e_summary.json` (`model_metrics`, `hard_samples_count`, `hard_sample_rate`, `threshold_tau`).
+    """
+    demo_root = Path(demo_dir)
+    fake_path = demo_root / "fake_manifest.jsonl"
+    curation_report_path = demo_root / "curation_report.jsonl"
+    curated_path = demo_root / "curated_manifest.jsonl"
+    scored_path = demo_root / "scored_manifest.jsonl"
+    hard_path = demo_root / "hard_samples_manifest.jsonl"
+    summary_path = demo_root / "e2e_summary.json"
+
+    fake_items = _read_jsonl_records(fake_path)
+    if not fake_items:
+        raise FileNotFoundError(f"Demo fake_manifest.jsonl missing or empty: {fake_path}")
+
+    report_items = _read_jsonl_records(curation_report_path)
+    curated_items = _read_jsonl_records(curated_path)
+    valid_by_id: Dict[str, bool] = {
+        str(r["image_id"]): bool(r.get("is_valid", False))
+        for r in report_items
+        if "image_id" in r
+    }
+    curated_id_set = {str(r["image_id"]) for r in curated_items if "image_id" in r}
+
+    image_paths: List[Path] = []
+    for item in fake_items:
+        fp = Path(str(item.get("file_path") or item.get("image_path") or ""))
+        if not fp.is_file():
+            raise FileNotFoundError(f"Missing demo image referenced by {item.get('image_id')}: {fp}")
+        image_paths.append(fp)
+
+    owns_bundle = bundle is None
+    active_bundle = bundle if bundle is not None else load_detector_bundle()
+    try:
+        batched_scores = _score_images_batched(active_bundle, image_paths, batch_size=batch_size)
+    finally:
+        if owns_bundle:
+            unload_detector_bundle(active_bundle)
+
+    scored_records: List[Dict[str, Any]] = []
+    curated_scored: List[Dict[str, Any]] = []
+    hard_records: List[Dict[str, Any]] = []
+
+    for item, short_scores in zip(fake_items, batched_scores):
+        rec = dict(item)
+        img_id = str(rec.get("image_id", ""))
+        is_curated = valid_by_id[img_id] if img_id in valid_by_id else (img_id in curated_id_set)
+
+        full_scores = {
+            _FULL_MODEL_LABELS.get(k, k): float(v)
+            for k, v in short_scores.items()
+        }
+        p0 = float(short_scores["M0"])
+        is_hard = bool(is_curated and p0 < float(threshold))
+
+        rec["is_curated"] = bool(is_curated)
+        rec["detector_scores"] = full_scores
+        rec["baseline_score"] = p0
+        rec["is_hard_sample"] = is_hard
+        scored_records.append(rec)
+        if is_curated:
+            curated_scored.append(rec)
+            if is_hard:
+                hard_records.append(rec)
+
+    _write_jsonl_records(scored_path, scored_records)
+    _write_jsonl_records(hard_path, hard_records)
+
+    summary: Dict[str, Any] = (
+        json.loads(summary_path.read_text(encoding="utf-8"))
+        if summary_path.is_file()
+        else {}
+    )
+    hard_ids = {str(r["image_id"]) for r in hard_records}
+    model_metrics: Dict[str, Dict[str, float]] = {}
+    for short_key, full_label in _FULL_MODEL_LABELS.items():
+        if not curated_scored:
+            model_metrics[full_label] = {
+                "recall": 0.0,
+                "bypass_rate": 0.0,
+                "mean_p_fake": 0.0,
+                "hard_recall": 0.0,
+            }
+            continue
+        probs = [float(r["detector_scores"][full_label]) for r in curated_scored]
+        caught = sum(1 for p in probs if p >= float(threshold))
+        hard_caught = sum(
+            1
+            for r in curated_scored
+            if str(r["image_id"]) in hard_ids and float(r["detector_scores"][full_label]) >= float(threshold)
+        )
+        recall = caught / len(probs)
+        model_metrics[full_label] = {
+            "recall": float(recall),
+            "bypass_rate": float(1.0 - recall),
+            "mean_p_fake": float(np.mean(probs)),
+            "hard_recall": float(hard_caught / len(hard_records)) if hard_records else 1.0,
+        }
+
+    summary["generated_images"] = len(scored_records)
+    summary["curated_images"] = len(curated_scored)
+    summary["rejected_images"] = len(scored_records) - len(curated_scored)
+    summary["curation_pass_rate"] = (
+        float(len(curated_scored) / len(scored_records)) if scored_records else 0.0
+    )
+    summary["hard_samples_count"] = len(hard_records)
+    summary["hard_sample_rate"] = (
+        float(len(hard_records) / len(curated_scored)) if curated_scored else 0.0
+    )
+    summary["threshold_tau"] = float(threshold)
+    summary["model_metrics"] = model_metrics
+    summary.setdefault("artifacts", {})
+    summary["artifacts"]["fake_manifest"] = str(fake_path.resolve())
+    summary["artifacts"]["curated_manifest"] = str(curated_path.resolve())
+    summary["artifacts"]["curation_report"] = str(curation_report_path.resolve())
+    summary["artifacts"]["hard_manifest"] = str(hard_path.resolve())
+    summary["artifacts"]["scored_manifest"] = str(scored_path.resolve())
+    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    logger.info(
+        "Resynced %d demo records (%d curated, %d hard samples) -> %s",
+        len(scored_records),
+        len(curated_scored),
+        len(hard_records),
+        demo_root,
+    )
+    return summary
+
+
+def _build_real_source_lookup() -> Dict[str, str]:
+    """Map FFHQ/CelebA source_real_id to existing local real image file paths."""
+    lookup: Dict[str, str] = {}
+    for manifest_p in (
+        Path("data/raw/manifest.jsonl"),
+        Path("data/benchmarks/master_frozen_test.jsonl"),
+        Path("data/active_learning/cumulative_challenge_test.jsonl"),
+    ):
+        for rec in _read_jsonl_records(manifest_p):
+            if int(rec.get("label", -1)) == 0:
+                img_id = str(rec.get("image_id") or "")
+                fp = str(rec.get("file_path") or "")
+                if img_id and fp and Path(fp).is_file():
+                    lookup[img_id] = fp
+    return lookup
+
+
+def _resolve_source_path(rec: Dict[str, Any], real_lookup: Dict[str, str]) -> Optional[str]:
+    """Resolve paired source image path for an SD 1.5 record if available locally."""
+    src_id = rec.get("source_real_id")
+    if not src_id:
+        return None
+    src_id_str = str(src_id)
+    if src_id_str in real_lookup:
+        return real_lookup[src_id_str]
+    if src_id_str.startswith("ffhq_"):
+        cand = Path("data/raw/faces/ffhq") / f"{src_id_str.split('_', 1)[1]}.png"
+        if cand.is_file():
+            return str(cand)
+    return None
+
+
+def _collect_train_exclusions() -> Tuple[set[str], set[str]]:
+    """Collect image IDs and file paths belonging to any detector training split."""
+    train_ids: set[str] = set()
+    train_paths: set[str] = set()
+    for train_p in (
+        Path("data/benchmarks/D0_baseline/train.jsonl"),
+        Path("data/benchmarks/D1_augmented/train.jsonl"),
+        Path("data/benchmarks/D2_hard_boosted/train.jsonl"),
+        Path("data/benchmarks/D3_clean/train.jsonl"),
+    ):
+        for rec in _read_jsonl_records(train_p):
+            if "image_id" in rec:
+                train_ids.add(str(rec["image_id"]))
+            if "file_path" in rec:
+                train_paths.add(str(rec["file_path"]))
+    return train_ids, train_paths
+
+
+def _audit_and_build_catalog_entry(
+    rec: Dict[str, Any],
+    *,
+    tab: str,
+    mode: str,
+    split_provenance: str,
+    scores: Dict[str, float],
+    source_path: Optional[str],
+    clip_scorer: Optional[Any],
+) -> ShowcaseCatalogEntry:
+    """Run live extended audit + cheek FFT on one candidate record and return ShowcaseCatalogEntry."""
+    image_path = str(rec.get("file_path") or rec.get("image_path") or "")
+    gen_cfg = rec.get("generation") if isinstance(rec.get("generation"), dict) else {}
+    mask_region = gen_cfg.get("inpaint_mask_target") or rec.get("mask_region")
+    prompt = str(rec.get("prompt") or "")
+    seed = gen_cfg.get("seed") if gen_cfg.get("seed") is not None else rec.get("seed")
+    steps = gen_cfg.get("steps") if gen_cfg.get("steps") is not None else rec.get("steps")
+    guidance_scale = (
+        gen_cfg.get("guidance_scale")
+        if gen_cfg.get("guidance_scale") is not None
+        else rec.get("guidance_scale")
+    )
+    strength = (
+        gen_cfg.get("img2img_strength")
+        if gen_cfg.get("img2img_strength") is not None
+        else rec.get("strength")
+    )
+    label = int(rec.get("label", 1))
+
+    insp = inspect_pipeline_sample(
+        Path(image_path),
+        bundle=None,
+        source_image=Path(source_path) if source_path else None,
+        mask_region=str(mask_region) if mask_region else None,
+        mode=mode,
+        prompt=prompt,
+        seed=int(seed) if seed is not None else None,
+        ground_truth_label=label,
+        clip_scorer=clip_scorer,
+        compute_heatmaps=False,
+    )
+
+    m0_prob = float(scores["M0"])
+    is_hard = bool(label == 1 and insp.gate_passed and m0_prob < 0.50)
+
+    measured = dict(insp.measured)
+    if rec.get("rejection_reasons") and not insp.gate_passed:
+        measured["historical_rejection_reasons"] = list(rec["rejection_reasons"])
+
+    return ShowcaseCatalogEntry(
+        sample_id=str(rec.get("image_id") or Path(image_path).stem),
+        mode=mode,
+        tab=tab,
+        image_path=image_path,
+        source_image_path=source_path,
+        mask_path=None,
+        mask_region=str(mask_region) if mask_region else None,
+        prompt=prompt,
+        seed=int(seed) if seed is not None else None,
+        steps=int(steps) if steps is not None else None,
+        guidance_scale=float(guidance_scale) if guidance_scale is not None else None,
+        strength=float(strength) if strength is not None else None,
+        label=label,
+        split_provenance=split_provenance,
+        gate_passed=bool(insp.gate_passed),
+        rejection_reasons=list(insp.rejection_reasons),
+        measured=measured,
+        scores={k: float(v) for k, v in scores.items()},
+        cheek_fft_ratio=insp.cheek_fft_ratio if hasattr(insp, "cheek_fft_ratio") else measured.get("cheek_fft_ratio"),
+        is_hard_sample=is_hard,
+    )
+
+
+def _rank_passed_candidates(
+    candidates: Sequence[Tuple[Dict[str, Any], str, Dict[str, float]]],
+    rng: np.random.Generator,
+) -> List[Tuple[Dict[str, Any], str, Dict[str, float]]]:
+    """Order passed candidates prioritizing genuine M0 < 0.50 -> M3 >= 0.50 rescues first."""
+    rescues: List[Tuple[float, Tuple[Dict[str, Any], str, Dict[str, float]]]] = []
+    m0_misses: List[Tuple[float, Tuple[Dict[str, Any], str, Dict[str, float]]]] = []
+    regular: List[Tuple[Dict[str, Any], str, Dict[str, float]]] = []
+
+    for cand in candidates:
+        rec, prov, sc = cand
+        m0 = float(sc["M0"])
+        m3 = float(sc["M3"])
+        prov_bonus = 1.0 if prov == "master_frozen_test" else 0.0
+        if m0 < 0.50 and m3 >= 0.50:
+            rescues.append(((m3 - m0) + prov_bonus * 0.01, cand))
+        elif m0 < 0.50:
+            m0_misses.append((m3, cand))
+        else:
+            regular.append(cand)
+
+    rescues.sort(key=lambda x: x[0], reverse=True)
+    m0_misses.sort(key=lambda x: x[0], reverse=True)
+    perm = rng.permutation(len(regular)).tolist() if regular else []
+    shuffled_regular = [regular[i] for i in perm]
+    return [c for _, c in rescues] + [c for _, c in m0_misses] + shuffled_regular
+
+
+def build_ui_showcase_catalog(
+    output_path: Path = Path("experiments/demo_runs/ui_showcase_catalog.json"),
+    per_mode_pass: int = 18,
+    per_mode_fail: int = 12,
+    ood_count: int = 18,
+    real_count: int = 12,
+    *,
+    bundle: Optional[DetectorBundle] = None,
+    seed: int = 42,
+) -> Dict[str, Any]:
+    """Build balanced held-out showcase catalog JSON with live M0/M2*/M3 scores and cheek_fft_ratio.
+
+    All passed SD 1.5 entries come strictly from `master_frozen_test.jsonl` or
+    `cumulative_challenge_test.jsonl` (never `d0_train_images`), failed SD 1.5 entries come from
+    `sd15_pregen_200/curation_report.jsonl` (topped up from held-out `master_test_fakes_raw.jsonl`
+    rejects when a mode has fewer than `per_mode_fail` rejects), RV5.1 OOD entries come from
+    `unseen_rv51_test.jsonl`, and real FFHQ entries (`label == 0`) come from `master_frozen_test.jsonl`.
+    """
+    seed_everything(seed)
+    rng = np.random.default_rng(seed)
+    train_ids, train_paths = _collect_train_exclusions()
+    real_lookup = _build_real_source_lookup()
+
+    master_test = _read_jsonl_records(Path("data/benchmarks/master_frozen_test.jsonl"))
+    challenge_test = _read_jsonl_records(Path("data/active_learning/cumulative_challenge_test.jsonl"))
+    unseen_rv51 = _read_jsonl_records(Path("data/benchmarks/D3_clean/unseen_rv51_test.jsonl"))
+
+    demo_fake_by_id = {
+        str(r["image_id"]): r
+        for r in _read_jsonl_records(Path("experiments/demo_runs/sd15_pregen_200/fake_manifest.jsonl"))
+        if "image_id" in r
+    }
+    demo_rejects_raw: List[Dict[str, Any]] = []
+    for rep in _read_jsonl_records(Path("experiments/demo_runs/sd15_pregen_200/curation_report.jsonl")):
+        if rep.get("is_valid") is False and str(rep.get("image_id", "")) in demo_fake_by_id:
+            merged = dict(demo_fake_by_id[str(rep["image_id"])])
+            merged["rejection_reasons"] = list(rep.get("rejection_reasons", []))
+            merged["_provenance"] = "sd15_pregen_200_rejected"
+            demo_rejects_raw.append(merged)
+
+    master_curated_ids = {
+        str(r["image_id"])
+        for r in _read_jsonl_records(Path("data/synthetic/master_test_fakes_curated.jsonl"))
+        if "image_id" in r
+    }
+    master_rejects_raw: List[Dict[str, Any]] = []
+    for rec in _read_jsonl_records(Path("data/synthetic/master_test_fakes_raw.jsonl")):
+        if str(rec.get("image_id", "")) not in master_curated_ids:
+            merged = dict(rec)
+            merged["_provenance"] = "master_frozen_test_rejected"
+            master_rejects_raw.append(merged)
+
+    def _is_valid_heldout(rec: Dict[str, Any]) -> bool:
+        fp = str(rec.get("file_path") or "")
+        rid = str(rec.get("image_id") or "")
+        return bool(fp and Path(fp).is_file() and rid not in train_ids and fp not in train_paths)
+
+    sd_modes = ("sd_text2img", "sd_img2img", "sd_inpaint")
+    pass_candidates_by_mode: Dict[str, List[Tuple[Dict[str, Any], str]]] = {m: [] for m in sd_modes}
+    for rec in master_test:
+        if int(rec.get("label", -1)) == 1 and str(rec.get("manipulation_type")) in pass_candidates_by_mode:
+            if _is_valid_heldout(rec) and "d0_train_images" not in str(rec.get("file_path", "")):
+                pass_candidates_by_mode[str(rec["manipulation_type"])].append((rec, "master_frozen_test"))
+    for rec in challenge_test:
+        if int(rec.get("label", -1)) == 1 and str(rec.get("manipulation_type")) in pass_candidates_by_mode:
+            if _is_valid_heldout(rec) and "d0_train_images" not in str(rec.get("file_path", "")):
+                pass_candidates_by_mode[str(rec["manipulation_type"])].append((rec, "cumulative_challenge_test"))
+
+    fail_candidates_by_mode: Dict[str, List[Tuple[Dict[str, Any], str]]] = {m: [] for m in sd_modes}
+    seen_fail_ids: set[str] = set()
+    for rec in demo_rejects_raw + master_rejects_raw:
+        m = str(rec.get("manipulation_type") or "")
+        rid = str(rec.get("image_id") or "")
+        if m in fail_candidates_by_mode and rid not in seen_fail_ids and _is_valid_heldout(rec):
+            seen_fail_ids.add(rid)
+            fail_candidates_by_mode[m].append((rec, str(rec.get("_provenance", "sd15_pregen_200_rejected"))))
+
+    rv51_candidates = [
+        (rec, "unseen_rv51_test")
+        for rec in unseen_rv51
+        if int(rec.get("label", -1)) == 1
+        and str(rec.get("manipulation_type", "")).startswith("rv51_")
+        and _is_valid_heldout(rec)
+    ]
+    real_candidates = [
+        (rec, "master_frozen_test")
+        for rec in master_test
+        if int(rec.get("label", -1)) == 0 and _is_valid_heldout(rec)
+    ]
+
+    all_to_score: List[Tuple[Dict[str, Any], str]] = []
+    for m in sd_modes:
+        all_to_score.extend(pass_candidates_by_mode[m])
+        all_to_score.extend(fail_candidates_by_mode[m])
+    all_to_score.extend(rv51_candidates)
+    all_to_score.extend(real_candidates)
+
+    unique_paths: List[Path] = []
+    path_to_idx: Dict[str, int] = {}
+    for rec, _ in all_to_score:
+        fp = str(rec["file_path"])
+        if fp not in path_to_idx:
+            path_to_idx[fp] = len(unique_paths)
+            unique_paths.append(Path(fp))
+
+    owns_bundle = bundle is None
+    active_bundle = bundle if bundle is not None else load_detector_bundle()
+    try:
+        batched_scores = _score_images_batched(active_bundle, unique_paths, batch_size=16)
+    finally:
+        if owns_bundle:
+            unload_detector_bundle(active_bundle)
+
+    def _get_score(rec: Dict[str, Any]) -> Dict[str, float]:
+        return batched_scores[path_to_idx[str(rec["file_path"])]]
+
+    clip_scorer: Optional[Any] = None
+    try:
+        scorer_cls = ClipScorer if ClipScorer is not _ORIG_CLIP_SCORER else _metrics_mod.ClipScorer
+        clip_scorer = scorer_cls(device="cpu")
+    except Exception as exc:
+        logger.warning("CLIP scorer unavailable during catalog build (%s); continuing without CLIP.", exc)
+
+    tabs: Dict[str, List[ShowcaseCatalogEntry]] = {
+        "sd_text2img": [],
+        "sd_img2img": [],
+        "sd_inpaint": [],
+        "ood_and_real": [],
+    }
+
+    try:
+        for mode in sd_modes:
+            scored_pass = [
+                (rec, prov, _get_score(rec)) for rec, prov in pass_candidates_by_mode[mode]
+            ]
+            ordered_pass = _rank_passed_candidates(scored_pass, rng)
+            seen_ids: set[str] = set()
+            passed_entries: List[ShowcaseCatalogEntry] = []
+
+            for rec, prov, sc in ordered_pass:
+                if len(passed_entries) >= int(per_mode_pass):
+                    break
+                rid = str(rec.get("image_id", ""))
+                if rid in seen_ids:
+                    continue
+                src_path = _resolve_source_path(rec, real_lookup) if mode in ("sd_img2img", "sd_inpaint") else None
+                entry = _audit_and_build_catalog_entry(
+                    rec,
+                    tab=mode,
+                    mode=mode,
+                    split_provenance=prov,
+                    scores=sc,
+                    source_path=src_path,
+                    clip_scorer=clip_scorer,
+                )
+                if (
+                    entry.gate_passed
+                    and entry.measured.get("face_detected")
+                    and entry.cheek_fft_ratio is not None
+                ):
+                    seen_ids.add(rid)
+                    passed_entries.append(entry)
+
+            failed_entries: List[ShowcaseCatalogEntry] = []
+            for rec, prov in fail_candidates_by_mode[mode]:
+                if len(failed_entries) >= int(per_mode_fail):
+                    break
+                rid = str(rec.get("image_id", ""))
+                if rid in seen_ids:
+                    continue
+                src_path = _resolve_source_path(rec, real_lookup) if mode in ("sd_img2img", "sd_inpaint") else None
+                entry = _audit_and_build_catalog_entry(
+                    rec,
+                    tab=mode,
+                    mode=mode,
+                    split_provenance=prov,
+                    scores=_get_score(rec),
+                    source_path=src_path,
+                    clip_scorer=clip_scorer,
+                )
+                has_valid_cheek = (not entry.measured.get("face_detected")) or (entry.cheek_fft_ratio is not None)
+                if not entry.gate_passed and has_valid_cheek:
+                    seen_ids.add(rid)
+                    failed_entries.append(entry)
+
+            tabs[mode] = passed_entries + failed_entries
+
+        # Tab 4: RV5.1 OOD (balanced rv51_img2img + rv51_inpaint) + Held-out Real FFHQ (label == 0)
+        scored_rv51 = [(rec, prov, _get_score(rec)) for rec, prov in rv51_candidates]
+        rv51_by_sub: Dict[str, List[Tuple[Dict[str, Any], str, Dict[str, float]]]] = {
+            "rv51_img2img": [],
+            "rv51_inpaint": [],
+        }
+        for cand in scored_rv51:
+            sub = str(cand[0].get("manipulation_type", ""))
+            if sub in rv51_by_sub:
+                rv51_by_sub[sub].append(cand)
+        for sub in rv51_by_sub:
+            rv51_by_sub[sub].sort(
+                key=lambda c: (
+                    1 if (c[2]["M0"] < 0.50 and c[2]["M3"] >= 0.50) else 0,
+                    float(c[2]["M3"]) - float(c[2]["M0"]),
+                    float(c[2]["M3"]),
+                ),
+                reverse=True,
+            )
+
+        interleaved_rv51: List[Tuple[Dict[str, Any], str, Dict[str, float]]] = []
+        max_len = max(len(rv51_by_sub["rv51_img2img"]), len(rv51_by_sub["rv51_inpaint"]))
+        for idx in range(max_len):
+            for sub in ("rv51_img2img", "rv51_inpaint"):
+                if idx < len(rv51_by_sub[sub]):
+                    interleaved_rv51.append(rv51_by_sub[sub][idx])
+
+        ood_entries: List[ShowcaseCatalogEntry] = []
+        seen_ood_ids: set[str] = set()
+        for rec, prov, sc in interleaved_rv51:
+            if len(ood_entries) >= int(ood_count):
+                break
+            rid = str(rec.get("image_id", ""))
+            if rid in seen_ood_ids:
+                continue
+            entry = _audit_and_build_catalog_entry(
+                rec,
+                tab="ood_and_real",
+                mode="rv51_ood",
+                split_provenance=prov,
+                scores=sc,
+                source_path=None,
+                clip_scorer=clip_scorer,
+            )
+            if entry.gate_passed and entry.measured.get("face_detected") and entry.cheek_fft_ratio is not None:
+                seen_ood_ids.add(rid)
+                ood_entries.append(entry)
+
+        scored_real = [(rec, prov, _get_score(rec)) for rec, prov in real_candidates]
+        scored_real.sort(
+            key=lambda c: (
+                1 if c[2]["M3"] < 0.50 else 0,
+                1 if (c[2]["M0"] >= 0.50 and c[2]["M3"] < 0.50) else 0,
+                -float(c[2]["M3"]),
+            ),
+            reverse=True,
+        )
+        real_entries: List[ShowcaseCatalogEntry] = []
+        seen_real_ids: set[str] = set()
+        for rec, prov, sc in scored_real:
+            if len(real_entries) >= int(real_count):
+                break
+            rid = str(rec.get("image_id", ""))
+            if rid in seen_real_ids:
+                continue
+            entry = _audit_and_build_catalog_entry(
+                rec,
+                tab="ood_and_real",
+                mode="real_ffhq",
+                split_provenance=prov,
+                scores=sc,
+                source_path=None,
+                clip_scorer=clip_scorer,
+            )
+            if entry.gate_passed and entry.measured.get("face_detected") and entry.cheek_fft_ratio is not None:
+                seen_real_ids.add(rid)
+                real_entries.append(entry)
+
+        tabs["ood_and_real"] = ood_entries + real_entries
+    finally:
+        if clip_scorer is not None and hasattr(clip_scorer, "close"):
+            try:
+                clip_scorer.close()
+            except Exception:
+                pass
+
+    # Sync final selected entries to exact single-image score_image_with_bundle() precision
+    selected_entries = [e for entries in tabs.values() for e in entries]
+    if selected_entries:
+        sync_bundle = bundle if bundle is not None else load_detector_bundle()
+        try:
+            exact_scores = _score_images_batched(
+                sync_bundle,
+                [Path(e.image_path) for e in selected_entries],
+                batch_size=1,
+            )
+            for entry, ex in zip(selected_entries, exact_scores):
+                entry.scores = {k: float(v) for k, v in ex.items()}
+                entry.is_hard_sample = bool(
+                    entry.label == 1 and entry.gate_passed and float(ex["M0"]) < 0.50
+                )
+        finally:
+            if bundle is None:
+                unload_detector_bundle(sync_bundle)
+
+    summary = {
+        tab_name: {
+            "total": len(entries),
+            "passed": sum(1 for e in entries if e.gate_passed),
+            "failed": sum(1 for e in entries if not e.gate_passed),
+            "hard_rescues": sum(
+                1
+                for e in entries
+                if e.gate_passed
+                and e.label == 1
+                and float(e.scores.get("M0", 1.0)) < 0.50
+                and float(e.scores.get("M3", 0.0)) >= 0.50
+            ),
+        }
+        for tab_name, entries in tabs.items()
+    }
+
+    payload = {
+        "version": 1,
+        "checkpoint_map": dict(DEFAULT_CHECKPOINT_MAP),
+        "summary": summary,
+        "tabs": {
+            tab_name: [entry.to_dict() for entry in entries]
+            for tab_name, entries in tabs.items()
+        },
+    }
+    out_p = Path(output_path)
+    out_p.parent.mkdir(parents=True, exist_ok=True)
+    out_p.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    logger.info("Built UI showcase catalog at %s -> %s", out_p, summary)
+    return payload
+
+
+def load_curated_showcase_catalog(
+    catalog_path: Path = Path("experiments/demo_runs/ui_showcase_catalog.json"),
+) -> Dict[str, List[ShowcaseCatalogEntry]]:
+    """Load precomputed held-out UI showcase catalog JSON into `ShowcaseCatalogEntry` lists per tab."""
+    cat_p = Path(catalog_path)
+    if not cat_p.is_file():
+        raise FileNotFoundError(f"Showcase catalog not found at: {cat_p}")
+
+    raw = json.loads(cat_p.read_text(encoding="utf-8"))
+    tabs_raw = raw["tabs"] if isinstance(raw, dict) and "tabs" in raw else raw
+    expected_tabs = ("sd_text2img", "sd_img2img", "sd_inpaint", "ood_and_real")
+    catalog: Dict[str, List[ShowcaseCatalogEntry]] = {}
+    for tab in expected_tabs:
+        entries_raw = tabs_raw.get(tab, [])
+        catalog[tab] = [ShowcaseCatalogEntry(**item) for item in entries_raw]
+    return catalog
+
+
+def get_golden_presets(
+    catalog: Optional[Dict[str, List[ShowcaseCatalogEntry]]] = None,
+) -> List[Dict[str, Any]]:
+    """Build the 4 one-click presentation Golden Presets backed by held-out catalog entries."""
+    active_catalog = catalog if catalog is not None else load_curated_showcase_catalog()
+
+    def _pick_pass(entries: Sequence[ShowcaseCatalogEntry]) -> ShowcaseCatalogEntry:
+        passed = [e for e in entries if e.gate_passed]
+        if not passed:
+            return entries[0]
+        rescues = [
+            e
+            for e in passed
+            if float(e.scores.get("M0", 1.0)) < 0.50 and float(e.scores.get("M3", 0.0)) >= 0.50
+        ]
+        pool = rescues if rescues else passed
+        return max(
+            pool,
+            key=lambda e: (
+                float(e.scores.get("M3", 0.0)) - float(e.scores.get("M0", 0.0)),
+                float(e.scores.get("M3", 0.0)),
+            ),
+        )
+
+    def _pick_fail(
+        entries: Sequence[ShowcaseCatalogEntry],
+        preferred_keywords: Tuple[str, ...],
+    ) -> ShowcaseCatalogEntry:
+        failed = [e for e in entries if not e.gate_passed]
+        if not failed:
+            return entries[-1]
+        for kw in preferred_keywords:
+            for e in failed:
+                joined = " ".join(e.rejection_reasons).lower()
+                if kw in joined:
+                    return e
+        return failed[0]
+
+    presets: List[Dict[str, Any]] = []
+
+    t2i_entries = active_catalog["sd_text2img"]
+    t2i_pass = _pick_pass(t2i_entries)
+    t2i_fail = _pick_fail(t2i_entries, ("amputated", "forehead", "multiple faces", "clip"))
+    presets.append(
+        {
+            "id": "preset_text2img",
+            "label": "Ca 1: Text2Img (Đạt vs Cụt trán/Loại)",
+            "tab": "sd_text2img",
+            "description": "Held-out SD 1.5 Text2Img: ca đạt chuẩn cứu bởi M3 vs ca bị loại tại cổng Data.",
+            "primary_sample_id": t2i_pass.sample_id,
+            "secondary_sample_id": t2i_fail.sample_id,
+            "primary_entry": t2i_pass.to_dict(),
+            "secondary_entry": t2i_fail.to_dict(),
+            "checkpoint_metrics": dict(t2i_pass.scores),
+            "secondary_metrics": dict(t2i_fail.scores),
+        }
+    )
+
+    i2i_entries = active_catalog["sd_img2img"]
+    i2i_pass = _pick_pass(i2i_entries)
+    i2i_fail = _pick_fail(i2i_entries, ("cheek", "waxy", "blowout", "clip"))
+    presets.append(
+        {
+            "id": "preset_img2img",
+            "label": "Ca 2: Img2Img (Đạt vs Da sáp FFT)",
+            "tab": "sd_img2img",
+            "description": "Held-out SD 1.5 Img2Img: ca qua mặt M0 nhưng M3 bắt được vs ca da sáp/lỗi gate.",
+            "primary_sample_id": i2i_pass.sample_id,
+            "secondary_sample_id": i2i_fail.sample_id,
+            "primary_entry": i2i_pass.to_dict(),
+            "secondary_entry": i2i_fail.to_dict(),
+            "checkpoint_metrics": dict(i2i_pass.scores),
+            "secondary_metrics": dict(i2i_fail.scores),
+        }
+    )
+
+    inp_entries = active_catalog["sd_inpaint"]
+    inp_pass = _pick_pass(inp_entries)
+    inp_fail = _pick_fail(inp_entries, ("multiple faces", "seam", "cielab", "eyes"))
+    presets.append(
+        {
+            "id": "preset_inpaint",
+            "label": "Ca 3: Inpaint (Kính/Môi vs 2 mặt)",
+            "tab": "sd_inpaint",
+            "description": "Held-out SD 1.5 Inpaint: ca mặt nạ cục bộ khó đối chiếu M0 vs M3 và ca lỗi đa mặt/viền.",
+            "primary_sample_id": inp_pass.sample_id,
+            "secondary_sample_id": inp_fail.sample_id,
+            "primary_entry": inp_pass.to_dict(),
+            "secondary_entry": inp_fail.to_dict(),
+            "checkpoint_metrics": dict(inp_pass.scores),
+            "secondary_metrics": dict(inp_fail.scores),
+        }
+    )
+
+    ood_real_entries = active_catalog["ood_and_real"]
+    ood_list = [e for e in ood_real_entries if e.mode == "rv51_ood"]
+    real_list = [e for e in ood_real_entries if e.label == 0]
+    ood_primary = max(
+        ood_list,
+        key=lambda e: (
+            1 if (float(e.scores.get("M0", 1.0)) < 0.50 and float(e.scores.get("M3", 0.0)) >= 0.50) else 0,
+            float(e.scores.get("M3", 0.0)) - float(e.scores.get("M0", 0.0)),
+            float(e.scores.get("M3", 0.0)),
+        ),
+    )
+    real_secondary = min(real_list, key=lambda e: float(e.scores.get("M3", 1.0)))
+    presets.append(
+        {
+            "id": "preset_ood_real",
+            "label": "Ca 4: OOD RV5.1 & Real FFHQ",
+            "tab": "ood_and_real",
+            "description": "Khái quát hóa ngoại miền Unseen RV5.1 (M3 bắt giả) đối chứng ảnh thật FFHQ (True Negative).",
+            "primary_sample_id": ood_primary.sample_id,
+            "secondary_sample_id": real_secondary.sample_id,
+            "primary_entry": ood_primary.to_dict(),
+            "secondary_entry": real_secondary.to_dict(),
+            "checkpoint_metrics": dict(ood_primary.scores),
+            "secondary_metrics": dict(real_secondary.scores),
+        }
+    )
+
+    return presets
+
+
+def main() -> None:
+    """CLI entrypoint to resync `sd15_pregen_200` checkpoint scores and build UI showcase catalog."""
+    parser = argparse.ArgumentParser(description="Resync demo run scores and build held-out UI showcase catalog.")
+    parser.add_argument("--resync-demo", action="store_true", help="Re-score all 200 sd15_pregen_200 samples.")
+    parser.add_argument("--build-catalog", action="store_true", help="Build held-out ui_showcase_catalog.json.")
+    parser.add_argument(
+        "--demo-dir",
+        type=str,
+        default="experiments/demo_runs/sd15_pregen_200",
+        help="Demo run directory to resync.",
+    )
+    parser.add_argument("--threshold", type=float, default=0.50, help="Hard-sample detector threshold tau.")
+    parser.add_argument(
+        "--catalog-output",
+        type=str,
+        default="experiments/demo_runs/ui_showcase_catalog.json",
+        help="Output path for the UI showcase catalog JSON.",
+    )
+    args = parser.parse_args()
+
+    if not args.resync_demo and not args.build_catalog:
+        parser.print_help()
+        return
+
+    if args.resync_demo:
+        resync_demo_run_scores(
+            demo_dir=Path(args.demo_dir),
+            threshold=float(args.threshold),
+        )
+    if args.build_catalog:
+        build_ui_showcase_catalog(
+            output_path=Path(args.catalog_output),
+        )
+
+
+if __name__ == "__main__":
+    main()

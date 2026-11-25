@@ -1,0 +1,142 @@
+{
+  "source_mode": "pregenerated",
+  "requested_images": 200,
+  "mode_quotas": {
+    "sd_img2img": 67,
+    "sd_inpaint": 67,
+    "sd_text2img": 66
+  },
+  "generated_images": 200,
+  "curated_images": 160,
+  "rejected_images": 40,
+  "curation_pass_rate": 0.8,
+  "min_sharpness_threshold": 1.1756240972317755,
+  "hard_samples_count": 30,
+  "hard_sample_rate": 0.1875,
+  "threshold_tau": 0.5,
+  "diversity": {
+    "sha256_unique_rate": 1.0,
+    "dhash_mean": 29.400499375780274,
+    "dhash_min": 0
+  },
+  "quality_stats": {
+    "overall": {
+      "total": 200,
+      "passed": 160,
+      "rejected": 40,
+      "pass_rate": 0.8,
+      "face_detected_rate": 0.995,
+      "sharpness_mean": 10.697863624664024,
+      "clip_score_mean": 0.23011954076588154,
+      "eye_pair_pass_rate": 0.98,
+      "sunglasses_count": 8,
+      "bilateral_symmetry_mean": 0.8079597184062004,
+      "fft_high_freq_mean": 0.03562903122385469,
+      "fft_normal_rate": 0.99,
+      "plastic_skin_count": 2,
+      "delta_e_lab_mean": 8.883202805447935,
+      "structure_corr_mean": 0.9733984382929692,
+      "seam_diff_mean": 13.97005750883871
+    },
+    "by_mode": {
+      "sd_img2img": {
+        "total": 67,
+        "passed": 60,
+        "rejected": 7,
+        "pass_rate": 0.8955223880597015,
+        "face_detected_rate": 1.0,
+        "sharpness_mean": 7.367327281120998,
+        "clip_score_mean": 0.19420346684420287,
+        "eye_pair_pass_rate": 1.0,
+        "sunglasses_count": 1,
+        "bilateral_symmetry_mean": 0.8419044284678218,
+        "fft_high_freq_mean": 0.03207503643206263,
+        "fft_normal_rate": 0.9701492537313433,
+        "plastic_skin_count": 2,
+        "delta_e_lab_mean": 4.4729702579441355,
+        "structure_corr_mean": 0.9843092546621548,
+        "seam_diff_mean": null
+      },
+      "sd_inpaint": {
+        "total": 67,
+        "passed": 55,
+        "rejected": 12,
+        "pass_rate": 0.8208955223880597,
+        "face_detected_rate": 1.0,
+        "sharpness_mean": 9.275369214088615,
+        "clip_score_mean": 0.2363626712293767,
+        "eye_pair_pass_rate": 0.9701492537313433,
+        "sunglasses_count": 5,
+        "bilateral_symmetry_mean": 0.8239698338864455,
+        "fft_high_freq_mean": 0.038320322018715554,
+        "fft_normal_rate": 1.0,
+        "plastic_skin_count": 0,
+        "delta_e_lab_mean": 13.293435352951732,
+        "structure_corr_mean": 0.9624876219237837,
+        "seam_diff_mean": 13.97005750883871
+      },
+      "sd_text2img": {
+        "total": 66,
+        "passed": 45,
+        "rejected": 21,
+        "pass_rate": 0.6818181818181818,
+        "face_detected_rate": 0.9848484848484849,
+        "sharpness_mean": 15.522909996269101,
+        "clip_score_mean": 0.26024207427646173,
+        "eye_pair_pass_rate": 0.9696969696969697,
+        "sunglasses_count": 2,
+        "bilateral_symmetry_mean": 0.7572480015682451,
+        "fft_high_freq_mean": 0.036504806493466664,
+        "fft_normal_rate": 1.0,
+        "plastic_skin_count": 0,
+        "delta_e_lab_mean": null,
+        "structure_corr_mean": null,
+        "seam_diff_mean": null
+      }
+    },
+    "rejection_counts": {
+      "Multiple faces detected": 8,
+      "CIELab color drift threshold": 6,
+      "Forehead / scalp amputated by top canvas border": 6,
+      "Face occupies too small area of frame": 5,
+      "CLIP score threshold": 3,
+      "Abnormal facial aspect ratio": 3,
+      "Expected >= 2 eyes in upper face ROI, detected 0": 3,
+      "Severe highlight blowout on face": 2,
+      "Plastic/waxy cheek skin texture": 2,
+      "Chin / jaw amputated by bottom canvas border": 2,
+      "Face occupies too large area of frame": 2,
+      "No face landmark detected": 1,
+      "Low bilateral facial symmetry": 1,
+      "Face is severely off-center": 1,
+      "Expected >= 2 eyes in upper face ROI, detected 1": 1
+    }
+  },
+  "model_metrics": {
+    "M0 (Baseline)": {
+      "recall": 0.8125,
+      "bypass_rate": 0.1875,
+      "mean_p_fake": 0.8094637431530174,
+      "hard_recall": 0.0
+    },
+    "M2* (Active R2)": {
+      "recall": 0.8,
+      "bypass_rate": 0.19999999999999996,
+      "mean_p_fake": 0.8115200262445569,
+      "hard_recall": 0.23333333333333334
+    },
+    "M3 (Champion)": {
+      "recall": 0.86875,
+      "bypass_rate": 0.13124999999999998,
+      "mean_p_fake": 0.8652744383970742,
+      "hard_recall": 0.4666666666666667
+    }
+  },
+  "artifacts": {
+    "fake_manifest": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/fake_manifest.jsonl",
+    "curated_manifest": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/curated_manifest.jsonl",
+    "curation_report": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/curation_report.jsonl",
+    "hard_manifest": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/hard_samples_manifest.jsonl",
+    "scored_manifest": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/scored_manifest.jsonl"
+  }
+}
