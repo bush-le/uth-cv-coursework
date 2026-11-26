@@ -11,7 +11,12 @@ Generates docs/reports/presentation_final_acceptance.html with:
 
 import json
 from pathlib import Path
+import sys
 import textwrap
+
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 import matplotlib
 matplotlib.use("Agg")
@@ -19,6 +24,8 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+
+from src.analysis.coursework_metrics import collect_live_coursework_metrics, fmt_int, fmt_pct
 
 OUTPUT_PATH = Path("docs/reports/presentation_final_acceptance.html")
 
@@ -35,16 +42,17 @@ def generate_m0_collapse_chart() -> None:
     legacy_512 = json.loads(legacy_512_path.read_text(encoding="utf-8"))
     legacy_224 = json.loads(legacy_224_path.read_text(encoding="utf-8"))
 
+    m = collect_live_coursework_metrics()
     m0_quad = quad["M0 (Baseline)"]
     m0_512 = legacy_512["models"]["M0_baseline"]
     m0_224 = legacy_224["models"]["M0_baseline"]
 
     labels = [
-        "Master Frozen Test\n(SD 1.5, 512px, 1.178)",
-        "Challenge Vault\n(Mẫu Khó, 512px, 213)",
-        "Unseen RV5.1 Vault\n(Test-Derived, 512px, 1.215)",
-        "Legacy 6k RV5.1\n(Chuẩn 512px, 6.000)",
-        "Legacy 6k RV5.1\n(Nén 224px, 6.000)",
+        f"Master Frozen Test\n(SD 1.5, 512px, {fmt_int(m['splits']['master_test'])})",
+        f"Challenge Vault\n(Mẫu Khó, 512px, {fmt_int(m['al']['challenge_total'])})",
+        f"Unseen RV5.1 Vault\n(Test-Derived, 512px, {fmt_int(m['splits']['unseen_rv51_total'])})",
+        f"Legacy 6k RV5.1\n(Chuẩn 512px, {fmt_int(m['curation']['rv51_raw'])})",
+        f"Legacy 6k RV5.1\n(Nén 224px, {fmt_int(m['curation']['rv51_raw'])})",
     ]
     recalls = [
         m0_quad["Master_Frozen_Test"]["recall"] * 100.0,
@@ -186,22 +194,30 @@ def regenerate_clean_d3_audit() -> None:
         val_txt = f"{int(b.get_height()):,}".replace(",", ".")
         axes[0].text(b.get_x() + b.get_width() / 2, b.get_height() + 55, val_txt, ha="center", va="bottom", fontsize=9, fontweight="bold")
 
+    m = collect_live_coursework_metrics()
+    sp = m["splits"]
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(splits, fontsize=9.5, fontweight="bold")
     axes[0].set_ylabel("Số Lượng Ảnh (Images)", fontsize=9.5, fontweight="bold")
-    axes[0].set_title("Cơ Cấu Phân Bổ Real vs Fake Qua 3 Tập Dữ Liệu D₃\n(Cân bằng 1:1 và cách ly hoàn toàn 626 ảnh test)", fontsize=10.5, fontweight="bold", pad=10)
-    axes[0].set_ylim(0, 3350)
+    axes[0].set_title(
+        f"Cơ Cấu Phân Bổ Real vs Fake Qua 3 Tập Dữ Liệu D₃\n(Cân bằng 1:1 và cách ly hoàn toàn {fmt_int(sp['unseen_rv51_fake'])} ảnh test)",
+        fontsize=10.5,
+        fontweight="bold",
+        pad=10,
+    )
+    axes[0].set_ylim(0, max(reals_counts + fakes_counts) * 1.18)
     axes[0].legend(fontsize=9, loc="upper right")
     axes[0].grid(axis="y", linestyle="--", alpha=0.4)
     axes[0].spines["top"].set_visible(False)
     axes[0].spines["right"].set_visible(False)
 
+    d3_f = max(1, sp["d3_train_fake"])
+    sizes_donut = [sp["d3_rv51_clean"], sp["d3_sd_nonhard"], sp["d3_hard"]]
     labels_donut = [
-        "RV5.1 Sạch ID\n(1.384 ảnh - 49.2%)",
-        "SD 1.5 Baseline\n(800 ảnh - 28.4%)",
-        "AL Hard Samples\n(629 ảnh - 22.4%)",
+        f"RV5.1 Sạch ID\n({fmt_int(sp['d3_rv51_clean'])} ảnh - {sp['d3_rv51_clean']/d3_f*100:.1f}%)",
+        f"SD 1.5 Baseline\n({fmt_int(sp['d3_sd_nonhard'])} ảnh - {sp['d3_sd_nonhard']/d3_f*100:.1f}%)",
+        f"AL Hard Samples\n({fmt_int(sp['d3_hard'])} ảnh - {sp['d3_hard']/d3_f*100:.1f}%)",
     ]
-    sizes_donut = [1384, 800, 629]
     colors_donut = ["#e67e22", "#3498db", "#9b59b6"]
     _, _, autotexts = axes[1].pie(
         sizes_donut,
@@ -215,7 +231,12 @@ def regenerate_clean_d3_audit() -> None:
     for at in autotexts:
         at.set_fontsize(9.5)
         at.set_fontweight("bold")
-    axes[1].set_title("Cơ Cấu 2.813 Ảnh Giả Trong D₃ Train\n(Đa Động Cơ: RV5.1 + SD 1.5 + AL Hard Samples)", fontsize=10.5, fontweight="bold", pad=10)
+    axes[1].set_title(
+        f"Cơ Cấu {fmt_int(sp['d3_train_fake'])} Ảnh Giả Trong D₃ Train\n(Đa Động Cơ: RV5.1 + SD 1.5 + AL Hard Samples)",
+        fontsize=10.5,
+        fontweight="bold",
+        pad=10,
+    )
 
     fig.suptitle("KIỂM TOÁN DỮ LIỆU D₃: ZERO IDENTITY LEAKAGE & CƠ CẤU ĐA ĐỘNG CƠ KHUẾCH TÁN", fontsize=12.5, fontweight="bold", y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.91])
@@ -273,7 +294,7 @@ def generate_m2star_rv51_profiling_chart() -> None:
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(categories, fontsize=8.5, fontweight="bold")
     axes[0].set_ylabel("Tỷ Lệ Bỏ Lọt M₂* (Bypass Rate % ↓)", fontsize=10, fontweight="bold")
-    axes[0].set_ylim(0, 62)
+    axes[0].set_ylim(0, max(max(bypass_rates) * 1.24, 15.0))
     byp_all = int(np.sum(m2_probs < 0.5))
     byp_all_pct = byp_all / len(m2_probs) * 100.0
     unc_all = int(np.sum(np.abs(m2_probs - 0.5) <= 0.15))
@@ -321,25 +342,38 @@ def generate_m3_convergence_chart() -> None:
     summary_path = Path("experiments/benchmarks/tables/m3_training_evaluation_summary.json")
     summary = json.loads(summary_path.read_text(encoding="utf-8")) if summary_path.is_file() else {}
     best_ep = int(summary.get("best_epoch", 6))
-    best_auc = float(summary.get("best_val_auc", 0.9846))
+    best_auc = float(summary.get("best_val_auc", 0.9881))
+    history = summary.get("epoch_history") or [
+        {"epoch": 1, "train_loss": 0.2584, "val_loss": 0.1745, "val_auc": 0.9822, "val_accuracy": 0.9311},
+        {"epoch": 2, "train_loss": 0.1729, "val_loss": 0.1757, "val_auc": 0.9854, "val_accuracy": 0.9277},
+        {"epoch": 3, "train_loss": 0.1404, "val_loss": 0.1656, "val_auc": 0.9866, "val_accuracy": 0.9379},
+        {"epoch": 4, "train_loss": 0.1190, "val_loss": 0.1539, "val_auc": 0.9873, "val_accuracy": 0.9413},
+        {"epoch": 5, "train_loss": 0.1056, "val_loss": 0.1623, "val_auc": 0.9878, "val_accuracy": 0.9413},
+        {"epoch": 6, "train_loss": 0.1021, "val_loss": 0.1642, "val_auc": 0.9881, "val_accuracy": 0.9396},
+    ]
 
-    epochs = np.array([1, 2, 3, 4, 5, 6])
-    train_loss = np.array([0.1833, 0.1318, 0.1131, 0.0969, 0.0900, 0.0831])
-    val_loss = np.array([0.2552, 0.2757, 0.2394, 0.2317, 0.2213, 0.2168])
-    val_auc = np.array([0.9745, 0.9778, 0.9820, 0.9822, 0.9841, round(best_auc, 4)])
-    val_acc = np.array([92.90, 92.49, 93.57, 93.82, 93.91, 94.07])
+    epochs = np.array([int(r["epoch"]) for r in history])
+    train_loss = np.array([float(r["train_loss"]) for r in history])
+    val_loss = np.array([float(r["val_loss"]) for r in history])
+    val_auc = np.array([float(r["val_auc"]) for r in history])
+    val_acc = np.array([float(r["val_accuracy"]) * 100.0 for r in history])
+    best_acc = float(val_acc[min(max(best_ep - 1, 0), len(val_acc) - 1)])
 
     fig, axes = plt.subplots(1, 2, figsize=(13.5, 4.9), dpi=200)
 
     axes[0].plot(epochs, train_loss, marker="o", linewidth=2.4, color="#2563eb", label="Train Loss")
     axes[0].plot(epochs, val_loss, marker="s", linewidth=2.4, color="#dc2626", label="Validation Loss (D3 Val)")
     for e, tl, vl in zip(epochs, train_loss, val_loss):
-        axes[0].text(e, tl - 0.013, f"{tl:.4f}", ha="center", va="top", fontsize=8, color="#1e40af", fontweight="bold")
-        axes[0].text(e, vl + 0.008, f"{vl:.4f}", ha="center", va="bottom", fontsize=8, color="#991b1b", fontweight="bold")
+        if vl >= tl:
+            axes[0].text(e, tl - 0.010, f"{tl:.4f}", ha="center", va="top", fontsize=8, color="#1e40af", fontweight="bold")
+            axes[0].text(e, vl + 0.006, f"{vl:.4f}", ha="center", va="bottom", fontsize=8, color="#991b1b", fontweight="bold")
+        else:
+            axes[0].text(e, tl + 0.006, f"{tl:.4f}", ha="center", va="bottom", fontsize=8, color="#1e40af", fontweight="bold")
+            axes[0].text(e, vl - 0.010, f"{vl:.4f}", ha="center", va="top", fontsize=8, color="#991b1b", fontweight="bold")
     axes[0].set_xticks(epochs)
-    axes[0].set_xlabel("Epoch (CosineAnnealingLR, T_max=6)", fontsize=10, fontweight="bold")
+    axes[0].set_xlabel(f"Epoch (CosineAnnealingLR, T_max={len(epochs)})", fontsize=10, fontweight="bold")
     axes[0].set_ylabel("BCEWithLogits Loss", fontsize=10, fontweight="bold")
-    axes[0].set_ylim(0.04, 0.31)
+    axes[0].set_ylim(max(0.0, float(min(train_loss.min(), val_loss.min())) - 0.035), float(max(train_loss.max(), val_loss.max())) + 0.04)
     axes[0].set_title("Động Học Giảm Hàm Mất Mát (Loss Convergence)", fontsize=11, fontweight="bold", pad=10)
     axes[0].grid(True, linestyle="--", alpha=0.45)
     axes[0].legend(loc="upper right", fontsize=9, frameon=True)
@@ -350,14 +384,14 @@ def generate_m3_convergence_chart() -> None:
     l1 = axes[1].plot(epochs, val_auc, marker="o", linewidth=2.5, color="#059669", label="Validation ROC-AUC (↑)")
     l2 = ax2.plot(epochs, val_acc, marker="^", linestyle="--", linewidth=2.0, color="#7c3aed", label="Validation Accuracy % (↑)")
     for e, auc_v in zip(epochs, val_auc):
-        axes[1].text(e, auc_v + 0.0008, f"{auc_v:.4f}", ha="center", va="bottom", fontsize=8, color="#065f46", fontweight="bold")
+        axes[1].text(e, auc_v + 0.0004, f"{auc_v:.4f}", ha="center", va="bottom", fontsize=8, color="#065f46", fontweight="bold")
     axes[1].set_xticks(epochs)
     axes[1].set_xlabel("Epoch (Warm-Start từ M₂*)", fontsize=10, fontweight="bold")
     axes[1].set_ylabel("Validation ROC-AUC", fontsize=10, fontweight="bold", color="#059669")
     ax2.set_ylabel("Validation Accuracy (%)", fontsize=10, fontweight="bold", color="#7c3aed")
-    axes[1].set_ylim(0.970, 0.989)
-    ax2.set_ylim(91.5, 95.0)
-    axes[1].set_title(f"Tăng Trưởng Validation AUC & Accuracy Qua 6 Epochs\n(Best Epoch {best_ep}: Val AUC = {best_auc:.4f}, Val Acc = 94.07%)", fontsize=11, fontweight="bold", pad=10)
+    axes[1].set_ylim(float(val_auc.min()) - 0.003, min(1.0, float(val_auc.max()) + 0.003))
+    ax2.set_ylim(float(val_acc.min()) - 1.2, min(100.0, float(val_acc.max()) + 1.0))
+    axes[1].set_title(f"Tăng Trưởng Validation AUC & Accuracy Qua {len(epochs)} Epochs\n(Best Epoch {best_ep}: Val AUC = {best_auc:.4f}, Val Acc = {best_acc:.2f}%)", fontsize=11, fontweight="bold", pad=10)
     axes[1].grid(True, linestyle="--", alpha=0.45)
     axes[1].spines["top"].set_visible(False)
     ax2.spines["top"].set_visible(False)
@@ -399,20 +433,28 @@ def generate_curation_funnel_chart() -> None:
     curs = [b1_cur, r1_cur, r2_cur, b1_cur + r1_cur + r2_cur]
     rejs = [r - c for r, c in zip(raws, curs)]
 
-    # Rejection reasons across AL Round 1 + Round 2 (exact JSON logs)
+    # Rejection reasons across AL Round 1 + Round 2 (exact JSON logs, extended audit included)
     rej_counter: Counter = Counter()
-    label_map = {
-        "Face occupies too small area of frame": "Mặt quá nhỏ (<20% khung)",
-        "No valid face landmark detected": "Không phát hiện được mặt",
-        "No face landmark detected": "Không phát hiện được mặt",
-        "Forehead / scalp amputated by top canvas border": "Cắt cụt vùng trán (mép trên)",
-        "Multiple faces detected": "Nhiều hơn 1 khuôn mặt",
-        "Face occupies too large area of frame": "Mặt quá lớn (>65% khung)",
-        "Severe highlight blowout on face": "Cháy sáng cục bộ (>8%)",
-        "Face is severely off-center": "Khuôn mặt lệch tâm nặng",
-        "Chin / jaw amputated by bottom canvas border": "Cắt cụt vùng cằm (mép dưới)",
-        "Severe horizontal boundary discontinuity across face": "Đứt gãy biên ngang vùng mặt",
-    }
+    prefix_map = [
+        ("CIELab color drift", "Lệch màu da CIELab (ΔE > 18)"),
+        ("CLIP score", "Lệch ngữ nghĩa CLIP"),
+        ("Boundary seam discontinuity", "Đứt gãy biên vùng mặt (Seam)"),
+        ("Expected >= 2 eyes in upper face ROI", "Thiếu/lệch cặp mắt (< 2 mắt)"),
+        ("Plastic/waxy cheek skin texture", "Da má nhựa/bóng (Cheek FFT)"),
+        ("Low bilateral facial symmetry", "Lệch đối xứng khuôn mặt"),
+        ("Abnormal facial aspect ratio", "Tỷ lệ khung mặt bất thường"),
+        ("duplicate_perceptual_dhash", "Trùng lặp tri giác (pHash)"),
+        ("Face occupies too small area of frame", "Mặt quá nhỏ (<20% khung)"),
+        ("No valid face landmark detected", "Không phát hiện được mặt"),
+        ("No face landmark detected", "Không phát hiện được mặt"),
+        ("Forehead / scalp amputated by top canvas border", "Cắt cụt vùng trán (mép trên)"),
+        ("Multiple faces detected", "Nhiều hơn 1 khuôn mặt"),
+        ("Face occupies too large area of frame", "Mặt quá lớn (>65% khung)"),
+        ("Severe highlight blowout on face", "Cháy sáng cục bộ (>8%)"),
+        ("Face is severely off-center", "Khuôn mặt lệch tâm nặng"),
+        ("Chin / jaw amputated by bottom canvas border", "Cắt cụt vùng cằm (mép dưới)"),
+        ("Severe horizontal boundary discontinuity across face", "Đứt gãy biên ngang vùng mặt"),
+    ]
     for rp in ["data/active_learning/round_1/curation_report.json", "data/active_learning/round_2/curation_report.json"]:
         with open(rp, "r", encoding="utf-8") as f:
             for line in f:
@@ -420,8 +462,13 @@ def generate_curation_funnel_chart() -> None:
                     rec = json.loads(line)
                     if not rec.get("is_valid"):
                         for reason in rec.get("rejection_reasons", []):
-                            key = reason.split("(")[0].split(":")[0].strip()
-                            rej_counter[label_map.get(key, key)] += 1
+                            r_str = str(reason).strip()
+                            mapped = None
+                            for pref, vn_lbl in prefix_map:
+                                if r_str.startswith(pref):
+                                    mapped = vn_lbl
+                                    break
+                            rej_counter[mapped or r_str.split("(")[0].split(":")[0].strip()] += 1
 
     fig, axes = plt.subplots(1, 2, figsize=(15, 5.4), dpi=200)
 
@@ -430,37 +477,47 @@ def generate_curation_funnel_chart() -> None:
     b_cur = axes[0].bar(x, curs, width=0.52, color="#10b981", edgecolor="black", label="Đạt chuẩn (Kept)")
     b_rej = axes[0].bar(x, rejs, bottom=curs, width=0.52, color="#ef4444", edgecolor="black", alpha=0.88, label="Bị loại (Rejected)")
     for i, (c, r, tot) in enumerate(zip(curs, rejs, raws)):
-        axes[0].text(i, c / 2, f"{c:,}", ha="center", va="center", fontsize=9.5, fontweight="bold", color="white")
-        axes[0].text(i, c + r / 2, f"-{r:,}", ha="center", va="center", fontsize=8.5, fontweight="bold", color="white")
-        axes[0].text(i, tot + 130, f"Thô: {tot:,}", ha="center", va="bottom", fontsize=9, fontweight="bold", color="#0f172a")
+        axes[0].text(i, c / 2, f"{c:,}".replace(",", "."), ha="center", va="center", fontsize=9.5, fontweight="bold", color="white")
+        axes[0].text(i, c + r / 2, f"-{r:,}".replace(",", "."), ha="center", va="center", fontsize=8.5, fontweight="bold", color="white")
+        axes[0].text(i, tot + 130, f"Thô: {tot:,}".replace(",", "."), ha="center", va="bottom", fontsize=9, fontweight="bold", color="#0f172a")
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(stages, fontsize=9, fontweight="bold")
     axes[0].set_ylabel("Số Lượng Ảnh (SD 1.5)", fontsize=10, fontweight="bold")
-    axes[0].set_ylim(0, 7400)
-    axes[0].set_title("Phễu Lọc CurationGate Qua 3 Giai Đoạn\n(6.545 Thô → 5.251 Đạt Chuẩn | Loại 1.294 Ảnh Lỗi)", fontsize=11, fontweight="bold", pad=10)
+    axes[0].set_ylim(0, max(raws) * 1.15)
+    axes[0].set_title(
+        f"Phễu Lọc CurationGate Qua 3 Giai Đoạn\n({raws[-1]:,} Thô → {curs[-1]:,} Đạt Chuẩn | Loại {rejs[-1]:,} Ảnh Lỗi)".replace(",", "."),
+        fontsize=11,
+        fontweight="bold",
+        pad=10,
+    )
     axes[0].legend(loc="upper left", fontsize=9, frameon=True)
     axes[0].grid(axis="y", linestyle="--", alpha=0.45)
     axes[0].spines["top"].set_visible(False)
     axes[0].spines["right"].set_visible(False)
 
-    # Right: Horizontal bar of rejection reasons (R1 + R2 = 749 rejections / 794 reason hits)
-    items = rej_counter.most_common()
+    # Right: Horizontal bar of rejection reasons (R1 + R2)
+    items = rej_counter.most_common(12)
     r_labels = [it[0] for it in reversed(items)]
     r_vals = [it[1] for it in reversed(items)]
     y_pos = np.arange(len(r_labels))
     axes[1].barh(y_pos, r_vals, color="#f97316", edgecolor="black", height=0.62, alpha=0.9)
     for y_i, val in zip(y_pos, r_vals):
-        axes[1].text(val + 8, y_i, f"{val:,}", va="center", ha="left", fontsize=9, fontweight="bold")
+        axes[1].text(val + max(r_vals) * 0.015, y_i, f"{val:,}".replace(",", "."), va="center", ha="left", fontsize=9, fontweight="bold")
     axes[1].set_yticks(y_pos)
     axes[1].set_yticklabels(r_labels, fontsize=9, fontweight="bold")
     axes[1].set_xlabel("Số Lượt Vi Phạm Tiêu Chí Lọc (AL R1 + R2)", fontsize=10, fontweight="bold")
-    axes[1].set_xlim(0, max(r_vals) * 1.16)
+    axes[1].set_xlim(0, max(r_vals) * 1.18)
     axes[1].set_title("Phân Rã Lý Do Loại Bỏ Trong Active Learning\n(Tổng hợp từ curation_report.json Vòng 1 & Vòng 2)", fontsize=11, fontweight="bold", pad=10)
     axes[1].grid(axis="x", linestyle="--", alpha=0.45)
     axes[1].spines["top"].set_visible(False)
     axes[1].spines["right"].set_visible(False)
 
-    fig.suptitle("MINH BẠCH HÓA PHỄU LỌC CURATIONGATE: TỪ 6.545 ẢNH THÔ → 5.251 ẢNH SẠCH", fontsize=12.5, fontweight="bold", y=0.99)
+    fig.suptitle(
+        f"MINH BẠCH HÓA PHỄU LỌC CURATIONGATE: TỪ {raws[-1]:,} ẢNH THÔ → {curs[-1]:,} ẢNH SẠCH".replace(",", "."),
+        fontsize=12.5,
+        fontweight="bold",
+        y=0.99,
+    )
     plt.tight_layout(rect=[0, 0, 1, 0.92])
     plt.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
@@ -479,7 +536,12 @@ def generate_closed_loop_attribution_chart() -> None:
 
     # Left: Mode error drop R1 -> R2 + R2 adaptive quota
     modes = ["sd_inpaint", "sd_img2img", "sd_text2img"]
-    mode_labels = ["sd_inpaint\n(R2 Quota: 897)", "sd_img2img\n(R2 Quota: 540)", "sd_text2img\n(R2 Quota: 463)"]
+    q2 = r2.get("mode_quotas", {})
+    mode_labels = [
+        f"sd_inpaint\n(R2 Quota: {q2.get('sd_inpaint', 0)})",
+        f"sd_img2img\n(R2 Quota: {q2.get('sd_img2img', 0)})",
+        f"sd_text2img\n(R2 Quota: {q2.get('sd_text2img', 0)})",
+    ]
     r1_err = [r1["attribution"]["mode_errors"][m] * 100.0 for m in modes]
     r2_err = [r2["attribution"]["mode_errors"][m] * 100.0 for m in modes]
 
@@ -493,8 +555,13 @@ def generate_closed_loop_attribution_chart() -> None:
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(mode_labels, fontsize=9, fontweight="bold")
     axes[0].set_ylabel("Tỷ Lệ Đánh Lừa Detector (% ↓)", fontsize=10, fontweight="bold")
-    axes[0].set_ylim(0, 84)
-    axes[0].set_title("Đóng Vòng Phản Hồi: AdaptiveBudgetController\n(Vòng 1 phát hiện Inpaint lỗi 71.70% → dồn 897 quota cho Vòng 2)", fontsize=10.5, fontweight="bold", pad=10)
+    axes[0].set_ylim(0, max(r1_err + r2_err + [10.0]) * 1.18)
+    axes[0].set_title(
+        f"Đóng Vòng Phản Hồi: AdaptiveBudgetController\n(Vòng 1 phát hiện Inpaint lỗi {r1_err[0]:.2f}% → dồn {q2.get('sd_inpaint', 0)} quota cho Vòng 2)",
+        fontsize=10.5,
+        fontweight="bold",
+        pad=10,
+    )
     axes[0].legend(loc="upper right", fontsize=9, frameon=True)
     axes[0].grid(axis="y", linestyle="--", alpha=0.45)
     axes[0].spines["top"].set_visible(False)
@@ -514,13 +581,14 @@ def generate_closed_loop_attribution_chart() -> None:
     ]
     combined_rev = list(reversed(combined))
     y_p = np.arange(len(combined_rev))
+    max_kw = max([c[1] for c in combined_rev] + [5.0])
     axes[1].barh(y_p, [c[1] for c in combined_rev], color=[c[2] for c in combined_rev], edgecolor="black", height=0.6, alpha=0.88)
     for y_i, (_, val, _) in enumerate(combined_rev):
-        axes[1].text(val + 0.7, y_i, f"{val:.2f}%", va="center", ha="left", fontsize=9, fontweight="bold")
+        axes[1].text(val + max_kw * 0.025, y_i, f"{val:.2f}%", va="center", ha="left", fontsize=9, fontweight="bold")
     axes[1].set_yticks(y_p)
     axes[1].set_yticklabels([c[0] for c in combined_rev], fontsize=9, fontweight="bold")
     axes[1].set_xlabel("Error Rate Tại Vòng 2 (%)", fontsize=10, fontweight="bold")
-    axes[1].set_xlim(0, 47)
+    axes[1].set_xlim(0, max_kw * 1.25)
     axes[1].set_title("Truy Vết Điểm Yếu Theo Vùng & Prompt (Vòng 2)\n(PromptGrammarEngine ưu tiên sinh vào các ca khó này)", fontsize=10.5, fontweight="bold", pad=10)
     axes[1].grid(axis="x", linestyle="--", alpha=0.45)
     axes[1].spines["top"].set_visible(False)
@@ -531,7 +599,514 @@ def generate_closed_loop_attribution_chart() -> None:
     plt.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
 
+def generate_hard_samples_contact_sheet() -> Path:
+    """Regenerate Challenge Vault hard fake samples contact sheet from cumulative_challenge_test.jsonl."""
+    out_path = Path("docs/reports/assets/hard_samples_contact_sheet.png")
+    legacy_out = Path("docs/assets/hard_samples_contact_sheet.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_out.parent.mkdir(parents=True, exist_ok=True)
+
+    chal_path = Path("data/active_learning/cumulative_challenge_test.jsonl")
+    records = [json.loads(line) for line in chal_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    fakes = [r for r in records if int(r.get("label", 0)) == 1]
+    reals = [r for r in records if int(r.get("label", 0)) == 0]
+    fakes.sort(key=lambda r: float(r.get("baseline_score", r.get("scores", {}).get("detector_p_fake", 0.5))))
+
+    cols = 12
+    rows = max(8, int(np.ceil((len(fakes) + 4) / cols)))
+    fig, axes = plt.subplots(rows, cols, figsize=(22, rows * 2.15), facecolor="#0f172a", dpi=130)
+    plt.subplots_adjust(wspace=0.10, hspace=0.28, top=0.92, bottom=0.02, left=0.02, right=0.98)
+
+    fig.suptitle(
+        f"CHALLENGE VAULT — TOÀN BỘ {len(fakes)} HARD FAKE SAMPLES TRONG {len(records)} MẪU CÔ LẬP ({len(fakes)} Hard Fake + {len(reals)} Real)",
+        fontsize=16,
+        fontweight="bold",
+        color="#f8fafc",
+        y=0.965,
+    )
+
+    axes_flat = axes.ravel()
+    for idx, ax in enumerate(axes_flat):
+        ax.set_facecolor("#1e293b")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        if idx < len(fakes):
+            rec = fakes[idx]
+            p_raw = Path(rec["file_path"])
+            if p_raw.exists():
+                with Image.open(p_raw) as im:
+                    ax.imshow(im.convert("RGB").resize((128, 128), Image.Resampling.BILINEAR))
+            mode = str(rec.get("manipulation_type", "unk")).replace("sd_", "")
+            rnd = rec.get("round_found", rec.get("round", "?"))
+            score = rec.get("baseline_score", rec.get("scores", {}).get("detector_p_fake"))
+            score_txt = f"P={float(score)*100:.0f}%" if score is not None else mode
+            bcol = "#ef4444" if (score is not None and float(score) < 0.15) else ("#f59e0b" if (score is not None and float(score) < 0.50) else "#3b82f6")
+            for sp in ax.spines.values():
+                sp.set_edgecolor(bcol)
+                sp.set_linewidth(2.0)
+            ax.set_title(f"#{idx+1} R{rnd} • {mode[:6]} • {score_txt}", color="#e2e8f0", fontsize=7.5, fontweight="bold", pad=3)
+        elif idx == len(axes_flat) - 1:
+            for sp in ax.spines.values():
+                sp.set_edgecolor("#38bdf8")
+                sp.set_linewidth(2.0)
+            info = (
+                f"Challenge Vault\n"
+                f"Total: {len(records)}\n"
+                f"Fake: {len(fakes)}\n"
+                f"Real: {len(reals)}\n"
+                f"Zero Leakage"
+            )
+            ax.text(0.5, 0.5, info, transform=ax.transAxes, ha="center", va="center", color="#38bdf8", fontsize=8.5, fontweight="bold")
+        else:
+            ax.axis("off")
+
+    plt.savefig(out_path, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close(fig)
+    legacy_out.write_bytes(out_path.read_bytes())
+    return out_path
+
+
+def _build_vertical_substitutions() -> dict[str, str]:
+    """Compute live dictionary of verified coursework metrics for HTML template substitution."""
+    import torch
+    from src.models.detector.image_detector import DeepfakeImageDetector
+
+    m = collect_live_coursework_metrics()
+    real = m["real"]
+    cur = m["curation"]
+    sp = m["splits"]
+    al = m["al"]
+    q = m["quad"]
+    l6 = m["legacy6k"]
+    univ = m["universal"]
+    m3s = m["m3_summary"]
+    ff = univ["ff"]
+
+    ch_fake = al["challenge_fake"]
+    ch_real = al["challenge_real"]
+
+    def _det(model_key: str) -> str:
+        return str(round(q[model_key]["challenge"]["recall"] * ch_fake))
+
+    # M3 challenge specificity estimate from accuracy & recall
+    m3_tp = round(q["M3"]["challenge"]["recall"] * ch_fake)
+    m2s_tp = round(q["M2_star"]["challenge"]["recall"] * ch_fake)
+    m2s_tn = max(0, min(ch_real, round(q["M2_star"]["challenge"]["accuracy"] * al["challenge_total"]) - m2s_tp))
+
+    # Legacy 6k profiling breakdown by mode & region using actual legacy_6k_predictions.npz
+    npz6 = np.load("experiments/logs/legacy_6k_predictions.npz", allow_pickle=True)
+    m2_p = npz6["m2_probs"]
+    t6 = npz6["tasks"]
+    r6 = npz6["sub_regions"]
+    n_rv = len(m2_p)
+    byp_all = int(np.sum(m2_p < 0.5))
+    byp_inp = int(np.sum(m2_p[t6 == "inpaint"] < 0.5))
+    n_inp = max(1, int(np.sum(t6 == "inpaint")))
+    byp_mouth = int(np.sum(m2_p[r6 == "mouth"] < 0.5))
+    n_mouth = max(1, int(np.sum(r6 == "mouth")))
+    byp_eyes = int(np.sum(m2_p[r6 == "eyes"] < 0.5))
+    n_eyes = max(1, int(np.sum(r6 == "eyes")))
+    byp_i2i = int(np.sum(m2_p[t6 == "img2img"] < 0.5))
+    n_i2i = max(1, int(np.sum(t6 == "img2img")))
+    byp_t2i = int(np.sum(m2_p[t6 == "text2img"] < 0.5))
+    n_t2i = max(1, int(np.sum(t6 == "text2img")))
+    unc_6k = int(np.sum(np.abs(m2_p - 0.5) <= 0.15))
+    union_6k = int(np.sum((m2_p < 0.5) | (np.abs(m2_p - 0.5) <= 0.15)))
+
+    m0_6k_byp = int(round(l6["m512"]["M0_baseline"]["overall_bypass_rate"] * n_rv))
+    m3_6k_byp = int(round(l6["m512"]["M3_dual_engine"]["overall_bypass_rate"] * n_rv))
+    m2_224_byp = int(round(l6["m224"]["M2_active_round2"]["overall_bypass_rate"] * n_rv))
+
+    # Universal FPR <= 1.0% thresholds & method metrics
+    u_npz = np.load("experiments/benchmarks/logs/benchmark_5models_predictions.npz", allow_pickle=True)
+    y_u = u_npz["y_true"]
+    taus = np.linspace(0.5, 0.999, 500)
+
+    def _fpr1(key: str) -> tuple[float, float]:
+        p = u_npz[key]
+        reals_p = p[y_u == 0]
+        fakes_p = p[y_u == 1]
+        valid = [t for t in taus if (reals_p >= t).mean() <= 0.01]
+        t_b = float(valid[0]) if valid else 0.999
+        return t_b, float((fakes_p >= t_b).mean() * 100.0)
+
+    m3_t1, m3_rec1 = _fpr1("probs_M3_dual_engine")
+    m0_t1, m0_rec1 = _fpr1("probs_M0_baseline")
+
+    # Live XAI probabilities on the 3 reference samples
+    xai_probs = {"00301": 0.0, "fake_ffhq": 0.0, "187": 0.0}
+    det = DeepfakeImageDetector(backbone="dinov2_small", pretrained=False)
+    ckpt_m3 = torch.load("experiments/checkpoints/active_learning_m3_best.pt", map_location="cpu", weights_only=False)
+    det.load_state_dict(ckpt_m3["model_state_dict"])
+    det.eval()
+    for xkey, xpath in [
+        ("00301", Path("data/raw/faces/ffhq/00301.png")),
+        ("fake_ffhq", Path("data/active_learning/round_1/images/inpainting/fake_ffhq_00000_q1_116.png")),
+        ("187", Path("data/external_benchmarks/synthetic_face_dataset_6k/img2img/187_img2img.png")),
+    ]:
+        if xpath.exists():
+            with Image.open(xpath) as im:
+                arr = np.asarray(im.convert("RGB").resize((512, 512), Image.Resampling.LANCZOS), dtype=np.float32) / 255.0
+            xt = torch.from_numpy(arr).permute(2, 0, 1).unsqueeze(0)
+            with torch.no_grad():
+                xai_probs[xkey] = float(torch.sigmoid(det(xt)).item() * 100.0)
+
+    # Checkpoint best epochs & clean RV5.1 train-pool size
+    def _ckpt_ep(p_str: str, default_ep: int) -> int:
+        p = Path(p_str)
+        if not p.exists():
+            return default_ep
+        d = torch.load(p, map_location="cpu", weights_only=False)
+        return int(d.get("epoch", d.get("best_epoch", default_ep)))
+
+    ep_m0 = _ckpt_ep("experiments/checkpoints/baseline_d0_best.pt", 5)
+    ep_m1 = _ckpt_ep("experiments/checkpoints/active_learning_m1_best.pt", 5)
+    ep_m2 = _ckpt_ep("experiments/checkpoints/active_learning_m2_coldstart_backup.pt", 5)
+    ep_m2s = _ckpt_ep("experiments/checkpoints/active_learning_m2_best.pt", 1)
+    ep_m3 = int(m3s.get("best_epoch", 6))
+
+    eh = m3s.get("epoch_history", [])
+    tl_0 = f"{eh[0]['train_loss']:.4f}" if eh else "0.2584"
+    tl_end = f"{eh[-1]['train_loss']:.4f}" if eh else "0.1021"
+    vl_0 = f"{eh[0]['val_loss']:.4f}" if eh else "0.1745"
+    vl_end = f"{eh[-1]['val_loss']:.4f}" if eh else "0.1642"
+    vauc_0 = f"{eh[0]['val_auc']:.4f}" if eh else "0.9822"
+    best_v_acc = f"{eh[min(max(ep_m3 - 1, 0), len(eh) - 1)]['val_accuracy'] * 100:.2f}%" if eh else "93.96%"
+
+    u_test_fakes = [
+        json.loads(line)
+        for line in Path("data/benchmarks/D3_clean/unseen_rv51_test.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip() and json.loads(line)["label"] == 1
+    ]
+    n_ui2i = sum("img2img" in str(r.get("manipulation_type", r.get("file_path", ""))) for r in u_test_fakes)
+    n_uinp = len(u_test_fakes) - n_ui2i
+    rv_train_pool = cur["rv51_cur"] - sp["unseen_rv51_fake"] - sp["d3_val_fake"]
+
+    ug = univ["global"]
+    uf = univ["family"]
+    um = univ["method"]
+
+    # Helper lookups for Universal 5-model table
+    def _ug_rec(k: str) -> float:
+        return float(ug[k]["Fake Recall (↑)"].rstrip("%"))
+
+    m3_u_rec = _ug_rec("M3_dual_engine")
+    m3_u_224 = 5.49
+    try:
+        import csv as _csv
+        with open("experiments/benchmarks/tables/benchmark_5models_global_summary_224px.csv", encoding="utf-8") as f:
+            r224 = {r["Model"]: r for r in _csv.DictReader(f)}
+            m3_u_224 = float(r224["M3_dual_engine"]["Fake Recall (↑)"].rstrip("%"))
+    except Exception:
+        pass
+
+    cs_path = Path("docs/reports/assets/hard_samples_contact_sheet.png")
+    cs_mb = f"{cs_path.stat().st_size / (1024 * 1024):.1f}" if cs_path.exists() else "2.0"
+
+    r1_m = al["r1_mode_errors"]
+    r2_m = al["r2_mode_errors"]
+    r2_q = al["r2_quotas"]
+    r2_reg = al["r2_region_errors"]
+    r2_kw = al["r2_keyword_errors"]
+
+    m2s_jump = (q["M2_star"]["challenge"]["recall"] - q["M0"]["challenge"]["recall"]) * 100.0
+    m3_unseen_jump = (q["M3"]["unseen"]["recall"] - q["M2_star"]["unseen"]["recall"]) * 100.0
+    r1_inp_pct = r2_q.get("sd_inpaint", 0) / max(1, cur["r2_raw"]) * 100.0
+
+    # Top RV5.1 / Universal methods strings
+    def _um3(meth: str) -> str:
+        return um.get(meth, {}).get("M₃ (Dual-Engine Champion) Recall", "N/A")
+
+    def _uf3(fam: str) -> str:
+        return uf.get(fam, {}).get("M₃ (Dual-Engine Champion) Recall/Spec", "N/A")
+
+    def _uf0(fam: str) -> str:
+        return uf.get(fam, {}).get("M₀ (Baseline D₀) Recall/Spec", "N/A")
+
+    ddim_ratio = float(_uf3("Diffusion Baselines (DDIM)").rstrip("%")) / max(0.01, float(_uf0("Diffusion Baselines (DDIM)").rstrip("%")))
+
+    return {
+        "__REAL_TOT__": fmt_int(real["total"]),
+        "__REAL_TR__": fmt_int(real["train"]),
+        "__REAL_VA__": fmt_int(real["val"]),
+        "__REAL_TE__": fmt_int(real["test"]),
+        "__FAKE_RAW__": fmt_int(cur["fake_raw_total"]),
+        "__FAKE_CUR__": fmt_int(cur["fake_cur_total"]),
+        "__ALL_RAW__": fmt_int(real["total"] + cur["fake_raw_total"]),
+        "__ALL_CUR__": fmt_int(real["total"] + cur["fake_cur_total"]),
+        "__SD_RAW__": fmt_int(cur["sd15_raw"]),
+        "__SD_CUR__": fmt_int(cur["sd15_cur"]),
+        "__SD_REJ__": fmt_int(cur["sd15_rej"]),
+        "__SD_PASS__": fmt_pct(cur["sd15_pass"]),
+        "__B1_RAW__": fmt_int(cur["b1_raw"]),
+        "__B1_CUR__": fmt_int(cur["b1_cur"]),
+        "__B1_REJ__": fmt_int(cur["b1_rej"]),
+        "__B1_PASS__": fmt_pct(cur["b1_pass"]),
+        "__R1_RAW__": fmt_int(cur["r1_raw"]),
+        "__R1_CUR__": fmt_int(cur["r1_cur"]),
+        "__R1_REJ__": fmt_int(cur["r1_rej"]),
+        "__R1_PASS__": fmt_pct(cur["r1_pass"]),
+        "__R2_RAW__": fmt_int(cur["r2_raw"]),
+        "__R2_CUR__": fmt_int(cur["r2_cur"]),
+        "__R2_REJ__": fmt_int(cur["r2_rej"]),
+        "__R2_PASS__": fmt_pct(cur["r2_pass"]),
+        "__RV_RAW__": fmt_int(cur["rv51_raw"]),
+        "__RV_CUR__": fmt_int(cur["rv51_cur"]),
+        "__RV_REJ__": fmt_int(cur["rv51_rej"]),
+        "__RV_POOL__": fmt_int(rv_train_pool),
+        "__HARD_TOT__": fmt_int(al["total_hard"]),
+        "__HARD_TR__": fmt_int(al["total_hard_train"]),
+        "__HARD_TE__": fmt_int(al["total_hard_test"]),
+        "__HARD_FN__": fmt_int(al["total_fn"]),
+        "__HARD_UNC__": fmt_int(al["total_unc"]),
+        "__HS_B05__": fmt_int(al["hs_below_05"]),
+        "__HS_GE05__": fmt_int(al["hs_ge_05"]),
+        "__R1_HARD__": fmt_int(al["r1_total"]),
+        "__R1_HTR__": fmt_int(al["r1_train"]),
+        "__R1_HTE__": fmt_int(al["r1_test"]),
+        "__R1_FN__": fmt_int(al["r1_fn"]),
+        "__R1_UNC__": fmt_int(al["r1_unc"]),
+        "__R2_HARD__": fmt_int(al["r2_total"]),
+        "__R2_HTR__": fmt_int(al["r2_train"]),
+        "__R2_HTE__": fmt_int(al["r2_test"]),
+        "__R2_FN__": fmt_int(al["r2_fn"]),
+        "__R2_UNC__": fmt_int(al["r2_unc"]),
+        "__R2_TEMP__": f"{al['r2_temp']:.4f}",
+        "__CHAL_TOT__": fmt_int(al["challenge_total"]),
+        "__CHAL_FAKE__": fmt_int(ch_fake),
+        "__CHAL_REAL__": fmt_int(ch_real),
+        "__CONTACT_SHEET_MB__": cs_mb,
+        "__D0_TR__": fmt_int(sp["d0_train"]),
+        "__D0_TR_F__": fmt_int(sp["d0_train_fake"]),
+        "__D0_VA__": fmt_int(sp["d0_val"]),
+        "__D0_VA_F__": fmt_int(sp["d0_val_fake"]),
+        "__MASTER_TOT__": fmt_int(sp["master_test"]),
+        "__MASTER_F__": fmt_int(sp["master_test_fake"]),
+        "__D1_TR__": fmt_int(sp["d1_train"]),
+        "__D2_TR__": fmt_int(sp["d2_train"]),
+        "__D3_TR__": fmt_int(sp["d3_train"]),
+        "__D3_VA__": fmt_int(sp["d3_val"]),
+        "__D3_VA_F__": fmt_int(sp["d3_val_fake"]),
+        "__D3_SD_BASE__": fmt_int(sp["d3_sd_nonhard"]),
+        "__D3_RV_CLEAN__": fmt_int(sp["d3_rv51_clean"]),
+        "__UNSEEN_TOT__": fmt_int(sp["unseen_rv51_total"]),
+        "__UNSEEN_F__": fmt_int(sp["unseen_rv51_fake"]),
+        "__UNSEEN_INP__": fmt_int(n_uinp),
+        "__UNSEEN_I2I__": fmt_int(n_ui2i),
+        "__R1_ERR_INP__": f"{r1_m['sd_inpaint']*100:.2f}%",
+        "__R1_ERR_I2I__": f"{r1_m['sd_img2img']*100:.2f}%",
+        "__R1_ERR_T2I__": f"{r1_m['sd_text2img']*100:.2f}%",
+        "__R2_ERR_INP__": f"{r2_m['sd_inpaint']*100:.2f}%",
+        "__R2_Q_INP__": fmt_int(r2_q.get("sd_inpaint", 0)),
+        "__R2_Q_I2I__": fmt_int(r2_q.get("sd_img2img", 0)),
+        "__R2_Q_T2I__": fmt_int(r2_q.get("sd_text2img", 0)),
+        "__R2_INP_PCT__": f"{r1_inp_pct:.1f}%",
+        "__R2_REG_PERI__": f"{r2_reg.get('periocular', 0)*100:.2f}%",
+        "__R2_KW_ELDER__": f"{r2_kw.get('demographics:elderly', 0)*100:.2f}%",
+        "__R2_KW_WARM__": f"{r2_kw.get('lighting:warm golden hour sunlight', 0)*100:.2f}%",
+        "__R2_KW_STUDIO__": f"{r2_kw.get('lighting:soft studio key light', 0)*100:.2f}%",
+        "__R2_KW_SIDE__": f"{r2_kw.get('lighting:dramatic cinematic side lighting', 0)*100:.2f}%",
+        "__RV_M2_BYP_CNT__": fmt_int(byp_all),
+        "__RV_M2_BYP_PCT__": f"{byp_all/n_rv*100:.2f}%",
+        "__RV_M2_INP_CNT__": fmt_int(byp_inp),
+        "__RV_M2_INP_N__": fmt_int(n_inp),
+        "__RV_M2_INP_PCT__": f"{byp_inp/n_inp*100:.2f}%",
+        "__RV_M2_MOUTH_PCT__": f"{byp_mouth/n_mouth*100:.2f}%",
+        "__RV_M2_EYES_PCT__": f"{byp_eyes/n_eyes*100:.2f}%",
+        "__RV_M2_I2I_CNT__": fmt_int(byp_i2i),
+        "__RV_M2_I2I_N__": fmt_int(n_i2i),
+        "__RV_M2_I2I_PCT__": f"{byp_i2i/n_i2i*100:.2f}%",
+        "__RV_M2_T2I_CNT__": fmt_int(byp_t2i),
+        "__RV_M2_T2I_N__": fmt_int(n_t2i),
+        "__RV_M2_T2I_PCT__": f"{byp_t2i/n_t2i*100:.2f}%",
+        "__RV_M2_UNC_CNT__": fmt_int(unc_6k),
+        "__RV_M2_UNC_PCT__": f"{unc_6k/n_rv*100:.2f}%",
+        "__RV_M2_UNION__": fmt_int(union_6k),
+        "__RV_M0_512_REC__": fmt_pct(l6["m512"]["M0_baseline"]["overall_recall"]),
+        "__RV_M0_512_BYP__": fmt_pct(l6["m512"]["M0_baseline"]["overall_bypass_rate"]),
+        "__RV_M0_512_BCNT__": fmt_int(m0_6k_byp),
+        "__RV_M0_224_REC__": fmt_pct(l6["m224"]["M0_baseline"]["overall_recall"]),
+        "__RV_M0_224_BYP__": fmt_pct(l6["m224"]["M0_baseline"]["overall_bypass_rate"]),
+        "__RV_M2_224_BYP__": fmt_pct(l6["m224"]["M2_active_round2"]["overall_bypass_rate"]),
+        "__RV_M2_224_BCNT__": fmt_int(m2_224_byp),
+        "__RV_M3_512_REC__": fmt_pct(l6["m512"]["M3_dual_engine"]["overall_recall"]),
+        "__RV_M3_512_BYP__": fmt_pct(l6["m512"]["M3_dual_engine"]["overall_bypass_rate"]),
+        "__RV_M3_512_BCNT__": fmt_int(m3_6k_byp),
+        "__M0_M_REC__": fmt_pct(q["M0"]["master"]["recall"]),
+        "__M0_M_BYP__": fmt_pct(q["M0"]["master"]["bypass_rate"]),
+        "__M0_M_ACC__": fmt_pct(q["M0"]["master"]["accuracy"]),
+        "__M0_M_AUC__": f"{q['M0']['master']['roc_auc']:.4f}",
+        "__M0_M_F1__": f"{q['M0']['master']['f1_score']:.4f}",
+        "__M0_C_REC__": fmt_pct(q["M0"]["challenge"]["recall"]),
+        "__M0_C_BYP__": fmt_pct(q["M0"]["challenge"]["bypass_rate"]),
+        "__M0_C_ACC__": fmt_pct(q["M0"]["challenge"]["accuracy"]),
+        "__M0_C_AUC__": f"{q['M0']['challenge']['roc_auc']:.4f}",
+        "__M0_C_AUCP__": f"{q['M0']['challenge']['roc_auc']*100:.2f}%",
+        "__M0_C_F1__": f"{q['M0']['challenge']['f1_score']:.4f}",
+        "__M0_C_DET__": _det("M0"),
+        "__M0_U_REC__": fmt_pct(q["M0"]["unseen"]["recall"]),
+        "__M0_U_BYP__": fmt_pct(q["M0"]["unseen"]["bypass_rate"]),
+        "__M0_U_ACC__": fmt_pct(q["M0"]["unseen"]["accuracy"]),
+        "__M0_U_AUC__": f"{q['M0']['unseen']['roc_auc']:.4f}",
+        "__M0_U_F1__": f"{q['M0']['unseen']['f1_score']:.4f}",
+        "__M1_M_REC__": fmt_pct(q["M1"]["master"]["recall"]),
+        "__M1_M_BYP__": fmt_pct(q["M1"]["master"]["bypass_rate"]),
+        "__M1_M_ACC__": fmt_pct(q["M1"]["master"]["accuracy"]),
+        "__M1_M_AUC__": f"{q['M1']['master']['roc_auc']:.4f}",
+        "__M1_M_F1__": f"{q['M1']['master']['f1_score']:.4f}",
+        "__M1_C_REC__": fmt_pct(q["M1"]["challenge"]["recall"]),
+        "__M1_C_BYP__": fmt_pct(q["M1"]["challenge"]["bypass_rate"]),
+        "__M1_C_ACC__": fmt_pct(q["M1"]["challenge"]["accuracy"]),
+        "__M1_C_AUC__": f"{q['M1']['challenge']['roc_auc']:.4f}",
+        "__M1_C_F1__": f"{q['M1']['challenge']['f1_score']:.4f}",
+        "__M1_C_DET__": _det("M1"),
+        "__M1_U_REC__": fmt_pct(q["M1"]["unseen"]["recall"]),
+        "__M1_U_BYP__": fmt_pct(q["M1"]["unseen"]["bypass_rate"]),
+        "__M1_U_ACC__": fmt_pct(q["M1"]["unseen"]["accuracy"]),
+        "__M1_U_AUC__": f"{q['M1']['unseen']['roc_auc']:.4f}",
+        "__M1_U_F1__": f"{q['M1']['unseen']['f1_score']:.4f}",
+        "__M2_M_REC__": fmt_pct(q["M2"]["master"]["recall"]),
+        "__M2_M_BYP__": fmt_pct(q["M2"]["master"]["bypass_rate"]),
+        "__M2_M_ACC__": fmt_pct(q["M2"]["master"]["accuracy"]),
+        "__M2_M_AUC__": f"{q['M2']['master']['roc_auc']:.4f}",
+        "__M2_M_F1__": f"{q['M2']['master']['f1_score']:.4f}",
+        "__M2_C_REC__": fmt_pct(q["M2"]["challenge"]["recall"]),
+        "__M2_C_BYP__": fmt_pct(q["M2"]["challenge"]["bypass_rate"]),
+        "__M2_C_ACC__": fmt_pct(q["M2"]["challenge"]["accuracy"]),
+        "__M2_C_AUC__": f"{q['M2']['challenge']['roc_auc']:.4f}",
+        "__M2_C_F1__": f"{q['M2']['challenge']['f1_score']:.4f}",
+        "__M2_C_DET__": _det("M2"),
+        "__M2_U_REC__": fmt_pct(q["M2"]["unseen"]["recall"]),
+        "__M2_U_BYP__": fmt_pct(q["M2"]["unseen"]["bypass_rate"]),
+        "__M2_U_ACC__": fmt_pct(q["M2"]["unseen"]["accuracy"]),
+        "__M2_U_AUC__": f"{q['M2']['unseen']['roc_auc']:.4f}",
+        "__M2_U_F1__": f"{q['M2']['unseen']['f1_score']:.4f}",
+        "__M2S_M_REC__": fmt_pct(q["M2_star"]["master"]["recall"]),
+        "__M2S_M_BYP__": fmt_pct(q["M2_star"]["master"]["bypass_rate"]),
+        "__M2S_M_ACC__": fmt_pct(q["M2_star"]["master"]["accuracy"]),
+        "__M2S_M_AUC__": f"{q['M2_star']['master']['roc_auc']:.4f}",
+        "__M2S_M_F1__": f"{q['M2_star']['master']['f1_score']:.4f}",
+        "__M2S_C_REC__": fmt_pct(q["M2_star"]["challenge"]["recall"]),
+        "__M2S_C_BYP__": fmt_pct(q["M2_star"]["challenge"]["bypass_rate"]),
+        "__M2S_C_ACC__": fmt_pct(q["M2_star"]["challenge"]["accuracy"]),
+        "__M2S_C_AUC__": f"{q['M2_star']['challenge']['roc_auc']:.4f}",
+        "__M2S_C_AUCP__": f"{q['M2_star']['challenge']['roc_auc']*100:.2f}%",
+        "__M2S_C_F1__": f"{q['M2_star']['challenge']['f1_score']:.4f}",
+        "__M2S_C_DET__": _det("M2_star"),
+        "__M2S_C_TN__": str(m2s_tn),
+        "__M2S_JUMP__": f"{m2s_jump:.2f}%",
+        "__M2S_U_REC__": fmt_pct(q["M2_star"]["unseen"]["recall"]),
+        "__M2S_U_BYP__": fmt_pct(q["M2_star"]["unseen"]["bypass_rate"]),
+        "__M2S_U_ACC__": fmt_pct(q["M2_star"]["unseen"]["accuracy"]),
+        "__M2S_U_AUC__": f"{q['M2_star']['unseen']['roc_auc']:.4f}",
+        "__M2S_U_F1__": f"{q['M2_star']['unseen']['f1_score']:.4f}",
+        "__M3_M_REC__": fmt_pct(q["M3"]["master"]["recall"]),
+        "__M3_M_BYP__": fmt_pct(q["M3"]["master"]["bypass_rate"]),
+        "__M3_M_ACC__": fmt_pct(q["M3"]["master"]["accuracy"]),
+        "__M3_M_AUC__": f"{q['M3']['master']['roc_auc']:.4f}",
+        "__M3_M_F1__": f"{q['M3']['master']['f1_score']:.4f}",
+        "__M3_C_REC__": fmt_pct(q["M3"]["challenge"]["recall"]),
+        "__M3_C_BYP__": fmt_pct(q["M3"]["challenge"]["bypass_rate"]),
+        "__M3_C_ACC__": fmt_pct(q["M3"]["challenge"]["accuracy"]),
+        "__M3_C_AUC__": f"{q['M3']['challenge']['roc_auc']:.4f}",
+        "__M3_C_F1__": f"{q['M3']['challenge']['f1_score']:.4f}",
+        "__M3_C_DET__": _det("M3"),
+        "__M3_U_REC__": fmt_pct(q["M3"]["unseen"]["recall"]),
+        "__M3_U_BYP__": fmt_pct(q["M3"]["unseen"]["bypass_rate"]),
+        "__M3_U_ACC__": fmt_pct(q["M3"]["unseen"]["accuracy"]),
+        "__M3_U_AUC__": f"{q['M3']['unseen']['roc_auc']:.4f}",
+        "__M3_U_F1__": f"{q['M3']['unseen']['f1_score']:.4f}",
+        "__M3_U_JUMP__": f"{m3_unseen_jump:.2f}%",
+        "__M3_BEST_EP__": str(ep_m3),
+        "__M3_BEST_VAUC__": f"{m3s.get('best_val_auc', 0.9881):.4f}",
+        "__M3_BEST_VACC__": best_v_acc,
+        "__M3_TL_0__": tl_0,
+        "__M3_TL_END__": tl_end,
+        "__M3_VL_0__": vl_0,
+        "__M3_VL_END__": vl_end,
+        "__M3_VAUC_0__": vauc_0,
+        "__EP_M0__": str(ep_m0),
+        "__EP_M1__": str(ep_m1),
+        "__EP_M2__": str(ep_m2),
+        "__EP_M2S__": str(ep_m2s),
+        "__U_M0_ACC__": ug["M0_baseline"]["Accuracy"],
+        "__U_M0_REC__": ug["M0_baseline"]["Fake Recall (↑)"],
+        "__U_M0_BYP__": ug["M0_baseline"]["Bypass Rate (↓)"],
+        "__U_M0_SPEC__": ug["M0_baseline"]["Real Specificity (↑)"],
+        "__U_M0_PREC__": ug["M0_baseline"]["Precision"],
+        "__U_M0_F1__": ug["M0_baseline"]["F1-Score"],
+        "__U_M0_AUC__": ug["M0_baseline"]["ROC-AUC (↑)"],
+        "__U_M0_PR__": ug["M0_baseline"]["PR-AUC (↑)"],
+        "__U_M1_ACC__": ug["M1_active_r1"]["Accuracy"],
+        "__U_M1_REC__": ug["M1_active_r1"]["Fake Recall (↑)"],
+        "__U_M1_BYP__": ug["M1_active_r1"]["Bypass Rate (↓)"],
+        "__U_M1_SPEC__": ug["M1_active_r1"]["Real Specificity (↑)"],
+        "__U_M1_PREC__": ug["M1_active_r1"]["Precision"],
+        "__U_M1_F1__": ug["M1_active_r1"]["F1-Score"],
+        "__U_M1_AUC__": ug["M1_active_r1"]["ROC-AUC (↑)"],
+        "__U_M1_PR__": ug["M1_active_r1"]["PR-AUC (↑)"],
+        "__U_M2_ACC__": ug["M2_coldstart"]["Accuracy"],
+        "__U_M2_REC__": ug["M2_coldstart"]["Fake Recall (↑)"],
+        "__U_M2_BYP__": ug["M2_coldstart"]["Bypass Rate (↓)"],
+        "__U_M2_SPEC__": ug["M2_coldstart"]["Real Specificity (↑)"],
+        "__U_M2_PREC__": ug["M2_coldstart"]["Precision"],
+        "__U_M2_F1__": ug["M2_coldstart"]["F1-Score"],
+        "__U_M2_AUC__": ug["M2_coldstart"]["ROC-AUC (↑)"],
+        "__U_M2_PR__": ug["M2_coldstart"]["PR-AUC (↑)"],
+        "__U_M2S_ACC__": ug["M2_refined_warmstart"]["Accuracy"],
+        "__U_M2S_REC__": ug["M2_refined_warmstart"]["Fake Recall (↑)"],
+        "__U_M2S_BYP__": ug["M2_refined_warmstart"]["Bypass Rate (↓)"],
+        "__U_M2S_SPEC__": ug["M2_refined_warmstart"]["Real Specificity (↑)"],
+        "__U_M2S_PREC__": ug["M2_refined_warmstart"]["Precision"],
+        "__U_M2S_F1__": ug["M2_refined_warmstart"]["F1-Score"],
+        "__U_M2S_AUC__": ug["M2_refined_warmstart"]["ROC-AUC (↑)"],
+        "__U_M2S_PR__": ug["M2_refined_warmstart"]["PR-AUC (↑)"],
+        "__U_M3_ACC__": ug["M3_dual_engine"]["Accuracy"],
+        "__U_M3_REC__": ug["M3_dual_engine"]["Fake Recall (↑)"],
+        "__U_M3_BYP__": ug["M3_dual_engine"]["Bypass Rate (↓)"],
+        "__U_M3_SPEC__": ug["M3_dual_engine"]["Real Specificity (↑)"],
+        "__U_M3_PREC__": ug["M3_dual_engine"]["Precision"],
+        "__U_M3_F1__": ug["M3_dual_engine"]["F1-Score"],
+        "__U_M3_AUC__": ug["M3_dual_engine"]["ROC-AUC (↑)"],
+        "__U_M3_PR__": ug["M3_dual_engine"]["PR-AUC (↑)"],
+        "__U_M3_224_REC__": f"{m3_u_224:.2f}%",
+        "__U_M3_224_MULT__": f"{m3_u_rec / max(0.01, m3_u_224):.2f}",
+        "__UM_STYLEGAN2__": _um3("StyleGAN2"),
+        "__UM_E4E__": _um3("e4e"),
+        "__UM_STYLECLIP__": _um3("styleclip"),
+        "__UM_PIXART__": _um3("pixart"),
+        "__UM_STARGAN__": _um3("stargan"),
+        "__UM_SD21__": _um3("sd2.1"),
+        "__UM_STYLEGAN3__": _um3("StyleGAN3"),
+        "__UM_VQGAN__": _um3("VQGAN"),
+        "__UM_DDIM__": _um3("ddim"),
+        "__UF_GAN__": _uf3("GAN Architectures"),
+        "__UF_SD21__": _uf3("Latent Diffusion (SD 2.1)"),
+        "__UF0_SD21__": _uf0("Latent Diffusion (SD 2.1)"),
+        "__UF_GANINV__": _uf3("GAN Inversion & Editing"),
+        "__UF_AE__": _uf3("AutoEncoders / VAEs"),
+        "__UF_DDIM__": _uf3("Diffusion Baselines (DDIM)"),
+        "__UF_DDIM_MULT__": f"{ddim_ratio:.2f}",
+        "__UF_DIT__": _uf3("Diffusion Transformers (DiT)"),
+        "__UF_FS__": _uf3("Face Swapping"),
+        "__UF_REEN__": _uf3("Reenactment & Talking Head"),
+        "__FF_FPR_05__": f"{ff['fpr_05']:.2f}%",
+        "__FF_FP_05__": str(ff["fp_05"]),
+        "__FF_TOT__": fmt_int(ff["total"]),
+        "__FF_FPR_085__": f"{ff['fpr_085']:.2f}%",
+        "__FFHQ_FPR_05__": f"{ff['ffhq_fpr_05']:.2f}%",
+        "__U_M3_T1__": f"{m3_t1:.3f}",
+        "__U_M3_REC1__": f"{m3_rec1:.2f}%",
+        "__U_M0_T1__": f"{m0_t1:.3f}",
+        "__U_M0_REC1__": f"{m0_rec1:.2f}%",
+        "__XAI_00301__": f"{xai_probs['00301']:.2f}%",
+        "__XAI_CHAL__": f"{xai_probs['fake_ffhq']:.2f}%",
+        "__XAI_187__": f"{xai_probs['187']:.2f}%",
+    }
+
+
 def build_vertical_report_html() -> str:
+    subs = _build_vertical_substitutions()
     html_content = r"""<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -1542,13 +2117,13 @@ def build_vertical_report_html() -> str:
       <div class="nav-group-title">Mục Lục Báo Cáo</div>
       <a href="#sec-overview" class="nav-link active">1. Tổng Quan Nghiệm Thu</a>
       <a href="#sec-problem" class="nav-link">2. Thách Thức & Sự Cố M0</a>
-      <a href="#sec-dataset" class="nav-link">3. Bộ Dữ Liệu 12.545 Ảnh</a>
+      <a href="#sec-dataset" class="nav-link">3. Bộ Dữ Liệu __FAKE_RAW__ Ảnh</a>
       <a href="#sec-generation-mechanics" class="nav-link">3b. Cơ Chế Dual-Engine</a>
       <a href="#sec-curation" class="nav-link">4. Quy Trình Lọc CurationGate</a>
-      <a href="#sec-hard-samples" class="nav-link">5. 740 Mẫu Khó & 213 Vault</a>
-      <a href="#sec-active-learning" class="nav-link">6. Đột Phá M2* (+80.18%)</a>
+      <a href="#sec-hard-samples" class="nav-link">5. __HARD_TOT__ Mẫu Khó & __CHAL_TOT__ Vault</a>
+      <a href="#sec-active-learning" class="nav-link">6. Đột Phá M2* (+__M2S_JUMP__)</a>
       <a href="#sec-zero-leakage" class="nav-link">7. Profiling 6k &amp; Zero Leakage</a>
-      <a href="#sec-champion-m3" class="nav-link">8. Champion M3 (93.13%)</a>
+      <a href="#sec-champion-m3" class="nav-link">8. Champion M3 (__M3_U_REC__)</a>
       <a href="#sec-universal" class="nav-link">9. Universal 20.4k Benchmark</a>
       <a href="#sec-xai" class="nav-link">10. Kiến Trúc &amp; XAI Heatmap</a>
       <a href="#sec-conclusion" class="nav-link">11. Bảng KPI & Kết Luận</a>
@@ -1567,47 +2142,47 @@ def build_vertical_report_html() -> str:
           <div style="font-size: 15px; font-weight: 600; color: var(--text-muted); margin-top: 6px; font-family: var(--font-mono);">Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection</div>
         </h1>
         <p class="section-desc">
-          Đồ án thực hiện trọn vẹn vòng đời dữ liệu-lấy-làm-trung-tâm (<em>Dataset-First</em>) theo đúng 3 bước cốt lõi của giảng viên và mở rộng lên thích nghi đa động cơ: từ <strong>4.000 ảnh thật</strong> (FFHQ + CelebA-HQ) → sinh <strong>12.545 ảnh giả</strong> từ 2 mô hình (SD 1.5: 6.545 thô / <strong>5.251 đạt chuẩn CurationGate</strong>; RealisticVision v5.1: 6.000 ảnh) → khai thác <strong>740 mẫu khó SD 1.5</strong> → nâng Fake Recall trên 213 Challenge Vault từ <strong>11.71% → 91.89%</strong> (<code>M₂*</code>) → dùng <code>M₂*</code> profiling 6.000 RV5.1 (phát hiện <strong>1.192 ca bỏ lọt</strong> ở chuẩn 512px chỉ để quan sát) và cách ly danh tính sạch để huấn luyện <strong>Champion M₃</strong> đạt <strong>93.13%</strong> trên Unseen RV5.1 (<strong>94.37%</strong> trên toàn kho 6k RV5.1).
+          Đồ án thực hiện trọn vẹn vòng đời dữ liệu-lấy-làm-trung-tâm (<em>Dataset-First</em>) theo đúng 3 bước cốt lõi của giảng viên và mở rộng lên thích nghi đa động cơ: từ <strong>__REAL_TOT__ ảnh thật</strong> (FFHQ + CelebA-HQ) → sinh <strong>__FAKE_RAW__ ảnh giả</strong> từ 2 mô hình (SD 1.5: __SD_RAW__ thô / <strong>__SD_CUR__ đạt chuẩn CurationGate mở rộng</strong>; RealisticVision v5.1: __RV_RAW__ ảnh thô / <strong>__RV_CUR__ đạt chuẩn</strong>) → khai thác <strong>__HARD_TOT__ mẫu khó SD 1.5</strong> → nâng Fake Recall trên __CHAL_TOT__ Challenge Vault từ <strong>__M0_C_REC__ → __M2S_C_REC__</strong> (<code>M₂*</code>) → dùng <code>M₂*</code> profiling __RV_RAW__ RV5.1 (phát hiện <strong>__RV_M2_BYP_CNT__ ca bỏ lọt</strong> ở chuẩn 512px chỉ để quan sát) và cách ly danh tính sạch để huấn luyện <strong>Champion M₃</strong> đạt <strong>__M3_U_REC__</strong> trên Unseen RV5.1 (<strong>__RV_M3_512_REC__</strong> trên toàn kho 6k RV5.1).
         </p>
 
         <!-- Interactive 5-Stage End-to-End Visual Flow -->
         <div class="pipeline-flow-box">
           <div class="pipeline-flow-heading">
             <span>🧭 Sơ Đồ Luồng Thực Nghiệm Toàn Trình (End-to-End Pipeline Flow)</span>
-            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">4.000 Real + 12.545 Fake → D₀ → D₁ → D₂ → D₃ → M₃</span>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">__REAL_TOT__ Real + __FAKE_RAW__ Fake → D₀ → D₁ → D₂ → D₃ → M₃</span>
           </div>
           <div class="pipeline-flow-grid">
             <a href="#sec-dataset" class="flow-step-card">
               <div>
                 <div class="flow-step-num">BƯỚC 1 • SINH &amp; LỌC</div>
                 <div class="flow-step-title">Dual-Engine &amp; CurationGate</div>
-                <div class="flow-step-desc">4.000 ảnh thật → 6.545 SD 1.5 thô (lọc còn 5.251 sạch) + 6.000 RV5.1</div>
+                <div class="flow-step-desc">__REAL_TOT__ ảnh thật → __SD_RAW__ SD 1.5 thô (lọc còn __SD_CUR__ sạch) + __RV_RAW__ RV5.1 (__RV_CUR__ sạch)</div>
               </div>
-              <span class="flow-step-kpi">12.545 Fake</span>
+              <span class="flow-step-kpi">__FAKE_RAW__ Fake</span>
             </a>
             <a href="#sec-problem" class="flow-step-card alert">
               <div>
                 <div class="flow-step-num">BƯỚC 2 • BASELINE M₀</div>
                 <div class="flow-step-title">Điểm Mù Làm Mờ Biên</div>
-                <div class="flow-step-desc">Huấn luyện M₀ trên D₀ (4.224 ảnh) → sụp đổ trước ảnh Soft-Mask</div>
+                <div class="flow-step-desc">Huấn luyện M₀ trên D₀ (__D0_TR__ ảnh) → sụp đổ trước ảnh Soft-Mask</div>
               </div>
-              <span class="flow-step-kpi">11.71% Recall</span>
+              <span class="flow-step-kpi">__M0_C_REC__ Recall</span>
             </a>
             <a href="#sec-active-learning" class="flow-step-card">
               <div>
                 <div class="flow-step-num">BƯỚC 3 • ACTIVE LEARNING</div>
-                <div class="flow-step-title">740 Mẫu Khó &amp; M₂*</div>
-                <div class="flow-step-desc">2 vòng AL (553+187) → 629 train D₂ + 111 vào 213 Challenge Vault</div>
+                <div class="flow-step-title">__HARD_TOT__ Mẫu Khó &amp; M₂*</div>
+                <div class="flow-step-desc">2 vòng AL (__R1_HARD__+__R2_HARD__) → __HARD_TR__ train D₂ + __HARD_TE__ vào __CHAL_TOT__ Challenge Vault</div>
               </div>
-              <span class="flow-step-kpi">91.89% (+80.18%)</span>
+              <span class="flow-step-kpi">__M2S_C_REC__ (+__M2S_JUMP__)</span>
             </a>
             <a href="#sec-zero-leakage" class="flow-step-card">
               <div>
                 <div class="flow-step-num">BƯỚC 4 • PROFILING &amp; D₃</div>
                 <div class="flow-step-title">M₂* Mining 6k &amp; Zero Leakage</div>
-                <div class="flow-step-desc">M₂* chạy 6k RV5.1: 1.192 bypass @ 512px (chỉ quan sát) + cách ly 626 test &amp; 600 val</div>
+                <div class="flow-step-desc">M₂* chạy 6k RV5.1: __RV_M2_BYP_CNT__ bypass @ 512px (chỉ quan sát) + cách ly __UNSEEN_F__ test &amp; __D3_VA_F__ val sạch</div>
               </div>
-              <span class="flow-step-kpi">1.192 OOD | D₃: 5.626</span>
+              <span class="flow-step-kpi">__RV_M2_BYP_CNT__ OOD | D₃: __D3_TR__</span>
             </a>
             <a href="#sec-champion-m3" class="flow-step-card champion">
               <div>
@@ -1615,7 +2190,7 @@ def build_vertical_report_html() -> str:
                 <div class="flow-step-title">M₃ + Universal + XAI</div>
                 <div class="flow-step-desc">Warm-Start M₂*→M₃, kiểm định Quad-Vault, 20.4k Zero-Shot &amp; Heatmap</div>
               </div>
-              <span class="flow-step-kpi">93.13% RV5.1</span>
+              <span class="flow-step-kpi">__M3_U_REC__ RV5.1</span>
             </a>
           </div>
         </div>
@@ -1624,28 +2199,28 @@ def build_vertical_report_html() -> str:
         <div class="kpi-grid">
           <div class="kpi-card">
             <span class="kpi-label">Tổng Dữ Liệu Sinh Mới</span>
-            <div class="kpi-value">12.545</div>
-            <span class="kpi-note">SD 1.5 (6.545 thô / 5.251 lọc) + RV5.1 (6.000)</span>
+            <div class="kpi-value">__FAKE_RAW__</div>
+            <span class="kpi-note">SD 1.5 (__SD_RAW__ thô / __SD_CUR__ lọc) + RV5.1 (__RV_RAW__ thô / __RV_CUR__ lọc)</span>
           </div>
           <div class="kpi-card alert">
             <span class="kpi-label">Mẫu Khó Nội Miền (SD 1.5)</span>
-            <div class="kpi-value">740</div>
-            <span class="kpi-note">629 Train (D₂/D₃) + 111 trong 213 Challenge Vault</span>
+            <div class="kpi-value">__HARD_TOT__</div>
+            <span class="kpi-note">__HARD_TR__ Train (D₂/D₃) + __HARD_TE__ trong __CHAL_TOT__ Challenge Vault</span>
           </div>
           <div class="kpi-card alert">
             <span class="kpi-label">Điểm Mù OOD M₂* (RV5.1 6k)</span>
-            <div class="kpi-value">1.192</div>
-            <span class="kpi-note">19.87% bỏ lọt @ 512px (29.87% / 1.792 @ 224px, chỉ quan sát)</span>
+            <div class="kpi-value">__RV_M2_BYP_CNT__</div>
+            <span class="kpi-note">__RV_M2_BYP_PCT__ bỏ lọt @ 512px (__RV_M2_224_BYP__ / __RV_M2_224_BCNT__ @ 224px, chỉ quan sát)</span>
           </div>
           <div class="kpi-card champion">
             <span class="kpi-label">Tăng Fake Recall M2*</span>
-            <div class="kpi-value">+80.18%</div>
-            <span class="kpi-note">Nhảy vọt từ 11.71% → 91.89% (Challenge Vault)</span>
+            <div class="kpi-value">+__M2S_JUMP__</div>
+            <span class="kpi-note">Nhảy vọt từ __M0_C_REC__ → __M2S_C_REC__ (Challenge Vault)</span>
           </div>
           <div class="kpi-card champion">
             <span class="kpi-label">Fake Recall Mô Hình M3</span>
-            <div class="kpi-value">93.13%</div>
-            <span class="kpi-note">Trên Unseen RV5.1 Vault (1.215 ảnh, AUC 0.9828)</span>
+            <div class="kpi-value">__M3_U_REC__</div>
+            <span class="kpi-note">Trên Unseen RV5.1 Vault (__UNSEEN_TOT__ ảnh, AUC __M3_U_AUC__)</span>
           </div>
         </div>
 
@@ -1659,7 +2234,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/extracted_nb/00_master_deepfake_defense_showcase_cell4_img0.png" class="artifact-img-full" alt="Golden Scorecard M0 to M3 Evolution" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Phân tích kết quả:</strong> Mô hình cơ sở M0 bỏ sót tới 88.29% ảnh giả trên Challenge Vault (Recall chỉ 11.71%); sau Vòng 1 (M1) tăng lên 70.27%; Vòng 2 (M2*) nâng lên 91.89%; và mô hình Champion M3 đạt đỉnh cao 93.13% trên tập kiểm thử Unseen RV5.1 mà vẫn giữ vững 91.89% trên Challenge Vault và 69.44% trên Master Frozen Test (SD 1.5).
+            <strong>Phân tích kết quả:</strong> Mô hình cơ sở M0 bỏ sót tới __M0_C_BYP__ ảnh giả trên Challenge Vault (Recall chỉ __M0_C_REC__); sau Vòng 1 (M1) tăng lên __M1_C_REC__; Vòng 2 (M2*) đạt __M2S_C_REC__; và mô hình Champion M3 đạt đỉnh cao __M3_U_REC__ trên tập kiểm thử Unseen RV5.1 đồng thời giữ vững __M3_C_REC__ trên Challenge Vault và __M3_M_REC__ trên Master Frozen Test (SD 1.5).
           </div>
         </div>
       </section>
@@ -1695,7 +2270,7 @@ def build_vertical_report_html() -> str:
         <div class="callout-box danger">
           <div class="callout-title">🚨 Thử Thách Lớn: Mô Hình Cơ Sở (M0) Bị Đánh Lừa Trên Tập Mẫu Khó Challenge Vault &amp; Legacy 6k</div>
           <div class="callout-desc">
-            Khi thử nghiệm mô hình cơ sở M0 trên 213 mẫu của Challenge Vault (111 ảnh giả khó + 102 ảnh thật), <strong>Fake Recall chỉ đạt 11.71%</strong> (Bypass Rate lên tới <strong>88.29%</strong>; Overall Accuracy chỉ đạt <strong>53.99%</strong> — tương đương đoán ngẫu nhiên; F1-Score sụp đổ còn <strong>0.2097</strong>). Ngoài ra, trên 6.000 ảnh RV5.1, M0 đạt <strong>75.20%</strong> (bỏ lọt <strong>24.80%</strong>) ở chuẩn <code>512→504px LANCZOS</code> (và tụt còn <strong>2.00%</strong> nếu bị ép nén xuống <code>224×224</code>), còn trên tập Unseen RV5.1 độc lập danh tính vẫn bỏ lọt <strong>33.55%</strong>.
+            Khi thử nghiệm mô hình cơ sở M0 trên __CHAL_TOT__ mẫu của Challenge Vault (__CHAL_FAKE__ ảnh giả khó + __CHAL_REAL__ ảnh thật), <strong>Fake Recall chỉ đạt __M0_C_REC__</strong> (Bypass Rate lên tới <strong>__M0_C_BYP__</strong>; Overall Accuracy chỉ đạt <strong>__M0_C_ACC__</strong> — tương đương đoán ngẫu nhiên; F1-Score sụp đổ còn <strong>__M0_C_F1__</strong>). Ngoài ra, trên __RV_RAW__ ảnh RV5.1, M0 đạt <strong>__RV_M0_512_REC__</strong> (bỏ lọt <strong>__RV_M0_512_BYP__</strong>) ở chuẩn <code>512→504px LANCZOS</code> (và tụt còn <strong>__RV_M0_224_REC__</strong> nếu bị ép nén xuống <code>224×224</code>), còn trên tập Unseen RV5.1 độc lập danh tính vẫn bỏ lọt <strong>__M0_U_BYP__</strong>.
           </div>
         </div>
 
@@ -1709,22 +2284,22 @@ def build_vertical_report_html() -> str:
             <img src="assets/benchmarks/m0_baseline_collapse_comparison.png" class="artifact-img-full" alt="M0 Baseline Collapse Comparison Chart" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Nguồn số liệu thực nghiệm:</strong> Tổng hợp trực tiếp từ <code>benchmark_5models_quad_vault_summary.json</code> (512×512), <code>legacy_6k_benchmark_results.json</code> (chuẩn 512→504px: Recall 75.20% / Bypass 24.80%) và <code>legacy_6k_benchmark_results_224px.json</code> (stress-test 224×224: Recall 2.00% / Bypass 98.00%). Khoảng trống bỏ lọt lên đến 88.29% (Challenge Vault) và 24.80%–33.55% (RV5.1 @ 512px) là động lực trực tiếp cho Active Learning và Champion M3.
+            <strong>Nguồn số liệu thực nghiệm:</strong> Tổng hợp trực tiếp từ <code>benchmark_5models_quad_vault_summary.json</code> (512×512), <code>legacy_6k_benchmark_results.json</code> (chuẩn 512→504px: Recall __RV_M0_512_REC__ / Bypass __RV_M0_512_BYP__) và <code>legacy_6k_benchmark_results_224px.json</code> (stress-test 224×224: Recall __RV_M0_224_REC__ / Bypass __RV_M0_224_BYP__). Khoảng trống bỏ lọt lên đến __M0_C_BYP__ (Challenge Vault) và __RV_M0_512_BYP__–__M0_U_BYP__ (RV5.1 @ 512px) là động lực trực tiếp cho Active Learning và Champion M3.
           </div>
         </div>
       </section>
 
 
       <!-- ===================================================================
-           PHẦN 3: BỘ DỮ LIỆU KHUẾCH TÁN KÉP 12.545 ẢNH & MẪU THỰC TẾ
+           PHẦN 3: BỘ DỮ LIỆU KHUẾCH TÁN KÉP __FAKE_RAW__ ẢNH & MẪU THỰC TẾ
            =================================================================== -->
       <section id="sec-dataset" class="report-section">
         <span class="section-eyebrow">03 / XÂY DỰNG DỮ LIỆU</span>
         <h2 class="section-title">
-          Kiến Trúc Dữ Liệu: <span class="accent">4.000 Ảnh Thật &amp; 12.545 Ảnh Sinh Từ Dual-Engine Diffusion</span>
+          Kiến Trúc Dữ Liệu: <span class="accent">__REAL_TOT__ Ảnh Thật &amp; __FAKE_RAW__ Ảnh Sinh Từ Dual-Engine Diffusion</span>
         </h2>
         <p class="section-desc">
-          Từ kho nền tảng <strong>4.000 ảnh thật</strong> (2.000 FFHQ + 2.000 CelebA-HQ, chia độc lập danh tính thành 2.813 train / 598 val / 589 test), nhóm đã sinh tổng cộng <strong>12.545 ảnh giả</strong> qua Dual-Engine Diffusion (<strong>SD 1.5: 6.545 thô → 5.251 đạt chuẩn CurationGate</strong>; <strong>RealisticVision v5.1: 6.000 ảnh</strong>) trên cả 3 chế độ Inpainting, Img2Img và Text-to-Image.
+          Từ kho nền tảng <strong>__REAL_TOT__ ảnh thật</strong> (2.000 FFHQ + 2.000 CelebA-HQ, chia độc lập danh tính thành __REAL_TR__ train / __REAL_VA__ val / __REAL_TE__ test), nhóm đã sinh tổng cộng <strong>__FAKE_RAW__ ảnh giả</strong> qua Dual-Engine Diffusion (<strong>SD 1.5: __SD_RAW__ thô → __SD_CUR__ đạt chuẩn CurationGate mở rộng</strong>; <strong>RealisticVision v5.1: __RV_RAW__ thô → __RV_CUR__ đạt chuẩn</strong>) trên cả 3 chế độ Inpainting, Img2Img và Text-to-Image.
         </p>
 
         <!-- BẢNG TỔNG HỢP PHÂN BỔ 2 ĐỘNG CƠ SINH DỮ LIỆU (DUAL-ENGINE) -->
@@ -1742,26 +2317,26 @@ def build_vertical_report_html() -> str:
               <tr>
                 <td><strong>Ảnh Thật Gốc (Real)</strong></td>
                 <td>FFHQ (2.000) + CelebA-HQ (2.000)</td>
-                <td><strong>4.000 ảnh</strong></td>
-                <td>Chia identity-disjoint: 2.813 train / 598 val / 589 test</td>
+                <td><strong>__REAL_TOT__ ảnh</strong></td>
+                <td>Chia identity-disjoint: __REAL_TR__ train / __REAL_VA__ val / __REAL_TE__ test</td>
               </tr>
               <tr>
                 <td><strong>Bộ A: Stable Diffusion v1.5</strong></td>
                 <td><code>configs/dataset_factory.yaml → generation.model_id</code> (SD v1.5 Base)</td>
-                <td><strong>6.545 thô</strong> (<a href="#sec-curation" style="color: var(--primary); font-weight: 700;">5.251 sạch</a>)</td>
-                <td>Khởi tạo D₀ (2.200 sạch) + AL 2 vòng (1.484 R1 + 1.567 R2 sạch) — <a href="#sec-curation" style="color: var(--primary); font-weight: 600;">xem phễu lọc ở Mục 4</a></td>
+                <td><strong>__SD_RAW__ thô</strong> (<a href="#sec-curation" style="color: var(--primary); font-weight: 700;">__SD_CUR__ sạch</a>)</td>
+                <td>Khởi tạo D₀ (__B1_CUR__ sạch) + AL 2 vòng (__R1_CUR__ R1 + __R2_CUR__ R2 sạch) — <a href="#sec-curation" style="color: var(--primary); font-weight: 600;">xem phễu lọc ở Mục 4</a></td>
               </tr>
               <tr>
                 <td><strong>Bộ B: RealisticVision v5.1</strong></td>
                 <td><code>SG161222/Realistic_Vision_V5.1_noVAE</code></td>
-                <td><strong>6.000 ảnh</strong> (2k×3 chế độ)</td>
-                <td>OOD Profiling (M₀–M₂*) &amp; trích 1.384 sạch vào D₃ (cách ly 626 test + 600 val)</td>
+                <td><strong>__RV_RAW__ thô</strong> (<strong>__RV_CUR__ sạch</strong>)</td>
+                <td>OOD Profiling (M₀–M₂*) &amp; trích __D3_RV_CLEAN__ sạch vào D₃ (cách ly __UNSEEN_F__ test + __D3_VA_F__ val)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>Tổng cộng ảnh giả sinh mới</strong></td>
                 <td>Dual-Engine Diffusion</td>
-                <td><strong style="color: var(--primary); font-size: 15px;">12.545 ảnh giả</strong></td>
-                <td>Tổng kho toàn dự án: <strong>16.545 ảnh</strong> (4.000 Real + 12.545 Fake thô / 11.251 Fake sau lọc; mốc <strong>10.000 ảnh</strong> trong <code>clean_10k_production_report.json</code> = 4.000 Real + 6.000 Fake SD 1.5 gồm 2.200 D₀ + 1.900 R1 + 1.900 R2)</td>
+                <td><strong style="color: var(--primary); font-size: 15px;">__FAKE_RAW__ ảnh giả</strong></td>
+                <td>Tổng kho toàn dự án: <strong>__ALL_RAW__ ảnh</strong> (__REAL_TOT__ Real + __FAKE_RAW__ Fake thô / __FAKE_CUR__ Fake sau lọc CurationGate mở rộng)</td>
               </tr>
             </tbody>
           </table>
@@ -1782,30 +2357,30 @@ def build_vertical_report_html() -> str:
             <tbody>
               <tr>
                 <td><strong>D₀ (Baseline)</strong></td>
-                <td><strong>4.224</strong> (2.813 Real + 1.411 SD 1.5)</td>
-                <td>798 (598 Real + 200 SD 1.5)</td>
-                <td>Master Frozen Test: <strong>1.178</strong> (589+589)</td>
+                <td><strong>__D0_TR__</strong> (__REAL_TR__ Real + __D0_TR_F__ SD 1.5)</td>
+                <td>__D0_VA__ (__REAL_VA__ Real + __D0_VA_F__ SD 1.5)</td>
+                <td>Master Frozen Test: <strong>__MASTER_TOT__</strong> (__REAL_TE__+__MASTER_F__)</td>
                 <td><code>M₀</code> (baseline_d0_best.pt)</td>
               </tr>
               <tr>
                 <td><strong>D₁ (Active R1)</strong></td>
-                <td><strong>4.694</strong> (D₀ + 470 Hard R1)</td>
-                <td>798 (như D₀)</td>
-                <td>Master (1.178) + Challenge R1 (83 Fake)</td>
+                <td><strong>__D1_TR__</strong> (D₀ + __R1_HTR__ Hard R1)</td>
+                <td>__D0_VA__ (như D₀)</td>
+                <td>Master (__MASTER_TOT__) + Challenge R1 (__R1_HTE__ Fake)</td>
                 <td><code>M₁</code> (active_learning_m1_best.pt)</td>
               </tr>
               <tr>
                 <td><strong>D₂ (Active R2)</strong></td>
-                <td><strong>4.853</strong> (D₁ + 159 Hard R2)</td>
-                <td>798 (như D₀)</td>
-                <td>Master (1.178) + Challenge Vault (<strong>213</strong>)</td>
+                <td><strong>__D2_TR__</strong> (D₁ + __R2_HTR__ Hard R2)</td>
+                <td>__D0_VA__ (như D₀)</td>
+                <td>Master (__MASTER_TOT__) + Challenge Vault (<strong>__CHAL_TOT__</strong>)</td>
                 <td><code>M₂</code> (Cold) &amp; <code>M₂*</code> (Warm-Start)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>D₃ (Dual-Engine Sạch)</strong></td>
-                <td><strong>5.626</strong> (2.813 Real + 629 Hard + 800 SD + 1.384 RV5.1)</td>
-                <td>1.198 (598 Real + 600 RV5.1 Val)</td>
-                <td>Unseen RV5.1 Vault: <strong>1.215</strong> (589 Real + 626 RV5.1 Test)</td>
+                <td><strong>__D3_TR__</strong> (__REAL_TR__ Real + __HARD_TR__ Hard + __D3_SD_BASE__ SD + __D3_RV_CLEAN__ RV5.1)</td>
+                <td>__D3_VA__ (__REAL_VA__ Real + __D3_VA_F__ RV5.1 Val)</td>
+                <td>Unseen RV5.1 Vault: <strong>__UNSEEN_TOT__</strong> (__REAL_TE__ Real + __UNSEEN_F__ RV5.1 Test)</td>
                 <td><code>M₃</code> (active_learning_m3_best.pt)</td>
               </tr>
             </tbody>
@@ -2124,7 +2699,7 @@ def build_vertical_report_html() -> str:
                 <img src="assets/samples/inpaint_0.png" class="flow-mini-thumb" alt="Mẫu Inpainting 512x512" title="Nhấp để phóng to">
                 <div>
                   <div class="flow-node-step">Kết quả</div>
-                  <div class="flow-node-title">Bẫy Khó Nhất (11.71%)</div>
+                  <div class="flow-node-title">Bẫy Khó Nhất (__M0_C_REC__)</div>
                   <div class="flow-node-desc">Xóa sạch dấu vết cắt dán biên → khiến mô hình M₀ sụp đổ trước khi học AL.</div>
                 </div>
               </div>
@@ -2181,8 +2756,8 @@ def build_vertical_report_html() -> str:
               </tr>
               <tr>
                 <td><strong>Hệ Quả Thực Nghiệm</strong></td>
-                <td>Nhiều ca biên mềm tinh vi ở chế độ Inpaint → ép M₀ sụp đổ và làm bàn đạp Active Learning (<code>M₀ → M₂*</code>: 11.71% → 91.89%)</td>
-                <td>Kết cấu lỗ chân lông &amp; ánh sáng cực giống ảnh chụp thật → phơi bày điểm mù OOD của <code>M₂*</code> (lọt <code>1.192/6.000</code> @ 512px; <code>1.792/6.000</code> @ 224px) trước khi <code>M₃</code> học khóa <code>93.13%</code> Unseen / <code>94.37%</code> toàn kho 6k</td>
+                <td>Nhiều ca biên mềm tinh vi ở chế độ Inpaint → ép M₀ sụp đổ và làm bàn đạp Active Learning (<code>M₀ → M₂*</code>: __M0_C_REC__ → __M2S_C_REC__)</td>
+                <td>Kết cấu lỗ chân lông &amp; ánh sáng cực giống ảnh chụp thật → phơi bày điểm mù OOD của <code>M₂*</code> (lọt <code>__RV_M2_BYP_CNT__/__RV_RAW__</code> @ 512px; <code>__RV_M2_224_BCNT__/__RV_RAW__</code> @ 224px) trước khi <code>M₃</code> học khóa <code>__M3_U_REC__</code> Unseen / <code>__RV_M3_512_REC__</code> toàn kho 6k</td>
               </tr>
             </tbody>
           </table>
@@ -2226,7 +2801,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/extracted_nb/dual_engine_prompt_quota_evolution.png" class="artifact-img-full" alt="Phân bổ 3 chế độ qua các vòng và ngữ pháp PromptGrammarEngine vs 5-D Grid" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng đóng vòng:</strong> Số đếm từ manifest thật cho thấy ở Active Learning Vòng 2, <code>AdaptiveBudgetController</code> tự động dồn <strong>47.2%</strong> (<code>897/1.900</code>) ngân sách vào nhánh khó nhất là <code>sd_inpaint</code> (từ mức đều 33.3% ở R1), đồng thời <code>PromptGrammarEngine</code> xoay xác suất qua 7 slot với sàn khám phá <code>exploration_floor = 0.15</code>.
+            <strong>Bằng chứng đóng vòng:</strong> Số đếm từ manifest thật cho thấy ở Active Learning Vòng 2, <code>AdaptiveBudgetController</code> tự động dồn <strong>__R2_INP_PCT__</strong> (<code>__R2_Q_INP__/__R2_RAW__</code>) ngân sách vào nhánh khó nhất là <code>sd_inpaint</code> (từ mức đều 33.3% ở R1), đồng thời <code>PromptGrammarEngine</code> xoay xác suất qua 7 slot với sàn khám phá <code>exploration_floor = 0.15</code>.
           </div>
         </div>
 
@@ -2358,22 +2933,22 @@ def build_vertical_report_html() -> str:
       <section id="sec-curation" class="report-section">
         <span class="section-eyebrow">04 / KIỂM SOÁT CHẤT LƯỢNG</span>
         <h2 class="section-title">
-          CurationGate: <span class="accent">Phễu Lọc Tự Động 3 Tầng (6.545 Thô → 5.251 Ảnh SD 1.5 Đạt Chuẩn)</span>
+          CurationGate: <span class="accent">Phễu Lọc Tự Động 3 Tầng (__SD_RAW__ Thô → __SD_CUR__ Ảnh SD 1.5 Đạt Chuẩn)</span>
         </h2>
         <p class="section-desc">
-          Triển khai thực tế trong <code>ImageCurationGate</code> (<code>src/pipelines/curate_image_dataset.py</code> &amp; <code>configs/dataset_factory.yaml</code>), mỗi ảnh sinh mới phải vượt qua 3 tầng kiểm duyệt tự động trước khi vào tập huấn luyện:
+          Triển khai thực tế trong <code>ImageCurationGate</code> (<code>src/pipelines/curate_image_dataset.py</code> &amp; <code>configs/dataset_factory.yaml</code>), mỗi ảnh sinh mới phải vượt qua 3 tầng kiểm duyệt tự động (kèm Extended Audit: YuNet/Haar, Cheek FFT, CIELab ΔE, Seam Check, Perceptual dHash, Mode-Aware CLIP) trước khi vào tập huấn luyện:
         </p>
 
         <div class="callout-box info">
           <div class="callout-title">⚙️ Chi Tiết Kỹ Thuật Của 3 Tầng Lọc CurationGate Trong Mã Nguồn</div>
           <div class="callout-desc">
             1. <strong>Tầng 1 — Độ nét quang học (Laplacian Variance Calibrated):</strong> Tính biến sai toán tử Laplacian trên tensor <code>[0, 1]</code> nhân hệ số 1000 (<code>compute_laplacian_sharpness</code>); ngưỡng loại bỏ ảnh mờ được hiệu chỉnh động tại <strong>phân vị 5% (<code>q = 0.05</code>)</strong> của ảnh thật gốc (mặc định ≥ 1.25).<br>
-            2. <strong>Tầng 2 — Hình học &amp; Giải phẫu khuôn mặt (<code>opencv_haar</code> + <code>verify_facial_geometry</code>):</strong> Phát hiện khuôn mặt bằng <strong>OpenCV Haar Cascade</strong> (loại bỏ ảnh không thấy mặt hoặc có ≥ 2 khuôn mặt); kiểm tra tỷ lệ khung mặt <code>0.65 ≤ h/w ≤ 1.6</code>, diện tích mặt chiếm <code>20%–65%</code> khung hình, không bị cắt cụt trán/cằm (<code>skin ≤ 35%</code> tại mép ảnh), không cháy sáng ROI mặt (<code>&gt; 8.0%</code>), không lệch tâm (<code>0.15–0.85</code>), và không có đường cắt ngang bất thường ở miệng/cằm (<code>seam_spike &gt; 8.0 &amp; peak &gt; 20.0</code>).<br>
-            3. <strong>Tầng 3 — Chống trùng lặp &amp; Kết quả lọc thực tế:</strong> Khử trùng lặp tệp bằng băm nội dung <strong>SHA-256</strong> (<code>file_sha256</code>) trong CurationGate (và khử trùng lặp ngữ nghĩa bằng khoảng cách Cosine DINOv2 <code>≥ 0.05</code> ở bước mining). Tổng cộng loại bỏ 1.294 ảnh lỗi trên SD 1.5: Block 1 giữ <strong>2.200/2.745</strong> (80.15%, kết hợp sinh bù tối đa 3 lượt <code>att0→att1→att2</code>); AL Vòng 1 giữ <strong>1.484/1.900</strong> (78.11%); AL Vòng 2 giữ <strong>1.567/1.900</strong> (82.47%) — tổng <strong>5.251/6.545 (80.23%)</strong> đạt chuẩn.
+            2. <strong>Tầng 2 — Hình học, Giải phẫu &amp; Extended Audit (<code>opencv_haar</code> + YuNet + Cheek FFT + CIELab + CLIP):</strong> Phát hiện khuôn mặt bằng <strong>YuNet / OpenCV Haar Cascade</strong> (loại bỏ ảnh không thấy mặt hoặc có ≥ 2 khuôn mặt, kiểm tra cặp mắt); kiểm tra tỷ lệ khung mặt, diện tích mặt chiếm <code>20%–65%</code> khung hình, không cắt cụt trán/cằm, không cháy sáng ROI mặt, kiểm tra lệch màu da <code>CIELab ΔE ≤ 18</code>, kết cấu má Cheek FFT, ranh giới Seam, và điểm ngữ nghĩa <code>CLIP</code>.<br>
+            3. <strong>Tầng 3 — Chống trùng lặp SHA-256 &amp; Perceptual dHash:</strong> Khử trùng lặp tệp bằng băm <strong>SHA-256</strong> (<code>file_sha256</code>) + perceptual dHash trong CurationGate (và khử trùng lặp ngữ nghĩa bằng khoảng cách Cosine DINOv2 <code>≥ 0.05</code> ở bước mining). Tổng cộng loại bỏ __SD_REJ__ ảnh lỗi trên SD 1.5: Block 1 giữ <strong>__B1_CUR__/__B1_RAW__</strong> (__B1_PASS__); AL Vòng 1 giữ <strong>__R1_CUR__/__R1_RAW__</strong> (__R1_PASS__); AL Vòng 2 giữ <strong>__R2_CUR__/__R2_RAW__</strong> (__R2_PASS__) — tổng <strong>__SD_CUR__/__SD_RAW__ (__SD_PASS__)</strong> đạt chuẩn (cộng thêm RV5.1 giữ <strong>__RV_CUR__/__RV_RAW__</strong>).
           </div>
         </div>
 
-        <!-- Bảng Phễu Lọc 6.545 -> 5.251 -->
+        <!-- Bảng Phễu Lọc -->
         <div class="table-responsive">
           <table class="data-table">
             <thead>
@@ -2389,35 +2964,35 @@ def build_vertical_report_html() -> str:
             <tbody>
               <tr>
                 <td><strong>Khởi tạo Block 1 (D₀)</strong></td>
-                <td>2.745</td>
-                <td>545</td>
-                <td><strong>2.200</strong></td>
-                <td>80.15%</td>
-                <td>1.411 Train + 200 Val + 589 Master Test</td>
+                <td>__B1_RAW__</td>
+                <td>__B1_REJ__</td>
+                <td><strong>__B1_CUR__</strong></td>
+                <td>__B1_PASS__</td>
+                <td>__D0_TR_F__ Train + __D0_VA_F__ Val + __MASTER_F__ Master Test</td>
               </tr>
               <tr>
                 <td><strong>Active Learning Vòng 1 (R1)</strong></td>
-                <td>1.900</td>
-                <td>416</td>
-                <td><strong>1.484</strong></td>
-                <td>78.11%</td>
-                <td>Chấm bởi M₀ → lọc <strong>553</strong> mẫu khó (470 Train + 83 Test)</td>
+                <td>__R1_RAW__</td>
+                <td>__R1_REJ__</td>
+                <td><strong>__R1_CUR__</strong></td>
+                <td>__R1_PASS__</td>
+                <td>Chấm bởi M₀ → lọc <strong>__R1_HARD__</strong> mẫu khó (__R1_HTR__ Train + __R1_HTE__ Test)</td>
               </tr>
               <tr>
                 <td><strong>Active Learning Vòng 2 (R2)</strong></td>
-                <td>1.900</td>
-                <td>333</td>
-                <td><strong>1.567</strong></td>
-                <td>82.47%</td>
-                <td>Chấm bởi M₁ → lọc <strong>187</strong> mẫu khó (159 Train + 28 Test)</td>
+                <td>__R2_RAW__</td>
+                <td>__R2_REJ__</td>
+                <td><strong>__R2_CUR__</strong></td>
+                <td>__R2_PASS__</td>
+                <td>Chấm bởi M₁ → lọc <strong>__R2_HARD__</strong> mẫu khó (__R2_HTR__ Train + __R2_HTE__ Test)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>Tổng cộng SD 1.5</strong></td>
-                <td><strong>6.545</strong></td>
-                <td><strong>1.294</strong></td>
-                <td><span class="badge-pill green">5.251 sạch</span></td>
-                <td><strong>80.23%</strong></td>
-                <td>Đóng gói hoàn chỉnh D₀ → D₁ → D₂ (740 Hard Samples)</td>
+                <td><strong>__SD_RAW__</strong></td>
+                <td><strong>__SD_REJ__</strong></td>
+                <td><span class="badge-pill green">__SD_CUR__ sạch</span></td>
+                <td><strong>__SD_PASS__</strong></td>
+                <td>Đóng gói hoàn chỉnh D₀ → D₁ → D₂ (__HARD_TOT__ Hard Samples)</td>
               </tr>
             </tbody>
           </table>
@@ -2426,14 +3001,14 @@ def build_vertical_report_html() -> str:
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: CURATION FUNNEL & REJECTION BREAKDOWN -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Phễu Lọc CurationGate &amp; Thống Kê Lý Do Loại Bỏ Ảnh Lỗi (6.545 Thô → 5.251 Sạch)</span>
+            <span class="artifact-row-title">Phễu Lọc CurationGate &amp; Thống Kê Lý Do Loại Bỏ Ảnh Lỗi (__SD_RAW__ Thô → __SD_CUR__ Sạch)</span>
             <span class="artifact-badge champion">CURATION AUDIT FIGURE</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/benchmarks/curation_funnel_sd15.png" class="artifact-img-full" alt="SD 1.5 CurationGate Funnel and Rejection Reasons" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Nguồn kiểm toán trực tiếp:</strong> Tổng hợp từ <code>fake_manifest.jsonl</code>, <code>curated_manifest.jsonl</code> và <code>round_{1,2}/curation_report.json</code>. Đa số ảnh bị loại là do khung mặt quá nhỏ (&lt;20%), không bắt được mốc mặt (Haar), cắt cụt trán/cằm hoặc xuất hiện ≥ 2 mặt.
+            <strong>Nguồn kiểm toán trực tiếp:</strong> Tổng hợp từ <code>fake_manifest.jsonl</code>, <code>curated_manifest.jsonl</code> và <code>round_{1,2}/curation_report.json</code>. Đa số ảnh bị loại là do lệch màu da CIELab ΔE, cắt cụt trán, mặt quá nhỏ (&lt;20%), ≥ 2 mặt hoặc không đạt kiểm định Extended Audit.
           </div>
         </div>
 
@@ -2468,15 +3043,15 @@ def build_vertical_report_html() -> str:
 
 
       <!-- ===================================================================
-           PHẦN 5: KHAI THÁC 740 MẪU KHÓ & TẬP THỬ THÁCH 213 CHALLENGE VAULT
+           PHẦN 5: KHAI THÁC __HARD_TOT__ MẪU KHÓ & TẬP THỬ THÁCH __CHAL_TOT__ CHALLENGE VAULT
            =================================================================== -->
       <section id="sec-hard-samples" class="report-section">
-        <span class="section-eyebrow">05 / 740 MẪU KHÓ &amp; CHALLENGE VAULT</span>
+        <span class="section-eyebrow">05 / __HARD_TOT__ MẪU KHÓ &amp; CHALLENGE VAULT</span>
         <h2 class="section-title">
-          Challenge Vault: <span class="accent">Khai Thác 740 Mẫu Khó SD 1.5 &amp; Phân Tích 4 Lỗi Giải Phẫu (Anatomical Artifacts)</span>
+          Challenge Vault: <span class="accent">Khai Thác __HARD_TOT__ Mẫu Khó SD 1.5 &amp; Phân Tích 4 Lỗi Giải Phẫu (Anatomical Artifacts)</span>
         </h2>
         <p class="section-desc">
-          Qua 2 vòng Active Learning đóng trên SD 1.5 (<code>CalibratedHardMiner</code>, <code>configs/active_learning.yaml</code>), mô hình chấm điểm các ảnh đã qua CurationGate sau bước <em>Temperature Scaling</em> (<code>T = 1.9831</code> ở Vòng 2) dựa trên 2 tiêu chí: <strong>False Negatives (<code>P &lt; 0.50</code>)</strong> và <strong>Boundary Uncertain (<code>|P - 0.50| ≤ 0.10</code>)</strong>, kết hợp lọc đa dạng embedding Cosine <code>≥ 0.05</code>. Theo nhật ký <code>closed_loop_metrics.json</code>, thu được <strong>570 FN + 170 Uncertain = 740 mẫu khó</strong> (Vòng 1 bởi <code>M₀</code>: 429 + 124 = 553; Vòng 2 bởi <code>M₁</code>: 141 + 46 = 187); khi đối chiếu lại theo <code>baseline_score</code> trong <code>hard_samples_manifest.jsonl</code> có <strong>616 mẫu &lt; 0.50</strong> và <strong>124 mẫu ≥ 0.50</strong>. Từ 740 mẫu này, nhóm tách <strong>629 mẫu</strong> vào train (D₂, D₃) và <strong>111 mẫu</strong> ghép cùng <strong>102 ảnh thật</strong> thành <strong>213 Challenge Vault</strong>. <em>(Riêng kết quả dùng <code>M₂*</code> profiling trên 6.000 ảnh RV5.1 — <strong>1.192 ca bỏ lọt</strong> @ 512px / 1.792 @ 224px chỉ để quan sát — xem tại <a href="#sec-zero-leakage" style="color: var(--primary); font-weight: 700;">Mục 7</a>).</em>
+          Qua 2 vòng Active Learning đóng trên SD 1.5 (<code>CalibratedHardMiner</code>, <code>configs/active_learning.yaml</code>), mô hình chấm điểm các ảnh đã qua CurationGate sau bước <em>Temperature Scaling</em> (<code>T = __R2_TEMP__</code> ở Vòng 2) dựa trên 2 tiêu chí: <strong>False Negatives (<code>P &lt; 0.50</code>)</strong> và <strong>Boundary Uncertain (<code>|P - 0.50| ≤ 0.10</code>)</strong>, kết hợp lọc đa dạng embedding Cosine <code>≥ 0.05</code>. Theo nhật ký <code>closed_loop_metrics.json</code>, thu được <strong>__HARD_FN__ FN + __HARD_UNC__ Uncertain = __HARD_TOT__ mẫu khó</strong> (Vòng 1 bởi <code>M₀</code>: __R1_FN__ + __R1_UNC__ = __R1_HARD__; Vòng 2 bởi <code>M₁</code>: __R2_FN__ + __R2_UNC__ = __R2_HARD__); đối chiếu theo <code>baseline_score</code> trong <code>hard_samples_manifest.jsonl</code> có <strong>__HS_B05__ mẫu &lt; 0.50</strong> và <strong>__HS_GE05__ mẫu ≥ 0.50</strong>. Từ __HARD_TOT__ mẫu này, nhóm tách <strong>__HARD_TR__ mẫu</strong> vào train (D₂, D₃) và <strong>__HARD_TE__ mẫu</strong> ghép cùng <strong>__CHAL_REAL__ ảnh thật</strong> thành <strong>__CHAL_TOT__ Challenge Vault</strong>. <em>(Riêng kết quả dùng <code>M₂*</code> profiling trên __RV_RAW__ ảnh RV5.1 — <strong>__RV_M2_BYP_CNT__ ca bỏ lọt</strong> @ 512px chỉ để quan sát — xem tại <a href="#sec-zero-leakage" style="color: var(--primary); font-weight: 700;">Mục 7</a>).</em>
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: BIOLOGICAL DEFECTS GALLERY -->
@@ -2496,14 +3071,14 @@ def build_vertical_report_html() -> str:
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: FULL CONTACT SHEET (SCROLLABLE & ZOOMABLE) -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Toàn Bộ 213 Mẫu Thuộc Tập Thử Thách Challenge Vault (111 Hard Fake + 102 Real)</span>
-            <span class="artifact-badge">ASSET 10.3 MB</span>
+            <span class="artifact-row-title">Toàn Bộ __CHAL_TOT__ Mẫu Thuộc Tập Thử Thách Challenge Vault (__CHAL_FAKE__ Hard Fake + __CHAL_REAL__ Real)</span>
+            <span class="artifact-badge">ASSET __CONTACT_SHEET_MB__ MB</span>
           </div>
           <div class="artifact-row-body" style="padding: 12px; max-height: 850px; overflow-y: auto;">
             <img src="assets/hard_samples_contact_sheet.png" class="artifact-img-full" alt="Hard Samples Contact Sheet" title="Nhấp để phóng to toàn màn hình" style="max-height: none;">
           </div>
           <div class="artifact-row-footer">
-            Toàn bộ 213 mẫu trong <code>cumulative_challenge_test.jsonl</code> (111 mẫu giả khó + 102 ảnh thật) được cô lập danh tính tuyệt đối, không bao giờ lọt vào tập huấn luyện của bất kỳ mô hình nào.
+            Toàn bộ __CHAL_TOT__ mẫu trong <code>cumulative_challenge_test.jsonl</code> (__CHAL_FAKE__ mẫu giả khó + __CHAL_REAL__ ảnh thật) được cô lập danh tính tuyệt đối, không bao giờ lọt vào tập huấn luyện của bất kỳ mô hình nào.
           </div>
         </div>
       </section>
@@ -2515,23 +3090,23 @@ def build_vertical_report_html() -> str:
       <section id="sec-active-learning" class="report-section">
         <span class="section-eyebrow">06 / BƯỚC ĐỘT PHÁ CỦA ACTIVE LEARNING</span>
         <h2 class="section-title">
-          Active Learning Vòng 2: <span class="accent">Mô Hình M2* Tăng Tỷ Lệ Phát Hiện Ảnh Giả Từ 11.71% Lên 91.89%</span>
+          Active Learning Vòng 2: <span class="accent">Mô Hình M2* Tăng Tỷ Lệ Phát Hiện Ảnh Giả Từ __M0_C_REC__ Lên __M2S_C_REC__</span>
         </h2>
         <p class="section-desc">
-          Bằng cách chỉ mở khóa tinh chỉnh tầng Block 11 của DINOv2 (chiếm 8.06% tham số) kết hợp Warm-Start từ M1 và Differential Learning Rates, mô hình M2* đã dịch chuyển ranh giới quyết định chính xác, phát hiện đúng <strong>102/111 mẫu giả cực khó</strong> và nâng ROC-AUC trên Challenge Vault từ <strong>0.8713</strong> lên <strong>0.9875</strong>!
+          Bằng cách chỉ mở khóa tinh chỉnh tầng Block 11 của DINOv2 (chiếm 8.06% tham số) kết hợp Warm-Start từ M1 và Differential Learning Rates, mô hình M2* đã dịch chuyển ranh giới quyết định chính xác, phát hiện đúng <strong>__M2S_C_DET__/__CHAL_FAKE__ mẫu giả cực khó</strong> và nâng ROC-AUC trên Challenge Vault từ <strong>__M0_C_AUC__</strong> lên <strong>__M2S_C_AUC__</strong>!
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: RECALL JUMP + ROC CURVE + CONFUSION MATRICES -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Đột Phá Active Learning Trên Challenge Vault: Ma Trận Nhầm Lẫn, Fake Recall &amp; Đường Cong ROC (0.8713 → 0.9875)</span>
+            <span class="artifact-row-title">Đột Phá Active Learning Trên Challenge Vault: Ma Trận Nhầm Lẫn, Fake Recall &amp; Đường Cong ROC (__M0_C_AUC__ → __M2S_C_AUC__)</span>
             <span class="artifact-badge champion">NOTEBOOK 02 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/extracted_nb/02_hard_samples_and_active_learning_cell9_img3.png" class="artifact-img-full" alt="Challenge Vault Confusion Matrices, Recall Jump, and ROC Curves" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng trực quan trên 213 Challenge Vault:</strong> M0 chỉ bắt được 13/111 mẫu giả (11.71%, AUC 87.13%) → M1 tăng lên 78/111 (70.27%) → <strong>M2* đạt 102/111 (91.89%, tăng +80.18%, ROC-AUC đạt 98.75%)</strong> đồng thời giữ vững 98/102 ảnh thật chính xác.
+            <strong>Bằng chứng trực quan trên __CHAL_TOT__ Challenge Vault:</strong> M0 chỉ bắt được __M0_C_DET__/__CHAL_FAKE__ mẫu giả (__M0_C_REC__, AUC __M0_C_AUCP__) → M1 tăng lên __M1_C_DET__/__CHAL_FAKE__ (__M1_C_REC__) → <strong>M2* đạt __M2S_C_DET__/__CHAL_FAKE__ (__M2S_C_REC__, tăng +__M2S_JUMP__, ROC-AUC đạt __M2S_C_AUCP__)</strong> đồng thời giữ độ chính xác cao trên ảnh thật đối chứng.
           </div>
         </div>
 
@@ -2539,8 +3114,8 @@ def build_vertical_report_html() -> str:
           <div class="callout-title">🔄 Cơ Chế Đóng Vòng Thông Minh: Error Attribution + AdaptiveBudgetController + PromptGrammarEngine</div>
           <div class="callout-desc">
             Active Learning của đồ án không sinh ảnh ngẫu nhiên mà tự động điều hướng theo điểm yếu của detector:<br>
-            • <strong>Phân rã lỗi Vòng 1 (Error Attribution):</strong> Phát hiện <code>sd_inpaint</code> đánh lừa <code>M₀</code> tới <strong>71.70%</strong> (so với <code>sd_img2img</code> 20.82% và <code>sd_text2img</code> 5.59%) → <code>AdaptiveBudgetController</code> tự động dồn ngân sách sinh Vòng 2 vào <strong>Inpaint (897)</strong>, <strong>Img2Img (540)</strong>, <strong>Text2Img (463)</strong>.<br>
-            • <strong>Kết quả Vòng 2:</strong> Error rate của Inpaint giảm sâu từ <strong>71.70% → 19.88%</strong>; đồng thời <code>PromptGrammarEngine</code> truy vết và tập trung vào vùng khó nhất như quanh mắt (<code>periocular: 39.53%</code>), ánh sáng studio (<code>13.87%</code>), người cao tuổi (<code>elderly: 13.61%</code>) và flash gắt (<code>13.30%</code>).
+            • <strong>Phân rã lỗi Vòng 1 (Error Attribution):</strong> Phát hiện <code>sd_inpaint</code> đánh lừa <code>M₀</code> tới <strong>__R1_ERR_INP__</strong> (so với <code>sd_img2img</code> __R1_ERR_I2I__ và <code>sd_text2img</code> __R1_ERR_T2I__) → <code>AdaptiveBudgetController</code> tự động dồn ngân sách sinh Vòng 2 vào <strong>Inpaint (__R2_Q_INP__)</strong>, <strong>Img2Img (__R2_Q_I2I__)</strong>, <strong>Text2Img (__R2_Q_T2I__)</strong>.<br>
+            • <strong>Kết quả Vòng 2:</strong> Error rate của Inpaint giảm sâu từ <strong>__R1_ERR_INP__ → __R2_ERR_INP__</strong>; đồng thời <code>PromptGrammarEngine</code> truy vết và tập trung vào vùng khó nhất như quanh mắt (<code>periocular: __R2_REG_PERI__</code>), nhóm tuổi cao (<code>elderly: __R2_KW_ELDER__</code>), ánh sáng vàng ấm (<code>warm golden: __R2_KW_WARM__</code>) và ánh sáng studio (<code>__R2_KW_STUDIO__</code>).
           </div>
         </div>
 
@@ -2568,46 +3143,46 @@ def build_vertical_report_html() -> str:
               <th>Bypass Rate (↓)</th>
               <th>Accuracy (↑)</th>
               <th>ROC-AUC (↑)</th>
-              <th>Số Mẫu Bắt Được (/111)</th>
+              <th>Số Mẫu Bắt Được (/__CHAL_FAKE__)</th>
               <th>Đánh Giá Kỹ Thuật</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><strong>M0 (D0 Baseline)</strong></td>
-              <td>11.71%</td>
-              <td>88.29%</td>
-              <td>53.99%</td>
-              <td>0.8713</td>
-              <td>13 / 111 mẫu</td>
+              <td>__M0_C_REC__</td>
+              <td>__M0_C_BYP__</td>
+              <td>__M0_C_ACC__</td>
+              <td>__M0_C_AUC__</td>
+              <td>__M0_C_DET__ / __CHAL_FAKE__ mẫu</td>
               <td><span class="badge-pill red">BỎ SÓT NHIỀU</span></td>
             </tr>
             <tr>
               <td><strong>M1 (Active Round 1)</strong></td>
-              <td>70.27%</td>
-              <td>29.73%</td>
-              <td>83.10%</td>
-              <td>0.9655</td>
-              <td>78 / 111 mẫu</td>
-              <td><span class="badge-pill amber">CẢI THIỆN RÕ RỆT</span></td>
+              <td>__M1_C_REC__</td>
+              <td>__M1_C_BYP__</td>
+              <td>__M1_C_ACC__</td>
+              <td>__M1_C_AUC__</td>
+              <td>__M1_C_DET__ / __CHAL_FAKE__ mẫu</td>
+              <td><span class="badge-pill amber">CẢI THIỆN MẠNH</span></td>
             </tr>
             <tr>
               <td><strong>M2 (Cold-Start Retrain)</strong></td>
-              <td>86.49%</td>
-              <td>13.51%</td>
-              <td>92.49%</td>
-              <td>0.9937</td>
-              <td>96 / 111 mẫu</td>
+              <td>__M2_C_REC__</td>
+              <td>__M2_C_BYP__</td>
+              <td>__M2_C_ACC__</td>
+              <td>__M2_C_AUC__</td>
+              <td>__M2_C_DET__ / __CHAL_FAKE__ mẫu</td>
               <td><span class="badge-pill green">KẾT QUẢ TỐT</span></td>
             </tr>
             <tr class="highlight-champion">
-              <td><strong>🏆 M2* (Refined Champion)</strong></td>
-              <td><strong>91.89% (+80.18%)</strong></td>
-              <td><strong>8.11%</strong></td>
-              <td><strong>93.90%</strong></td>
-              <td><strong>0.9875</strong></td>
-              <td><strong>102 / 111 mẫu</strong></td>
-              <td><span class="badge-pill green">HIỆU QUẢ CAO NHẤT</span></td>
+              <td><strong>🏆 M2* (Refined Warm-Start)</strong></td>
+              <td><strong>__M2S_C_REC__ (+__M2S_JUMP__)</strong></td>
+              <td><strong>__M2S_C_BYP__</strong></td>
+              <td><strong>__M2S_C_ACC__</strong></td>
+              <td><strong>__M2S_C_AUC__</strong></td>
+              <td><strong>__M2S_C_DET__ / __CHAL_FAKE__ mẫu</strong></td>
+              <td><span class="badge-pill green">BẢO TOÀN ỔN ĐỊNH</span></td>
             </tr>
           </tbody>
         </table>
@@ -2621,18 +3196,18 @@ def build_vertical_report_html() -> str:
       <section id="sec-zero-leakage" class="report-section">
         <span class="section-eyebrow">07 / BẢO TOÀN KHÁCH QUAN &amp; GIẢI TRÌNH RV5.1</span>
         <h2 class="section-title">
-          Zero Identity Leakage: <span class="accent">Phân Vai 740 Mẫu Khó SD 1.5 vs 6.000 Ảnh RV5.1 &amp; Cách Ly Danh Tính Tập Test</span>
+          Zero Identity Leakage: <span class="accent">Phân Vai __HARD_TOT__ Mẫu Khó SD 1.5 vs __RV_RAW__ Ảnh RV5.1 &amp; Cách Ly Danh Tính Tập Test</span>
         </h2>
         <p class="section-desc">
-          Khi kiểm toán 6.000 ảnh từ động cơ siêu thực <strong>RealisticVision v5.1</strong>, nhóm phát hiện có <strong>626 ảnh</strong> (<code>313 inpaint + 313 img2img</code>) được sinh từ các khuôn mặt gốc thuộc tập kiểm thử <code>test_reals.jsonl</code>, và <strong>600 ảnh</strong> thuộc tập <code>val_reals.jsonl</code>. Nhóm cách ly tuyệt đối 626 ảnh test sang <code>unseen_rv51_test.jsonl</code> (cùng 589 ảnh thật thành <strong>1.215 ảnh</strong>) và 600 ảnh val sang <code>D3_clean/val.jsonl</code>; từ <strong>4.774 ảnh RV5.1 sạch danh tính</strong> còn lại, nhóm trích mẫu phân tầng <strong>1.384 ảnh</strong> kết hợp với <strong>629 mẫu khó SD 1.5</strong> và <strong>800 mẫu SD 1.5 cơ bản</strong> thành tập huấn luyện <code>D3_clean/train.jsonl</code> cân bằng 1:1 (<strong>2.813 Thật : 2.813 Giả = 5.626 ảnh</strong>).
+          Khi kiểm toán __RV_RAW__ ảnh từ động cơ siêu thực <strong>RealisticVision v5.1</strong> qua CurationGate mở rộng, có <strong>__RV_CUR__ ảnh đạt chuẩn</strong> (loại __RV_REJ__ ảnh lỗi), trong đó phát hiện <strong>__UNSEEN_F__ ảnh</strong> (<code>__UNSEEN_I2I__ img2img + __UNSEEN_INP__ inpaint</code>) được sinh từ các khuôn mặt gốc thuộc tập kiểm thử <code>test_reals.jsonl</code>, và <strong>__D3_VA_F__ ảnh</strong> thuộc tập <code>val_reals.jsonl</code>. Nhóm cách ly tuyệt đối __UNSEEN_F__ ảnh test sang <code>unseen_rv51_test.jsonl</code> (cùng __REAL_TE__ ảnh thật thành <strong>__UNSEEN_TOT__ ảnh</strong>) và __D3_VA_F__ ảnh val sang <code>D3_clean/val.jsonl</code>; từ <strong>__RV_POOL__ ảnh RV5.1 sạch danh tính</strong> còn lại, nhóm trích mẫu phân tầng <strong>__D3_RV_CLEAN__ ảnh</strong> kết hợp với <strong>__HARD_TR__ mẫu khó SD 1.5</strong> và <strong>__D3_SD_BASE__ mẫu SD 1.5 cơ bản</strong> thành tập huấn luyện <code>D3_clean/train.jsonl</code> cân bằng 1:1 (<strong>__REAL_TR__ Thật : __REAL_TR__ Giả = __D3_TR__ ảnh</strong>).
         </p>
 
         <div class="callout-box info">
-          <div class="callout-title">🛡️ Giải Trình Khoa Học: Vì Sao Con Số "740 Mẫu Khó" Không Gộp 6.000 Ảnh RealisticVision v5.1?</div>
+          <div class="callout-title">🛡️ Giải Trình Khoa Học: Vì Sao Con Số "__HARD_TOT__ Mẫu Khó" Không Gộp __RV_RAW__ Ảnh RealisticVision v5.1?</div>
           <div class="callout-desc">
-            1) <strong>Đúng phân vai của Đề tài (docs/PURPOSE.md):</strong> <code>740 mẫu khó</code> là sản phẩm Active Learning nội miền của <strong>SD 1.5</strong> (553 vòng 1 + 187 vòng 2), chứng minh Proof of Utility cấp độ 1 trên <code>D0 → D1 → D2</code>.<br>
-            2) <strong>RV5.1 đóng vai trò Thử Nghiệm Đối Kháng Ngoại Miền (OOD cho M₀–M₂*):</strong> Ở độ phân giải chuẩn <code>512→504px</code> trên toàn bộ 6.000 ảnh (<code>legacy_6k_benchmark_results.json</code>), <code>M₀</code> bỏ lọt <strong>24.80%</strong> (<code>1.488/6.000</code>), <code>M₂*</code> (<code>active_learning_m2_best.pt</code>) bỏ lọt <strong>19.87%</strong> (<code>1.192/6.000</code>), và riêng trên tập Unseen RV5.1 (nhiều ảnh inpaint/img2img khó) <code>M₀</code> bỏ lọt <strong>33.55%</strong> còn <code>M₂*</code> bỏ lọt <strong>28.12%</strong>; còn ở phép thử nén thấp <code>224×224</code> trước đây (<code>legacy_6k_benchmark_results_224px.json</code>), <code>M₀</code> sụp xuống <strong>98.00%</strong> bỏ lọt và <code>M₂*</code> bỏ lọt <strong>29.87%</strong> (<code>1.792/6.000</code>).<br>
-            3) <strong>Chống rò rỉ danh tính tuyệt đối:</strong> Nếu gộp bừa ảnh RV5.1 bị bỏ lọt vào tập train, 626 ảnh có khuôn mặt trùng <code>test_reals.jsonl</code> sẽ rò rỉ vào tập học. Việc cách ly 626 ảnh này theo nguồn gốc danh tính giúp kiểm chứng <code>M₃</code> thích nghi đa động cơ trên <strong>danh tính hoàn toàn độc lập</strong> (93.13% Recall).
+            1) <strong>Đúng phân vai của Đề tài (docs/PURPOSE.md):</strong> <code>__HARD_TOT__ mẫu khó</code> là sản phẩm Active Learning nội miền của <strong>SD 1.5</strong> (__R1_HARD__ vòng 1 + __R2_HARD__ vòng 2), chứng minh Proof of Utility cấp độ 1 trên <code>D0 → D1 → D2</code>.<br>
+            2) <strong>RV5.1 đóng vai trò Thử Nghiệm Đối Kháng Ngoại Miền (OOD cho M₀–M₂*):</strong> Ở độ phân giải chuẩn <code>512→504px</code> trên toàn bộ __RV_RAW__ ảnh (<code>legacy_6k_benchmark_results.json</code>), <code>M₀</code> bỏ lọt <strong>__RV_M0_512_BYP__</strong> (<code>__RV_M0_512_BCNT__/__RV_RAW__</code>), <code>M₂*</code> (<code>active_learning_m2_best.pt</code>) bỏ lọt <strong>__RV_M2_BYP_PCT__</strong> (<code>__RV_M2_BYP_CNT__/__RV_RAW__</code>), và riêng trên tập Unseen RV5.1 (100% inpaint/img2img đối chứng danh tính test) <code>M₀</code> bỏ lọt <strong>__M0_U_BYP__</strong> còn <code>M₂*</code> bỏ lọt <strong>__M2S_U_BYP__</strong>; còn ở phép thử nén thấp <code>224×224</code> (<code>legacy_6k_benchmark_results_224px.json</code>), <code>M₀</code> sụp xuống <strong>__RV_M0_224_BYP__</strong> bỏ lọt và <code>M₂*</code> bỏ lọt <strong>__RV_M2_224_BYP__</strong> (<code>__RV_M2_224_BCNT__/__RV_RAW__</code>).<br>
+            3) <strong>Chống rò rỉ danh tính tuyệt đối:</strong> Nếu gộp bừa ảnh RV5.1 bị bỏ lọt vào tập train, __UNSEEN_F__ ảnh có khuôn mặt trùng <code>test_reals.jsonl</code> sẽ rò rỉ vào tập học. Việc cách ly __UNSEEN_F__ ảnh này theo nguồn gốc danh tính giúp kiểm chứng <code>M₃</code> thích nghi đa động cơ trên <strong>danh tính hoàn toàn độc lập</strong> (__M3_U_REC__ Recall).
           </div>
         </div>
 
@@ -2650,15 +3225,15 @@ def build_vertical_report_html() -> str:
             <tbody>
               <tr>
                 <td><strong>Cấp 1: Nội Miền SD 1.5</strong></td>
-                <td>Stable Diffusion v1.5 (~6.545 ảnh)</td>
-                <td>Active Learning 2 vòng → <strong>740 mẫu khó</strong> (629 train D₂, 111 Challenge Vault)</td>
-                <td><code>M₂*</code> tăng Recall Challenge Vault <strong>11.71% → 91.89%</strong> (+80.18%, AUC 0.9875)</td>
+                <td>Stable Diffusion v1.5 (__SD_RAW__ ảnh)</td>
+                <td>Active Learning 2 vòng → <strong>__HARD_TOT__ mẫu khó</strong> (__HARD_TR__ train D₂, __HARD_TE__ Challenge Vault)</td>
+                <td><code>M₂*</code> tăng Recall Challenge Vault <strong>__M0_C_REC__ → __M2S_C_REC__</strong> (+__M2S_JUMP__, AUC __M2S_C_AUC__)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>Cấp 2: Đa Động Cơ (D₃ → M₃)</strong></td>
-                <td>RealisticVision v5.1 (6.000 ảnh) + SD 1.5</td>
-                <td>Cách ly <strong>626 ảnh trùng test</strong> + 600 ảnh val; trích phân tầng 1.384 RV5.1 sạch + 629 hard SD 1.5</td>
-                <td><code>M₃</code> tăng Recall trên <code>unseen_rv51_test</code> <strong>71.88% → 93.13%</strong> (bypass 6.87%), giữ nguyên 91.89% SD 1.5</td>
+                <td>RealisticVision v5.1 (__RV_RAW__ thô / __RV_CUR__ sạch) + SD 1.5</td>
+                <td>Cách ly <strong>__UNSEEN_F__ ảnh trùng test</strong> + __D3_VA_F__ ảnh val; trích phân tầng __D3_RV_CLEAN__ RV5.1 sạch + __HARD_TR__ hard SD 1.5</td>
+                <td><code>M₃</code> tăng Recall trên <code>unseen_rv51_test</code> <strong>__M2S_U_REC__ → __M3_U_REC__</strong> (bypass __M3_U_BYP__), giữ vững __M3_C_REC__ Challenge Vault</td>
               </tr>
             </tbody>
           </table>
@@ -2674,17 +3249,17 @@ def build_vertical_report_html() -> str:
             <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell3_img0.png" class="artifact-img-full" alt="Zero Identity Leakage Clean Partition Schema" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Cấu trúc tập D3 sạch (5.626 ảnh):</strong> Cân bằng 1:1 chuẩn xác (2.813 Thật : 2.813 Giả = 1.384 RV5.1 sạch + 629 AL Hard Samples + 800 SD 1.5 Baseline). Không một ảnh nào trùng danh tính tập test lọt vào tập huấn luyện!
+            <strong>Cấu trúc tập D3 sạch (__D3_TR__ ảnh):</strong> Cân bằng 1:1 chuẩn xác (__REAL_TR__ Thật : __REAL_TR__ Giả = __D3_RV_CLEAN__ RV5.1 sạch + __HARD_TR__ AL Hard Samples + __D3_SD_BASE__ SD 1.5 Baseline). Không một ảnh nào trùng danh tính tập test lọt vào tập huấn luyện!
           </div>
         </div>
 
         <!-- M2* OOD Hard-Sample Profiling Callout & Chart -->
         <div class="callout-box success">
-          <div class="callout-title">🔍 Error Analysis / OOD Hard-Sample Profiling Bằng M₂* Trên 6.000 Ảnh RV5.1 (Không Dùng Để Train → Không Leakage)</div>
+          <div class="callout-title">🔍 Error Analysis / OOD Hard-Sample Profiling Bằng M₂* Trên __RV_RAW__ Ảnh RV5.1 (Không Dùng Để Train → Không Leakage)</div>
           <div class="callout-desc">
-            Chạy suy luận 1 chiều (inference-only) để quan sát và phân tích điểm mù của mô hình trên 6.000 ảnh RV5.1 hoàn toàn hợp lệ về phương pháp luận (khớp Bước 2 trong <code>PURPOSE.md</code>) và <strong>không gây rò rỉ dữ liệu</strong> vì các mẫu này không đưa vào train. Nhóm chọn <strong>M₂* (Refined Warm-Start, <code>active_learning_m2_best.pt</code>)</strong> thay vì M₂ (Cold-Start) vì M₂ bị <em>Catastrophic Interference</em> (tụt Recall RV5.1 512px xuống <strong>56.55%</strong>, kém cả M₀ 66.45%), nên nếu dùng M₂ sẽ lọc nhầm nhiều mẫu do quên kiến thức; trong khi M₂* giữ Recall <strong>71.88%</strong> (512px) và <strong>91.89%</strong> (Challenge Vault), nên những ca đánh lừa được M₂* mới là điểm mù siêu thực đích thực:<br>
-            • <strong>Bị M₂* bỏ lọt ở chuẩn <code>512→504px</code> (<code>P(Fake) &lt; 0.50</code>): 1.192 / 6.000 ảnh (19.87%)</strong> — chủ yếu tập trung ở <code>inpaint</code> <strong>862/2.000 (43.10%</strong>; vùng miệng 45.30%, vùng mắt 40.90%), kế đến <code>img2img</code> <strong>328/2.000 (16.40%)</strong>, trong khi <code>text2img</code> chỉ sót <strong>2/2.000 (0.10%)</strong>.<br>
-            • <strong>Vùng phân vân (<code>|P - 0.50| ≤ 0.15</code>): 183 / 6.000 ảnh (3.05%)</strong> (hợp cả 2 tiêu chí: <strong>1.282 / 6.000 ảnh</strong>). Sau khi huấn luyện đa động cơ, <code>M₃</code> nâng Recall toàn kho 6k lên <strong>94.37%</strong> (chỉ còn 338/6.000 bypass).
+            Chạy suy luận 1 chiều (inference-only) để quan sát và phân tích điểm mù của mô hình trên __RV_RAW__ ảnh RV5.1 hoàn toàn hợp lệ về phương pháp luận (khớp Bước 2 trong <code>PURPOSE.md</code>) và <strong>không gây rò rỉ dữ liệu</strong> vì các mẫu này không đưa vào train. Nhóm chọn <strong>M₂* (Refined Warm-Start, <code>active_learning_m2_best.pt</code>)</strong> vì nó giữ cân bằng tốt ranh giới trên ảnh thật và Challenge Vault (__M2S_C_REC__), giúp phơi bày chính xác các điểm mù siêu thực ngoại miền của RV5.1:<br>
+            • <strong>Bị M₂* bỏ lọt ở chuẩn <code>512→504px</code> (<code>P(Fake) &lt; 0.50</code>): __RV_M2_BYP_CNT__ / __RV_RAW__ ảnh (__RV_M2_BYP_PCT__)</strong> — tập trung chủ yếu ở <code>inpaint</code> <strong>__RV_M2_INP_CNT__/__RV_M2_INP_N__ (__RV_M2_INP_PCT__</strong>; vùng miệng __RV_M2_MOUTH_PCT__, vùng mắt __RV_M2_EYES_PCT__), kế đến <code>img2img</code> <strong>__RV_M2_I2I_CNT__/__RV_M2_I2I_N__ (__RV_M2_I2I_PCT__)</strong>, trong khi <code>text2img</code> chỉ sót <strong>__RV_M2_T2I_CNT__/__RV_M2_T2I_N__ (__RV_M2_T2I_PCT__)</strong>.<br>
+            • <strong>Vùng phân vân (<code>|P - 0.50| ≤ 0.15</code>): __RV_M2_UNC_CNT__ / __RV_RAW__ ảnh (__RV_M2_UNC_PCT__)</strong> (hợp cả 2 tiêu chí: <strong>__RV_M2_UNION__ / __RV_RAW__ ảnh</strong>). Sau khi huấn luyện đa động cơ, <code>M₃</code> nâng Recall toàn kho 6k lên <strong>__RV_M3_512_REC__</strong> (chỉ còn __RV_M3_512_BCNT__/__RV_RAW__ bypass).
           </div>
         </div>
 
@@ -2697,7 +3272,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/benchmarks/m2star_rv51_hard_profiling.png" class="artifact-img-full" alt="M2* OOD Hard-Sample Profiling on 6,000 RV5.1 Images" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Kết luận phân tích điểm mù:</strong> Ở chuẩn <code>512→504px</code>, chế độ <code>inpaint</code> (43.10% bypass, trong đó vùng miệng 45.30%) và <code>img2img</code> (16.40%) của RV5.1 là điểm mù lớn nhất của <code>M₂*</code> (chiếm gần 100% các ca lọt), trực tiếp lý giải vì sao cần thích nghi đa động cơ để tạo ra <code>M₃</code> (hạ bypass toàn kho xuống còn 5.63%).
+            <strong>Kết luận phân tích điểm mù:</strong> Ở chuẩn <code>512→504px</code>, chế độ <code>inpaint</code> (__RV_M2_INP_PCT__ bypass, trong đó vùng miệng __RV_M2_MOUTH_PCT__) và <code>img2img</code> (__RV_M2_I2I_PCT__) của RV5.1 là điểm mù lớn nhất của <code>M₂*</code> (chiếm đa số tuyệt đối các ca lọt), trực tiếp lý giải vì sao cần thích nghi đa động cơ để tạo ra <code>M₃</code> (hạ bypass toàn kho xuống còn __RV_M3_512_BYP__).
           </div>
         </div>
       </section>
@@ -2709,10 +3284,10 @@ def build_vertical_report_html() -> str:
       <section id="sec-champion-m3" class="report-section">
         <span class="section-eyebrow">08 / MÔ HÌNH TOÀN DIỆN CHAMPION M3</span>
         <h2 class="section-title">
-          Mô Hình Champion M3: <span class="accent">Đạt 93.13% Trên Unseen RV5.1 Mà Vẫn Giữ Vững Hiệu Năng SD 1.5</span>
+          Mô Hình Champion M3: <span class="accent">Đạt __M3_U_REC__ Trên Unseen RV5.1 Mà Vẫn Giữ Vững Hiệu Năng SD 1.5</span>
         </h2>
         <p class="section-desc">
-          Kế thừa trọng số từ M2* (Warm-Start) và tinh chỉnh Block 11 + Head qua 6 epochs với Cosine Annealing trên tập <code>D3_clean/train.jsonl</code> (5.626 ảnh), mô hình Champion M3 đạt <code>best_val_auc = 0.9846</code> ở Epoch 6 và nâng Fake Recall trên <code>unseen_rv51_test.jsonl</code> (độc lập danh tính) từ 71.88% lên <strong>93.13%</strong> (ROC-AUC <strong>0.9828</strong>) mà không bị quên kiến thức SD 1.5!
+          Kế thừa trọng số từ M2* (Warm-Start) và tinh chỉnh Block 11 + Head qua 6 epochs với Cosine Annealing trên tập <code>D3_clean/train.jsonl</code> (__D3_TR__ ảnh), mô hình Champion M3 đạt <code>best_val_auc = __M3_BEST_VAUC__</code> ở Epoch __M3_BEST_EP__ và nâng Fake Recall trên <code>unseen_rv51_test.jsonl</code> (độc lập danh tính) từ __M2S_U_REC__ lên <strong>__M3_U_REC__</strong> (ROC-AUC <strong>__M3_U_AUC__</strong>) mà không bị quên kiến thức SD 1.5!
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: QUAD-VAULT RECALL CHART -->
@@ -2725,21 +3300,21 @@ def build_vertical_report_html() -> str:
             <img src="assets/benchmarks/benchmark_5models_vault_recall_comparison.png" class="artifact-img-full" alt="Quad-Vault Recall Comparison" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Mô hình M3 đạt Fake Recall <strong>93.13%</strong> trên tập kiểm thử <code>unseen_rv51_test</code> (Bypass Rate giảm từ 28.12% còn <strong>6.87%</strong>), đồng thời duy trì trọn vẹn <strong>91.89%</strong> trên Challenge Vault và tăng lên <strong>69.44%</strong> trên Master Frozen Test (SD 1.5).
+            Mô hình M3 đạt Fake Recall <strong>__M3_U_REC__</strong> trên tập kiểm thử <code>unseen_rv51_test</code> (Bypass Rate giảm từ __M2S_U_BYP__ còn <strong>__M3_U_BYP__</strong>), đồng thời đạt <strong>__M3_C_REC__</strong> trên Challenge Vault và tăng lên <strong>__M3_M_REC__</strong> trên Master Frozen Test (SD 1.5).
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: M3 6-EPOCH TRAINING CONVERGENCE -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Động Học Huấn Luyện Champion M3 Qua 6 Epochs (Train/Val Loss &amp; Validation AUC 0.9846)</span>
+            <span class="artifact-row-title">Động Học Huấn Luyện Champion M3 Qua 6 Epochs (Train/Val Loss &amp; Validation AUC __M3_BEST_VAUC__)</span>
             <span class="artifact-badge champion">TRAINING DYNAMICS</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/benchmarks/m3_training_convergence.png" class="artifact-img-full" alt="Champion M3 6-Epoch Training Convergence" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Hội tụ mượt mà không Overfitting:</strong> Train Loss giảm đều <code>0.1833 → 0.0831</code>, Val Loss giảm <code>0.2552 → 0.2168</code>, và Val ROC-AUC trên <code>D3_clean/val.jsonl</code> tăng liên tục từ <code>0.9745</code> lên <strong>0.9846</strong> (Val Acc <strong>94.07%</strong>) tại Epoch 6.
+            <strong>Hội tụ mượt mà không Overfitting:</strong> Train Loss giảm đều <code>__M3_TL_0__ → __M3_TL_END__</code>, Val Loss giảm <code>__M3_VL_0__ → __M3_VL_END__</code>, và Val ROC-AUC trên <code>D3_clean/val.jsonl</code> tăng liên tục từ <code>__M3_VAUC_0__</code> lên <strong>__M3_BEST_VAUC__</strong> (Val Acc <strong>__M3_BEST_VACC__</strong>) tại Epoch __M3_BEST_EP__.
           </div>
         </div>
 
@@ -2753,7 +3328,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell5_img1.png" class="artifact-img-full" alt="M3 Live Inference Examples on Unseen RV5.1" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Minh họa trực quan từ tập Unseen RV5.1:</strong> Hàng trên hiển thị ảnh thật (2 ca nhận đúng với P(fake) 15.1%–45.2% và 2 ca báo động nhầm 65.5%–72.6%); hàng dưới hiển thị ảnh giả RV5.1 (3 ca bắt đúng với P(fake) 72.0%–86.5% và 1 ca bỏ lọt 14.4% — phản ánh trực tiếp Bypass Rate 6.87% còn lại).
+            <strong>Minh họa trực quan từ tập Unseen RV5.1:</strong> Hàng trên hiển thị ảnh thật đối chứng và phân tích báo động nhầm; hàng dưới hiển thị ảnh giả RV5.1 với độ chính xác đạt <strong>__M3_U_ACC__</strong> (Fake Recall <strong>__M3_U_REC__</strong>, Bypass Rate còn <strong>__M3_U_BYP__</strong> trên __UNSEEN_TOT__ mẫu độc lập danh tính).
           </div>
         </div>
 
@@ -2763,41 +3338,41 @@ def build_vertical_report_html() -> str:
             <thead>
               <tr>
                 <th>Phiên Bản Mô Hình</th>
-                <th>Master Frozen Test (SD 1.5 — 1.178 ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
-                <th>Challenge Vault (Mẫu Khó — 213 ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
-                <th>Unseen RV5.1 Vault (1.215 ảnh — Độc Lập Danh Tính)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+                <th>Master Frozen Test (SD 1.5 — __MASTER_TOT__ ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+                <th>Challenge Vault (Mẫu Khó — __CHAL_TOT__ ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+                <th>Unseen RV5.1 Vault (__UNSEEN_TOT__ ảnh — Độc Lập Danh Tính)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td><strong>M0 (D0 Baseline)</strong></td>
-                <td>49.07% | 50.93% | 74.11% | 0.8850 | 0.6546</td>
-                <td>11.71% | 88.29% | 53.99% | 0.8713 | 0.2097</td>
-                <td>66.45% | 33.55% | 82.30% | 0.9162 | 0.7947 (OOD)</td>
+                <td>__M0_M_REC__ | __M0_M_BYP__ | __M0_M_ACC__ | __M0_M_AUC__ | __M0_M_F1__</td>
+                <td>__M0_C_REC__ | __M0_C_BYP__ | __M0_C_ACC__ | __M0_C_AUC__ | __M0_C_F1__</td>
+                <td>__M0_U_REC__ | __M0_U_BYP__ | __M0_U_ACC__ | __M0_U_AUC__ | __M0_U_F1__ (OOD)</td>
               </tr>
               <tr>
                 <td><strong>M1 (Active Round 1)</strong></td>
-                <td>62.14% | 37.86% | 79.20% | 0.9161 | 0.7492</td>
-                <td>70.27% | 29.73% | 83.10% | 0.9655 | 0.8125</td>
-                <td>72.04% | 27.96% | 83.79% | 0.9170 | 0.8207 (OOD)</td>
+                <td>__M1_M_REC__ | __M1_M_BYP__ | __M1_M_ACC__ | __M1_M_AUC__ | __M1_M_F1__</td>
+                <td>__M1_C_REC__ | __M1_C_BYP__ | __M1_C_ACC__ | __M1_C_AUC__ | __M1_C_F1__</td>
+                <td>__M1_U_REC__ | __M1_U_BYP__ | __M1_U_ACC__ | __M1_U_AUC__ | __M1_U_F1__ (OOD)</td>
               </tr>
               <tr>
                 <td><strong>M2 (Cold-Start Retrain)</strong></td>
-                <td>52.63% | 47.37% | 75.04% | 0.8910 | 0.6783</td>
-                <td>86.49% | 13.51% | 92.49% | 0.9937 | 0.9231</td>
-                <td>56.55% | 43.45% | 76.38% | 0.8804 | 0.7116 (OOD)</td>
+                <td>__M2_M_REC__ | __M2_M_BYP__ | __M2_M_ACC__ | __M2_M_AUC__ | __M2_M_F1__</td>
+                <td>__M2_C_REC__ | __M2_C_BYP__ | __M2_C_ACC__ | __M2_C_AUC__ | __M2_C_F1__</td>
+                <td>__M2_U_REC__ | __M2_U_BYP__ | __M2_U_ACC__ | __M2_U_AUC__ | __M2_U_F1__ (OOD)</td>
               </tr>
               <tr>
                 <td><strong>M2* (Refined Warm-Start)</strong></td>
-                <td>66.89% | 33.11% | 80.81% | 0.9177 | 0.7771</td>
-                <td><strong>91.89%</strong> | <strong>8.11%</strong> | <strong>93.90%</strong> | 0.9875 | <strong>0.9401</strong></td>
-                <td>71.88% | 28.12% | 82.96% | 0.9158 | 0.8130 (OOD)</td>
+                <td>__M2S_M_REC__ | __M2S_M_BYP__ | __M2S_M_ACC__ | __M2S_M_AUC__ | __M2S_M_F1__</td>
+                <td><strong>__M2S_C_REC__</strong> | <strong>__M2S_C_BYP__</strong> | <strong>__M2S_C_ACC__</strong> | __M2S_C_AUC__ | <strong>__M2S_C_F1__</strong></td>
+                <td>__M2S_U_REC__ | __M2S_U_BYP__ | __M2S_U_ACC__ | __M2S_U_AUC__ | __M2S_U_F1__ (OOD)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>🏆 M3 (Dual-Engine Champion)</strong></td>
-                <td><span class="badge-pill green">69.44% | 30.56% | 82.26% | 0.9206 | 0.7965</span></td>
-                <td><span class="badge-pill green">91.89% | 8.11% | 93.43% | 0.9875 | 0.9358</span></td>
-                <td><span class="badge-pill green">93.13% | 6.87% | 94.07% | 0.9828 | 0.9418</span></td>
+                <td><span class="badge-pill green">__M3_M_REC__ | __M3_M_BYP__ | __M3_M_ACC__ | __M3_M_AUC__ | __M3_M_F1__</span></td>
+                <td><span class="badge-pill green">__M3_C_REC__ | __M3_C_BYP__ | __M3_C_ACC__ | __M3_C_AUC__ | __M3_C_F1__</span></td>
+                <td><span class="badge-pill green">__M3_U_REC__ | __M3_U_BYP__ | __M3_U_ACC__ | __M3_U_AUC__ | __M3_U_F1__</span></td>
               </tr>
             </tbody>
           </table>
@@ -2821,21 +3396,21 @@ def build_vertical_report_html() -> str:
                 <td>DINOv2 ImageNet Pretrained</td>
                 <td>Block 11 + Head (1.78M = 8.06%)</td>
                 <td>Head <code>2e-4</code> | Block 11 <code>2e-5</code></td>
-                <td><code>hard_weight = 2.0</code>, 5 epochs (M₀ ep 5, M₁ ep 4, M₂ ep 5)</td>
+                <td><code>hard_weight = 2.0</code>, 5 epochs (M₀ ep __EP_M0__, M₁ ep __EP_M1__, M₂ ep __EP_M2__)</td>
               </tr>
               <tr>
                 <td><strong>M₂* (Refined)</strong></td>
                 <td>Warm-Start từ <code>M₁</code></td>
                 <td>Block 11 + Head (1.78M = 8.06%)</td>
                 <td>Head <code>5e-5</code> | Block 11 <code>5e-6</code></td>
-                <td><code>hard_weight = 1.15</code>, 2 epochs (AMP, best ep 2)</td>
+                <td><code>hard_weight = 1.15</code>, 2 epochs (AMP, best ep __EP_M2S__)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>M₃ (Champion)</strong></td>
                 <td>Warm-Start từ <code>M₂*</code></td>
                 <td>Block 11 + Head (1.78M = 8.06%)</td>
                 <td>Head <code>3e-5</code> | Block 11 <code>3e-6</code> (CosineAnnealingLR)</td>
-                <td><code>hard_weight = 1.10</code>, 6 epochs (AMP, best ep 6)</td>
+                <td><code>hard_weight = 1.10</code>, 6 epochs (AMP, best ep __M3_BEST_EP__)</td>
               </tr>
             </tbody>
           </table>
@@ -2865,7 +3440,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/benchmarks/benchmark_5models_method_heatmap.png" class="artifact-img-full" style="max-height: none;" alt="Universal Benchmark 5-Model 34-Method Heatmap" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Phân tích chi tiết trên 34 phương pháp (@ 504px):</strong> Mô hình <strong>Champion M₃</strong> đạt <code>StyleGAN2</code> (<strong>100.00%</strong>), <code>e4e</code> (<strong>99.67%</strong>), <code>styleclip</code> (<strong>95.67%</strong>), <code>pixart</code> (<strong>60.67%</strong>), <code>stargan</code> (<strong>59.67%</strong>), <code>sd2.1</code> (<strong>54.00%</strong>), <code>StyleGAN3</code> (<strong>44.33%</strong>), <code>VQGAN</code> (<strong>35.33%</strong>), và <code>ddim</code> (<strong>31.33%</strong>), đồng thời giữ Real Specificity ở mức cao <strong>94.75%</strong>.
+            <strong>Phân tích chi tiết trên 34 phương pháp (@ 504px):</strong> Mô hình <strong>Champion M₃</strong> đạt <code>StyleGAN2</code> (<strong>__UM_STYLEGAN2__</strong>), <code>e4e</code> (<strong>__UM_E4E__</strong>), <code>styleclip</code> (<strong>__UM_STYLECLIP__</strong>), <code>pixart</code> (<strong>__UM_PIXART__</strong>), <code>stargan</code> (<strong>__UM_STARGAN__</strong>), <code>sd2.1</code> (<strong>__UM_SD21__</strong>), <code>StyleGAN3</code> (<strong>__UM_STYLEGAN3__</strong>), <code>VQGAN</code> (<strong>__UM_VQGAN__</strong>), và <code>ddim</code> (<strong>__UM_DDIM__</strong>), đồng thời giữ Real Specificity ở mức cao <strong>__U_M3_SPEC__</strong>.
           </div>
         </div>
 
@@ -2879,7 +3454,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/benchmarks/benchmark_5models_global_comparison.png" class="artifact-img-full" alt="Universal Benchmark 5-Model Global Comparison" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Ở chuẩn <code>512→504px</code>, <strong>M₃</strong> dẫn đầu toàn diện với Fake Recall <strong>21.15%</strong> (gấp <strong>3.85×</strong> mức <code>5.49%</code> khi bị nén <code>224px</code>), Accuracy <strong>57.95%</strong>, Precision <strong>80.13%</strong> và F1-Score <strong>33.46%</strong> trong điều kiện hoàn toàn Zero-Shot đa họ công nghệ.
+            Ở chuẩn <code>512→504px</code>, <strong>M₃</strong> dẫn đầu toàn diện với Fake Recall <strong>__U_M3_REC__</strong> (gấp <strong>__U_M3_224_MULT__×</strong> mức <code>__U_M3_224_REC__</code> khi bị nén <code>224px</code>), Accuracy <strong>__U_M3_ACC__</strong>, Precision <strong>__U_M3_PREC__</strong> và F1-Score <strong>__U_M3_F1__</strong> trong điều kiện hoàn toàn Zero-Shot đa họ công nghệ.
           </div>
         </div>
 
@@ -2893,7 +3468,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/benchmarks/benchmark_5models_family_recall.png" class="artifact-img-full" alt="8-Family Recall Chart" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Theo từng họ công nghệ ở <code>504px</code>: <strong>GAN Architectures</strong> đạt <strong>60.00%</strong>, <strong>Latent Diffusion (SD 2.1)</strong> đạt <strong>54.00%</strong> (từ 23.67% ở M₀ và 8.33% ở 224px), <strong>GAN Inversion</strong> đạt <strong>53.67%</strong>, <strong>AutoEncoders/VAEs</strong> đạt <strong>35.33%</strong>, <strong>DDIM</strong> đạt <strong>31.33%</strong> (×7.24 M₀) và <strong>DiT</strong> đạt <strong>17.67%</strong>.
+            Theo từng họ công nghệ ở <code>504px</code>: <strong>GAN Architectures</strong> đạt <strong>__UF_GAN__</strong>, <strong>Latent Diffusion (SD 2.1)</strong> đạt <strong>__UF_SD21__</strong> (từ __UF0_SD21__ ở M₀), <strong>GAN Inversion</strong> đạt <strong>__UF_GANINV__</strong>, <strong>AutoEncoders/VAEs</strong> đạt <strong>__UF_AE__</strong>, <strong>DDIM</strong> đạt <strong>__UF_DDIM__</strong> (×__UF_DDIM_MULT__ M₀) và <strong>DiT</strong> đạt <strong>__UF_DIT__</strong>.
           </div>
         </div>
 
@@ -2907,7 +3482,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell9_img3.png" class="artifact-img-full" alt="Threshold Sweep and FF++ C23 Video FPR" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng trực quan:</strong> Ở ngưỡng mặc định <code>τ = 0.50</code>, M₃ đạt Real Specificity <strong>94.75%</strong> (FPR FFHQ giảm còn <strong>5.20%</strong> so với 11.12% ở 224px) và tỷ lệ báo động sai trên video nén H.264 FaceForensics++ C23 là <strong>5.14%</strong> (85/1.655 khung hình; nếu nâng ngưỡng lên <code>τ = 0.85</code> thì FF++ FPR giảm còn <strong>2.54%</strong>).
+            <strong>Bằng chứng trực quan:</strong> Ở ngưỡng mặc định <code>τ = 0.50</code>, M₃ đạt Real Specificity <strong>__U_M3_SPEC__</strong> (FPR FFHQ chỉ <strong>__FFHQ_FPR_05__</strong>) và tỷ lệ báo động sai trên video nén H.264 FaceForensics++ C23 là <strong>__FF_FPR_05__</strong> (__FF_FP_05__/__FF_TOT__ khung hình; nếu nâng ngưỡng lên <code>τ = 0.85</code> thì FF++ FPR giảm còn <strong>__FF_FPR_085__</strong>; ngưỡng gắt eKYC <code>FPR ≤ 1.0%</code> tại <code>τ = __U_M3_T1__</code> đạt Fake Recall <strong>__U_M3_REC1__</strong> so với M₀ <code>__U_M0_REC1__</code> tại <code>τ = __U_M0_T1__</code>).
           </div>
         </div>
 
@@ -2921,7 +3496,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/benchmarks/benchmark_5models_roc_curves.png" class="artifact-img-full" alt="ROC Curves 5 Models on Universal Benchmark" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Đánh giá khoa học trung thực:</strong> Khi sửa phân giải về <code>512→504px</code>, ROC-AUC tổng hợp của M₃ nhảy vọt từ <code>0.3820</code> lên <strong>0.6101</strong> (PR-AUC từ <code>0.4233</code> lên <strong>0.6365</strong>, cao hơn ngưỡng ngẫu nhiên 0.5000). Tuy nhiên, vì tập train chỉ gồm ảnh tĩnh Diffusion (SD 1.5 + RV5.1), mô hình vẫn gặp khoảng trống miền rõ rệt trên ảnh video nén gốc <code>256×256</code> thuộc hai họ <code>Face Swapping</code> (<strong>5.37%</strong>) và <code>Reenactment/Talking Head</code> (<strong>6.55%</strong>).
+            <strong>Đánh giá khoa học trung thực:</strong> Khi sửa phân giải về <code>512→504px</code>, ROC-AUC tổng hợp của M₃ nhảy vọt từ <code>0.3820</code> lên <strong>__U_M3_AUC__</strong> (PR-AUC từ <code>0.4233</code> lên <strong>__U_M3_PR__</strong>, cao hơn ngưỡng ngẫu nhiên 0.5000). Tuy nhiên, vì tập train chỉ gồm ảnh tĩnh Diffusion (SD 1.5 + RV5.1), mô hình vẫn gặp khoảng trống miền rõ rệt trên ảnh video nén gốc <code>256×256</code> thuộc hai họ <code>Face Swapping</code> (<strong>__UF_FS__</strong>) và <code>Reenactment/Talking Head</code> (<strong>__UF_REEN__</strong>).
           </div>
         </div>
 
@@ -2935,7 +3510,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img-full" alt="Precision-Recall Curves Across 5 Detector Models" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Bổ trợ cho biểu đồ ROC: Với Precision đạt <strong>80.13%</strong> (M₀ đạt 92.28% ở recall thấp hơn) và PR-AUC <strong>0.6365</strong>, đường Precision–Recall của M₃ nằm vượt trội phía trên mức ngẫu nhiên (<code>0.5000</code>), xác nhận độ tin cậy cao khi phát tín hiệu giả mạo trên ảnh phân giải tốt.
+            Bổ trợ cho biểu đồ ROC: Với Precision đạt <strong>__U_M3_PREC__</strong> (M₀ đạt __U_M0_PREC__ ở recall thấp hơn) và PR-AUC <strong>__U_M3_PR__</strong>, đường Precision–Recall của M₃ nằm vượt trội phía trên mức ngẫu nhiên (<code>0.5000</code>), xác nhận độ tin cậy cao khi phát tín hiệu giả mạo trên ảnh phân giải tốt.
           </div>
         </div>
 
@@ -2963,7 +3538,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/extracted_nb/resolution_504_vs_224_degradation.png" class="artifact-img-full" alt="Resolution Degradation 504px vs 224px on DINOv2 ViT-S/14" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng trực tiếp cho Bước A:</strong> Trong mã nguồn cũ, <code>evaluate_universal_benchmark_5models.py</code> và <code>benchmark_legacy_6k.py</code> đã nén nhầm ảnh xuống <code>224×224</code> (mất <strong>80.25%</strong> mật độ patch tokens từ <code>1.296</code> còn <code>256</code>). Sau khi chuẩn hóa về <code>512→504px LANCZOS</code> trên đúng cùng bộ ảnh, Recall của M₀ trên 6k RV5.1 phục hồi từ <code>2.00% → 75.20%</code> (M₃ đạt <code>94.37%</code>), còn M₃ trên Universal 20.4k phục hồi từ <code>5.49% → 21.15%</code> (riêng <code>sd2.1</code> tăng từ <code>8.33% → 54.00%</code>).
+            <strong>Bằng chứng trực tiếp cho Bước A:</strong> Trong mã nguồn cũ, <code>evaluate_universal_benchmark_5models.py</code> và <code>benchmark_legacy_6k.py</code> đã nén nhầm ảnh xuống <code>224×224</code> (mất <strong>80.25%</strong> mật độ patch tokens từ <code>1.296</code> còn <code>256</code>). Sau khi chuẩn hóa về <code>512→504px LANCZOS</code> trên đúng cùng bộ ảnh, Recall của M₀ trên 6k RV5.1 phục hồi từ <code>__RV_M0_224_REC__ → __RV_M0_512_REC__</code> (M₃ đạt <code>__RV_M3_512_REC__</code>), còn M₃ trên Universal 20.4k phục hồi từ <code>__U_M3_224_REC__ → __U_M3_REC__</code> (riêng <code>sd2.1</code> đạt <code>__UM_SD21__</code>).
           </div>
         </div>
 
@@ -2985,53 +3560,53 @@ def build_vertical_report_html() -> str:
             <tbody>
               <tr>
                 <td><strong>M₀ (Baseline D₀)</strong></td>
-                <td>56.18%</td>
-                <td>13.48%</td>
-                <td>86.52%</td>
-                <td><strong>98.87%</strong></td>
-                <td><strong>92.28%</strong></td>
-                <td>23.52%</td>
-                <td><strong>0.6431</strong> | <strong>0.6893</strong></td>
+                <td>__U_M0_ACC__</td>
+                <td>__U_M0_REC__</td>
+                <td>__U_M0_BYP__</td>
+                <td><strong>__U_M0_SPEC__</strong></td>
+                <td><strong>__U_M0_PREC__</strong></td>
+                <td>__U_M0_F1__</td>
+                <td>__U_M0_AUC__ | <strong>__U_M0_PR__</strong></td>
               </tr>
               <tr>
                 <td><strong>M₁ (Active Learning R1)</strong></td>
-                <td>56.43%</td>
-                <td>17.94%</td>
-                <td>82.06%</td>
-                <td>94.91%</td>
-                <td>77.91%</td>
-                <td>29.17%</td>
-                <td>0.5552 | 0.6166</td>
+                <td>__U_M1_ACC__</td>
+                <td>__U_M1_REC__</td>
+                <td>__U_M1_BYP__</td>
+                <td>__U_M1_SPEC__</td>
+                <td>__U_M1_PREC__</td>
+                <td>__U_M1_F1__</td>
+                <td>__U_M1_AUC__ | __U_M1_PR__</td>
               </tr>
               <tr>
                 <td><strong>M₂ (Cold-Start Scratch)</strong></td>
-                <td>53.58%</td>
-                <td>10.68%</td>
-                <td>89.32%</td>
-                <td>96.49%</td>
-                <td>75.26%</td>
-                <td>18.70%</td>
-                <td>0.5597 | 0.5901</td>
+                <td>__U_M2_ACC__</td>
+                <td>__U_M2_REC__</td>
+                <td>__U_M2_BYP__</td>
+                <td>__U_M2_SPEC__</td>
+                <td>__U_M2_PREC__</td>
+                <td>__U_M2_F1__</td>
+                <td>__U_M2_AUC__ | __U_M2_PR__</td>
               </tr>
               <tr>
                 <td><strong>M₂* (Refined Warm-Start)</strong></td>
-                <td>55.52%</td>
-                <td>16.48%</td>
-                <td>83.52%</td>
-                <td>94.57%</td>
-                <td>75.21%</td>
-                <td>27.04%</td>
-                <td>0.5619 | 0.6015</td>
+                <td>__U_M2S_ACC__</td>
+                <td>__U_M2S_REC__</td>
+                <td>__U_M2S_BYP__</td>
+                <td>__U_M2S_SPEC__</td>
+                <td>__U_M2S_PREC__</td>
+                <td>__U_M2S_F1__</td>
+                <td>__U_M2S_AUC__ | __U_M2S_PR__</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>🏆 M₃ (Dual-Engine Champion)</strong></td>
-                <td><strong>57.95%</strong></td>
-                <td><span class="badge-pill green">21.15% (Cao nhất • ×3.85 vs 224px)</span></td>
-                <td><strong>78.85%</strong></td>
-                <td>94.75%</td>
-                <td>80.13%</td>
-                <td><span class="badge-pill green">33.46% (Cao nhất)</span></td>
-                <td>0.6101 | 0.6365</td>
+                <td><strong>__U_M3_ACC__</strong></td>
+                <td><span class="badge-pill green">__U_M3_REC__ (Cao nhất • ×__U_M3_224_MULT__ vs 224px)</span></td>
+                <td><strong>__U_M3_BYP__</strong></td>
+                <td>__U_M3_SPEC__</td>
+                <td>__U_M3_PREC__</td>
+                <td><span class="badge-pill green">__U_M3_F1__ (Cao nhất)</span></td>
+                <td><strong>__U_M3_AUC__</strong> | __U_M3_PR__</td>
               </tr>
             </tbody>
           </table>
@@ -3066,7 +3641,7 @@ def build_vertical_report_html() -> str:
             (2) chia lưới <code>36×36 = 1.296 patches</code> (<code>14×14px</code>) + 1 token <code>[CLS]</code> chiều <code>384</code>;
             (3) đóng băng <strong>Blocks 0–10</strong> (91.94%) chống overfitting;
             (4) mở khóa <strong>Block 11 + LayerNorm + Classifier Head</strong> (<code>LayerNorm(384) → Dropout(0.3) → Linear(384, 1)</code> [<code>1.153</code> params], tổng học <code>1.78M</code> = 8.06%, Differential LR 10:1, AMP <code>bfloat16</code>);
-            (5) hiệu chuẩn hậu kiểm qua <code>TemperatureScaler</code> (<code>P = σ(logit / T)</code>, <code>T = 1.9831</code> ở R2, ngưỡng mining <code>τ = 0.50</code>).
+            (5) hiệu chuẩn hậu kiểm qua <code>TemperatureScaler</code> (<code>P = σ(logit / T)</code>, <code>T = __R2_TEMP__</code> ở R2, ngưỡng mining <code>τ = 0.50</code>).
           </div>
         </div>
 
@@ -3080,7 +3655,7 @@ def build_vertical_report_html() -> str:
             <img src="assets/extracted_nb/00_master_deepfake_defense_showcase_cell7_img1.png" class="artifact-img-full" alt="DINOv2 Spatial Attention Heatmap" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng trực quan trên 3 mẫu đối chứng:</strong> (1) Ảnh thật FFHQ <code>00301.png</code> được nhận diện chuẩn xác Real (<code>P(Fake)=1.99%</code>); (2) Mẫu khó Challenge Vault <code>fake_ffhq_00000_q1_116.png</code> bị bắt ở <code>P(Fake)=99.79%</code> tập trung vào vùng miệng/mắt; (3) Ảnh siêu thực RV5.1 <code>187_img2img.png</code> bị bắt ở <code>P(Fake)=99.99%</code>.
+            <strong>Bằng chứng trực quan trên 3 mẫu đối chứng:</strong> (1) Ảnh thật FFHQ <code>00301.png</code> được nhận diện chuẩn xác Real (<code>P(Fake)=__XAI_00301__</code>); (2) Mẫu khó Challenge Vault <code>fake_ffhq_00000_q1_116.png</code> bị bắt ở <code>P(Fake)=__XAI_CHAL__</code> tập trung vào vùng miệng/mắt; (3) Ảnh siêu thực RV5.1 <code>187_img2img.png</code> bị bắt ở <code>P(Fake)=__XAI_187__</code>.
           </div>
         </div>
       </section>
@@ -3112,31 +3687,31 @@ def build_vertical_report_html() -> str:
               <tr>
                 <td><strong>1. Dữ Liệu Dual-Engine Diffusion</strong></td>
                 <td>Sinh ảnh Stable Diffusion với 3 chế độ Inpaint / Img2Img / Text2Img</td>
-                <td>4.000 ảnh thật + 12.545 ảnh giả (SD 1.5: 6.545 thô / 5.251 sạch + RV5.1: 6.000); làm mờ biên mềm (Soft-Mask Feathering, <code>blur_radius = 18–20</code>)</td>
+                <td>__REAL_TOT__ ảnh thật + __FAKE_RAW__ ảnh giả (SD 1.5: __SD_RAW__ thô / __SD_CUR__ sạch + RV5.1: __RV_RAW__ thô / __RV_CUR__ sạch); làm mờ biên mềm (Soft-Mask Feathering, <code>blur_radius = 18–20</code>)</td>
                 <td><span class="badge-pill green">ĐẠT 100%</span></td>
               </tr>
               <tr>
                 <td><strong>2. Quy Trình CurationGate</strong></td>
                 <td>Lọc chất lượng quang học, hình học khuôn mặt và chống trùng lặp</td>
-                <td>Laplacian hiệu chỉnh theo phân vị 5% ảnh thật, OpenCV Haar + kiểm tra hình học/cháy sáng/seam, khử trùng lặp SHA-256 (giữ 5.251/6.545 SD 1.5)</td>
+                <td>Laplacian hiệu chỉnh theo phân vị 5% ảnh thật, YuNet / OpenCV Haar + kiểm tra mắt/Cheek FFT/CIELab/CLIP/seam, khử trùng lặp SHA-256 + dHash (giữ __SD_CUR__/__SD_RAW__ SD 1.5 &amp; __RV_CUR__/__RV_RAW__ RV5.1)</td>
                 <td><span class="badge-pill green">ĐẠT 100%</span></td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>3. Khai Thác Mẫu Khó</strong></td>
                 <td>Áp dụng Active Learning cải thiện ranh giới phân loại</td>
-                <td>740 mẫu khó SD 1.5 (570 FN + 170 Uncertain |P−0.5|≤0.10 theo log vòng AL; 616 &lt;0.50 + 124 ≥0.50 theo <code>baseline_score</code>; 629 train + 111 vào 213 Challenge Vault); nâng Recall 11.71% → 91.89%</td>
-                <td><span class="badge-pill green">VƯỢT (+80.18%)</span></td>
+                <td>__HARD_TOT__ mẫu khó SD 1.5 (__HARD_FN__ FN + __HARD_UNC__ Uncertain |P−0.5|≤0.10 theo log vòng AL; __HARD_TR__ train + __HARD_TE__ vào __CHAL_TOT__ Challenge Vault); nâng Recall __M0_C_REC__ → __M2S_C_REC__</td>
+                <td><span class="badge-pill green">VƯỢT (+__M2S_JUMP__)</span></td>
               </tr>
               <tr>
                 <td><strong>4. Zero Identity Leakage</strong></td>
                 <td>Đảm bảo không rò rỉ danh tính người giữa tập học và tập test</td>
-                <td>M₂* profiling 6k RV5.1 (1.192 bypass @ 512px; 1.792 @ 224px); cách ly 626 ảnh test + 600 val; tập D3 sạch 5.626 ảnh cân bằng 1:1 (2.813 Real : 2.813 Fake)</td>
+                <td>M₂* profiling 6k RV5.1 (__RV_M2_BYP_CNT__ bypass @ 512px; __RV_M2_224_BCNT__ @ 224px); cách ly __UNSEEN_F__ ảnh test + __D3_VA_F__ val; tập D3 sạch __D3_TR__ ảnh cân bằng 1:1 (__REAL_TR__ Real : __REAL_TR__ Fake)</td>
                 <td><span class="badge-pill green">KHÁCH QUAN</span></td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>5. Champion M3 &amp; Benchmark</strong></td>
                 <td>Thử nghiệm Proof of Utility đa động cơ &amp; đánh giá mở rộng</td>
-                <td>Champion M3 đạt 93.13% trên Unseen RV5.1 (AUC 0.9828) &amp; 94.37% trên toàn 6k RV5.1; Zero-Shot Universal 20.4k @ 504px đạt 21.15% Fake Recall (SD 2.1 54.00%, GAN 60.00%, AUC 0.6101) &amp; 94.75% Real Spec</td>
+                <td>Champion M3 đạt __M3_U_REC__ trên Unseen RV5.1 (AUC __M3_U_AUC__) &amp; __RV_M3_512_REC__ trên toàn 6k RV5.1; Zero-Shot Universal 20.4k @ 504px đạt __U_M3_REC__ Fake Recall (SD 2.1 __UF_SD21__, GAN __UF_GAN__, AUC __U_M3_AUC__) &amp; __U_M3_SPEC__ Real Spec</td>
                 <td><span class="badge-pill green">VƯỢT CHỈ TIÊU</span></td>
               </tr>
               <tr>
@@ -3289,6 +3864,8 @@ def build_vertical_report_html() -> str:
 </body>
 </html>
 """
+    for token, replacement in subs.items():
+        html_content = html_content.replace(token, replacement)
     return html_content
 
 def main():
@@ -3302,6 +3879,7 @@ def main():
     generate_m0_collapse_chart()
     regenerate_clean_defect_taxonomy()
     regenerate_clean_d3_audit()
+    generate_hard_samples_contact_sheet()
     generate_03b_visuals()
     generate_m2star_rv51_profiling_chart()
     generate_m3_convergence_chart()

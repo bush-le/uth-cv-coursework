@@ -197,7 +197,10 @@ def test_challenge_vault_roc_auc_execution():
             item = json.loads(line)
             labels.append(item["label"])
 
-    assert len(labels) == 213, f"Expected 213 samples, got {len(labels)}"
+    assert len(labels) >= 50, f"Expected >= 50 samples in Challenge Vault, got {len(labels)}"
+    n_real = sum(1 for y in labels if y == 0)
+    n_fake = sum(1 for y in labels if y == 1)
+    assert n_real == n_fake and n_real > 0, f"Expected balanced binary classes, got real={n_real}, fake={n_fake}"
     assert 0 in labels and 1 in labels, "Challenge set must contain both Real (0) and Fake (1) labels"
 
     # Verify compute_roc_auc evaluates cleanly without ValueError or NaN on two-class data

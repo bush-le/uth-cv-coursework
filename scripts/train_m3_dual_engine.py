@@ -178,6 +178,7 @@ def main() -> None:
     best_val_loss = float("inf")
     best_epoch = -1
     no_improve_epochs = 0
+    epoch_history = []
     run_name = "active_learning_m3"
     best_ckpt_path = ckpt_dir / f"{run_name}_best.pt"
 
@@ -222,6 +223,15 @@ def main() -> None:
         val_auc = val_metrics.get("roc_auc", 0.0)
         val_loss = val_metrics.get("loss", float("inf"))
         val_acc = val_metrics.get("accuracy", 0.0)
+        epoch_history.append(
+            {
+                "epoch": epoch,
+                "train_loss": round(float(train_loss), 4),
+                "val_loss": round(float(val_loss), 4),
+                "val_auc": round(float(val_auc), 4),
+                "val_accuracy": round(float(val_acc), 4),
+            }
+        )
 
         logger.info(
             "Epoch %d/%d (%.1fs) | Train Loss: %.4f | Val Loss: %.4f | Val AUC: %.4f | Val Acc: %.4f | LR: (head=%.2e, dino=%.2e)",
@@ -315,6 +325,7 @@ def main() -> None:
                 "best_epoch": best_epoch,
                 "best_val_auc": best_val_auc,
                 "total_train_seconds": total_duration,
+                "epoch_history": epoch_history,
                 "master_frozen_test": m_master_res,
                 "cumulative_challenge_test": m_chal_res,
                 "unseen_rv51_test": m_unseen_res,

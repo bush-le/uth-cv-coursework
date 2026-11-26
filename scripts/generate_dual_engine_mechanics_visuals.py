@@ -194,11 +194,15 @@ def render_prompt_and_quota_evolution(out_path: Path) -> None:
             "Text2Img": c.get("sd_text2img", c.get("text2img", 0)),
         })
 
+    d0_counts = _counts(Path("data/synthetic/curated_manifest.jsonl"), "manipulation_type")
+    r1_counts = _counts(Path("data/active_learning/round_1/candidates_raw.jsonl"), "manipulation_type")
+    r2_counts = _counts(Path("data/active_learning/round_2/candidates_raw.jsonl"), "manipulation_type")
+    rv_counts = _counts(Path("data/external_benchmarks/synthetic_face_dataset_6k/fake_manifest.jsonl"), "task")
     stages = [
-        ("SD 1.5 D₀\n(2.200 sạch)", _counts(Path("data/synthetic/curated_manifest.jsonl"), "manipulation_type")),
-        ("SD 1.5 AL R1\n(1.900 thô)", _counts(Path("data/active_learning/round_1/candidates_raw.jsonl"), "manipulation_type")),
-        ("SD 1.5 AL R2\n(1.900 thô)", _counts(Path("data/active_learning/round_2/candidates_raw.jsonl"), "manipulation_type")),
-        ("RV5.1 6k\n(6.000 mẫu)", _counts(Path("data/external_benchmarks/synthetic_face_dataset_6k/fake_manifest.jsonl"), "task")),
+        (f"SD 1.5 D₀\n({sum(d0_counts.values()):,} sạch)".replace(",", "."), d0_counts),
+        (f"SD 1.5 AL R1\n({sum(r1_counts.values()):,} thô)".replace(",", "."), r1_counts),
+        (f"SD 1.5 AL R2\n({sum(r2_counts.values()):,} thô)".replace(",", "."), r2_counts),
+        (f"RV5.1 6k\n({sum(rv_counts.values()):,} mẫu)".replace(",", "."), rv_counts),
     ]
 
     fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(17.4, 6.4), dpi=180, gridspec_kw={"width_ratios": [1.0, 1.05]})
@@ -236,7 +240,14 @@ def render_prompt_and_quota_evolution(out_path: Path) -> None:
     ax_l.set_xticklabels(labels, fontsize=9.8, fontweight="bold")
     ax_l.set_ylim(0, 108)
     ax_l.set_ylabel("Tỷ Trọng Chế Độ Sinh (%)", fontsize=10.5, fontweight="bold")
-    ax_l.set_title("Phân Bổ Thực Tế 3 Chế Độ Theo Từng Giai Đoạn\n(R2 Tự Dồn 47.2% Vào SD Inpaint Theo Error-Steering)", fontsize=11.0, fontweight="bold", pad=10)
+    r2_total = max(1, sum(r2_counts.values()))
+    r2_inp_pct = r2_counts["Inpaint"] * 100.0 / r2_total
+    ax_l.set_title(
+        f"Phân Bổ Thực Tế 3 Chế Độ Theo Từng Giai Đoạn\n(R2 Tự Dồn {r2_inp_pct:.1f}% Vào SD Inpaint Theo Error-Steering)",
+        fontsize=11.0,
+        fontweight="bold",
+        pad=10,
+    )
     ax_l.spines["top"].set_visible(False)
     ax_l.spines["right"].set_visible(False)
     ax_l.legend(loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=3, frameon=True, fontsize=9.5)
@@ -404,7 +415,13 @@ def render_resolution_degradation_comparison(out_path: Path) -> None:
     ax_bar.set_xticklabels(labels, fontsize=9.2, fontweight="bold")
     ax_bar.set_ylim(0, 102)
     ax_bar.set_ylabel("Fake Recall (%)", fontsize=10.5, fontweight="bold")
-    ax_bar.set_title("Đối Chứng Trực Tiếp Trước & Sau Khi Sửa Lỗi Phân Giải (Cùng Bộ Ảnh)\n(Suy luận đúng 504px khôi phục 2.00% → 75.20% ở M₀ và 5.49% → 21.15% ở M₃)", fontsize=10.6, fontweight="bold", pad=10)
+    ax_bar.set_title(
+        f"Đối Chứng Trực Tiếp Trước & Sau Khi Sửa Lỗi Phân Giải (Cùng Bộ Ảnh)\n"
+        f"(Suy luận đúng 504px khôi phục {lo_vals[0]:.2f}% → {hi_vals[0]:.2f}% ở M₀ và {lo_vals[3]:.2f}% → {hi_vals[3]:.2f}% ở M₃)",
+        fontsize=10.6,
+        fontweight="bold",
+        pad=10,
+    )
     ax_bar.grid(axis="y", linestyle="--", alpha=0.45)
     ax_bar.spines["top"].set_visible(False)
     ax_bar.spines["right"].set_visible(False)
@@ -554,9 +571,12 @@ def render_dinov2_architecture_diagram(out_path: Path) -> None:
     ax.text(89.25, 39.4, "5. HIỆU CHUẨN L-BFGS", ha="center", va="center", fontsize=10.5, fontweight="bold", color="#047857")
     ax.text(89.25, 36.8, "TemperatureScaler: P = σ(z / T)", ha="center", va="center", fontsize=8.6, fontweight="bold", color="#065f46")
 
+    cl_path = Path("experiments/logs/closed_loop_metrics.json")
+    cl_data = json.loads(cl_path.read_text(encoding="utf-8")) if cl_path.exists() else {}
+    cl_rounds = cl_data.get("rounds", [])
+    T = float(cl_rounds[-1].get("calibration_temperature", 2.4273)) if cl_rounds else 2.4273
     ax_cal = ax.inset_axes([0.834, 0.22, 0.145, 0.54])
     z = np.linspace(-5.0, 5.0, 300)
-    T = 1.9831
     ax_cal.axhspan(0.40, 0.60, color="#fef3c7", alpha=0.75, label="Uncertain ±0.10")
     ax_cal.plot(z, 1.0 / (1.0 + np.exp(-z)), "--", color="#94a3b8", linewidth=1.7, label="Trước T=1.0")
     ax_cal.plot(z, 1.0 / (1.0 + np.exp(-z / T)), color="#059669", linewidth=2.5, label=f"Sau T={T:.4f}")
@@ -571,7 +591,7 @@ def render_dinov2_architecture_diagram(out_path: Path) -> None:
     ax_cal.spines["right"].set_visible(False)
     ax_cal.legend(loc="upper left", fontsize=7.0, frameon=True)
 
-    ax.text(89.25, 6.4, "T = 1.9831 (Active Round 2)", ha="center", va="center", fontsize=8.6, fontweight="bold", color="#047857")
+    ax.text(89.25, 6.4, f"T = {T:.4f} (Active Round 2)", ha="center", va="center", fontsize=8.6, fontweight="bold", color="#047857")
     ax.text(89.25, 3.9, "Real < 0.50  |  Fake ≥ 0.50", ha="center", va="center", fontsize=8.4, fontweight="bold", color="#0f172a")
 
     fig.savefig(out_path, bbox_inches="tight", dpi=200)

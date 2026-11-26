@@ -1011,10 +1011,10 @@
       <a href="#sec-dataset" class="nav-link">3. Bộ Dữ Liệu 12.545 Ảnh</a>
       <a href="#sec-generation-mechanics" class="nav-link">3b. Cơ Chế Dual-Engine</a>
       <a href="#sec-curation" class="nav-link">4. Quy Trình Lọc CurationGate</a>
-      <a href="#sec-hard-samples" class="nav-link">5. 740 Mẫu Khó & 213 Vault</a>
-      <a href="#sec-active-learning" class="nav-link">6. Đột Phá M2* (+80.18%)</a>
+      <a href="#sec-hard-samples" class="nav-link">5. 610 Mẫu Khó & 184 Vault</a>
+      <a href="#sec-active-learning" class="nav-link">6. Đột Phá M2* (+81.52%)</a>
       <a href="#sec-zero-leakage" class="nav-link">7. Profiling 6k &amp; Zero Leakage</a>
-      <a href="#sec-champion-m3" class="nav-link">8. Champion M3 (93.13%)</a>
+      <a href="#sec-champion-m3" class="nav-link">8. Champion M3 (93.51%)</a>
       <a href="#sec-universal" class="nav-link">9. Universal 20.4k Benchmark</a>
       <a href="#sec-xai" class="nav-link">10. Kiến Trúc &amp; XAI Heatmap</a>
       <a href="#sec-conclusion" class="nav-link">11. Bảng KPI & Kết Luận</a>
@@ -1033,7 +1033,7 @@
           <div style="font-size: 15px; font-weight: 600; color: var(--text-muted); margin-top: 6px; font-family: var(--font-mono);">Stable Diffusion-Based Synthetic Facial Dataset Generation for Deepfake Detection</div>
         </h1>
         <p class="section-desc">
-          Đồ án thực hiện trọn vẹn vòng đời dữ liệu-lấy-làm-trung-tâm (<em>Dataset-First</em>) theo đúng 3 bước cốt lõi của giảng viên và mở rộng lên thích nghi đa động cơ: từ <strong>4.000 ảnh thật</strong> (FFHQ + CelebA-HQ) → sinh <strong>12.545 ảnh giả</strong> từ 2 mô hình (SD 1.5: 6.545 thô / <strong>5.251 đạt chuẩn CurationGate</strong>; RealisticVision v5.1: 6.000 ảnh) → khai thác <strong>740 mẫu khó SD 1.5</strong> → nâng Fake Recall trên 213 Challenge Vault từ <strong>11.71% → 91.89%</strong> (<code>M₂*</code>) → dùng <code>M₂*</code> profiling 6.000 RV5.1 (phát hiện <strong>1.192 ca bỏ lọt</strong> ở chuẩn 512px chỉ để quan sát) và cách ly danh tính sạch để huấn luyện <strong>Champion M₃</strong> đạt <strong>93.13%</strong> trên Unseen RV5.1 (<strong>94.37%</strong> trên toàn kho 6k RV5.1).
+          Đồ án thực hiện trọn vẹn vòng đời dữ liệu-lấy-làm-trung-tâm (<em>Dataset-First</em>) theo đúng 3 bước cốt lõi của giảng viên và mở rộng lên thích nghi đa động cơ: từ <strong>4.000 ảnh thật</strong> (FFHQ + CelebA-HQ) → sinh <strong>12.545 ảnh giả</strong> từ 2 mô hình (SD 1.5: 6.545 thô / <strong>5.285 đạt chuẩn CurationGate mở rộng</strong>; RealisticVision v5.1: 6.000 ảnh thô / <strong>5.502 đạt chuẩn</strong>) → khai thác <strong>610 mẫu khó SD 1.5</strong> → nâng Fake Recall trên 184 Challenge Vault từ <strong>8.70% → 90.22%</strong> (<code>M₂*</code>) → dùng <code>M₂*</code> profiling 6.000 RV5.1 (phát hiện <strong>2.119 ca bỏ lọt</strong> ở chuẩn 512px chỉ để quan sát) và cách ly danh tính sạch để huấn luyện <strong>Champion M₃</strong> đạt <strong>93.51%</strong> trên Unseen RV5.1 (<strong>95.00%</strong> trên toàn kho 6k RV5.1).
         </p>
 
         <!-- Interactive 5-Stage End-to-End Visual Flow -->
@@ -1047,7 +1047,7 @@
               <div>
                 <div class="flow-step-num">BƯỚC 1 • SINH &amp; LỌC</div>
                 <div class="flow-step-title">Dual-Engine &amp; CurationGate</div>
-                <div class="flow-step-desc">4.000 ảnh thật → 6.545 SD 1.5 thô (lọc còn 5.251 sạch) + 6.000 RV5.1</div>
+                <div class="flow-step-desc">4.000 ảnh thật → 6.545 SD 1.5 thô (lọc còn 5.285 sạch) + 6.000 RV5.1 (5.502 sạch)</div>
               </div>
               <span class="flow-step-kpi">12.545 Fake</span>
             </a>
@@ -1057,23 +1057,23 @@
                 <div class="flow-step-title">Điểm Mù Làm Mờ Biên</div>
                 <div class="flow-step-desc">Huấn luyện M₀ trên D₀ (4.224 ảnh) → sụp đổ trước ảnh Soft-Mask</div>
               </div>
-              <span class="flow-step-kpi">11.71% Recall</span>
+              <span class="flow-step-kpi">8.70% Recall</span>
             </a>
             <a href="#sec-active-learning" class="flow-step-card">
               <div>
                 <div class="flow-step-num">BƯỚC 3 • ACTIVE LEARNING</div>
-                <div class="flow-step-title">740 Mẫu Khó &amp; M₂*</div>
-                <div class="flow-step-desc">2 vòng AL (553+187) → 629 train D₂ + 111 vào 213 Challenge Vault</div>
+                <div class="flow-step-title">610 Mẫu Khó &amp; M₂*</div>
+                <div class="flow-step-desc">2 vòng AL (566+44) → 518 train D₂ + 92 vào 184 Challenge Vault</div>
               </div>
-              <span class="flow-step-kpi">91.89% (+80.18%)</span>
+              <span class="flow-step-kpi">90.22% (+81.52%)</span>
             </a>
             <a href="#sec-zero-leakage" class="flow-step-card">
               <div>
                 <div class="flow-step-num">BƯỚC 4 • PROFILING &amp; D₃</div>
                 <div class="flow-step-title">M₂* Mining 6k &amp; Zero Leakage</div>
-                <div class="flow-step-desc">M₂* chạy 6k RV5.1: 1.192 bypass @ 512px (chỉ quan sát) + cách ly 626 test &amp; 600 val</div>
+                <div class="flow-step-desc">M₂* chạy 6k RV5.1: 2.119 bypass @ 512px (chỉ quan sát) + cách ly 601 test &amp; 578 val sạch</div>
               </div>
-              <span class="flow-step-kpi">1.192 OOD | D₃: 5.626</span>
+              <span class="flow-step-kpi">2.119 OOD | D₃: 5.626</span>
             </a>
             <a href="#sec-champion-m3" class="flow-step-card champion">
               <div>
@@ -1081,7 +1081,7 @@
                 <div class="flow-step-title">M₃ + Universal + XAI</div>
                 <div class="flow-step-desc">Warm-Start M₂*→M₃, kiểm định Quad-Vault, 20.4k Zero-Shot &amp; Heatmap</div>
               </div>
-              <span class="flow-step-kpi">93.13% RV5.1</span>
+              <span class="flow-step-kpi">93.51% RV5.1</span>
             </a>
           </div>
         </div>
@@ -1091,27 +1091,27 @@
           <div class="kpi-card">
             <span class="kpi-label">Tổng Dữ Liệu Sinh Mới</span>
             <div class="kpi-value">12.545</div>
-            <span class="kpi-note">SD 1.5 (6.545 thô / 5.251 lọc) + RV5.1 (6.000)</span>
+            <span class="kpi-note">SD 1.5 (6.545 thô / 5.285 lọc) + RV5.1 (6.000 thô / 5.502 lọc)</span>
           </div>
           <div class="kpi-card alert">
             <span class="kpi-label">Mẫu Khó Nội Miền (SD 1.5)</span>
-            <div class="kpi-value">740</div>
-            <span class="kpi-note">629 Train (D₂/D₃) + 111 trong 213 Challenge Vault</span>
+            <div class="kpi-value">610</div>
+            <span class="kpi-note">518 Train (D₂/D₃) + 92 trong 184 Challenge Vault</span>
           </div>
           <div class="kpi-card alert">
             <span class="kpi-label">Điểm Mù OOD M₂* (RV5.1 6k)</span>
-            <div class="kpi-value">1.192</div>
-            <span class="kpi-note">19.87% bỏ lọt @ 512px (29.87% / 1.792 @ 224px, chỉ quan sát)</span>
+            <div class="kpi-value">2.119</div>
+            <span class="kpi-note">35.32% bỏ lọt @ 512px (50.38% / 3.023 @ 224px, chỉ quan sát)</span>
           </div>
           <div class="kpi-card champion">
             <span class="kpi-label">Tăng Fake Recall M2*</span>
-            <div class="kpi-value">+80.18%</div>
-            <span class="kpi-note">Nhảy vọt từ 11.71% → 91.89% (Challenge Vault)</span>
+            <div class="kpi-value">+81.52%</div>
+            <span class="kpi-note">Nhảy vọt từ 8.70% → 90.22% (Challenge Vault)</span>
           </div>
           <div class="kpi-card champion">
             <span class="kpi-label">Fake Recall Mô Hình M3</span>
-            <div class="kpi-value">93.13%</div>
-            <span class="kpi-note">Trên Unseen RV5.1 Vault (1.215 ảnh, AUC 0.9828)</span>
+            <div class="kpi-value">93.51%</div>
+            <span class="kpi-note">Trên Unseen RV5.1 Vault (1.190 ảnh, AUC 0.9859)</span>
           </div>
         </div>
 
@@ -1125,7 +1125,7 @@
             <img src="assets/extracted_nb/00_master_deepfake_defense_showcase_cell4_img0.png" class="artifact-img-full" alt="Golden Scorecard M0 to M3 Evolution" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Phân tích kết quả:</strong> Mô hình cơ sở M0 bỏ sót tới 88.29% ảnh giả trên Challenge Vault (Recall chỉ 11.71%); sau Vòng 1 (M1) tăng lên 70.27%; Vòng 2 (M2*) nâng lên 91.89%; và mô hình Champion M3 đạt đỉnh cao 93.13% trên tập kiểm thử Unseen RV5.1 mà vẫn giữ vững 91.89% trên Challenge Vault và 69.44% trên Master Frozen Test (SD 1.5).
+            <strong>Phân tích kết quả:</strong> Mô hình cơ sở M0 bỏ sót tới 91.30% ảnh giả trên Challenge Vault (Recall chỉ 8.70%); sau Vòng 1 (M1) tăng lên 94.57%; Vòng 2 (M2*) đạt 90.22%; và mô hình Champion M3 đạt đỉnh cao 93.51% trên tập kiểm thử Unseen RV5.1 đồng thời giữ vững 92.39% trên Challenge Vault và 70.24% trên Master Frozen Test (SD 1.5).
           </div>
         </div>
       </section>
@@ -1161,7 +1161,7 @@
         <div class="callout-box danger">
           <div class="callout-title">🚨 Thử Thách Lớn: Mô Hình Cơ Sở (M0) Bị Đánh Lừa Trên Tập Mẫu Khó Challenge Vault &amp; Legacy 6k</div>
           <div class="callout-desc">
-            Khi thử nghiệm mô hình cơ sở M0 trên 213 mẫu của Challenge Vault (111 ảnh giả khó + 102 ảnh thật), <strong>Fake Recall chỉ đạt 11.71%</strong> (Bypass Rate lên tới <strong>88.29%</strong>; Overall Accuracy chỉ đạt <strong>53.99%</strong> — tương đương đoán ngẫu nhiên; F1-Score sụp đổ còn <strong>0.2097</strong>). Ngoài ra, trên 6.000 ảnh RV5.1, M0 đạt <strong>75.20%</strong> (bỏ lọt <strong>24.80%</strong>) ở chuẩn <code>512→504px LANCZOS</code> (và tụt còn <strong>2.00%</strong> nếu bị ép nén xuống <code>224×224</code>), còn trên tập Unseen RV5.1 độc lập danh tính vẫn bỏ lọt <strong>33.55%</strong>.
+            Khi thử nghiệm mô hình cơ sở M0 trên 184 mẫu của Challenge Vault (92 ảnh giả khó + 92 ảnh thật), <strong>Fake Recall chỉ đạt 8.70%</strong> (Bypass Rate lên tới <strong>91.30%</strong>; Overall Accuracy chỉ đạt <strong>54.35%</strong> — tương đương đoán ngẫu nhiên; F1-Score sụp đổ còn <strong>0.1600</strong>). Ngoài ra, trên 6.000 ảnh RV5.1, M0 đạt <strong>72.58%</strong> (bỏ lọt <strong>27.42%</strong>) ở chuẩn <code>512→504px LANCZOS</code> (và tụt còn <strong>31.42%</strong> nếu bị ép nén xuống <code>224×224</code>), còn trên tập Unseen RV5.1 độc lập danh tính vẫn bỏ lọt <strong>39.43%</strong>.
           </div>
         </div>
 
@@ -1175,7 +1175,7 @@
             <img src="assets/benchmarks/m0_baseline_collapse_comparison.png" class="artifact-img-full" alt="M0 Baseline Collapse Comparison Chart" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Nguồn số liệu thực nghiệm:</strong> Tổng hợp trực tiếp từ <code>benchmark_5models_quad_vault_summary.json</code> (512×512), <code>legacy_6k_benchmark_results.json</code> (chuẩn 512→504px: Recall 75.20% / Bypass 24.80%) và <code>legacy_6k_benchmark_results_224px.json</code> (stress-test 224×224: Recall 2.00% / Bypass 98.00%). Khoảng trống bỏ lọt lên đến 88.29% (Challenge Vault) và 24.80%–33.55% (RV5.1 @ 512px) là động lực trực tiếp cho Active Learning và Champion M3.
+            <strong>Nguồn số liệu thực nghiệm:</strong> Tổng hợp trực tiếp từ <code>benchmark_5models_quad_vault_summary.json</code> (512×512), <code>legacy_6k_benchmark_results.json</code> (chuẩn 512→504px: Recall 72.58% / Bypass 27.42%) và <code>legacy_6k_benchmark_results_224px.json</code> (stress-test 224×224: Recall 31.42% / Bypass 68.58%). Khoảng trống bỏ lọt lên đến 91.30% (Challenge Vault) và 27.42%–39.43% (RV5.1 @ 512px) là động lực trực tiếp cho Active Learning và Champion M3.
           </div>
         </div>
       </section>
@@ -1190,7 +1190,7 @@
           Kiến Trúc Dữ Liệu: <span class="accent">4.000 Ảnh Thật &amp; 12.545 Ảnh Sinh Từ Dual-Engine Diffusion</span>
         </h2>
         <p class="section-desc">
-          Từ kho nền tảng <strong>4.000 ảnh thật</strong> (2.000 FFHQ + 2.000 CelebA-HQ, chia độc lập danh tính thành 2.813 train / 598 val / 589 test), nhóm đã sinh tổng cộng <strong>12.545 ảnh giả</strong> qua Dual-Engine Diffusion (<strong>SD 1.5: 6.545 thô → 5.251 đạt chuẩn CurationGate</strong>; <strong>RealisticVision v5.1: 6.000 ảnh</strong>) trên cả 3 chế độ Inpainting, Img2Img và Text-to-Image.
+          Từ kho nền tảng <strong>4.000 ảnh thật</strong> (2.000 FFHQ + 2.000 CelebA-HQ, chia độc lập danh tính thành 2.813 train / 598 val / 589 test), nhóm đã sinh tổng cộng <strong>12.545 ảnh giả</strong> qua Dual-Engine Diffusion (<strong>SD 1.5: 6.545 thô → 5.285 đạt chuẩn CurationGate mở rộng</strong>; <strong>RealisticVision v5.1: 6.000 thô → 5.502 đạt chuẩn</strong>) trên cả 3 chế độ Inpainting, Img2Img và Text-to-Image.
         </p>
 
         <!-- BẢNG TỔNG HỢP PHÂN BỔ 2 ĐỘNG CƠ SINH DỮ LIỆU (DUAL-ENGINE) -->
@@ -1214,20 +1214,20 @@
               <tr>
                 <td><strong>Bộ A: Stable Diffusion v1.5</strong></td>
                 <td><code>configs/dataset_factory.yaml → generation.model_id</code> (SD v1.5 Base)</td>
-                <td><strong>6.545 thô</strong> (<a href="#sec-curation" style="color: var(--primary); font-weight: 700;">5.251 sạch</a>)</td>
-                <td>Khởi tạo D₀ (2.200 sạch) + AL 2 vòng (1.484 R1 + 1.567 R2 sạch) — <a href="#sec-curation" style="color: var(--primary); font-weight: 600;">xem phễu lọc ở Mục 4</a></td>
+                <td><strong>6.545 thô</strong> (<a href="#sec-curation" style="color: var(--primary); font-weight: 700;">5.285 sạch</a>)</td>
+                <td>Khởi tạo D₀ (2.198 sạch) + AL 2 vòng (1.524 R1 + 1.563 R2 sạch) — <a href="#sec-curation" style="color: var(--primary); font-weight: 600;">xem phễu lọc ở Mục 4</a></td>
               </tr>
               <tr>
                 <td><strong>Bộ B: RealisticVision v5.1</strong></td>
                 <td><code>SG161222/Realistic_Vision_V5.1_noVAE</code></td>
-                <td><strong>6.000 ảnh</strong> (2k×3 chế độ)</td>
-                <td>OOD Profiling (M₀–M₂*) &amp; trích 1.384 sạch vào D₃ (cách ly 626 test + 600 val)</td>
+                <td><strong>6.000 thô</strong> (<strong>5.502 sạch</strong>)</td>
+                <td>OOD Profiling (M₀–M₂*) &amp; trích 1.495 sạch vào D₃ (cách ly 601 test + 578 val)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>Tổng cộng ảnh giả sinh mới</strong></td>
                 <td>Dual-Engine Diffusion</td>
                 <td><strong style="color: var(--primary); font-size: 15px;">12.545 ảnh giả</strong></td>
-                <td>Tổng kho toàn dự án: <strong>16.545 ảnh</strong> (4.000 Real + 12.545 Fake thô / 11.251 Fake sau lọc; mốc <strong>10.000 ảnh</strong> trong <code>clean_10k_production_report.json</code> = 4.000 Real + 6.000 Fake SD 1.5 gồm 2.200 D₀ + 1.900 R1 + 1.900 R2)</td>
+                <td>Tổng kho toàn dự án: <strong>16.545 ảnh</strong> (4.000 Real + 12.545 Fake thô / 10.787 Fake sau lọc CurationGate mở rộng)</td>
               </tr>
             </tbody>
           </table>
@@ -1249,29 +1249,29 @@
               <tr>
                 <td><strong>D₀ (Baseline)</strong></td>
                 <td><strong>4.224</strong> (2.813 Real + 1.411 SD 1.5)</td>
-                <td>798 (598 Real + 200 SD 1.5)</td>
-                <td>Master Frozen Test: <strong>1.178</strong> (589+589)</td>
+                <td>797 (598 Real + 199 SD 1.5)</td>
+                <td>Master Frozen Test: <strong>1.177</strong> (589+588)</td>
                 <td><code>M₀</code> (baseline_d0_best.pt)</td>
               </tr>
               <tr>
                 <td><strong>D₁ (Active R1)</strong></td>
-                <td><strong>4.694</strong> (D₀ + 470 Hard R1)</td>
-                <td>798 (như D₀)</td>
-                <td>Master (1.178) + Challenge R1 (83 Fake)</td>
+                <td><strong>4.705</strong> (D₀ + 481 Hard R1)</td>
+                <td>797 (như D₀)</td>
+                <td>Master (1.177) + Challenge R1 (85 Fake)</td>
                 <td><code>M₁</code> (active_learning_m1_best.pt)</td>
               </tr>
               <tr>
                 <td><strong>D₂ (Active R2)</strong></td>
-                <td><strong>4.853</strong> (D₁ + 159 Hard R2)</td>
-                <td>798 (như D₀)</td>
-                <td>Master (1.178) + Challenge Vault (<strong>213</strong>)</td>
+                <td><strong>4.742</strong> (D₁ + 37 Hard R2)</td>
+                <td>797 (như D₀)</td>
+                <td>Master (1.177) + Challenge Vault (<strong>184</strong>)</td>
                 <td><code>M₂</code> (Cold) &amp; <code>M₂*</code> (Warm-Start)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>D₃ (Dual-Engine Sạch)</strong></td>
-                <td><strong>5.626</strong> (2.813 Real + 629 Hard + 800 SD + 1.384 RV5.1)</td>
-                <td>1.198 (598 Real + 600 RV5.1 Val)</td>
-                <td>Unseen RV5.1 Vault: <strong>1.215</strong> (589 Real + 626 RV5.1 Test)</td>
+                <td><strong>5.626</strong> (2.813 Real + 518 Hard + 800 SD + 1.495 RV5.1)</td>
+                <td>1.176 (598 Real + 578 RV5.1 Val)</td>
+                <td>Unseen RV5.1 Vault: <strong>1.190</strong> (589 Real + 601 RV5.1 Test)</td>
                 <td><code>M₃</code> (active_learning_m3_best.pt)</td>
               </tr>
             </tbody>
@@ -1590,7 +1590,7 @@
                 <img src="assets/samples/inpaint_0.png" class="flow-mini-thumb" alt="Mẫu Inpainting 512x512" title="Nhấp để phóng to">
                 <div>
                   <div class="flow-node-step">Kết quả</div>
-                  <div class="flow-node-title">Bẫy Khó Nhất (11.71%)</div>
+                  <div class="flow-node-title">Bẫy Khó Nhất (8.70%)</div>
                   <div class="flow-node-desc">Xóa sạch dấu vết cắt dán biên → khiến mô hình M₀ sụp đổ trước khi học AL.</div>
                 </div>
               </div>
@@ -1647,8 +1647,8 @@
               </tr>
               <tr>
                 <td><strong>Hệ Quả Thực Nghiệm</strong></td>
-                <td>Nhiều ca biên mềm tinh vi ở chế độ Inpaint → ép M₀ sụp đổ và làm bàn đạp Active Learning (<code>M₀ → M₂*</code>: 11.71% → 91.89%)</td>
-                <td>Kết cấu lỗ chân lông &amp; ánh sáng cực giống ảnh chụp thật → phơi bày điểm mù OOD của <code>M₂*</code> (lọt <code>1.192/6.000</code> @ 512px; <code>1.792/6.000</code> @ 224px) trước khi <code>M₃</code> học khóa <code>93.13%</code> Unseen / <code>94.37%</code> toàn kho 6k</td>
+                <td>Nhiều ca biên mềm tinh vi ở chế độ Inpaint → ép M₀ sụp đổ và làm bàn đạp Active Learning (<code>M₀ → M₂*</code>: 8.70% → 90.22%)</td>
+                <td>Kết cấu lỗ chân lông &amp; ánh sáng cực giống ảnh chụp thật → phơi bày điểm mù OOD của <code>M₂*</code> (lọt <code>2.119/6.000</code> @ 512px; <code>3.023/6.000</code> @ 224px) trước khi <code>M₃</code> học khóa <code>93.51%</code> Unseen / <code>95.00%</code> toàn kho 6k</td>
               </tr>
             </tbody>
           </table>
@@ -1692,7 +1692,7 @@
             <img src="assets/extracted_nb/dual_engine_prompt_quota_evolution.png" class="artifact-img-full" alt="Phân bổ 3 chế độ qua các vòng và ngữ pháp PromptGrammarEngine vs 5-D Grid" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng đóng vòng:</strong> Số đếm từ manifest thật cho thấy ở Active Learning Vòng 2, <code>AdaptiveBudgetController</code> tự động dồn <strong>47.2%</strong> (<code>897/1.900</code>) ngân sách vào nhánh khó nhất là <code>sd_inpaint</code> (từ mức đều 33.3% ở R1), đồng thời <code>PromptGrammarEngine</code> xoay xác suất qua 7 slot với sàn khám phá <code>exploration_floor = 0.15</code>.
+            <strong>Bằng chứng đóng vòng:</strong> Số đếm từ manifest thật cho thấy ở Active Learning Vòng 2, <code>AdaptiveBudgetController</code> tự động dồn <strong>48.8%</strong> (<code>928/1.900</code>) ngân sách vào nhánh khó nhất là <code>sd_inpaint</code> (từ mức đều 33.3% ở R1), đồng thời <code>PromptGrammarEngine</code> xoay xác suất qua 7 slot với sàn khám phá <code>exploration_floor = 0.15</code>.
           </div>
         </div>
 
@@ -1824,22 +1824,22 @@
       <section id="sec-curation" class="report-section">
         <span class="section-eyebrow">04 / KIỂM SOÁT CHẤT LƯỢNG</span>
         <h2 class="section-title">
-          CurationGate: <span class="accent">Phễu Lọc Tự Động 3 Tầng (6.545 Thô → 5.251 Ảnh SD 1.5 Đạt Chuẩn)</span>
+          CurationGate: <span class="accent">Phễu Lọc Tự Động 3 Tầng (6.545 Thô → 5.285 Ảnh SD 1.5 Đạt Chuẩn)</span>
         </h2>
         <p class="section-desc">
-          Triển khai thực tế trong <code>ImageCurationGate</code> (<code>src/pipelines/curate_image_dataset.py</code> &amp; <code>configs/dataset_factory.yaml</code>), mỗi ảnh sinh mới phải vượt qua 3 tầng kiểm duyệt tự động trước khi vào tập huấn luyện:
+          Triển khai thực tế trong <code>ImageCurationGate</code> (<code>src/pipelines/curate_image_dataset.py</code> &amp; <code>configs/dataset_factory.yaml</code>), mỗi ảnh sinh mới phải vượt qua 3 tầng kiểm duyệt tự động (kèm Extended Audit: YuNet/Haar, Cheek FFT, CIELab ΔE, Seam Check, Perceptual dHash, Mode-Aware CLIP) trước khi vào tập huấn luyện:
         </p>
 
         <div class="callout-box info">
           <div class="callout-title">⚙️ Chi Tiết Kỹ Thuật Của 3 Tầng Lọc CurationGate Trong Mã Nguồn</div>
           <div class="callout-desc">
             1. <strong>Tầng 1 — Độ nét quang học (Laplacian Variance Calibrated):</strong> Tính biến sai toán tử Laplacian trên tensor <code>[0, 1]</code> nhân hệ số 1000 (<code>compute_laplacian_sharpness</code>); ngưỡng loại bỏ ảnh mờ được hiệu chỉnh động tại <strong>phân vị 5% (<code>q = 0.05</code>)</strong> của ảnh thật gốc (mặc định ≥ 1.25).<br>
-            2. <strong>Tầng 2 — Hình học &amp; Giải phẫu khuôn mặt (<code>opencv_haar</code> + <code>verify_facial_geometry</code>):</strong> Phát hiện khuôn mặt bằng <strong>OpenCV Haar Cascade</strong> (loại bỏ ảnh không thấy mặt hoặc có ≥ 2 khuôn mặt); kiểm tra tỷ lệ khung mặt <code>0.65 ≤ h/w ≤ 1.6</code>, diện tích mặt chiếm <code>20%–65%</code> khung hình, không bị cắt cụt trán/cằm (<code>skin ≤ 35%</code> tại mép ảnh), không cháy sáng ROI mặt (<code>&gt; 8.0%</code>), không lệch tâm (<code>0.15–0.85</code>), và không có đường cắt ngang bất thường ở miệng/cằm (<code>seam_spike &gt; 8.0 &amp; peak &gt; 20.0</code>).<br>
-            3. <strong>Tầng 3 — Chống trùng lặp &amp; Kết quả lọc thực tế:</strong> Khử trùng lặp tệp bằng băm nội dung <strong>SHA-256</strong> (<code>file_sha256</code>) trong CurationGate (và khử trùng lặp ngữ nghĩa bằng khoảng cách Cosine DINOv2 <code>≥ 0.05</code> ở bước mining). Tổng cộng loại bỏ 1.294 ảnh lỗi trên SD 1.5: Block 1 giữ <strong>2.200/2.745</strong> (80.15%, kết hợp sinh bù tối đa 3 lượt <code>att0→att1→att2</code>); AL Vòng 1 giữ <strong>1.484/1.900</strong> (78.11%); AL Vòng 2 giữ <strong>1.567/1.900</strong> (82.47%) — tổng <strong>5.251/6.545 (80.23%)</strong> đạt chuẩn.
+            2. <strong>Tầng 2 — Hình học, Giải phẫu &amp; Extended Audit (<code>opencv_haar</code> + YuNet + Cheek FFT + CIELab + CLIP):</strong> Phát hiện khuôn mặt bằng <strong>YuNet / OpenCV Haar Cascade</strong> (loại bỏ ảnh không thấy mặt hoặc có ≥ 2 khuôn mặt, kiểm tra cặp mắt); kiểm tra tỷ lệ khung mặt, diện tích mặt chiếm <code>20%–65%</code> khung hình, không cắt cụt trán/cằm, không cháy sáng ROI mặt, kiểm tra lệch màu da <code>CIELab ΔE ≤ 18</code>, kết cấu má Cheek FFT, ranh giới Seam, và điểm ngữ nghĩa <code>CLIP</code>.<br>
+            3. <strong>Tầng 3 — Chống trùng lặp SHA-256 &amp; Perceptual dHash:</strong> Khử trùng lặp tệp bằng băm <strong>SHA-256</strong> (<code>file_sha256</code>) + perceptual dHash trong CurationGate (và khử trùng lặp ngữ nghĩa bằng khoảng cách Cosine DINOv2 <code>≥ 0.05</code> ở bước mining). Tổng cộng loại bỏ 1.260 ảnh lỗi trên SD 1.5: Block 1 giữ <strong>2.198/2.745</strong> (8007.29%); AL Vòng 1 giữ <strong>1.524/1.900</strong> (8021.05%); AL Vòng 2 giữ <strong>1.563/1.900</strong> (8226.32%) — tổng <strong>5.285/6.545 (8074.87%)</strong> đạt chuẩn (cộng thêm RV5.1 giữ <strong>5.502/6.000</strong>).
           </div>
         </div>
 
-        <!-- Bảng Phễu Lọc 6.545 -> 5.251 -->
+        <!-- Bảng Phễu Lọc -->
         <div class="table-responsive">
           <table class="data-table">
             <thead>
@@ -1856,34 +1856,34 @@
               <tr>
                 <td><strong>Khởi tạo Block 1 (D₀)</strong></td>
                 <td>2.745</td>
-                <td>545</td>
-                <td><strong>2.200</strong></td>
-                <td>80.15%</td>
-                <td>1.411 Train + 200 Val + 589 Master Test</td>
+                <td>547</td>
+                <td><strong>2.198</strong></td>
+                <td>8007.29%</td>
+                <td>1.411 Train + 199 Val + 588 Master Test</td>
               </tr>
               <tr>
                 <td><strong>Active Learning Vòng 1 (R1)</strong></td>
                 <td>1.900</td>
-                <td>416</td>
-                <td><strong>1.484</strong></td>
-                <td>78.11%</td>
-                <td>Chấm bởi M₀ → lọc <strong>553</strong> mẫu khó (470 Train + 83 Test)</td>
+                <td>376</td>
+                <td><strong>1.524</strong></td>
+                <td>8021.05%</td>
+                <td>Chấm bởi M₀ → lọc <strong>566</strong> mẫu khó (481 Train + 85 Test)</td>
               </tr>
               <tr>
                 <td><strong>Active Learning Vòng 2 (R2)</strong></td>
                 <td>1.900</td>
-                <td>333</td>
-                <td><strong>1.567</strong></td>
-                <td>82.47%</td>
-                <td>Chấm bởi M₁ → lọc <strong>187</strong> mẫu khó (159 Train + 28 Test)</td>
+                <td>337</td>
+                <td><strong>1.563</strong></td>
+                <td>8226.32%</td>
+                <td>Chấm bởi M₁ → lọc <strong>44</strong> mẫu khó (37 Train + 7 Test)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>Tổng cộng SD 1.5</strong></td>
                 <td><strong>6.545</strong></td>
-                <td><strong>1.294</strong></td>
-                <td><span class="badge-pill green">5.251 sạch</span></td>
-                <td><strong>80.23%</strong></td>
-                <td>Đóng gói hoàn chỉnh D₀ → D₁ → D₂ (740 Hard Samples)</td>
+                <td><strong>1.260</strong></td>
+                <td><span class="badge-pill green">5.285 sạch</span></td>
+                <td><strong>8074.87%</strong></td>
+                <td>Đóng gói hoàn chỉnh D₀ → D₁ → D₂ (610 Hard Samples)</td>
               </tr>
             </tbody>
           </table>
@@ -1892,14 +1892,14 @@
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: CURATION FUNNEL & REJECTION BREAKDOWN -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Phễu Lọc CurationGate &amp; Thống Kê Lý Do Loại Bỏ Ảnh Lỗi (6.545 Thô → 5.251 Sạch)</span>
+            <span class="artifact-row-title">Phễu Lọc CurationGate &amp; Thống Kê Lý Do Loại Bỏ Ảnh Lỗi (6.545 Thô → 5.285 Sạch)</span>
             <span class="artifact-badge champion">CURATION AUDIT FIGURE</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/benchmarks/curation_funnel_sd15.png" class="artifact-img-full" alt="SD 1.5 CurationGate Funnel and Rejection Reasons" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Nguồn kiểm toán trực tiếp:</strong> Tổng hợp từ <code>fake_manifest.jsonl</code>, <code>curated_manifest.jsonl</code> và <code>round_{1,2}/curation_report.json</code>. Đa số ảnh bị loại là do khung mặt quá nhỏ (&lt;20%), không bắt được mốc mặt (Haar), cắt cụt trán/cằm hoặc xuất hiện ≥ 2 mặt.
+            <strong>Nguồn kiểm toán trực tiếp:</strong> Tổng hợp từ <code>fake_manifest.jsonl</code>, <code>curated_manifest.jsonl</code> và <code>round_{1,2}/curation_report.json</code>. Đa số ảnh bị loại là do lệch màu da CIELab ΔE, cắt cụt trán, mặt quá nhỏ (&lt;20%), ≥ 2 mặt hoặc không đạt kiểm định Extended Audit.
           </div>
         </div>
 
@@ -1934,15 +1934,15 @@
 
 
       <!-- ===================================================================
-           PHẦN 5: KHAI THÁC 740 MẪU KHÓ & TẬP THỬ THÁCH 213 CHALLENGE VAULT
+           PHẦN 5: KHAI THÁC 610 MẪU KHÓ & TẬP THỬ THÁCH 184 CHALLENGE VAULT
            =================================================================== -->
       <section id="sec-hard-samples" class="report-section">
-        <span class="section-eyebrow">05 / 740 MẪU KHÓ &amp; CHALLENGE VAULT</span>
+        <span class="section-eyebrow">05 / 610 MẪU KHÓ &amp; CHALLENGE VAULT</span>
         <h2 class="section-title">
-          Challenge Vault: <span class="accent">Khai Thác 740 Mẫu Khó SD 1.5 &amp; Phân Tích 4 Lỗi Giải Phẫu (Anatomical Artifacts)</span>
+          Challenge Vault: <span class="accent">Khai Thác 610 Mẫu Khó SD 1.5 &amp; Phân Tích 4 Lỗi Giải Phẫu (Anatomical Artifacts)</span>
         </h2>
         <p class="section-desc">
-          Qua 2 vòng Active Learning đóng trên SD 1.5 (<code>CalibratedHardMiner</code>, <code>configs/active_learning.yaml</code>), mô hình chấm điểm các ảnh đã qua CurationGate sau bước <em>Temperature Scaling</em> (<code>T = 1.9831</code> ở Vòng 2) dựa trên 2 tiêu chí: <strong>False Negatives (<code>P &lt; 0.50</code>)</strong> và <strong>Boundary Uncertain (<code>|P - 0.50| ≤ 0.10</code>)</strong>, kết hợp lọc đa dạng embedding Cosine <code>≥ 0.05</code>. Theo nhật ký <code>closed_loop_metrics.json</code>, thu được <strong>570 FN + 170 Uncertain = 740 mẫu khó</strong> (Vòng 1 bởi <code>M₀</code>: 429 + 124 = 553; Vòng 2 bởi <code>M₁</code>: 141 + 46 = 187); khi đối chiếu lại theo <code>baseline_score</code> trong <code>hard_samples_manifest.jsonl</code> có <strong>616 mẫu &lt; 0.50</strong> và <strong>124 mẫu ≥ 0.50</strong>. Từ 740 mẫu này, nhóm tách <strong>629 mẫu</strong> vào train (D₂, D₃) và <strong>111 mẫu</strong> ghép cùng <strong>102 ảnh thật</strong> thành <strong>213 Challenge Vault</strong>. <em>(Riêng kết quả dùng <code>M₂*</code> profiling trên 6.000 ảnh RV5.1 — <strong>1.192 ca bỏ lọt</strong> @ 512px / 1.792 @ 224px chỉ để quan sát — xem tại <a href="#sec-zero-leakage" style="color: var(--primary); font-weight: 700;">Mục 7</a>).</em>
+          Qua 2 vòng Active Learning đóng trên SD 1.5 (<code>CalibratedHardMiner</code>, <code>configs/active_learning.yaml</code>), mô hình chấm điểm các ảnh đã qua CurationGate sau bước <em>Temperature Scaling</em> (<code>T = 2.4273</code> ở Vòng 2) dựa trên 2 tiêu chí: <strong>False Negatives (<code>P &lt; 0.50</code>)</strong> và <strong>Boundary Uncertain (<code>|P - 0.50| ≤ 0.10</code>)</strong>, kết hợp lọc đa dạng embedding Cosine <code>≥ 0.05</code>. Theo nhật ký <code>closed_loop_metrics.json</code>, thu được <strong>529 FN + 81 Uncertain = 610 mẫu khó</strong> (Vòng 1 bởi <code>M₀</code>: 501 + 65 = 566; Vòng 2 bởi <code>M₁</code>: 28 + 16 = 44); đối chiếu theo <code>baseline_score</code> trong <code>hard_samples_manifest.jsonl</code> có <strong>529 mẫu &lt; 0.50</strong> và <strong>81 mẫu ≥ 0.50</strong>. Từ 610 mẫu này, nhóm tách <strong>518 mẫu</strong> vào train (D₂, D₃) và <strong>92 mẫu</strong> ghép cùng <strong>92 ảnh thật</strong> thành <strong>184 Challenge Vault</strong>. <em>(Riêng kết quả dùng <code>M₂*</code> profiling trên 6.000 ảnh RV5.1 — <strong>2.119 ca bỏ lọt</strong> @ 512px chỉ để quan sát — xem tại <a href="#sec-zero-leakage" style="color: var(--primary); font-weight: 700;">Mục 7</a>).</em>
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: BIOLOGICAL DEFECTS GALLERY -->
@@ -1962,14 +1962,14 @@
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: FULL CONTACT SHEET (SCROLLABLE & ZOOMABLE) -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Toàn Bộ 213 Mẫu Thuộc Tập Thử Thách Challenge Vault (111 Hard Fake + 102 Real)</span>
-            <span class="artifact-badge">ASSET 10.3 MB</span>
+            <span class="artifact-row-title">Toàn Bộ 184 Mẫu Thuộc Tập Thử Thách Challenge Vault (92 Hard Fake + 92 Real)</span>
+            <span class="artifact-badge">ASSET 5.5 MB</span>
           </div>
           <div class="artifact-row-body" style="padding: 12px; max-height: 850px; overflow-y: auto;">
             <img src="assets/hard_samples_contact_sheet.png" class="artifact-img-full" alt="Hard Samples Contact Sheet" title="Nhấp để phóng to toàn màn hình" style="max-height: none;">
           </div>
           <div class="artifact-row-footer">
-            Toàn bộ 213 mẫu trong <code>cumulative_challenge_test.jsonl</code> (111 mẫu giả khó + 102 ảnh thật) được cô lập danh tính tuyệt đối, không bao giờ lọt vào tập huấn luyện của bất kỳ mô hình nào.
+            Toàn bộ 184 mẫu trong <code>cumulative_challenge_test.jsonl</code> (92 mẫu giả khó + 92 ảnh thật) được cô lập danh tính tuyệt đối, không bao giờ lọt vào tập huấn luyện của bất kỳ mô hình nào.
           </div>
         </div>
       </section>
@@ -1981,23 +1981,23 @@
       <section id="sec-active-learning" class="report-section">
         <span class="section-eyebrow">06 / BƯỚC ĐỘT PHÁ CỦA ACTIVE LEARNING</span>
         <h2 class="section-title">
-          Active Learning Vòng 2: <span class="accent">Mô Hình M2* Tăng Tỷ Lệ Phát Hiện Ảnh Giả Từ 11.71% Lên 91.89%</span>
+          Active Learning Vòng 2: <span class="accent">Mô Hình M2* Tăng Tỷ Lệ Phát Hiện Ảnh Giả Từ 8.70% Lên 90.22%</span>
         </h2>
         <p class="section-desc">
-          Bằng cách chỉ mở khóa tinh chỉnh tầng Block 11 của DINOv2 (chiếm 8.06% tham số) kết hợp Warm-Start từ M1 và Differential Learning Rates, mô hình M2* đã dịch chuyển ranh giới quyết định chính xác, phát hiện đúng <strong>102/111 mẫu giả cực khó</strong> và nâng ROC-AUC trên Challenge Vault từ <strong>0.8713</strong> lên <strong>0.9875</strong>!
+          Bằng cách chỉ mở khóa tinh chỉnh tầng Block 11 của DINOv2 (chiếm 8.06% tham số) kết hợp Warm-Start từ M1 và Differential Learning Rates, mô hình M2* đã dịch chuyển ranh giới quyết định chính xác, phát hiện đúng <strong>83/92 mẫu giả cực khó</strong> và nâng ROC-AUC trên Challenge Vault từ <strong>0.8757</strong> lên <strong>0.9902</strong>!
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: RECALL JUMP + ROC CURVE + CONFUSION MATRICES -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Đột Phá Active Learning Trên Challenge Vault: Ma Trận Nhầm Lẫn, Fake Recall &amp; Đường Cong ROC (0.8713 → 0.9875)</span>
+            <span class="artifact-row-title">Đột Phá Active Learning Trên Challenge Vault: Ma Trận Nhầm Lẫn, Fake Recall &amp; Đường Cong ROC (0.8757 → 0.9902)</span>
             <span class="artifact-badge champion">NOTEBOOK 02 ARTIFACT</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/extracted_nb/02_hard_samples_and_active_learning_cell9_img3.png" class="artifact-img-full" alt="Challenge Vault Confusion Matrices, Recall Jump, and ROC Curves" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng trực quan trên 213 Challenge Vault:</strong> M0 chỉ bắt được 13/111 mẫu giả (11.71%, AUC 87.13%) → M1 tăng lên 78/111 (70.27%) → <strong>M2* đạt 102/111 (91.89%, tăng +80.18%, ROC-AUC đạt 98.75%)</strong> đồng thời giữ vững 98/102 ảnh thật chính xác.
+            <strong>Bằng chứng trực quan trên 184 Challenge Vault:</strong> M0 chỉ bắt được 8/92 mẫu giả (8.70%, AUC 87.57%) → M1 tăng lên 87/92 (94.57%) → <strong>M2* đạt 83/92 (90.22%, tăng +81.52%, ROC-AUC đạt 99.02%)</strong> đồng thời giữ độ chính xác cao trên ảnh thật đối chứng.
           </div>
         </div>
 
@@ -2005,8 +2005,8 @@
           <div class="callout-title">🔄 Cơ Chế Đóng Vòng Thông Minh: Error Attribution + AdaptiveBudgetController + PromptGrammarEngine</div>
           <div class="callout-desc">
             Active Learning của đồ án không sinh ảnh ngẫu nhiên mà tự động điều hướng theo điểm yếu của detector:<br>
-            • <strong>Phân rã lỗi Vòng 1 (Error Attribution):</strong> Phát hiện <code>sd_inpaint</code> đánh lừa <code>M₀</code> tới <strong>71.70%</strong> (so với <code>sd_img2img</code> 20.82% và <code>sd_text2img</code> 5.59%) → <code>AdaptiveBudgetController</code> tự động dồn ngân sách sinh Vòng 2 vào <strong>Inpaint (897)</strong>, <strong>Img2Img (540)</strong>, <strong>Text2Img (463)</strong>.<br>
-            • <strong>Kết quả Vòng 2:</strong> Error rate của Inpaint giảm sâu từ <strong>71.70% → 19.88%</strong>; đồng thời <code>PromptGrammarEngine</code> truy vết và tập trung vào vùng khó nhất như quanh mắt (<code>periocular: 39.53%</code>), ánh sáng studio (<code>13.87%</code>), người cao tuổi (<code>elderly: 13.61%</code>) và flash gắt (<code>13.30%</code>).
+            • <strong>Phân rã lỗi Vòng 1 (Error Attribution):</strong> Phát hiện <code>sd_inpaint</code> đánh lừa <code>M₀</code> tới <strong>79.33%</strong> (so với <code>sd_img2img</code> 23.92% và <code>sd_text2img</code> 4.59%) → <code>AdaptiveBudgetController</code> tự động dồn ngân sách sinh Vòng 2 vào <strong>Inpaint (928)</strong>, <strong>Img2Img (533)</strong>, <strong>Text2Img (439)</strong>.<br>
+            • <strong>Kết quả Vòng 2:</strong> Error rate của Inpaint giảm sâu từ <strong>79.33% → 5.51%</strong>; đồng thời <code>PromptGrammarEngine</code> truy vết và tập trung vào vùng khó nhất như quanh mắt (<code>periocular: 13.04%</code>), nhóm tuổi cao (<code>elderly: 3.66%</code>), ánh sáng vàng ấm (<code>warm golden: 3.42%</code>) và ánh sáng studio (<code>3.40%</code>).
           </div>
         </div>
 
@@ -2034,46 +2034,46 @@
               <th>Bypass Rate (↓)</th>
               <th>Accuracy (↑)</th>
               <th>ROC-AUC (↑)</th>
-              <th>Số Mẫu Bắt Được (/111)</th>
+              <th>Số Mẫu Bắt Được (/92)</th>
               <th>Đánh Giá Kỹ Thuật</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><strong>M0 (D0 Baseline)</strong></td>
-              <td>11.71%</td>
-              <td>88.29%</td>
-              <td>53.99%</td>
-              <td>0.8713</td>
-              <td>13 / 111 mẫu</td>
+              <td>8.70%</td>
+              <td>91.30%</td>
+              <td>54.35%</td>
+              <td>0.8757</td>
+              <td>8 / 92 mẫu</td>
               <td><span class="badge-pill red">BỎ SÓT NHIỀU</span></td>
             </tr>
             <tr>
               <td><strong>M1 (Active Round 1)</strong></td>
-              <td>70.27%</td>
-              <td>29.73%</td>
-              <td>83.10%</td>
-              <td>0.9655</td>
-              <td>78 / 111 mẫu</td>
-              <td><span class="badge-pill amber">CẢI THIỆN RÕ RỆT</span></td>
+              <td>94.57%</td>
+              <td>5.43%</td>
+              <td>91.85%</td>
+              <td>0.9823</td>
+              <td>87 / 92 mẫu</td>
+              <td><span class="badge-pill amber">CẢI THIỆN MẠNH</span></td>
             </tr>
             <tr>
               <td><strong>M2 (Cold-Start Retrain)</strong></td>
-              <td>86.49%</td>
-              <td>13.51%</td>
-              <td>92.49%</td>
-              <td>0.9937</td>
-              <td>96 / 111 mẫu</td>
+              <td>98.91%</td>
+              <td>1.09%</td>
+              <td>97.83%</td>
+              <td>0.9979</td>
+              <td>91 / 92 mẫu</td>
               <td><span class="badge-pill green">KẾT QUẢ TỐT</span></td>
             </tr>
             <tr class="highlight-champion">
-              <td><strong>🏆 M2* (Refined Champion)</strong></td>
-              <td><strong>91.89% (+80.18%)</strong></td>
-              <td><strong>8.11%</strong></td>
-              <td><strong>93.90%</strong></td>
-              <td><strong>0.9875</strong></td>
-              <td><strong>102 / 111 mẫu</strong></td>
-              <td><span class="badge-pill green">HIỆU QUẢ CAO NHẤT</span></td>
+              <td><strong>🏆 M2* (Refined Warm-Start)</strong></td>
+              <td><strong>90.22% (+81.52%)</strong></td>
+              <td><strong>9.78%</strong></td>
+              <td><strong>93.48%</strong></td>
+              <td><strong>0.9902</strong></td>
+              <td><strong>83 / 92 mẫu</strong></td>
+              <td><span class="badge-pill green">BẢO TOÀN ỔN ĐỊNH</span></td>
             </tr>
           </tbody>
         </table>
@@ -2087,18 +2087,18 @@
       <section id="sec-zero-leakage" class="report-section">
         <span class="section-eyebrow">07 / BẢO TOÀN KHÁCH QUAN &amp; GIẢI TRÌNH RV5.1</span>
         <h2 class="section-title">
-          Zero Identity Leakage: <span class="accent">Phân Vai 740 Mẫu Khó SD 1.5 vs 6.000 Ảnh RV5.1 &amp; Cách Ly Danh Tính Tập Test</span>
+          Zero Identity Leakage: <span class="accent">Phân Vai 610 Mẫu Khó SD 1.5 vs 6.000 Ảnh RV5.1 &amp; Cách Ly Danh Tính Tập Test</span>
         </h2>
         <p class="section-desc">
-          Khi kiểm toán 6.000 ảnh từ động cơ siêu thực <strong>RealisticVision v5.1</strong>, nhóm phát hiện có <strong>626 ảnh</strong> (<code>313 inpaint + 313 img2img</code>) được sinh từ các khuôn mặt gốc thuộc tập kiểm thử <code>test_reals.jsonl</code>, và <strong>600 ảnh</strong> thuộc tập <code>val_reals.jsonl</code>. Nhóm cách ly tuyệt đối 626 ảnh test sang <code>unseen_rv51_test.jsonl</code> (cùng 589 ảnh thật thành <strong>1.215 ảnh</strong>) và 600 ảnh val sang <code>D3_clean/val.jsonl</code>; từ <strong>4.774 ảnh RV5.1 sạch danh tính</strong> còn lại, nhóm trích mẫu phân tầng <strong>1.384 ảnh</strong> kết hợp với <strong>629 mẫu khó SD 1.5</strong> và <strong>800 mẫu SD 1.5 cơ bản</strong> thành tập huấn luyện <code>D3_clean/train.jsonl</code> cân bằng 1:1 (<strong>2.813 Thật : 2.813 Giả = 5.626 ảnh</strong>).
+          Khi kiểm toán 6.000 ảnh từ động cơ siêu thực <strong>RealisticVision v5.1</strong> qua CurationGate mở rộng, có <strong>5.502 ảnh đạt chuẩn</strong> (loại 498 ảnh lỗi), trong đó phát hiện <strong>601 ảnh</strong> (<code>304 img2img + 297 inpaint</code>) được sinh từ các khuôn mặt gốc thuộc tập kiểm thử <code>test_reals.jsonl</code>, và <strong>578 ảnh</strong> thuộc tập <code>val_reals.jsonl</code>. Nhóm cách ly tuyệt đối 601 ảnh test sang <code>unseen_rv51_test.jsonl</code> (cùng 589 ảnh thật thành <strong>1.190 ảnh</strong>) và 578 ảnh val sang <code>D3_clean/val.jsonl</code>; từ <strong>4.323 ảnh RV5.1 sạch danh tính</strong> còn lại, nhóm trích mẫu phân tầng <strong>1.495 ảnh</strong> kết hợp với <strong>518 mẫu khó SD 1.5</strong> và <strong>800 mẫu SD 1.5 cơ bản</strong> thành tập huấn luyện <code>D3_clean/train.jsonl</code> cân bằng 1:1 (<strong>2.813 Thật : 2.813 Giả = 5.626 ảnh</strong>).
         </p>
 
         <div class="callout-box info">
-          <div class="callout-title">🛡️ Giải Trình Khoa Học: Vì Sao Con Số "740 Mẫu Khó" Không Gộp 6.000 Ảnh RealisticVision v5.1?</div>
+          <div class="callout-title">🛡️ Giải Trình Khoa Học: Vì Sao Con Số "610 Mẫu Khó" Không Gộp 6.000 Ảnh RealisticVision v5.1?</div>
           <div class="callout-desc">
-            1) <strong>Đúng phân vai của Đề tài (docs/PURPOSE.md):</strong> <code>740 mẫu khó</code> là sản phẩm Active Learning nội miền của <strong>SD 1.5</strong> (553 vòng 1 + 187 vòng 2), chứng minh Proof of Utility cấp độ 1 trên <code>D0 → D1 → D2</code>.<br>
-            2) <strong>RV5.1 đóng vai trò Thử Nghiệm Đối Kháng Ngoại Miền (OOD cho M₀–M₂*):</strong> Ở độ phân giải chuẩn <code>512→504px</code> trên toàn bộ 6.000 ảnh (<code>legacy_6k_benchmark_results.json</code>), <code>M₀</code> bỏ lọt <strong>24.80%</strong> (<code>1.488/6.000</code>), <code>M₂*</code> (<code>active_learning_m2_best.pt</code>) bỏ lọt <strong>19.87%</strong> (<code>1.192/6.000</code>), và riêng trên tập Unseen RV5.1 (nhiều ảnh inpaint/img2img khó) <code>M₀</code> bỏ lọt <strong>33.55%</strong> còn <code>M₂*</code> bỏ lọt <strong>28.12%</strong>; còn ở phép thử nén thấp <code>224×224</code> trước đây (<code>legacy_6k_benchmark_results_224px.json</code>), <code>M₀</code> sụp xuống <strong>98.00%</strong> bỏ lọt và <code>M₂*</code> bỏ lọt <strong>29.87%</strong> (<code>1.792/6.000</code>).<br>
-            3) <strong>Chống rò rỉ danh tính tuyệt đối:</strong> Nếu gộp bừa ảnh RV5.1 bị bỏ lọt vào tập train, 626 ảnh có khuôn mặt trùng <code>test_reals.jsonl</code> sẽ rò rỉ vào tập học. Việc cách ly 626 ảnh này theo nguồn gốc danh tính giúp kiểm chứng <code>M₃</code> thích nghi đa động cơ trên <strong>danh tính hoàn toàn độc lập</strong> (93.13% Recall).
+            1) <strong>Đúng phân vai của Đề tài (docs/PURPOSE.md):</strong> <code>610 mẫu khó</code> là sản phẩm Active Learning nội miền của <strong>SD 1.5</strong> (566 vòng 1 + 44 vòng 2), chứng minh Proof of Utility cấp độ 1 trên <code>D0 → D1 → D2</code>.<br>
+            2) <strong>RV5.1 đóng vai trò Thử Nghiệm Đối Kháng Ngoại Miền (OOD cho M₀–M₂*):</strong> Ở độ phân giải chuẩn <code>512→504px</code> trên toàn bộ 6.000 ảnh (<code>legacy_6k_benchmark_results.json</code>), <code>M₀</code> bỏ lọt <strong>27.42%</strong> (<code>1.645/6.000</code>), <code>M₂*</code> (<code>active_learning_m2_best.pt</code>) bỏ lọt <strong>35.32%</strong> (<code>2.119/6.000</code>), và riêng trên tập Unseen RV5.1 (100% inpaint/img2img đối chứng danh tính test) <code>M₀</code> bỏ lọt <strong>39.43%</strong> còn <code>M₂*</code> bỏ lọt <strong>50.42%</strong>; còn ở phép thử nén thấp <code>224×224</code> (<code>legacy_6k_benchmark_results_224px.json</code>), <code>M₀</code> sụp xuống <strong>68.58%</strong> bỏ lọt và <code>M₂*</code> bỏ lọt <strong>50.38%</strong> (<code>3.023/6.000</code>).<br>
+            3) <strong>Chống rò rỉ danh tính tuyệt đối:</strong> Nếu gộp bừa ảnh RV5.1 bị bỏ lọt vào tập train, 601 ảnh có khuôn mặt trùng <code>test_reals.jsonl</code> sẽ rò rỉ vào tập học. Việc cách ly 601 ảnh này theo nguồn gốc danh tính giúp kiểm chứng <code>M₃</code> thích nghi đa động cơ trên <strong>danh tính hoàn toàn độc lập</strong> (93.51% Recall).
           </div>
         </div>
 
@@ -2116,15 +2116,15 @@
             <tbody>
               <tr>
                 <td><strong>Cấp 1: Nội Miền SD 1.5</strong></td>
-                <td>Stable Diffusion v1.5 (~6.545 ảnh)</td>
-                <td>Active Learning 2 vòng → <strong>740 mẫu khó</strong> (629 train D₂, 111 Challenge Vault)</td>
-                <td><code>M₂*</code> tăng Recall Challenge Vault <strong>11.71% → 91.89%</strong> (+80.18%, AUC 0.9875)</td>
+                <td>Stable Diffusion v1.5 (6.545 ảnh)</td>
+                <td>Active Learning 2 vòng → <strong>610 mẫu khó</strong> (518 train D₂, 92 Challenge Vault)</td>
+                <td><code>M₂*</code> tăng Recall Challenge Vault <strong>8.70% → 90.22%</strong> (+81.52%, AUC 0.9902)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>Cấp 2: Đa Động Cơ (D₃ → M₃)</strong></td>
-                <td>RealisticVision v5.1 (6.000 ảnh) + SD 1.5</td>
-                <td>Cách ly <strong>626 ảnh trùng test</strong> + 600 ảnh val; trích phân tầng 1.384 RV5.1 sạch + 629 hard SD 1.5</td>
-                <td><code>M₃</code> tăng Recall trên <code>unseen_rv51_test</code> <strong>71.88% → 93.13%</strong> (bypass 6.87%), giữ nguyên 91.89% SD 1.5</td>
+                <td>RealisticVision v5.1 (6.000 thô / 5.502 sạch) + SD 1.5</td>
+                <td>Cách ly <strong>601 ảnh trùng test</strong> + 578 ảnh val; trích phân tầng 1.495 RV5.1 sạch + 518 hard SD 1.5</td>
+                <td><code>M₃</code> tăng Recall trên <code>unseen_rv51_test</code> <strong>49.58% → 93.51%</strong> (bypass 6.49%), giữ vững 92.39% Challenge Vault</td>
               </tr>
             </tbody>
           </table>
@@ -2140,7 +2140,7 @@
             <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell3_img0.png" class="artifact-img-full" alt="Zero Identity Leakage Clean Partition Schema" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Cấu trúc tập D3 sạch (5.626 ảnh):</strong> Cân bằng 1:1 chuẩn xác (2.813 Thật : 2.813 Giả = 1.384 RV5.1 sạch + 629 AL Hard Samples + 800 SD 1.5 Baseline). Không một ảnh nào trùng danh tính tập test lọt vào tập huấn luyện!
+            <strong>Cấu trúc tập D3 sạch (5.626 ảnh):</strong> Cân bằng 1:1 chuẩn xác (2.813 Thật : 2.813 Giả = 1.495 RV5.1 sạch + 518 AL Hard Samples + 800 SD 1.5 Baseline). Không một ảnh nào trùng danh tính tập test lọt vào tập huấn luyện!
           </div>
         </div>
 
@@ -2148,9 +2148,9 @@
         <div class="callout-box success">
           <div class="callout-title">🔍 Error Analysis / OOD Hard-Sample Profiling Bằng M₂* Trên 6.000 Ảnh RV5.1 (Không Dùng Để Train → Không Leakage)</div>
           <div class="callout-desc">
-            Chạy suy luận 1 chiều (inference-only) để quan sát và phân tích điểm mù của mô hình trên 6.000 ảnh RV5.1 hoàn toàn hợp lệ về phương pháp luận (khớp Bước 2 trong <code>PURPOSE.md</code>) và <strong>không gây rò rỉ dữ liệu</strong> vì các mẫu này không đưa vào train. Nhóm chọn <strong>M₂* (Refined Warm-Start, <code>active_learning_m2_best.pt</code>)</strong> thay vì M₂ (Cold-Start) vì M₂ bị <em>Catastrophic Interference</em> (tụt Recall RV5.1 512px xuống <strong>56.55%</strong>, kém cả M₀ 66.45%), nên nếu dùng M₂ sẽ lọc nhầm nhiều mẫu do quên kiến thức; trong khi M₂* giữ Recall <strong>71.88%</strong> (512px) và <strong>91.89%</strong> (Challenge Vault), nên những ca đánh lừa được M₂* mới là điểm mù siêu thực đích thực:<br>
-            • <strong>Bị M₂* bỏ lọt ở chuẩn <code>512→504px</code> (<code>P(Fake) &lt; 0.50</code>): 1.192 / 6.000 ảnh (19.87%)</strong> — chủ yếu tập trung ở <code>inpaint</code> <strong>862/2.000 (43.10%</strong>; vùng miệng 45.30%, vùng mắt 40.90%), kế đến <code>img2img</code> <strong>328/2.000 (16.40%)</strong>, trong khi <code>text2img</code> chỉ sót <strong>2/2.000 (0.10%)</strong>.<br>
-            • <strong>Vùng phân vân (<code>|P - 0.50| ≤ 0.15</code>): 183 / 6.000 ảnh (3.05%)</strong> (hợp cả 2 tiêu chí: <strong>1.282 / 6.000 ảnh</strong>). Sau khi huấn luyện đa động cơ, <code>M₃</code> nâng Recall toàn kho 6k lên <strong>94.37%</strong> (chỉ còn 338/6.000 bypass).
+            Chạy suy luận 1 chiều (inference-only) để quan sát và phân tích điểm mù của mô hình trên 6.000 ảnh RV5.1 hoàn toàn hợp lệ về phương pháp luận (khớp Bước 2 trong <code>PURPOSE.md</code>) và <strong>không gây rò rỉ dữ liệu</strong> vì các mẫu này không đưa vào train. Nhóm chọn <strong>M₂* (Refined Warm-Start, <code>active_learning_m2_best.pt</code>)</strong> vì nó giữ cân bằng tốt ranh giới trên ảnh thật và Challenge Vault (90.22%), giúp phơi bày chính xác các điểm mù siêu thực ngoại miền của RV5.1:<br>
+            • <strong>Bị M₂* bỏ lọt ở chuẩn <code>512→504px</code> (<code>P(Fake) &lt; 0.50</code>): 2.119 / 6.000 ảnh (35.32%)</strong> — tập trung chủ yếu ở <code>inpaint</code> <strong>1.289/2.000 (64.45%</strong>; vùng miệng 66.60%, vùng mắt 62.30%), kế đến <code>img2img</code> <strong>781/2.000 (39.05%)</strong>, trong khi <code>text2img</code> chỉ sót <strong>49/2.000 (2.45%)</strong>.<br>
+            • <strong>Vùng phân vân (<code>|P - 0.50| ≤ 0.15</code>): 248 / 6.000 ảnh (4.13%)</strong> (hợp cả 2 tiêu chí: <strong>2.241 / 6.000 ảnh</strong>). Sau khi huấn luyện đa động cơ, <code>M₃</code> nâng Recall toàn kho 6k lên <strong>95.00%</strong> (chỉ còn 300/6.000 bypass).
           </div>
         </div>
 
@@ -2163,7 +2163,7 @@
             <img src="assets/benchmarks/m2star_rv51_hard_profiling.png" class="artifact-img-full" alt="M2* OOD Hard-Sample Profiling on 6,000 RV5.1 Images" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Kết luận phân tích điểm mù:</strong> Ở chuẩn <code>512→504px</code>, chế độ <code>inpaint</code> (43.10% bypass, trong đó vùng miệng 45.30%) và <code>img2img</code> (16.40%) của RV5.1 là điểm mù lớn nhất của <code>M₂*</code> (chiếm gần 100% các ca lọt), trực tiếp lý giải vì sao cần thích nghi đa động cơ để tạo ra <code>M₃</code> (hạ bypass toàn kho xuống còn 5.63%).
+            <strong>Kết luận phân tích điểm mù:</strong> Ở chuẩn <code>512→504px</code>, chế độ <code>inpaint</code> (64.45% bypass, trong đó vùng miệng 66.60%) và <code>img2img</code> (39.05%) của RV5.1 là điểm mù lớn nhất của <code>M₂*</code> (chiếm đa số tuyệt đối các ca lọt), trực tiếp lý giải vì sao cần thích nghi đa động cơ để tạo ra <code>M₃</code> (hạ bypass toàn kho xuống còn 5.00%).
           </div>
         </div>
       </section>
@@ -2175,10 +2175,10 @@
       <section id="sec-champion-m3" class="report-section">
         <span class="section-eyebrow">08 / MÔ HÌNH TOÀN DIỆN CHAMPION M3</span>
         <h2 class="section-title">
-          Mô Hình Champion M3: <span class="accent">Đạt 93.13% Trên Unseen RV5.1 Mà Vẫn Giữ Vững Hiệu Năng SD 1.5</span>
+          Mô Hình Champion M3: <span class="accent">Đạt 93.51% Trên Unseen RV5.1 Mà Vẫn Giữ Vững Hiệu Năng SD 1.5</span>
         </h2>
         <p class="section-desc">
-          Kế thừa trọng số từ M2* (Warm-Start) và tinh chỉnh Block 11 + Head qua 6 epochs với Cosine Annealing trên tập <code>D3_clean/train.jsonl</code> (5.626 ảnh), mô hình Champion M3 đạt <code>best_val_auc = 0.9846</code> ở Epoch 6 và nâng Fake Recall trên <code>unseen_rv51_test.jsonl</code> (độc lập danh tính) từ 71.88% lên <strong>93.13%</strong> (ROC-AUC <strong>0.9828</strong>) mà không bị quên kiến thức SD 1.5!
+          Kế thừa trọng số từ M2* (Warm-Start) và tinh chỉnh Block 11 + Head qua 6 epochs với Cosine Annealing trên tập <code>D3_clean/train.jsonl</code> (5.626 ảnh), mô hình Champion M3 đạt <code>best_val_auc = 0.9881</code> ở Epoch 6 và nâng Fake Recall trên <code>unseen_rv51_test.jsonl</code> (độc lập danh tính) từ 49.58% lên <strong>93.51%</strong> (ROC-AUC <strong>0.9859</strong>) mà không bị quên kiến thức SD 1.5!
         </p>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: QUAD-VAULT RECALL CHART -->
@@ -2191,21 +2191,21 @@
             <img src="assets/benchmarks/benchmark_5models_vault_recall_comparison.png" class="artifact-img-full" alt="Quad-Vault Recall Comparison" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Mô hình M3 đạt Fake Recall <strong>93.13%</strong> trên tập kiểm thử <code>unseen_rv51_test</code> (Bypass Rate giảm từ 28.12% còn <strong>6.87%</strong>), đồng thời duy trì trọn vẹn <strong>91.89%</strong> trên Challenge Vault và tăng lên <strong>69.44%</strong> trên Master Frozen Test (SD 1.5).
+            Mô hình M3 đạt Fake Recall <strong>93.51%</strong> trên tập kiểm thử <code>unseen_rv51_test</code> (Bypass Rate giảm từ 50.42% còn <strong>6.49%</strong>), đồng thời đạt <strong>92.39%</strong> trên Challenge Vault và tăng lên <strong>70.24%</strong> trên Master Frozen Test (SD 1.5).
           </div>
         </div>
 
         <!-- 1 ARTIFACT TRÊN 1 HÀNG: M3 6-EPOCH TRAINING CONVERGENCE -->
         <div class="artifact-row-card">
           <div class="artifact-row-header">
-            <span class="artifact-row-title">Động Học Huấn Luyện Champion M3 Qua 6 Epochs (Train/Val Loss &amp; Validation AUC 0.9846)</span>
+            <span class="artifact-row-title">Động Học Huấn Luyện Champion M3 Qua 6 Epochs (Train/Val Loss &amp; Validation AUC 0.9881)</span>
             <span class="artifact-badge champion">TRAINING DYNAMICS</span>
           </div>
           <div class="artifact-row-body">
             <img src="assets/benchmarks/m3_training_convergence.png" class="artifact-img-full" alt="Champion M3 6-Epoch Training Convergence" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Hội tụ mượt mà không Overfitting:</strong> Train Loss giảm đều <code>0.1833 → 0.0831</code>, Val Loss giảm <code>0.2552 → 0.2168</code>, và Val ROC-AUC trên <code>D3_clean/val.jsonl</code> tăng liên tục từ <code>0.9745</code> lên <strong>0.9846</strong> (Val Acc <strong>94.07%</strong>) tại Epoch 6.
+            <strong>Hội tụ mượt mà không Overfitting:</strong> Train Loss giảm đều <code>0.2320 → 0.0849</code>, Val Loss giảm <code>0.2868 → 0.1886</code>, và Val ROC-AUC trên <code>D3_clean/val.jsonl</code> tăng liên tục từ <code>0.9733</code> lên <strong>0.9881</strong> (Val Acc <strong>93.96%</strong>) tại Epoch 6.
           </div>
         </div>
 
@@ -2219,7 +2219,7 @@
             <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell5_img1.png" class="artifact-img-full" alt="M3 Live Inference Examples on Unseen RV5.1" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Minh họa trực quan từ tập Unseen RV5.1:</strong> Hàng trên hiển thị ảnh thật (2 ca nhận đúng với P(fake) 15.1%–45.2% và 2 ca báo động nhầm 65.5%–72.6%); hàng dưới hiển thị ảnh giả RV5.1 (3 ca bắt đúng với P(fake) 72.0%–86.5% và 1 ca bỏ lọt 14.4% — phản ánh trực tiếp Bypass Rate 6.87% còn lại).
+            <strong>Minh họa trực quan từ tập Unseen RV5.1:</strong> Hàng trên hiển thị ảnh thật đối chứng và phân tích báo động nhầm; hàng dưới hiển thị ảnh giả RV5.1 với độ chính xác đạt <strong>94.71%</strong> (Fake Recall <strong>93.51%</strong>, Bypass Rate còn <strong>6.49%</strong> trên 1.190 mẫu độc lập danh tính).
           </div>
         </div>
 
@@ -2229,41 +2229,41 @@
             <thead>
               <tr>
                 <th>Phiên Bản Mô Hình</th>
-                <th>Master Frozen Test (SD 1.5 — 1.178 ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
-                <th>Challenge Vault (Mẫu Khó — 213 ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
-                <th>Unseen RV5.1 Vault (1.215 ảnh — Độc Lập Danh Tính)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+                <th>Master Frozen Test (SD 1.5 — 1.177 ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+                <th>Challenge Vault (Mẫu Khó — 184 ảnh)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
+                <th>Unseen RV5.1 Vault (1.190 ảnh — Độc Lập Danh Tính)<br>Recall | Bypass | Acc | ROC-AUC | F1</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td><strong>M0 (D0 Baseline)</strong></td>
-                <td>49.07% | 50.93% | 74.11% | 0.8850 | 0.6546</td>
-                <td>11.71% | 88.29% | 53.99% | 0.8713 | 0.2097</td>
-                <td>66.45% | 33.55% | 82.30% | 0.9162 | 0.7947 (OOD)</td>
+                <td>51.19% | 48.81% | 75.28% | 0.9034 | 0.6741</td>
+                <td>8.70% | 91.30% | 54.35% | 0.8757 | 0.1600</td>
+                <td>60.57% | 39.43% | 79.75% | 0.9041 | 0.7513 (OOD)</td>
               </tr>
               <tr>
                 <td><strong>M1 (Active Round 1)</strong></td>
-                <td>62.14% | 37.86% | 79.20% | 0.9161 | 0.7492</td>
-                <td>70.27% | 29.73% | 83.10% | 0.9655 | 0.8125</td>
-                <td>72.04% | 27.96% | 83.79% | 0.9170 | 0.8207 (OOD)</td>
+                <td>75.17% | 24.83% | 82.07% | 0.9077 | 0.8073</td>
+                <td>94.57% | 5.43% | 91.85% | 0.9823 | 0.9206</td>
+                <td>80.70% | 19.30% | 84.79% | 0.9274 | 0.8427 (OOD)</td>
               </tr>
               <tr>
                 <td><strong>M2 (Cold-Start Retrain)</strong></td>
-                <td>52.63% | 47.37% | 75.04% | 0.8910 | 0.6783</td>
-                <td>86.49% | 13.51% | 92.49% | 0.9937 | 0.9231</td>
-                <td>56.55% | 43.45% | 76.38% | 0.8804 | 0.7116 (OOD)</td>
+                <td>70.58% | 29.42% | 83.09% | 0.9279 | 0.8066</td>
+                <td>98.91% | 1.09% | 97.83% | 0.9979 | 0.9785</td>
+                <td>70.05% | 29.95% | 82.69% | 0.9159 | 0.8034 (OOD)</td>
               </tr>
               <tr>
                 <td><strong>M2* (Refined Warm-Start)</strong></td>
-                <td>66.89% | 33.11% | 80.81% | 0.9177 | 0.7771</td>
-                <td><strong>91.89%</strong> | <strong>8.11%</strong> | <strong>93.90%</strong> | 0.9875 | <strong>0.9401</strong></td>
-                <td>71.88% | 28.12% | 82.96% | 0.9158 | 0.8130 (OOD)</td>
+                <td>56.29% | 43.71% | 76.98% | 0.9153 | 0.7095</td>
+                <td><strong>90.22%</strong> | <strong>9.78%</strong> | <strong>93.48%</strong> | 0.9902 | <strong>0.9326</strong></td>
+                <td>49.58% | 50.42% | 73.36% | 0.8989 | 0.6528 (OOD)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>🏆 M3 (Dual-Engine Champion)</strong></td>
-                <td><span class="badge-pill green">69.44% | 30.56% | 82.26% | 0.9206 | 0.7965</span></td>
-                <td><span class="badge-pill green">91.89% | 8.11% | 93.43% | 0.9875 | 0.9358</span></td>
-                <td><span class="badge-pill green">93.13% | 6.87% | 94.07% | 0.9828 | 0.9418</span></td>
+                <td><span class="badge-pill green">70.24% | 29.76% | 83.09% | 0.9099 | 0.8059</span></td>
+                <td><span class="badge-pill green">92.39% | 7.61% | 94.57% | 0.9884 | 0.9444</span></td>
+                <td><span class="badge-pill green">93.51% | 6.49% | 94.71% | 0.9859 | 0.9469</span></td>
               </tr>
             </tbody>
           </table>
@@ -2287,14 +2287,14 @@
                 <td>DINOv2 ImageNet Pretrained</td>
                 <td>Block 11 + Head (1.78M = 8.06%)</td>
                 <td>Head <code>2e-4</code> | Block 11 <code>2e-5</code></td>
-                <td><code>hard_weight = 2.0</code>, 5 epochs (M₀ ep 5, M₁ ep 4, M₂ ep 5)</td>
+                <td><code>hard_weight = 2.0</code>, 5 epochs (M₀ ep 5, M₁ ep 5, M₂ ep 5)</td>
               </tr>
               <tr>
                 <td><strong>M₂* (Refined)</strong></td>
                 <td>Warm-Start từ <code>M₁</code></td>
                 <td>Block 11 + Head (1.78M = 8.06%)</td>
                 <td>Head <code>5e-5</code> | Block 11 <code>5e-6</code></td>
-                <td><code>hard_weight = 1.15</code>, 2 epochs (AMP, best ep 2)</td>
+                <td><code>hard_weight = 1.15</code>, 2 epochs (AMP, best ep 1)</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>M₃ (Champion)</strong></td>
@@ -2331,7 +2331,7 @@
             <img src="assets/benchmarks/benchmark_5models_method_heatmap.png" class="artifact-img-full" style="max-height: none;" alt="Universal Benchmark 5-Model 34-Method Heatmap" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Phân tích chi tiết trên 34 phương pháp (@ 504px):</strong> Mô hình <strong>Champion M₃</strong> đạt <code>StyleGAN2</code> (<strong>100.00%</strong>), <code>e4e</code> (<strong>99.67%</strong>), <code>styleclip</code> (<strong>95.67%</strong>), <code>pixart</code> (<strong>60.67%</strong>), <code>stargan</code> (<strong>59.67%</strong>), <code>sd2.1</code> (<strong>54.00%</strong>), <code>StyleGAN3</code> (<strong>44.33%</strong>), <code>VQGAN</code> (<strong>35.33%</strong>), và <code>ddim</code> (<strong>31.33%</strong>), đồng thời giữ Real Specificity ở mức cao <strong>94.75%</strong>.
+            <strong>Phân tích chi tiết trên 34 phương pháp (@ 504px):</strong> Mô hình <strong>Champion M₃</strong> đạt <code>StyleGAN2</code> (<strong>100.00%</strong>), <code>e4e</code> (<strong>98.67%</strong>), <code>styleclip</code> (<strong>92.67%</strong>), <code>pixart</code> (<strong>60.33%</strong>), <code>stargan</code> (<strong>58.00%</strong>), <code>sd2.1</code> (<strong>55.67%</strong>), <code>StyleGAN3</code> (<strong>62.67%</strong>), <code>VQGAN</code> (<strong>43.67%</strong>), và <code>ddim</code> (<strong>38.33%</strong>), đồng thời giữ Real Specificity ở mức cao <strong>93.57%</strong>.
           </div>
         </div>
 
@@ -2345,7 +2345,7 @@
             <img src="assets/benchmarks/benchmark_5models_global_comparison.png" class="artifact-img-full" alt="Universal Benchmark 5-Model Global Comparison" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Ở chuẩn <code>512→504px</code>, <strong>M₃</strong> dẫn đầu toàn diện với Fake Recall <strong>21.15%</strong> (gấp <strong>3.85×</strong> mức <code>5.49%</code> khi bị nén <code>224px</code>), Accuracy <strong>57.95%</strong>, Precision <strong>80.13%</strong> và F1-Score <strong>33.46%</strong> trong điều kiện hoàn toàn Zero-Shot đa họ công nghệ.
+            Ở chuẩn <code>512→504px</code>, <strong>M₃</strong> dẫn đầu toàn diện với Fake Recall <strong>27.28%</strong> (gấp <strong>4.97×</strong> mức <code>5.49%</code> khi bị nén <code>224px</code>), Accuracy <strong>60.43%</strong>, Precision <strong>80.92%</strong> và F1-Score <strong>40.81%</strong> trong điều kiện hoàn toàn Zero-Shot đa họ công nghệ.
           </div>
         </div>
 
@@ -2359,7 +2359,7 @@
             <img src="assets/benchmarks/benchmark_5models_family_recall.png" class="artifact-img-full" alt="8-Family Recall Chart" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Theo từng họ công nghệ ở <code>504px</code>: <strong>GAN Architectures</strong> đạt <strong>60.00%</strong>, <strong>Latent Diffusion (SD 2.1)</strong> đạt <strong>54.00%</strong> (từ 23.67% ở M₀ và 8.33% ở 224px), <strong>GAN Inversion</strong> đạt <strong>53.67%</strong>, <strong>AutoEncoders/VAEs</strong> đạt <strong>35.33%</strong>, <strong>DDIM</strong> đạt <strong>31.33%</strong> (×7.24 M₀) và <strong>DiT</strong> đạt <strong>17.67%</strong>.
+            Theo từng họ công nghệ ở <code>504px</code>: <strong>GAN Architectures</strong> đạt <strong>63.13%</strong>, <strong>Latent Diffusion (SD 2.1)</strong> đạt <strong>55.67%</strong> (từ 26.00% ở M₀), <strong>GAN Inversion</strong> đạt <strong>56.17%</strong>, <strong>AutoEncoders/VAEs</strong> đạt <strong>43.67%</strong>, <strong>DDIM</strong> đạt <strong>38.33%</strong> (×12.78 M₀) và <strong>DiT</strong> đạt <strong>19.75%</strong>.
           </div>
         </div>
 
@@ -2373,7 +2373,7 @@
             <img src="assets/extracted_nb/03_champion_m3_and_universal_benchmark_cell9_img3.png" class="artifact-img-full" alt="Threshold Sweep and FF++ C23 Video FPR" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng trực quan:</strong> Ở ngưỡng mặc định <code>τ = 0.50</code>, M₃ đạt Real Specificity <strong>94.75%</strong> (FPR FFHQ giảm còn <strong>5.20%</strong> so với 11.12% ở 224px) và tỷ lệ báo động sai trên video nén H.264 FaceForensics++ C23 là <strong>5.14%</strong> (85/1.655 khung hình; nếu nâng ngưỡng lên <code>τ = 0.85</code> thì FF++ FPR giảm còn <strong>2.54%</strong>).
+            <strong>Bằng chứng trực quan:</strong> Ở ngưỡng mặc định <code>τ = 0.50</code>, M₃ đạt Real Specificity <strong>93.57%</strong> (FPR FFHQ chỉ <strong>5.56%</strong>) và tỷ lệ báo động sai trên video nén H.264 FaceForensics++ C23 là <strong>9.00%</strong> (149/1.655 khung hình; nếu nâng ngưỡng lên <code>τ = 0.85</code> thì FF++ FPR giảm còn <strong>4.83%</strong>; ngưỡng gắt eKYC <code>FPR ≤ 1.0%</code> tại <code>τ = 0.990</code> đạt Fake Recall <strong>13.30%</strong> so với M₀ <code>9.85%</code> tại <code>τ = 0.835</code>).
           </div>
         </div>
 
@@ -2387,7 +2387,7 @@
             <img src="assets/benchmarks/benchmark_5models_roc_curves.png" class="artifact-img-full" alt="ROC Curves 5 Models on Universal Benchmark" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Đánh giá khoa học trung thực:</strong> Khi sửa phân giải về <code>512→504px</code>, ROC-AUC tổng hợp của M₃ nhảy vọt từ <code>0.3820</code> lên <strong>0.6101</strong> (PR-AUC từ <code>0.4233</code> lên <strong>0.6365</strong>, cao hơn ngưỡng ngẫu nhiên 0.5000). Tuy nhiên, vì tập train chỉ gồm ảnh tĩnh Diffusion (SD 1.5 + RV5.1), mô hình vẫn gặp khoảng trống miền rõ rệt trên ảnh video nén gốc <code>256×256</code> thuộc hai họ <code>Face Swapping</code> (<strong>5.37%</strong>) và <code>Reenactment/Talking Head</code> (<strong>6.55%</strong>).
+            <strong>Đánh giá khoa học trung thực:</strong> Khi sửa phân giải về <code>512→504px</code>, ROC-AUC tổng hợp của M₃ nhảy vọt từ <code>0.3820</code> lên <strong>0.6958</strong> (PR-AUC từ <code>0.4233</code> lên <strong>0.6757</strong>, cao hơn ngưỡng ngẫu nhiên 0.5000). Tuy nhiên, vì tập train chỉ gồm ảnh tĩnh Diffusion (SD 1.5 + RV5.1), mô hình vẫn gặp khoảng trống miền rõ rệt trên ảnh video nén gốc <code>256×256</code> thuộc hai họ <code>Face Swapping</code> (<strong>11.11%</strong>) và <code>Reenactment/Talking Head</code> (<strong>16.64%</strong>).
           </div>
         </div>
 
@@ -2401,7 +2401,7 @@
             <img src="assets/benchmarks/benchmark_5models_precision_recall_curves.png" class="artifact-img-full" alt="Precision-Recall Curves Across 5 Detector Models" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            Bổ trợ cho biểu đồ ROC: Với Precision đạt <strong>80.13%</strong> (M₀ đạt 92.28% ở recall thấp hơn) và PR-AUC <strong>0.6365</strong>, đường Precision–Recall của M₃ nằm vượt trội phía trên mức ngẫu nhiên (<code>0.5000</code>), xác nhận độ tin cậy cao khi phát tín hiệu giả mạo trên ảnh phân giải tốt.
+            Bổ trợ cho biểu đồ ROC: Với Precision đạt <strong>80.92%</strong> (M₀ đạt 88.00% ở recall thấp hơn) và PR-AUC <strong>0.6757</strong>, đường Precision–Recall của M₃ nằm vượt trội phía trên mức ngẫu nhiên (<code>0.5000</code>), xác nhận độ tin cậy cao khi phát tín hiệu giả mạo trên ảnh phân giải tốt.
           </div>
         </div>
 
@@ -2429,7 +2429,7 @@
             <img src="assets/extracted_nb/resolution_504_vs_224_degradation.png" class="artifact-img-full" alt="Resolution Degradation 504px vs 224px on DINOv2 ViT-S/14" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng trực tiếp cho Bước A:</strong> Trong mã nguồn cũ, <code>evaluate_universal_benchmark_5models.py</code> và <code>benchmark_legacy_6k.py</code> đã nén nhầm ảnh xuống <code>224×224</code> (mất <strong>80.25%</strong> mật độ patch tokens từ <code>1.296</code> còn <code>256</code>). Sau khi chuẩn hóa về <code>512→504px LANCZOS</code> trên đúng cùng bộ ảnh, Recall của M₀ trên 6k RV5.1 phục hồi từ <code>2.00% → 75.20%</code> (M₃ đạt <code>94.37%</code>), còn M₃ trên Universal 20.4k phục hồi từ <code>5.49% → 21.15%</code> (riêng <code>sd2.1</code> tăng từ <code>8.33% → 54.00%</code>).
+            <strong>Bằng chứng trực tiếp cho Bước A:</strong> Trong mã nguồn cũ, <code>evaluate_universal_benchmark_5models.py</code> và <code>benchmark_legacy_6k.py</code> đã nén nhầm ảnh xuống <code>224×224</code> (mất <strong>80.25%</strong> mật độ patch tokens từ <code>1.296</code> còn <code>256</code>). Sau khi chuẩn hóa về <code>512→504px LANCZOS</code> trên đúng cùng bộ ảnh, Recall của M₀ trên 6k RV5.1 phục hồi từ <code>31.42% → 72.58%</code> (M₃ đạt <code>95.00%</code>), còn M₃ trên Universal 20.4k phục hồi từ <code>5.49% → 27.28%</code> (riêng <code>sd2.1</code> đạt <code>55.67%</code>).
           </div>
         </div>
 
@@ -2451,53 +2451,53 @@
             <tbody>
               <tr>
                 <td><strong>M₀ (Baseline D₀)</strong></td>
-                <td>56.18%</td>
-                <td>13.48%</td>
-                <td>86.52%</td>
-                <td><strong>98.87%</strong></td>
-                <td><strong>92.28%</strong></td>
-                <td>23.52%</td>
-                <td><strong>0.6431</strong> | <strong>0.6893</strong></td>
+                <td>55.15%</td>
+                <td>11.93%</td>
+                <td>88.07%</td>
+                <td><strong>98.37%</strong></td>
+                <td><strong>88.00%</strong></td>
+                <td>21.01%</td>
+                <td>0.6183 | <strong>0.6589</strong></td>
               </tr>
               <tr>
                 <td><strong>M₁ (Active Learning R1)</strong></td>
-                <td>56.43%</td>
-                <td>17.94%</td>
-                <td>82.06%</td>
-                <td>94.91%</td>
-                <td>77.91%</td>
-                <td>29.17%</td>
-                <td>0.5552 | 0.6166</td>
+                <td>52.78%</td>
+                <td>18.14%</td>
+                <td>81.86%</td>
+                <td>87.42%</td>
+                <td>59.05%</td>
+                <td>27.75%</td>
+                <td>0.5206 | 0.5438</td>
               </tr>
               <tr>
                 <td><strong>M₂ (Cold-Start Scratch)</strong></td>
-                <td>53.58%</td>
-                <td>10.68%</td>
-                <td>89.32%</td>
-                <td>96.49%</td>
-                <td>75.26%</td>
-                <td>18.70%</td>
-                <td>0.5597 | 0.5901</td>
+                <td>56.56%</td>
+                <td>19.01%</td>
+                <td>80.99%</td>
+                <td>94.11%</td>
+                <td>76.34%</td>
+                <td>30.44%</td>
+                <td>0.6211 | 0.6421</td>
               </tr>
               <tr>
                 <td><strong>M₂* (Refined Warm-Start)</strong></td>
-                <td>55.52%</td>
-                <td>16.48%</td>
-                <td>83.52%</td>
-                <td>94.57%</td>
-                <td>75.21%</td>
-                <td>27.04%</td>
-                <td>0.5619 | 0.6015</td>
+                <td>53.58%</td>
+                <td>11.02%</td>
+                <td>88.98%</td>
+                <td>96.15%</td>
+                <td>74.09%</td>
+                <td>19.19%</td>
+                <td>0.5783 | 0.5937</td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>🏆 M₃ (Dual-Engine Champion)</strong></td>
-                <td><strong>57.95%</strong></td>
-                <td><span class="badge-pill green">21.15% (Cao nhất • ×3.85 vs 224px)</span></td>
-                <td><strong>78.85%</strong></td>
-                <td>94.75%</td>
-                <td>80.13%</td>
-                <td><span class="badge-pill green">33.46% (Cao nhất)</span></td>
-                <td>0.6101 | 0.6365</td>
+                <td><strong>60.43%</strong></td>
+                <td><span class="badge-pill green">27.28% (Cao nhất • ×4.97 vs 224px)</span></td>
+                <td><strong>72.72%</strong></td>
+                <td>93.57%</td>
+                <td>80.92%</td>
+                <td><span class="badge-pill green">40.81% (Cao nhất)</span></td>
+                <td><strong>0.6958</strong> | 0.6757</td>
               </tr>
             </tbody>
           </table>
@@ -2532,7 +2532,7 @@
             (2) chia lưới <code>36×36 = 1.296 patches</code> (<code>14×14px</code>) + 1 token <code>[CLS]</code> chiều <code>384</code>;
             (3) đóng băng <strong>Blocks 0–10</strong> (91.94%) chống overfitting;
             (4) mở khóa <strong>Block 11 + LayerNorm + Classifier Head</strong> (<code>LayerNorm(384) → Dropout(0.3) → Linear(384, 1)</code> [<code>1.153</code> params], tổng học <code>1.78M</code> = 8.06%, Differential LR 10:1, AMP <code>bfloat16</code>);
-            (5) hiệu chuẩn hậu kiểm qua <code>TemperatureScaler</code> (<code>P = σ(logit / T)</code>, <code>T = 1.9831</code> ở R2, ngưỡng mining <code>τ = 0.50</code>).
+            (5) hiệu chuẩn hậu kiểm qua <code>TemperatureScaler</code> (<code>P = σ(logit / T)</code>, <code>T = 2.4273</code> ở R2, ngưỡng mining <code>τ = 0.50</code>).
           </div>
         </div>
 
@@ -2546,7 +2546,7 @@
             <img src="assets/extracted_nb/00_master_deepfake_defense_showcase_cell7_img1.png" class="artifact-img-full" alt="DINOv2 Spatial Attention Heatmap" title="Nhấp để phóng to toàn màn hình">
           </div>
           <div class="artifact-row-footer">
-            <strong>Bằng chứng trực quan trên 3 mẫu đối chứng:</strong> (1) Ảnh thật FFHQ <code>00301.png</code> được nhận diện chuẩn xác Real (<code>P(Fake)=1.99%</code>); (2) Mẫu khó Challenge Vault <code>fake_ffhq_00000_q1_116.png</code> bị bắt ở <code>P(Fake)=99.79%</code> tập trung vào vùng miệng/mắt; (3) Ảnh siêu thực RV5.1 <code>187_img2img.png</code> bị bắt ở <code>P(Fake)=99.99%</code>.
+            <strong>Bằng chứng trực quan trên 3 mẫu đối chứng:</strong> (1) Ảnh thật FFHQ <code>00301.png</code> được nhận diện chuẩn xác Real (<code>P(Fake)=35.69%</code>); (2) Mẫu khó Challenge Vault <code>fake_ffhq_00000_q1_116.png</code> bị bắt ở <code>P(Fake)=99.92%</code> tập trung vào vùng miệng/mắt; (3) Ảnh siêu thực RV5.1 <code>187_img2img.png</code> bị bắt ở <code>P(Fake)=100.00%</code>.
           </div>
         </div>
       </section>
@@ -2578,31 +2578,31 @@
               <tr>
                 <td><strong>1. Dữ Liệu Dual-Engine Diffusion</strong></td>
                 <td>Sinh ảnh Stable Diffusion với 3 chế độ Inpaint / Img2Img / Text2Img</td>
-                <td>4.000 ảnh thật + 12.545 ảnh giả (SD 1.5: 6.545 thô / 5.251 sạch + RV5.1: 6.000); làm mờ biên mềm (Soft-Mask Feathering, <code>blur_radius = 18–20</code>)</td>
+                <td>4.000 ảnh thật + 12.545 ảnh giả (SD 1.5: 6.545 thô / 5.285 sạch + RV5.1: 6.000 thô / 5.502 sạch); làm mờ biên mềm (Soft-Mask Feathering, <code>blur_radius = 18–20</code>)</td>
                 <td><span class="badge-pill green">ĐẠT 100%</span></td>
               </tr>
               <tr>
                 <td><strong>2. Quy Trình CurationGate</strong></td>
                 <td>Lọc chất lượng quang học, hình học khuôn mặt và chống trùng lặp</td>
-                <td>Laplacian hiệu chỉnh theo phân vị 5% ảnh thật, OpenCV Haar + kiểm tra hình học/cháy sáng/seam, khử trùng lặp SHA-256 (giữ 5.251/6.545 SD 1.5)</td>
+                <td>Laplacian hiệu chỉnh theo phân vị 5% ảnh thật, YuNet / OpenCV Haar + kiểm tra mắt/Cheek FFT/CIELab/CLIP/seam, khử trùng lặp SHA-256 + dHash (giữ 5.285/6.545 SD 1.5 &amp; 5.502/6.000 RV5.1)</td>
                 <td><span class="badge-pill green">ĐẠT 100%</span></td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>3. Khai Thác Mẫu Khó</strong></td>
                 <td>Áp dụng Active Learning cải thiện ranh giới phân loại</td>
-                <td>740 mẫu khó SD 1.5 (570 FN + 170 Uncertain |P−0.5|≤0.10 theo log vòng AL; 616 &lt;0.50 + 124 ≥0.50 theo <code>baseline_score</code>; 629 train + 111 vào 213 Challenge Vault); nâng Recall 11.71% → 91.89%</td>
-                <td><span class="badge-pill green">VƯỢT (+80.18%)</span></td>
+                <td>610 mẫu khó SD 1.5 (529 FN + 81 Uncertain |P−0.5|≤0.10 theo log vòng AL; 518 train + 92 vào 184 Challenge Vault); nâng Recall 8.70% → 90.22%</td>
+                <td><span class="badge-pill green">VƯỢT (+81.52%)</span></td>
               </tr>
               <tr>
                 <td><strong>4. Zero Identity Leakage</strong></td>
                 <td>Đảm bảo không rò rỉ danh tính người giữa tập học và tập test</td>
-                <td>M₂* profiling 6k RV5.1 (1.192 bypass @ 512px; 1.792 @ 224px); cách ly 626 ảnh test + 600 val; tập D3 sạch 5.626 ảnh cân bằng 1:1 (2.813 Real : 2.813 Fake)</td>
+                <td>M₂* profiling 6k RV5.1 (2.119 bypass @ 512px; 3.023 @ 224px); cách ly 601 ảnh test + 578 val; tập D3 sạch 5.626 ảnh cân bằng 1:1 (2.813 Real : 2.813 Fake)</td>
                 <td><span class="badge-pill green">KHÁCH QUAN</span></td>
               </tr>
               <tr class="highlight-champion">
                 <td><strong>5. Champion M3 &amp; Benchmark</strong></td>
                 <td>Thử nghiệm Proof of Utility đa động cơ &amp; đánh giá mở rộng</td>
-                <td>Champion M3 đạt 93.13% trên Unseen RV5.1 (AUC 0.9828) &amp; 94.37% trên toàn 6k RV5.1; Zero-Shot Universal 20.4k @ 504px đạt 21.15% Fake Recall (SD 2.1 54.00%, GAN 60.00%, AUC 0.6101) &amp; 94.75% Real Spec</td>
+                <td>Champion M3 đạt 93.51% trên Unseen RV5.1 (AUC 0.9859) &amp; 95.00% trên toàn 6k RV5.1; Zero-Shot Universal 20.4k @ 504px đạt 27.28% Fake Recall (SD 2.1 55.67%, GAN 63.13%, AUC 0.6958) &amp; 93.57% Real Spec</td>
                 <td><span class="badge-pill green">VƯỢT CHỈ TIÊU</span></td>
               </tr>
               <tr>

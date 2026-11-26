@@ -826,7 +826,7 @@
                 Stable Diffusion-Based <span class="accent">Synthetic Facial Dataset</span> for Deepfake Defense
               </h1>
               <p class="cover-subtitle">
-                Báo cáo nghiệm thu thực chứng khoa học: Hoàn tất 100% KPI cam kết với bộ dữ liệu 6.000 ảnh khuếch tán kép (SD 1.5 + RV5.1), két bẫy 213 Challenge Vault, mô hình Champion M3 đạt Fake Recall 93.13% và đối chuẩn Universal Benchmark trên 20.400 ảnh.
+                Báo cáo nghiệm thu thực chứng khoa học: Hoàn tất 100% KPI cam kết với bộ dữ liệu 12.545 ảnh khuếch tán kép (SD 1.5 + RV5.1), két bẫy 184 Challenge Vault, mô hình Champion M3 đạt Fake Recall 93.51% và đối chuẩn Universal Benchmark trên 20.400 ảnh.
               </p>
             </div>
 
@@ -860,18 +860,18 @@
               </div>
               <div class="meta-box">
                 <span class="meta-label">DỮ LIỆU SINH THỰC TẾ</span>
-                <span class="meta-value">6.000 Ảnh Khuếch Tán Kép</span>
-                <span class="meta-tag">SD 1.5 + Realistic Vision 5.1</span>
+                <span class="meta-value">12.545 Ảnh Khuếch Tán Kép</span>
+                <span class="meta-tag">SD 1.5 (6.545) + RV5.1 (6.000)</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">KÉT THÁCH THỨC ĐỘC LẬP</span>
-                <span class="meta-value">213 Mẫu Challenge Vault</span>
+                <span class="meta-value">184 Mẫu Challenge Vault</span>
                 <span class="meta-tag">Khóa Cứng 4 Lỗi Sinh Học</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">CHAMPION M3 HIỆU NĂNG</span>
-                <span class="meta-value">93.13% Quad-Vault Recall</span>
-                <span class="meta-tag">Bypass Rate Giảm Rơi Tự Do 6.87%</span>
+                <span class="meta-value">93.51% Quad-Vault Recall</span>
+                <span class="meta-tag">Bypass Rate Giảm Rơi Tự Do 6.49%</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">ĐỐI CHUẨN TOÀN CẦU</span>
@@ -909,7 +909,7 @@
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Deepfake Diffusion áp dụng Soft-Mask Feathering σ=4.0 xóa nhòa hoàn toàn ranh giới ghép; Thực nghiệm chứng minh Baseline M0 bỏ sót tới 88.29% mẫu khó.
+              Deepfake Diffusion áp dụng Soft-Mask Feathering σ=4.0 xóa nhòa hoàn toàn ranh giới ghép; Thực nghiệm chứng minh Baseline M0 bỏ sót tới 91.30% mẫu khó.
             </div>
           </div>
         </header>
@@ -943,35 +943,35 @@
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="font-weight: 700; font-size: 14px;">Master Frozen Test (Ảnh Dễ - Phân Phối D0)</span>
-                    <span class="badge-success">FAKE RECALL: 49.07%</span>
+                    <span class="badge-success">FAKE RECALL: 51.19%</span>
                   </div>
                   <div style="width: 100%; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;">
-                    <div style="width: 49.07%; height: 100%; background: #3b82f6;"></div>
+                    <div style="width: 51.19%; height: 100%; background: #3b82f6;"></div>
                   </div>
                   <span style="font-size: 12px; color: var(--text-muted); margin-top: 6px; display: block;">M0 bắt được một nửa số ảnh giả do vẫn còn nhận diện được một số đặc trưng cơ sở.</span>
                 </div>
 
                 <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: var(--radius-md); padding: 16px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-weight: 700; font-size: 14px; color: #9f1239;">🚨 Challenge Vault (213 Mẫu Cực Khó)</span>
-                    <span class="delta-pill-red">FAKE RECALL: 11.71%</span>
+                    <span style="font-weight: 700; font-size: 14px; color: #9f1239;">🚨 Challenge Vault (184 Mẫu Cực Khó)</span>
+                    <span class="delta-pill-red">FAKE RECALL: 8.70%</span>
                   </div>
                   <div style="width: 100%; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;">
-                    <div style="width: 11.71%; height: 100%; background: #e11d48;"></div>
+                    <div style="width: 8.70%; height: 100%; background: #e11d48;"></div>
                   </div>
                   <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">
-                    <span style="color: #9f1239; font-weight: 700;">Tỷ lệ lọt lưới (Bypass Rate): 88.29%</span>
-                    <span style="color: var(--text-muted);">ROC-AUC: 0.6124 (Đoán mò)</span>
+                    <span style="color: #9f1239; font-weight: 700;">Tỷ lệ lọt lưới (Bypass Rate): 91.30%</span>
+                    <span style="color: var(--text-muted);">ROC-AUC: 0.8757</span>
                   </div>
                   <p style="font-size: 12px; color: #881337; margin-top: 6px;">
-                    <strong>Nguy hại an ninh eKYC:</strong> Gần 9/10 khuôn mặt giả tinh vi dễ dàng vượt qua cổng nhận diện ngân hàng nếu chỉ dựa vào mô hình cơ sở không qua Active Learning!
+                    <strong>Nguy hại an ninh eKYC:</strong> Hơn 9/10 khuôn mặt giả tinh vi dễ dàng vượt qua cổng nhận diện ngân hàng nếu chỉ dựa vào mô hình cơ sở không qua Active Learning!
                   </p>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
                   <span style="font-weight: 700; font-size: 13px; color: var(--primary);">🎯 Hướng giải quyết của Đề Tài 11:</span>
                   <p style="font-size: 12px; color: var(--text); margin-top: 4px;">
-                    Thiết lập chu trình <strong>Active Learning khép kín</strong>: Khai phá 740 ca biên khó → Tinh chỉnh phân tầng Block 11 DINOv2 → Đẩy lùi đường biên quyết định → Chế ngự toàn diện các mẫu giả mạo tinh vi.
+                    Thiết lập chu trình <strong>Active Learning khép kín</strong>: Khai phá 610 ca biên khó → Tinh chỉnh phân tầng Block 11 DINOv2 → Đẩy lùi đường biên quyết định → Chế ngự toàn diện các mẫu giả mạo tinh vi.
                   </p>
                 </div>
               </div>
@@ -1048,31 +1048,31 @@
                   <tr>
                     <td><strong>1. Sinh Dữ Liệu</strong></td>
                     <td>SD Inpaint/Img2Img/Text2Img</td>
-                    <td>6.000 ảnh 2 động cơ SD 1.5 + RV5.1; Soft Feathering σ=4.0</td>
+                    <td>12.545 ảnh 2 động cơ SD 1.5 (6.545) + RV5.1 (6.000); Soft Feathering σ=4.0</td>
                     <td><span class="badge-success">✓ ĐẠT 100%</span></td>
                   </tr>
                   <tr>
                     <td><strong>2. CurationGate</strong></td>
                     <td>Lọc 3 tầng Hình học/Quang học/Hash</td>
-                    <td>OpenCV Haar + Laplacian phân vị 5% + SHA-256; 100% sạch trùng lặp</td>
+                    <td>YuNet / OpenCV Haar + Laplacian phân vị 5% + Extended Audit + SHA-256/dHash; giữ 5.285 SD 1.5 &amp; 5.502 RV5.1</td>
                     <td><span class="badge-success">✓ ĐẠT 100%</span></td>
                   </tr>
                   <tr class="highlight-champion">
                     <td><strong>3. Khai Phá Mẫu Khó</strong></td>
                     <td>Active Learning vòng lặp</td>
-                    <td>740 mẫu khó, Két 213 Challenge; Recall: 11.71% → 91.89%</td>
-                    <td><span class="badge-champion">⭐ VƯỢT (+80%)</span></td>
+                    <td>610 mẫu khó, Két 184 Challenge; Recall: 8.70% → 90.22%</td>
+                    <td><span class="badge-champion">⭐ VƯỢT (+81.52%)</span></td>
                   </tr>
                   <tr>
                     <td><strong>4. Zero Leakage</strong></td>
                     <td>Tránh học vẹt danh tính</td>
-                    <td>Cách ly 626 ảnh RV5.1 test ID; D3 cân bằng 1:1 chuẩn xác</td>
+                    <td>Cách ly 601 ảnh RV5.1 test ID; D3 cân bằng 1:1 chuẩn xác (5.626 ảnh)</td>
                     <td><span class="badge-success">✓ LIÊM CHÍNH</span></td>
                   </tr>
                   <tr class="highlight-champion">
                     <td><strong>5. Champion M3</strong></td>
                     <td>Đánh giá tổng quát hóa</td>
-                    <td>Champion M3 Quad-Vault 93.13%; Universal Benchmark 20.400 ảnh</td>
+                    <td>Champion M3 Quad-Vault 93.51%; Universal Benchmark 20.400 ảnh</td>
                     <td><span class="badge-champion">⭐ VƯỢT CHỈ TIÊU</span></td>
                   </tr>
                 </tbody>
@@ -1101,7 +1101,7 @@
     </section>
 
     <!-- =======================================================================
-         SLIDE 03: SẢN PHẨM 1: KHO DỮ LIỆU DUAL-ENGINE 6,000 ẢNH & GRID MẪU THẬT
+         SLIDE 03: SẢN PHẨM 1: KHO DỮ LIỆU DUAL-ENGINE 12.545 ẢNH & GRID MẪU THẬT
          ======================================================================= -->
     <section class="slide" id="slide-4" data-title="03 / Dữ Liệu Khuếch Tán Kép">
       <div class="slide-inner">
@@ -1112,7 +1112,7 @@
               <span class="section-subtitle">ĐỘNG CƠ KHUÊCH TÁN KÉP & LÀM MỊN BIÊN GAUSSIAN</span>
             </div>
             <h2 class="slide-title">
-              Kho Dữ Liệu Kép: <span>6.000 Ảnh Sinh Thực Tế & Lưới Đối Chuẩn Mẫu</span>
+              Kho Dữ Liệu Kép: <span>12.545 Ảnh Sinh Thực Tế &amp; Lưới Đối Chuẩn Mẫu</span>
             </h2>
           </div>
           <div class="header-right">
@@ -1143,38 +1143,38 @@
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Cơ Cấu Danh Mục 6.000 Ảnh Sinh Thực Nghiệm
+                  Cơ Cấu Danh Mục 12.545 Ảnh Sinh Thực Nghiệm
                 </div>
-                <span class="panel-badge">QUY MÔ 6.000 MẪU</span>
+                <span class="panel-badge">QUY MÔ 12.545 MẪU</span>
               </div>
               <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px; height: 480px; justify-content: space-between;">
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <span style="font-weight: 700; color: #111111;">Động Cơ A: Stable Diffusion v1.5 Inpainting</span>
-                    <span class="badge-success">3.000 ẢNH</span>
+                    <span style="font-weight: 700; color: #111111;">Động Cơ A: Stable Diffusion v1.5</span>
+                    <span class="badge-success">6.545 THÔ / 5.285 SẠCH</span>
                   </div>
                   <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
-                    Đại diện cho họ khuếch tán phổ thông mã nguồn mở. Cung cấp khuôn mặt cân đối chuẩn nhưng đôi khi thiếu chi tiết vi mô lỗ chân lông.
+                    Đại diện cho họ khuếch tán phổ thông mã nguồn mở, vận hành vòng lặp Active Learning nội miền (D0 → D1 → D2).
                   </p>
                   <div style="display: flex; gap: 6px; font-size: 11px; font-family: var(--font-mono);">
-                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">Inpaint: 1.000</span>
-                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">Img2Img: 1.000</span>
-                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">Text2Img: 1.000</span>
+                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">D0: 2.745</span>
+                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">AL R1: 1.900</span>
+                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">AL R2: 1.900</span>
                   </div>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 12px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                     <span style="font-weight: 700; color: var(--primary);">Động Cơ B: RealisticVision v5.1 (Photorealistic)</span>
-                    <span class="badge-champion">3.000 ẢNH</span>
+                    <span class="badge-champion">6.000 THÔ / 5.502 SẠCH</span>
                   </div>
                   <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
                     Đại diện cho mô hình khuếch tán tinh chỉnh cao cấp. Mô phỏng siêu thực từng chi tiết phản quang đồng tử, sợi tóc tơ và cấu trúc da chân thực.
                   </p>
                   <div style="display: flex; gap: 6px; font-size: 11px; font-family: var(--font-mono);">
-                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Inpaint: 1.000</span>
-                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Img2Img: 1.000</span>
-                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Text2Img: 1.000</span>
+                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Inpaint: 2.000</span>
+                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Img2Img: 2.000</span>
+                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Text2Img: 2.000</span>
                   </div>
                 </div>
 
@@ -1250,8 +1250,8 @@
                 <span class="intent-index">TẦNG 1</span>
                 <span class="intent-role">HÌNH HỌC KHUÔN MẶT</span>
               </div>
-              <h3>OpenCV Haar &amp; Kiểm Định Hình Học</h3>
-              <p>Lọc ảnh không thấy mặt hoặc đa mặt, tỷ lệ mặt 20%–65% khung, chuẩn hóa kích thước 512×512 (DINOv2 snap 504×504).</p>
+              <h3>YuNet / OpenCV Haar &amp; Kiểm Định Hình Học</h3>
+              <p>Lọc ảnh không thấy mặt, thiếu cặp mắt hoặc đa mặt, kiểm tra Cheek FFT / CIELab ΔE / CLIP, chuẩn hóa 512×512 (DINOv2 snap 504×504).</p>
             </div>
             <div class="intent-card">
               <div class="intent-card-top">
@@ -1266,8 +1266,8 @@
                 <span class="intent-index">TẦNG 3</span>
                 <span class="intent-role">CHỐNG TRÙNG LẶP</span>
               </div>
-              <h3>SHA-256 Exact &amp; Embedding Diversity</h3>
-              <p>Khử trùng lặp băm SHA-256 kết hợp khoảng cách Cosine ≥ 0.05 đảm bảo 0 bản sao trùng lặp trong tập huấn luyện.</p>
+              <h3>SHA-256, Perceptual dHash &amp; Cosine</h3>
+              <p>Khử trùng lặp băm SHA-256 + dHash kết hợp khoảng cách Cosine ≥ 0.05 đảm bảo 0 bản sao trùng lặp trong tập huấn luyện.</p>
             </div>
           </div>
         </div>
@@ -1275,7 +1275,7 @@
     </section>
 
     <!-- =======================================================================
-         SLIDE 05: KHAI PHÁ 740 HARD SAMPLES & ARTIFACT 4 DỊ TẬT SINH HỌC
+         SLIDE 05: KHAI PHÁ 610 HARD SAMPLES & ARTIFACT 4 DỊ TẬT SINH HỌC
          ======================================================================= -->
     <section class="slide" id="slide-6" data-title="05 / Khai Phá Mẫu Khó">
       <div class="slide-inner">
@@ -1291,7 +1291,7 @@
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Cô lập 213 mẫu khó nhất vào Két bẫy Challenge Vault làm thước đo bất biến kiểm chứng năng lực phá vỡ rào cản của mô hình qua các vòng học.
+              Cô lập 184 mẫu khó nhất vào Két bẫy Challenge Vault làm thước đo bất biến kiểm chứng năng lực phá vỡ rào cản của mô hình qua các vòng học.
             </div>
           </div>
         </header>
@@ -1350,7 +1350,7 @@
                 </div>
 
                 <div style="text-align: center; font-size: 11px; color: var(--text-muted);">
-                  Tổng số mẫu khó khai phá: <strong>740 mẫu</strong> → Khóa cứng <strong>213 mẫu độc lập</strong> làm Challenge Vault!
+                  Tổng số mẫu khó khai phá: <strong>610 mẫu</strong> → Khóa cứng <strong>184 mẫu độc lập</strong> làm Challenge Vault!
                 </div>
               </div>
             </div>
@@ -1368,10 +1368,10 @@
           <div class="header-left">
             <div class="eyebrow-row">
               <span class="section-tag">06 / ĐỘT PHÁ ACTIVE LEARNING</span>
-              <span class="section-subtitle">BIÊN QUYẾT ĐỊNH MỚI & BƯỚC NHẢY VỌT +80.18% RECALL</span>
+              <span class="section-subtitle">BIÊN QUYẾT ĐỊNH MỚI &amp; BƯỚC NHẢY VỌT +81.52% RECALL</span>
             </div>
             <h2 class="slide-title">
-              Active Learning Vòng 2: <span>M2* Nâng Fake Recall Từ 11.71% Lên 91.89%</span>
+              Active Learning Vòng 2: <span>M2* Nâng Fake Recall Từ 8.70% Lên 90.22%</span>
             </h2>
           </div>
           <div class="header-right">
@@ -1388,7 +1388,7 @@
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Artifact Thực Chứng: Biểu Đồ Cú Nhảy Vọt Fake Recall Trên 213 Challenge Samples
+                  Artifact Thực Chứng: Biểu Đồ Cú Nhảy Vọt Fake Recall Trên 184 Challenge Samples
                 </div>
                 <span class="panel-badge badge-champion">ARTIFACT NOTEBOOK 02</span>
               </div>
@@ -1416,18 +1416,18 @@
           <div class="card-grid-3" style="margin-top: 14px;">
             <div class="intent-card" style="text-align: center;">
               <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">M0 BASELINE D0</span>
-              <div style="font-size: 26px; font-weight: 800; color: #b91c1c; font-family: var(--font-display); margin: 4px 0;">11.71%</div>
-              <span style="font-size: 11px; color: #991b1b;">Bỏ sót 88.29% mẫu khó</span>
+              <div style="font-size: 26px; font-weight: 800; color: #b91c1c; font-family: var(--font-display); margin: 4px 0;">8.70%</div>
+              <span style="font-size: 11px; color: #991b1b;">Bỏ sót 91.30% mẫu khó</span>
             </div>
             <div class="intent-card" style="text-align: center;">
               <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">M1 ACTIVE ROUND 1</span>
-              <div style="font-size: 26px; font-weight: 800; color: #f59e0b; font-family: var(--font-display); margin: 4px 0;">70.27%</div>
-              <span style="font-size: 11px; color: #b45309;">Bước nhảy đầu tiên (+58.56%)</span>
+              <div style="font-size: 26px; font-weight: 800; color: #f59e0b; font-family: var(--font-display); margin: 4px 0;">94.57%</div>
+              <span style="font-size: 11px; color: #b45309;">Bước nhảy đầu tiên (+85.87%)</span>
             </div>
             <div class="intent-card" style="text-align: center; border-color: var(--primary);">
-              <span style="font-size: 11px; font-weight: 700; color: var(--primary);">🏆 M2* REFINED CHAMPION</span>
-              <div style="font-size: 26px; font-weight: 800; color: #15803d; font-family: var(--font-display); margin: 4px 0;">91.89%</div>
-              <span style="font-size: 11px; color: #166534; font-weight: 700;">Bắt trọn 102/111 mẫu giả cực khó!</span>
+              <span style="font-size: 11px; font-weight: 700; color: var(--primary);">🏆 M2* REFINED WARM-START</span>
+              <div style="font-size: 26px; font-weight: 800; color: #15803d; font-family: var(--font-display); margin: 4px 0;">90.22%</div>
+              <span style="font-size: 11px; color: #166534; font-weight: 700;">Bắt trúng 83/92 mẫu giả (AUC 0.9902)!</span>
             </div>
           </div>
         </div>
@@ -1451,7 +1451,7 @@
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Nhóm phát hiện 626 ảnh RealisticVision mang khuôn mặt của tập test; lập tức cách ly 100% làm tập kiểm thử mù độc lập, loại bỏ hoàn toàn nguy cơ gian lận mô hình.
+              Nhóm phát hiện 601 ảnh RealisticVision mang khuôn mặt của tập test; lập tức cách ly 100% làm tập kiểm thử mù độc lập, loại bỏ hoàn toàn nguy cơ gian lận mô hình.
             </div>
           </div>
         </header>
@@ -1498,7 +1498,7 @@
                     </tr>
                     <tr>
                       <td><strong>Mẫu Khó SD 1.5 (D2_hard)</strong></td>
-                      <td>629</td>
+                      <td>518</td>
                       <td>Mẫu khó từng vượt mặt M0/M1 ở Vòng 2</td>
                     </tr>
                     <tr>
@@ -1508,8 +1508,8 @@
                     </tr>
                     <tr>
                       <td><strong>Ảnh Giả RV5.1 Sạch Danh Tính</strong></td>
-                      <td>1.384</td>
-                      <td>484 Text2Img + 450 Inpaint + 450 Img2Img (Sạch ID)</td>
+                      <td>1.495</td>
+                      <td>523 Text2Img + 486 Inpaint + 486 Img2Img (Sạch ID)</td>
                     </tr>
                     <tr class="highlight-champion">
                       <td><strong>TỔNG CỘNG TẬP TRAIN D3</strong></td>
@@ -1520,9 +1520,9 @@
                 </table>
 
                 <div style="margin-top: 14px; background: #dcfce7; border: 1px solid #86efac; border-radius: var(--radius-md); padding: 12px;">
-                  <span style="font-weight: 700; font-size: 12px; color: #166534;">✓ Cách Ly 626 Ảnh Làm Tập Kiểm Thử Mù Riêng Biệt:</span>
+                  <span style="font-weight: 700; font-size: 12px; color: #166534;">✓ Cách Ly 601 Ảnh Làm Tập Kiểm Thử Mù Riêng Biệt:</span>
                   <span style="font-size: 11px; color: #14532d; display: block; margin-top: 4px;">
-                    Kho <code>unseen_rv51_test.jsonl</code> (1.215 ảnh gồm 626 fake + 589 test reals) được bảo vệ hoàn toàn, trở thành thước đo kiểm thử mù liên bộ sinh (Cross-Generator) khắt khe nhất của dự án!
+                    Kho <code>unseen_rv51_test.jsonl</code> (1.190 ảnh gồm 601 fake + 589 test reals) được bảo vệ hoàn toàn, trở thành thước đo kiểm thử mù liên bộ sinh (Cross-Generator) khắt khe nhất của dự án!
                   </span>
                 </div>
               </div>
@@ -1544,12 +1544,12 @@
               <span class="section-subtitle">ĐÁNH GIÁ 5 MÔ HÌNH TRÊN 3 KHO KIỂM THỬ ĐỘC LẬP</span>
             </div>
             <h2 class="slide-title">
-              Champion M3: <span>Bứt Phá 93.13% Quad-Vault Mà Không Quên SD 1.5</span>
+              Champion M3: <span>Bứt Phá 93.51% Quad-Vault Mà Không Quên SD 1.5</span>
             </h2>
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Mô hình vô địch M3 Warm-Start từ M2* tạo lập kỷ lục mới toàn diện: Fake Recall đạt 93.13% trên tập mù RV5.1 mà vẫn giữ vững 91.89% trên Challenge Vault.
+              Mô hình vô địch M3 Warm-Start từ M2* tạo lập kỷ lục mới toàn diện: Fake Recall đạt 93.51% trên tập mù RV5.1 đồng thời đạt 92.39% trên Challenge Vault.
             </div>
           </div>
         </header>
@@ -1584,41 +1584,41 @@
                   <thead>
                     <tr>
                       <th>Phiên Bản Mô Hình</th>
-                      <th>Master Test (SD 1.5)<br><span style="font-size: 10px; font-weight: normal;">1.178 ảnh</span></th>
-                      <th>Challenge Vault<br><span style="font-size: 10px; font-weight: normal;">213 mẫu khó</span></th>
-                      <th>Unseen RV5.1 Vault<br><span style="font-size: 10px; font-weight: normal;">1.215 ảnh mù</span></th>
+                      <th>Master Test (SD 1.5)<br><span style="font-size: 10px; font-weight: normal;">1.177 ảnh</span></th>
+                      <th>Challenge Vault<br><span style="font-size: 10px; font-weight: normal;">184 mẫu khó</span></th>
+                      <th>Unseen RV5.1 Vault<br><span style="font-size: 10px; font-weight: normal;">1.190 ảnh mù</span></th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td><strong>M0 (D0 Baseline)</strong></td>
-                      <td>49.07%</td>
-                      <td>11.71%</td>
-                      <td>66.45%</td>
+                      <td>51.19%</td>
+                      <td>8.70%</td>
+                      <td>60.57%</td>
                     </tr>
                     <tr>
                       <td><strong>M1 (Active Round 1)</strong></td>
-                      <td>62.14%</td>
-                      <td>70.27%</td>
-                      <td>72.04%</td>
+                      <td>75.17%</td>
+                      <td>94.57%</td>
+                      <td>80.70%</td>
                     </tr>
                     <tr>
                       <td><strong>M2 (Cold-Start Retrain)</strong></td>
-                      <td>52.63%</td>
-                      <td>86.49%</td>
-                      <td>56.55%</td>
+                      <td>70.58%</td>
+                      <td>98.91%</td>
+                      <td>70.05%</td>
                     </tr>
                     <tr>
-                      <td><strong>M2* (Refined Champion)</strong></td>
-                      <td>66.89%</td>
-                      <td><strong>91.89%</strong></td>
-                      <td>71.88%</td>
+                      <td><strong>M2* (Refined Warm-Start)</strong></td>
+                      <td>56.29%</td>
+                      <td><strong>90.22%</strong></td>
+                      <td>49.58%</td>
                     </tr>
                     <tr class="highlight-champion">
                       <td><strong>🏆 M3 (Dual-Engine Champion)</strong></td>
-                      <td><span class="delta-pill-green">69.44% (Cao nhất)</span></td>
-                      <td><span class="delta-pill-green">91.89% (Bảo tồn)</span></td>
-                      <td><span class="delta-pill-green">93.13% (+21.25%)</span></td>
+                      <td><span class="delta-pill-green">70.24% (Kháng quên)</span></td>
+                      <td><span class="delta-pill-green">92.39% (Bảo toàn)</span></td>
+                      <td><span class="delta-pill-green">93.51% (+43.93%)</span></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1626,13 +1626,13 @@
                 <!-- 3 Key Findings -->
                 <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
                   <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 11px;">
-                    <strong>1. Không quên SD 1.5:</strong> Fake Recall Master Frozen Test đạt <strong>69.44%</strong> (cao nhất toàn dự án).
+                    <strong>1. Không quên SD 1.5:</strong> Fake Recall Master Frozen Test đạt <strong>70.24%</strong> (vượt xa M0 51.19% &amp; M2* 56.29%).
                   </div>
                   <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 11px;">
-                    <strong>2. Bảo vệ két khó:</strong> Duy trì tuyệt đối <strong>91.89%</strong> mẫu khó Challenge Vault (Bypass chỉ 8.11%).
+                    <strong>2. Bảo vệ két khó:</strong> Đạt <strong>92.39%</strong> mẫu khó Challenge Vault (Bypass chỉ 7.61%).
                   </div>
                   <div style="background: #eef0ff; border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; font-size: 11px; color: var(--primary);">
-                    <strong>3. Bứt phá liên bộ sinh:</strong> Fake Recall vọt lên <strong>93.13%</strong> trên kho ảnh mù RV5.1 (Bypass giảm sâu 6.87%)!
+                    <strong>3. Bứt phá liên bộ sinh:</strong> Fake Recall vọt lên <strong>93.51%</strong> trên kho ảnh mù RV5.1 (Bypass giảm sâu 6.49%)!
                   </div>
                 </div>
               </div>
@@ -1697,8 +1697,8 @@
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
                   <span style="font-weight: 700; font-size: 12px; color: var(--primary);">Khảo sát ngưỡng vận hành eKYC Ngân hàng (@ 512→504px):</span>
                   <div style="font-size: 11px; color: var(--text); margin-top: 4px; line-height: 1.5;">
-                    • Tại ngưỡng mặc định <code>τ = 0.50</code>: M3 đạt Fake Recall toàn cầu <strong>21.15%</strong> (SD 2.1: <strong>54.00%</strong>, GAN: <strong>60.00%</strong>), Real Spec <strong>94.75%</strong>; nâng ngưỡng <code>τ = 0.85</code> hạ FPR trên video FF++ C23 còn <strong>2.54%</strong>.<br>
-                    • Tại ngưỡng cực gắt <code>FPR ≤ 1.0%</code> (<code>τ = 0.971</code>): Fake Recall đạt <strong>13.38%</strong> (M0 tại <code>τ = 0.573</code>: 13.07%) — thể hiện trung thực khoảng trống miền Zero-Shot ngoài Diffusion.
+                    • Tại ngưỡng mặc định <code>τ = 0.50</code>: M3 đạt Fake Recall toàn cầu <strong>27.28%</strong> (SD 2.1: <strong>55.67%</strong>, GAN: <strong>63.13%</strong>), Real Spec <strong>93.57%</strong>; nâng ngưỡng <code>τ = 0.85</code> hạ FPR trên video FF++ C23 còn <strong>4.83%</strong>.<br>
+                    • Tại ngưỡng cực gắt <code>FPR ≤ 1.0%</code> (<code>τ = 0.990</code>): Fake Recall đạt <strong>13.30%</strong> (M0 tại <code>τ = 0.835</code>: 9.85%) — thể hiện trung thực khoảng trống miền Zero-Shot ngoài Diffusion.
                   </div>
                 </div>
               </div>
@@ -1839,21 +1839,21 @@
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
                   <span style="font-weight: 700; font-size: 13px; color: var(--primary);">1. Quy Trình Dữ Liệu Khuếch Tán Kép Soft-Feathering:</span>
                   <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                    Kho 6.000 ảnh từ SD 1.5 và RV5.1 triệt tiêu vết cắt biên nhân tạo; phễu lọc 3 tầng CurationGate đảm bảo 100% sạch trùng lặp và đạt chuẩn chân thực sinh học.
+                    Kho 12.545 ảnh từ SD 1.5 và RV5.1 triệt tiêu vết cắt biên nhân tạo; phễu lọc 3 tầng CurationGate mở rộng đảm bảo 100% sạch trùng lặp và đạt chuẩn chân thực sinh học.
                   </p>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
-                  <span style="font-weight: 700; font-size: 13px; color: #15803d;">2. Active Learning Đào Sâu Mẫu Khó & Challenge Vault:</span>
+                  <span style="font-weight: 700; font-size: 13px; color: #15803d;">2. Active Learning Đào Sâu Mẫu Khó &amp; Challenge Vault:</span>
                   <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                    Khai phá 740 ca biên khó, cô lập két bẫy 213 mẫu bất biến; chứng minh thực chứng bước nhảy vọt Fake Recall từ 11.71% lên 91.89% (+80.18%).
+                    Khai phá 610 ca biên khó, cô lập két bẫy 184 mẫu bất biến; chứng minh thực chứng bước nhảy vọt Fake Recall từ 8.70% lên 90.22% (+81.52%).
                   </p>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
-                  <span style="font-weight: 700; font-size: 13px; color: var(--primary);">3. Champion M3 & Liêm Chính Zero Identity Leakage:</span>
+                  <span style="font-weight: 700; font-size: 13px; color: var(--primary);">3. Champion M3 &amp; Liêm Chính Zero Identity Leakage:</span>
                   <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                    Thích nghi liên bộ sinh xuất sắc, đạt Quad-Vault Fake Recall 93.13% mà không làm giảm nhận thức trên SD 1.5; tốc độ suy luận 18.5 ms/ảnh sẵn sàng tích hợp cổng ngân hàng.
+                    Thích nghi liên bộ sinh xuất sắc, đạt Quad-Vault Fake Recall 93.51% mà không làm giảm nhận thức trên SD 1.5; tốc độ suy luận 18.5 ms/ảnh sẵn sàng tích hợp cổng ngân hàng.
                   </p>
                 </div>
 

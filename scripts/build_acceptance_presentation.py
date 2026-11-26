@@ -1,22 +1,134 @@
 """Build script for Topic 11 Final Acceptance Presentation HTML with Rich Visual Artifacts.
 
-Generates docs/reports/presentation_final_acceptance.html with embedded real visual artifacts:
+Generates docs/reports/presentation_final_acceptance_legacy.html with embedded real visual artifacts:
 - Dual-Engine synthetic faces grid (SD 1.5 vs Realistic Vision 5.1)
 - Soft-Mask Feathering visual comparison
 - Skin gamut YCbCr distribution
 - Hard-sample biological defects visual gallery (eyes, teeth, skin, hair)
-- Challenge Vault recall jump curves (11.71% -> 91.89%)
+- Challenge Vault recall jump curves (M0 -> M1 -> M2* -> M3)
 - Zero Identity Leakage dataset partition schema
 - Champion M3 Quad-Vault recall bar charts
 - Universal benchmark 34-method heatmap & 8-family recall
 - Real DINOv2 self-attention spatial heatmap forensic inspection
 """
 
+import json
 from pathlib import Path
 import re
+import sys
+
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+import numpy as np
+
+from src.analysis.coursework_metrics import collect_live_coursework_metrics, fmt_int, fmt_pct
 
 # Legacy presentation builder; keep separate from active presentation_final_acceptance.html
 OUTPUT_PATH = Path("docs/reports/presentation_final_acceptance_legacy.html")
+
+
+def _build_presentation_subs() -> dict[str, str]:
+    """Build live substitutions for the slide-deck presentation."""
+    m = collect_live_coursework_metrics()
+    real = m["real"]
+    cur = m["curation"]
+    sp = m["splits"]
+    al = m["al"]
+    q = m["quad"]
+    univ = m["universal"]
+    ug = univ["global"]
+    uf = univ["family"]
+    ff = univ["ff"]
+
+    u_npz = np.load("experiments/benchmarks/logs/benchmark_5models_predictions.npz", allow_pickle=True)
+    y_u = u_npz["y_true"]
+    taus = np.linspace(0.5, 0.999, 500)
+
+    def _fpr1(key: str) -> tuple[float, float]:
+        p = u_npz[key]
+        reals_p = p[y_u == 0]
+        fakes_p = p[y_u == 1]
+        valid = [t for t in taus if (reals_p >= t).mean() <= 0.01]
+        t_b = float(valid[0]) if valid else 0.999
+        return t_b, float((fakes_p >= t_b).mean() * 100.0)
+
+    m3_t1, m3_rec1 = _fpr1("probs_M3_dual_engine")
+    m0_t1, m0_rec1 = _fpr1("probs_M0_baseline")
+
+    d3_tr_fakes = [
+        json.loads(line)
+        for line in Path("data/benchmarks/D3_clean/train.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip() and json.loads(line)["label"] == 1
+    ]
+    d3_rv_t2i = sum(1 for r in d3_tr_fakes if r.get("manipulation_type") == "rv51_text2img")
+    d3_rv_inp = sum(1 for r in d3_tr_fakes if r.get("manipulation_type") == "rv51_inpaint")
+    d3_rv_i2i = sum(1 for r in d3_tr_fakes if r.get("manipulation_type") == "rv51_img2img")
+
+    ch_fake = max(1, al["challenge_fake"])
+    m1_jump = (q["M1"]["challenge"]["recall"] - q["M0"]["challenge"]["recall"]) * 100.0
+    m2s_jump = (q["M2_star"]["challenge"]["recall"] - q["M0"]["challenge"]["recall"]) * 100.0
+    m3_u_jump = (q["M3"]["unseen"]["recall"] - q["M2_star"]["unseen"]["recall"]) * 100.0
+
+    return {
+        "__REAL_TR__": fmt_int(real["train"]),
+        "__REAL_TE__": fmt_int(real["test"]),
+        "__FAKE_RAW__": fmt_int(cur["fake_raw_total"]),
+        "__SD_RAW__": fmt_int(cur["sd15_raw"]),
+        "__SD_CUR__": fmt_int(cur["sd15_cur"]),
+        "__B1_RAW__": fmt_int(cur["b1_raw"]),
+        "__R1_RAW__": fmt_int(cur["r1_raw"]),
+        "__R2_RAW__": fmt_int(cur["r2_raw"]),
+        "__RV_RAW__": fmt_int(cur["rv51_raw"]),
+        "__RV_CUR__": fmt_int(cur["rv51_cur"]),
+        "__HARD_TOT__": fmt_int(al["total_hard"]),
+        "__HARD_TR__": fmt_int(al["total_hard_train"]),
+        "__CHAL_TOT__": fmt_int(al["challenge_total"]),
+        "__CHAL_FAKE__": fmt_int(ch_fake),
+        "__MASTER_TOT__": fmt_int(sp["master_test"]),
+        "__D3_TR__": fmt_int(sp["d3_train"]),
+        "__D3_SD_BASE__": fmt_int(sp["d3_sd_nonhard"]),
+        "__D3_RV_CLEAN__": fmt_int(sp["d3_rv51_clean"]),
+        "__D3_RV_T2I__": fmt_int(d3_rv_t2i),
+        "__D3_RV_INP__": fmt_int(d3_rv_inp),
+        "__D3_RV_I2I__": fmt_int(d3_rv_i2i),
+        "__UNSEEN_TOT__": fmt_int(sp["unseen_rv51_total"]),
+        "__UNSEEN_F__": fmt_int(sp["unseen_rv51_fake"]),
+        "__M0_M_REC__": fmt_pct(q["M0"]["master"]["recall"]),
+        "__M0_C_REC__": fmt_pct(q["M0"]["challenge"]["recall"]),
+        "__M0_C_BYP__": fmt_pct(q["M0"]["challenge"]["bypass_rate"]),
+        "__M0_C_AUC__": f"{q['M0']['challenge']['roc_auc']:.4f}",
+        "__M0_U_REC__": fmt_pct(q["M0"]["unseen"]["recall"]),
+        "__M1_M_REC__": fmt_pct(q["M1"]["master"]["recall"]),
+        "__M1_C_REC__": fmt_pct(q["M1"]["challenge"]["recall"]),
+        "__M1_U_REC__": fmt_pct(q["M1"]["unseen"]["recall"]),
+        "__M1_JUMP__": f"{m1_jump:.2f}%",
+        "__M2_M_REC__": fmt_pct(q["M2"]["master"]["recall"]),
+        "__M2_C_REC__": fmt_pct(q["M2"]["challenge"]["recall"]),
+        "__M2_U_REC__": fmt_pct(q["M2"]["unseen"]["recall"]),
+        "__M2S_M_REC__": fmt_pct(q["M2_star"]["master"]["recall"]),
+        "__M2S_C_REC__": fmt_pct(q["M2_star"]["challenge"]["recall"]),
+        "__M2S_C_AUC__": f"{q['M2_star']['challenge']['roc_auc']:.4f}",
+        "__M2S_C_DET__": str(round(q["M2_star"]["challenge"]["recall"] * ch_fake)),
+        "__M2S_U_REC__": fmt_pct(q["M2_star"]["unseen"]["recall"]),
+        "__M2S_JUMP__": f"{m2s_jump:.2f}%",
+        "__M3_M_REC__": fmt_pct(q["M3"]["master"]["recall"]),
+        "__M3_C_REC__": fmt_pct(q["M3"]["challenge"]["recall"]),
+        "__M3_C_BYP__": fmt_pct(q["M3"]["challenge"]["bypass_rate"]),
+        "__M3_U_REC__": fmt_pct(q["M3"]["unseen"]["recall"]),
+        "__M3_U_BYP__": fmt_pct(q["M3"]["unseen"]["bypass_rate"]),
+        "__M3_U_JUMP__": f"{m3_u_jump:.2f}%",
+        "__U_M3_REC__": ug["M3_dual_engine"]["Fake Recall (↑)"],
+        "__U_M3_SPEC__": ug["M3_dual_engine"]["Real Specificity (↑)"],
+        "__UF_SD21__": uf["Latent Diffusion (SD 2.1)"]["M₃ (Dual-Engine Champion) Recall/Spec"],
+        "__UF_GAN__": uf["GAN Architectures"]["M₃ (Dual-Engine Champion) Recall/Spec"],
+        "__FF_FPR_085__": f"{ff['fpr_085']:.2f}%",
+        "__U_M3_T1__": f"{m3_t1:.3f}",
+        "__U_M3_REC1__": f"{m3_rec1:.2f}%",
+        "__U_M0_T1__": f"{m0_t1:.3f}",
+        "__U_M0_REC1__": f"{m0_rec1:.2f}%",
+    }
 
 def build_presentation_html() -> str:
     base_file = Path("docs/reports/presentation_5min_define_and_design.html")
@@ -197,7 +309,7 @@ def build_presentation_html() -> str:
                 Stable Diffusion-Based <span class="accent">Synthetic Facial Dataset</span> for Deepfake Defense
               </h1>
               <p class="cover-subtitle">
-                Báo cáo nghiệm thu thực chứng khoa học: Hoàn tất 100% KPI cam kết với bộ dữ liệu 6.000 ảnh khuếch tán kép (SD 1.5 + RV5.1), két bẫy 213 Challenge Vault, mô hình Champion M3 đạt Fake Recall 93.13% và đối chuẩn Universal Benchmark trên 20.400 ảnh.
+                Báo cáo nghiệm thu thực chứng khoa học: Hoàn tất 100% KPI cam kết với bộ dữ liệu __FAKE_RAW__ ảnh khuếch tán kép (SD 1.5 + RV5.1), két bẫy __CHAL_TOT__ Challenge Vault, mô hình Champion M3 đạt Fake Recall __M3_U_REC__ và đối chuẩn Universal Benchmark trên 20.400 ảnh.
               </p>
             </div>
 
@@ -231,18 +343,18 @@ def build_presentation_html() -> str:
               </div>
               <div class="meta-box">
                 <span class="meta-label">DỮ LIỆU SINH THỰC TẾ</span>
-                <span class="meta-value">6.000 Ảnh Khuếch Tán Kép</span>
-                <span class="meta-tag">SD 1.5 + Realistic Vision 5.1</span>
+                <span class="meta-value">__FAKE_RAW__ Ảnh Khuếch Tán Kép</span>
+                <span class="meta-tag">SD 1.5 (__SD_RAW__) + RV5.1 (__RV_RAW__)</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">KÉT THÁCH THỨC ĐỘC LẬP</span>
-                <span class="meta-value">213 Mẫu Challenge Vault</span>
+                <span class="meta-value">__CHAL_TOT__ Mẫu Challenge Vault</span>
                 <span class="meta-tag">Khóa Cứng 4 Lỗi Sinh Học</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">CHAMPION M3 HIỆU NĂNG</span>
-                <span class="meta-value">93.13% Quad-Vault Recall</span>
-                <span class="meta-tag">Bypass Rate Giảm Rơi Tự Do 6.87%</span>
+                <span class="meta-value">__M3_U_REC__ Quad-Vault Recall</span>
+                <span class="meta-tag">Bypass Rate Giảm Rơi Tự Do __M3_U_BYP__</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">ĐỐI CHUẨN TOÀN CẦU</span>
@@ -280,7 +392,7 @@ def build_presentation_html() -> str:
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Deepfake Diffusion áp dụng Soft-Mask Feathering σ=4.0 xóa nhòa hoàn toàn ranh giới ghép; Thực nghiệm chứng minh Baseline M0 bỏ sót tới 88.29% mẫu khó.
+              Deepfake Diffusion áp dụng Soft-Mask Feathering σ=4.0 xóa nhòa hoàn toàn ranh giới ghép; Thực nghiệm chứng minh Baseline M0 bỏ sót tới __M0_C_BYP__ mẫu khó.
             </div>
           </div>
         </header>
@@ -314,35 +426,35 @@ def build_presentation_html() -> str:
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="font-weight: 700; font-size: 14px;">Master Frozen Test (Ảnh Dễ - Phân Phối D0)</span>
-                    <span class="badge-success">FAKE RECALL: 49.07%</span>
+                    <span class="badge-success">FAKE RECALL: __M0_M_REC__</span>
                   </div>
                   <div style="width: 100%; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;">
-                    <div style="width: 49.07%; height: 100%; background: #3b82f6;"></div>
+                    <div style="width: __M0_M_REC__; height: 100%; background: #3b82f6;"></div>
                   </div>
                   <span style="font-size: 12px; color: var(--text-muted); margin-top: 6px; display: block;">M0 bắt được một nửa số ảnh giả do vẫn còn nhận diện được một số đặc trưng cơ sở.</span>
                 </div>
 
                 <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: var(--radius-md); padding: 16px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-weight: 700; font-size: 14px; color: #9f1239;">🚨 Challenge Vault (213 Mẫu Cực Khó)</span>
-                    <span class="delta-pill-red">FAKE RECALL: 11.71%</span>
+                    <span style="font-weight: 700; font-size: 14px; color: #9f1239;">🚨 Challenge Vault (__CHAL_TOT__ Mẫu Cực Khó)</span>
+                    <span class="delta-pill-red">FAKE RECALL: __M0_C_REC__</span>
                   </div>
                   <div style="width: 100%; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;">
-                    <div style="width: 11.71%; height: 100%; background: #e11d48;"></div>
+                    <div style="width: __M0_C_REC__; height: 100%; background: #e11d48;"></div>
                   </div>
                   <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">
-                    <span style="color: #9f1239; font-weight: 700;">Tỷ lệ lọt lưới (Bypass Rate): 88.29%</span>
-                    <span style="color: var(--text-muted);">ROC-AUC: 0.6124 (Đoán mò)</span>
+                    <span style="color: #9f1239; font-weight: 700;">Tỷ lệ lọt lưới (Bypass Rate): __M0_C_BYP__</span>
+                    <span style="color: var(--text-muted);">ROC-AUC: __M0_C_AUC__</span>
                   </div>
                   <p style="font-size: 12px; color: #881337; margin-top: 6px;">
-                    <strong>Nguy hại an ninh eKYC:</strong> Gần 9/10 khuôn mặt giả tinh vi dễ dàng vượt qua cổng nhận diện ngân hàng nếu chỉ dựa vào mô hình cơ sở không qua Active Learning!
+                    <strong>Nguy hại an ninh eKYC:</strong> Hơn 9/10 khuôn mặt giả tinh vi dễ dàng vượt qua cổng nhận diện ngân hàng nếu chỉ dựa vào mô hình cơ sở không qua Active Learning!
                   </p>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
                   <span style="font-weight: 700; font-size: 13px; color: var(--primary);">🎯 Hướng giải quyết của Đề Tài 11:</span>
                   <p style="font-size: 12px; color: var(--text); margin-top: 4px;">
-                    Thiết lập chu trình <strong>Active Learning khép kín</strong>: Khai phá 740 ca biên khó → Tinh chỉnh phân tầng Block 11 DINOv2 → Đẩy lùi đường biên quyết định → Chế ngự toàn diện các mẫu giả mạo tinh vi.
+                    Thiết lập chu trình <strong>Active Learning khép kín</strong>: Khai phá __HARD_TOT__ ca biên khó → Tinh chỉnh phân tầng Block 11 DINOv2 → Đẩy lùi đường biên quyết định → Chế ngự toàn diện các mẫu giả mạo tinh vi.
                   </p>
                 </div>
               </div>
@@ -419,31 +531,31 @@ def build_presentation_html() -> str:
                   <tr>
                     <td><strong>1. Sinh Dữ Liệu</strong></td>
                     <td>SD Inpaint/Img2Img/Text2Img</td>
-                    <td>6.000 ảnh 2 động cơ SD 1.5 + RV5.1; Soft Feathering σ=4.0</td>
+                    <td>__FAKE_RAW__ ảnh 2 động cơ SD 1.5 (__SD_RAW__) + RV5.1 (__RV_RAW__); Soft Feathering σ=4.0</td>
                     <td><span class="badge-success">✓ ĐẠT 100%</span></td>
                   </tr>
                   <tr>
                     <td><strong>2. CurationGate</strong></td>
                     <td>Lọc 3 tầng Hình học/Quang học/Hash</td>
-                    <td>OpenCV Haar + Laplacian phân vị 5% + SHA-256; 100% sạch trùng lặp</td>
+                    <td>YuNet / OpenCV Haar + Laplacian phân vị 5% + Extended Audit + SHA-256/dHash; giữ __SD_CUR__ SD 1.5 &amp; __RV_CUR__ RV5.1</td>
                     <td><span class="badge-success">✓ ĐẠT 100%</span></td>
                   </tr>
                   <tr class="highlight-champion">
                     <td><strong>3. Khai Phá Mẫu Khó</strong></td>
                     <td>Active Learning vòng lặp</td>
-                    <td>740 mẫu khó, Két 213 Challenge; Recall: 11.71% → 91.89%</td>
-                    <td><span class="badge-champion">⭐ VƯỢT (+80%)</span></td>
+                    <td>__HARD_TOT__ mẫu khó, Két __CHAL_TOT__ Challenge; Recall: __M0_C_REC__ → __M2S_C_REC__</td>
+                    <td><span class="badge-champion">⭐ VƯỢT (+__M2S_JUMP__)</span></td>
                   </tr>
                   <tr>
                     <td><strong>4. Zero Leakage</strong></td>
                     <td>Tránh học vẹt danh tính</td>
-                    <td>Cách ly 626 ảnh RV5.1 test ID; D3 cân bằng 1:1 chuẩn xác</td>
+                    <td>Cách ly __UNSEEN_F__ ảnh RV5.1 test ID; D3 cân bằng 1:1 chuẩn xác (__D3_TR__ ảnh)</td>
                     <td><span class="badge-success">✓ LIÊM CHÍNH</span></td>
                   </tr>
                   <tr class="highlight-champion">
                     <td><strong>5. Champion M3</strong></td>
                     <td>Đánh giá tổng quát hóa</td>
-                    <td>Champion M3 Quad-Vault 93.13%; Universal Benchmark 20.400 ảnh</td>
+                    <td>Champion M3 Quad-Vault __M3_U_REC__; Universal Benchmark 20.400 ảnh</td>
                     <td><span class="badge-champion">⭐ VƯỢT CHỈ TIÊU</span></td>
                   </tr>
                 </tbody>
@@ -472,7 +584,7 @@ def build_presentation_html() -> str:
     </section>
 
     <!-- =======================================================================
-         SLIDE 03: SẢN PHẨM 1: KHO DỮ LIỆU DUAL-ENGINE 6,000 ẢNH & GRID MẪU THẬT
+         SLIDE 03: SẢN PHẨM 1: KHO DỮ LIỆU DUAL-ENGINE __FAKE_RAW__ ẢNH & GRID MẪU THẬT
          ======================================================================= -->
     <section class="slide" id="slide-4" data-title="03 / Dữ Liệu Khuếch Tán Kép">
       <div class="slide-inner">
@@ -483,7 +595,7 @@ def build_presentation_html() -> str:
               <span class="section-subtitle">ĐỘNG CƠ KHUÊCH TÁN KÉP & LÀM MỊN BIÊN GAUSSIAN</span>
             </div>
             <h2 class="slide-title">
-              Kho Dữ Liệu Kép: <span>6.000 Ảnh Sinh Thực Tế & Lưới Đối Chuẩn Mẫu</span>
+              Kho Dữ Liệu Kép: <span>__FAKE_RAW__ Ảnh Sinh Thực Tế &amp; Lưới Đối Chuẩn Mẫu</span>
             </h2>
           </div>
           <div class="header-right">
@@ -514,38 +626,38 @@ def build_presentation_html() -> str:
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Cơ Cấu Danh Mục 6.000 Ảnh Sinh Thực Nghiệm
+                  Cơ Cấu Danh Mục __FAKE_RAW__ Ảnh Sinh Thực Nghiệm
                 </div>
-                <span class="panel-badge">QUY MÔ 6.000 MẪU</span>
+                <span class="panel-badge">QUY MÔ __FAKE_RAW__ MẪU</span>
               </div>
               <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px; height: 480px; justify-content: space-between;">
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <span style="font-weight: 700; color: #111111;">Động Cơ A: Stable Diffusion v1.5 Inpainting</span>
-                    <span class="badge-success">3.000 ẢNH</span>
+                    <span style="font-weight: 700; color: #111111;">Động Cơ A: Stable Diffusion v1.5</span>
+                    <span class="badge-success">__SD_RAW__ THÔ / __SD_CUR__ SẠCH</span>
                   </div>
                   <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
-                    Đại diện cho họ khuếch tán phổ thông mã nguồn mở. Cung cấp khuôn mặt cân đối chuẩn nhưng đôi khi thiếu chi tiết vi mô lỗ chân lông.
+                    Đại diện cho họ khuếch tán phổ thông mã nguồn mở, vận hành vòng lặp Active Learning nội miền (D0 → D1 → D2).
                   </p>
                   <div style="display: flex; gap: 6px; font-size: 11px; font-family: var(--font-mono);">
-                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">Inpaint: 1.000</span>
-                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">Img2Img: 1.000</span>
-                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">Text2Img: 1.000</span>
+                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">D0: __B1_RAW__</span>
+                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">AL R1: __R1_RAW__</span>
+                    <span style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px;">AL R2: __R2_RAW__</span>
                   </div>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 12px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                     <span style="font-weight: 700; color: var(--primary);">Động Cơ B: RealisticVision v5.1 (Photorealistic)</span>
-                    <span class="badge-champion">3.000 ẢNH</span>
+                    <span class="badge-champion">__RV_RAW__ THÔ / __RV_CUR__ SẠCH</span>
                   </div>
                   <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
                     Đại diện cho mô hình khuếch tán tinh chỉnh cao cấp. Mô phỏng siêu thực từng chi tiết phản quang đồng tử, sợi tóc tơ và cấu trúc da chân thực.
                   </p>
                   <div style="display: flex; gap: 6px; font-size: 11px; font-family: var(--font-mono);">
-                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Inpaint: 1.000</span>
-                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Img2Img: 1.000</span>
-                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Text2Img: 1.000</span>
+                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Inpaint: 2.000</span>
+                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Img2Img: 2.000</span>
+                    <span style="background: var(--primary-soft); color: var(--primary); padding: 2px 6px; border-radius: 4px;">Text2Img: 2.000</span>
                   </div>
                 </div>
 
@@ -621,8 +733,8 @@ def build_presentation_html() -> str:
                 <span class="intent-index">TẦNG 1</span>
                 <span class="intent-role">HÌNH HỌC KHUÔN MẶT</span>
               </div>
-              <h3>OpenCV Haar &amp; Kiểm Định Hình Học</h3>
-              <p>Lọc ảnh không thấy mặt hoặc đa mặt, tỷ lệ mặt 20%–65% khung, chuẩn hóa kích thước 512×512 (DINOv2 snap 504×504).</p>
+              <h3>YuNet / OpenCV Haar &amp; Kiểm Định Hình Học</h3>
+              <p>Lọc ảnh không thấy mặt, thiếu cặp mắt hoặc đa mặt, kiểm tra Cheek FFT / CIELab ΔE / CLIP, chuẩn hóa 512×512 (DINOv2 snap 504×504).</p>
             </div>
             <div class="intent-card">
               <div class="intent-card-top">
@@ -637,8 +749,8 @@ def build_presentation_html() -> str:
                 <span class="intent-index">TẦNG 3</span>
                 <span class="intent-role">CHỐNG TRÙNG LẶP</span>
               </div>
-              <h3>SHA-256 Exact &amp; Embedding Diversity</h3>
-              <p>Khử trùng lặp băm SHA-256 kết hợp khoảng cách Cosine ≥ 0.05 đảm bảo 0 bản sao trùng lặp trong tập huấn luyện.</p>
+              <h3>SHA-256, Perceptual dHash &amp; Cosine</h3>
+              <p>Khử trùng lặp băm SHA-256 + dHash kết hợp khoảng cách Cosine ≥ 0.05 đảm bảo 0 bản sao trùng lặp trong tập huấn luyện.</p>
             </div>
           </div>
         </div>
@@ -646,7 +758,7 @@ def build_presentation_html() -> str:
     </section>
 
     <!-- =======================================================================
-         SLIDE 05: KHAI PHÁ 740 HARD SAMPLES & ARTIFACT 4 DỊ TẬT SINH HỌC
+         SLIDE 05: KHAI PHÁ __HARD_TOT__ HARD SAMPLES & ARTIFACT 4 DỊ TẬT SINH HỌC
          ======================================================================= -->
     <section class="slide" id="slide-6" data-title="05 / Khai Phá Mẫu Khó">
       <div class="slide-inner">
@@ -662,7 +774,7 @@ def build_presentation_html() -> str:
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Cô lập 213 mẫu khó nhất vào Két bẫy Challenge Vault làm thước đo bất biến kiểm chứng năng lực phá vỡ rào cản của mô hình qua các vòng học.
+              Cô lập __CHAL_TOT__ mẫu khó nhất vào Két bẫy Challenge Vault làm thước đo bất biến kiểm chứng năng lực phá vỡ rào cản của mô hình qua các vòng học.
             </div>
           </div>
         </header>
@@ -721,7 +833,7 @@ def build_presentation_html() -> str:
                 </div>
 
                 <div style="text-align: center; font-size: 11px; color: var(--text-muted);">
-                  Tổng số mẫu khó khai phá: <strong>740 mẫu</strong> → Khóa cứng <strong>213 mẫu độc lập</strong> làm Challenge Vault!
+                  Tổng số mẫu khó khai phá: <strong>__HARD_TOT__ mẫu</strong> → Khóa cứng <strong>__CHAL_TOT__ mẫu độc lập</strong> làm Challenge Vault!
                 </div>
               </div>
             </div>
@@ -739,10 +851,10 @@ def build_presentation_html() -> str:
           <div class="header-left">
             <div class="eyebrow-row">
               <span class="section-tag">06 / ĐỘT PHÁ ACTIVE LEARNING</span>
-              <span class="section-subtitle">BIÊN QUYẾT ĐỊNH MỚI & BƯỚC NHẢY VỌT +80.18% RECALL</span>
+              <span class="section-subtitle">BIÊN QUYẾT ĐỊNH MỚI &amp; BƯỚC NHẢY VỌT +__M2S_JUMP__ RECALL</span>
             </div>
             <h2 class="slide-title">
-              Active Learning Vòng 2: <span>M2* Nâng Fake Recall Từ 11.71% Lên 91.89%</span>
+              Active Learning Vòng 2: <span>M2* Nâng Fake Recall Từ __M0_C_REC__ Lên __M2S_C_REC__</span>
             </h2>
           </div>
           <div class="header-right">
@@ -759,7 +871,7 @@ def build_presentation_html() -> str:
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Artifact Thực Chứng: Biểu Đồ Cú Nhảy Vọt Fake Recall Trên 213 Challenge Samples
+                  Artifact Thực Chứng: Biểu Đồ Cú Nhảy Vọt Fake Recall Trên __CHAL_TOT__ Challenge Samples
                 </div>
                 <span class="panel-badge badge-champion">ARTIFACT NOTEBOOK 02</span>
               </div>
@@ -787,18 +899,18 @@ def build_presentation_html() -> str:
           <div class="card-grid-3" style="margin-top: 14px;">
             <div class="intent-card" style="text-align: center;">
               <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">M0 BASELINE D0</span>
-              <div style="font-size: 26px; font-weight: 800; color: #b91c1c; font-family: var(--font-display); margin: 4px 0;">11.71%</div>
-              <span style="font-size: 11px; color: #991b1b;">Bỏ sót 88.29% mẫu khó</span>
+              <div style="font-size: 26px; font-weight: 800; color: #b91c1c; font-family: var(--font-display); margin: 4px 0;">__M0_C_REC__</div>
+              <span style="font-size: 11px; color: #991b1b;">Bỏ sót __M0_C_BYP__ mẫu khó</span>
             </div>
             <div class="intent-card" style="text-align: center;">
               <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">M1 ACTIVE ROUND 1</span>
-              <div style="font-size: 26px; font-weight: 800; color: #f59e0b; font-family: var(--font-display); margin: 4px 0;">70.27%</div>
-              <span style="font-size: 11px; color: #b45309;">Bước nhảy đầu tiên (+58.56%)</span>
+              <div style="font-size: 26px; font-weight: 800; color: #f59e0b; font-family: var(--font-display); margin: 4px 0;">__M1_C_REC__</div>
+              <span style="font-size: 11px; color: #b45309;">Bước nhảy đầu tiên (+__M1_JUMP__)</span>
             </div>
             <div class="intent-card" style="text-align: center; border-color: var(--primary);">
-              <span style="font-size: 11px; font-weight: 700; color: var(--primary);">🏆 M2* REFINED CHAMPION</span>
-              <div style="font-size: 26px; font-weight: 800; color: #15803d; font-family: var(--font-display); margin: 4px 0;">91.89%</div>
-              <span style="font-size: 11px; color: #166534; font-weight: 700;">Bắt trọn 102/111 mẫu giả cực khó!</span>
+              <span style="font-size: 11px; font-weight: 700; color: var(--primary);">🏆 M2* REFINED WARM-START</span>
+              <div style="font-size: 26px; font-weight: 800; color: #15803d; font-family: var(--font-display); margin: 4px 0;">__M2S_C_REC__</div>
+              <span style="font-size: 11px; color: #166534; font-weight: 700;">Bắt trúng __M2S_C_DET__/__CHAL_FAKE__ mẫu giả (AUC __M2S_C_AUC__)!</span>
             </div>
           </div>
         </div>
@@ -822,7 +934,7 @@ def build_presentation_html() -> str:
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Nhóm phát hiện 626 ảnh RealisticVision mang khuôn mặt của tập test; lập tức cách ly 100% làm tập kiểm thử mù độc lập, loại bỏ hoàn toàn nguy cơ gian lận mô hình.
+              Nhóm phát hiện __UNSEEN_F__ ảnh RealisticVision mang khuôn mặt của tập test; lập tức cách ly 100% làm tập kiểm thử mù độc lập, loại bỏ hoàn toàn nguy cơ gian lận mô hình.
             </div>
           </div>
         </header>
@@ -848,7 +960,7 @@ def build_presentation_html() -> str:
               <div class="panel-title-bar">
                 <div class="panel-title">
                   <span class="panel-title-dot"></span>
-                  Cấu Trúc Tập Huấn Luyện D3 Cân Bằng Chuẩn 1:1 (5.626 Ảnh)
+                  Cấu Trúc Tập Huấn Luyện D3 Cân Bằng Chuẩn 1:1 (__D3_TR__ Ảnh)
                 </div>
                 <span class="panel-badge badge-champion">ZERO LEAKAGE ĐẠT CHUẨN</span>
               </div>
@@ -864,36 +976,36 @@ def build_presentation_html() -> str:
                   <tbody>
                     <tr>
                       <td><strong>Ảnh Thật (Label 0)</strong></td>
-                      <td><strong>2.813</strong></td>
+                      <td><strong>__REAL_TR__</strong></td>
                       <td>100% ảnh thật gốc tập Train (FFHQ + CelebA-HQ)</td>
                     </tr>
                     <tr>
                       <td><strong>Mẫu Khó SD 1.5 (D2_hard)</strong></td>
-                      <td>629</td>
+                      <td>__HARD_TR__</td>
                       <td>Mẫu khó từng vượt mặt M0/M1 ở Vòng 2</td>
                     </tr>
                     <tr>
                       <td><strong>Ảnh Giả SD 1.5 Cơ Sở (D0)</strong></td>
-                      <td>800</td>
+                      <td>__D3_SD_BASE__</td>
                       <td>Bảo tồn phân phối cơ sở tránh quên tri thức</td>
                     </tr>
                     <tr>
                       <td><strong>Ảnh Giả RV5.1 Sạch Danh Tính</strong></td>
-                      <td>1.384</td>
-                      <td>484 Text2Img + 450 Inpaint + 450 Img2Img (Sạch ID)</td>
+                      <td>__D3_RV_CLEAN__</td>
+                      <td>__D3_RV_T2I__ Text2Img + __D3_RV_INP__ Inpaint + __D3_RV_I2I__ Img2Img (Sạch ID)</td>
                     </tr>
                     <tr class="highlight-champion">
                       <td><strong>TỔNG CỘNG TẬP TRAIN D3</strong></td>
-                      <td><strong>5.626</strong></td>
-                      <td><strong>Cân Bằng 1:1 (2.813 Thật : 2.813 Giả) • 0 Ảnh Rò Rỉ</strong></td>
+                      <td><strong>__D3_TR__</strong></td>
+                      <td><strong>Cân Bằng 1:1 (__REAL_TR__ Thật : __REAL_TR__ Giả) • 0 Ảnh Rò Rỉ</strong></td>
                     </tr>
                   </tbody>
                 </table>
 
                 <div style="margin-top: 14px; background: #dcfce7; border: 1px solid #86efac; border-radius: var(--radius-md); padding: 12px;">
-                  <span style="font-weight: 700; font-size: 12px; color: #166534;">✓ Cách Ly 626 Ảnh Làm Tập Kiểm Thử Mù Riêng Biệt:</span>
+                  <span style="font-weight: 700; font-size: 12px; color: #166534;">✓ Cách Ly __UNSEEN_F__ Ảnh Làm Tập Kiểm Thử Mù Riêng Biệt:</span>
                   <span style="font-size: 11px; color: #14532d; display: block; margin-top: 4px;">
-                    Kho <code>unseen_rv51_test.jsonl</code> (1.215 ảnh gồm 626 fake + 589 test reals) được bảo vệ hoàn toàn, trở thành thước đo kiểm thử mù liên bộ sinh (Cross-Generator) khắt khe nhất của dự án!
+                    Kho <code>unseen_rv51_test.jsonl</code> (__UNSEEN_TOT__ ảnh gồm __UNSEEN_F__ fake + __REAL_TE__ test reals) được bảo vệ hoàn toàn, trở thành thước đo kiểm thử mù liên bộ sinh (Cross-Generator) khắt khe nhất của dự án!
                   </span>
                 </div>
               </div>
@@ -915,12 +1027,12 @@ def build_presentation_html() -> str:
               <span class="section-subtitle">ĐÁNH GIÁ 5 MÔ HÌNH TRÊN 3 KHO KIỂM THỬ ĐỘC LẬP</span>
             </div>
             <h2 class="slide-title">
-              Champion M3: <span>Bứt Phá 93.13% Quad-Vault Mà Không Quên SD 1.5</span>
+              Champion M3: <span>Bứt Phá __M3_U_REC__ Quad-Vault Mà Không Quên SD 1.5</span>
             </h2>
           </div>
           <div class="header-right">
             <div class="header-takeaway">
-              Mô hình vô địch M3 Warm-Start từ M2* tạo lập kỷ lục mới toàn diện: Fake Recall đạt 93.13% trên tập mù RV5.1 mà vẫn giữ vững 91.89% trên Challenge Vault.
+              Mô hình vô địch M3 Warm-Start từ M2* tạo lập kỷ lục mới toàn diện: Fake Recall đạt __M3_U_REC__ trên tập mù RV5.1 đồng thời đạt __M3_C_REC__ trên Challenge Vault.
             </div>
           </div>
         </header>
@@ -955,41 +1067,41 @@ def build_presentation_html() -> str:
                   <thead>
                     <tr>
                       <th>Phiên Bản Mô Hình</th>
-                      <th>Master Test (SD 1.5)<br><span style="font-size: 10px; font-weight: normal;">1.178 ảnh</span></th>
-                      <th>Challenge Vault<br><span style="font-size: 10px; font-weight: normal;">213 mẫu khó</span></th>
-                      <th>Unseen RV5.1 Vault<br><span style="font-size: 10px; font-weight: normal;">1.215 ảnh mù</span></th>
+                      <th>Master Test (SD 1.5)<br><span style="font-size: 10px; font-weight: normal;">__MASTER_TOT__ ảnh</span></th>
+                      <th>Challenge Vault<br><span style="font-size: 10px; font-weight: normal;">__CHAL_TOT__ mẫu khó</span></th>
+                      <th>Unseen RV5.1 Vault<br><span style="font-size: 10px; font-weight: normal;">__UNSEEN_TOT__ ảnh mù</span></th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td><strong>M0 (D0 Baseline)</strong></td>
-                      <td>49.07%</td>
-                      <td>11.71%</td>
-                      <td>66.45%</td>
+                      <td>__M0_M_REC__</td>
+                      <td>__M0_C_REC__</td>
+                      <td>__M0_U_REC__</td>
                     </tr>
                     <tr>
                       <td><strong>M1 (Active Round 1)</strong></td>
-                      <td>62.14%</td>
-                      <td>70.27%</td>
-                      <td>72.04%</td>
+                      <td>__M1_M_REC__</td>
+                      <td>__M1_C_REC__</td>
+                      <td>__M1_U_REC__</td>
                     </tr>
                     <tr>
                       <td><strong>M2 (Cold-Start Retrain)</strong></td>
-                      <td>52.63%</td>
-                      <td>86.49%</td>
-                      <td>56.55%</td>
+                      <td>__M2_M_REC__</td>
+                      <td>__M2_C_REC__</td>
+                      <td>__M2_U_REC__</td>
                     </tr>
                     <tr>
-                      <td><strong>M2* (Refined Champion)</strong></td>
-                      <td>66.89%</td>
-                      <td><strong>91.89%</strong></td>
-                      <td>71.88%</td>
+                      <td><strong>M2* (Refined Warm-Start)</strong></td>
+                      <td>__M2S_M_REC__</td>
+                      <td><strong>__M2S_C_REC__</strong></td>
+                      <td>__M2S_U_REC__</td>
                     </tr>
                     <tr class="highlight-champion">
                       <td><strong>🏆 M3 (Dual-Engine Champion)</strong></td>
-                      <td><span class="delta-pill-green">69.44% (Cao nhất)</span></td>
-                      <td><span class="delta-pill-green">91.89% (Bảo tồn)</span></td>
-                      <td><span class="delta-pill-green">93.13% (+21.25%)</span></td>
+                      <td><span class="delta-pill-green">__M3_M_REC__ (Kháng quên)</span></td>
+                      <td><span class="delta-pill-green">__M3_C_REC__ (Bảo toàn)</span></td>
+                      <td><span class="delta-pill-green">__M3_U_REC__ (+__M3_U_JUMP__)</span></td>
                     </tr>
                   </tbody>
                 </table>
@@ -997,13 +1109,13 @@ def build_presentation_html() -> str:
                 <!-- 3 Key Findings -->
                 <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
                   <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 11px;">
-                    <strong>1. Không quên SD 1.5:</strong> Fake Recall Master Frozen Test đạt <strong>69.44%</strong> (cao nhất toàn dự án).
+                    <strong>1. Không quên SD 1.5:</strong> Fake Recall Master Frozen Test đạt <strong>__M3_M_REC__</strong> (vượt xa M0 __M0_M_REC__ &amp; M2* __M2S_M_REC__).
                   </div>
                   <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 11px;">
-                    <strong>2. Bảo vệ két khó:</strong> Duy trì tuyệt đối <strong>91.89%</strong> mẫu khó Challenge Vault (Bypass chỉ 8.11%).
+                    <strong>2. Bảo vệ két khó:</strong> Đạt <strong>__M3_C_REC__</strong> mẫu khó Challenge Vault (Bypass chỉ __M3_C_BYP__).
                   </div>
                   <div style="background: #eef0ff; border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; font-size: 11px; color: var(--primary);">
-                    <strong>3. Bứt phá liên bộ sinh:</strong> Fake Recall vọt lên <strong>93.13%</strong> trên kho ảnh mù RV5.1 (Bypass giảm sâu 6.87%)!
+                    <strong>3. Bứt phá liên bộ sinh:</strong> Fake Recall vọt lên <strong>__M3_U_REC__</strong> trên kho ảnh mù RV5.1 (Bypass giảm sâu __M3_U_BYP__)!
                   </div>
                 </div>
               </div>
@@ -1068,8 +1180,8 @@ def build_presentation_html() -> str:
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
                   <span style="font-weight: 700; font-size: 12px; color: var(--primary);">Khảo sát ngưỡng vận hành eKYC Ngân hàng (@ 512→504px):</span>
                   <div style="font-size: 11px; color: var(--text); margin-top: 4px; line-height: 1.5;">
-                    • Tại ngưỡng mặc định <code>τ = 0.50</code>: M3 đạt Fake Recall toàn cầu <strong>21.15%</strong> (SD 2.1: <strong>54.00%</strong>, GAN: <strong>60.00%</strong>), Real Spec <strong>94.75%</strong>; nâng ngưỡng <code>τ = 0.85</code> hạ FPR trên video FF++ C23 còn <strong>2.54%</strong>.<br>
-                    • Tại ngưỡng cực gắt <code>FPR ≤ 1.0%</code> (<code>τ = 0.971</code>): Fake Recall đạt <strong>13.38%</strong> (M0 tại <code>τ = 0.573</code>: 13.07%) — thể hiện trung thực khoảng trống miền Zero-Shot ngoài Diffusion.
+                    • Tại ngưỡng mặc định <code>τ = 0.50</code>: M3 đạt Fake Recall toàn cầu <strong>__U_M3_REC__</strong> (SD 2.1: <strong>__UF_SD21__</strong>, GAN: <strong>__UF_GAN__</strong>), Real Spec <strong>__U_M3_SPEC__</strong>; nâng ngưỡng <code>τ = 0.85</code> hạ FPR trên video FF++ C23 còn <strong>__FF_FPR_085__</strong>.<br>
+                    • Tại ngưỡng cực gắt <code>FPR ≤ 1.0%</code> (<code>τ = __U_M3_T1__</code>): Fake Recall đạt <strong>__U_M3_REC1__</strong> (M0 tại <code>τ = __U_M0_T1__</code>: __U_M0_REC1__) — thể hiện trung thực khoảng trống miền Zero-Shot ngoài Diffusion.
                   </div>
                 </div>
               </div>
@@ -1210,21 +1322,21 @@ def build_presentation_html() -> str:
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
                   <span style="font-weight: 700; font-size: 13px; color: var(--primary);">1. Quy Trình Dữ Liệu Khuếch Tán Kép Soft-Feathering:</span>
                   <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                    Kho 6.000 ảnh từ SD 1.5 và RV5.1 triệt tiêu vết cắt biên nhân tạo; phễu lọc 3 tầng CurationGate đảm bảo 100% sạch trùng lặp và đạt chuẩn chân thực sinh học.
+                    Kho __FAKE_RAW__ ảnh từ SD 1.5 và RV5.1 triệt tiêu vết cắt biên nhân tạo; phễu lọc 3 tầng CurationGate mở rộng đảm bảo 100% sạch trùng lặp và đạt chuẩn chân thực sinh học.
                   </p>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
-                  <span style="font-weight: 700; font-size: 13px; color: #15803d;">2. Active Learning Đào Sâu Mẫu Khó & Challenge Vault:</span>
+                  <span style="font-weight: 700; font-size: 13px; color: #15803d;">2. Active Learning Đào Sâu Mẫu Khó &amp; Challenge Vault:</span>
                   <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                    Khai phá 740 ca biên khó, cô lập két bẫy 213 mẫu bất biến; chứng minh thực chứng bước nhảy vọt Fake Recall từ 11.71% lên 91.89% (+80.18%).
+                    Khai phá __HARD_TOT__ ca biên khó, cô lập két bẫy __CHAL_TOT__ mẫu bất biến; chứng minh thực chứng bước nhảy vọt Fake Recall từ __M0_C_REC__ lên __M2S_C_REC__ (+__M2S_JUMP__).
                   </p>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;">
-                  <span style="font-weight: 700; font-size: 13px; color: var(--primary);">3. Champion M3 & Liêm Chính Zero Identity Leakage:</span>
+                  <span style="font-weight: 700; font-size: 13px; color: var(--primary);">3. Champion M3 &amp; Liêm Chính Zero Identity Leakage:</span>
                   <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                    Thích nghi liên bộ sinh xuất sắc, đạt Quad-Vault Fake Recall 93.13% mà không làm giảm nhận thức trên SD 1.5; tốc độ suy luận 18.5 ms/ảnh sẵn sàng tích hợp cổng ngân hàng.
+                    Thích nghi liên bộ sinh xuất sắc, đạt Quad-Vault Fake Recall __M3_U_REC__ mà không làm giảm nhận thức trên SD 1.5; tốc độ suy luận 18.5 ms/ảnh sẵn sàng tích hợp cổng ngân hàng.
                   </p>
                 </div>
 
@@ -1278,6 +1390,8 @@ def build_presentation_html() -> str:
 </body>
 </html>
 """
+    for tok, val in _build_presentation_subs().items():
+        full_html = full_html.replace(tok, val)
     return full_html
 
 def main():
