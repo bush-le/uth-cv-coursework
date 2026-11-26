@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-from PIL import Image
+from PIL import Image, ImageOps
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -201,6 +201,7 @@ def _evaluate_catalog_entry(
         min_sharpness=min_sharpness,
         min_cheek_fft=min_cheek_fft,
         min_clip=min_clip,
+        max_delta_e=float(measured.get("effective_max_delta_e", 18.0)),
     )
 
 
@@ -214,13 +215,13 @@ def _metric_progress_ratio(item: CurationMetricItem) -> float:
         return max(0.0, min(1.0, val / max(1.0, thr * 4.0)))
     if item.name == "cheek_fft":
         return max(0.0, min(1.0, val / max(1e-4, thr * 2.5)))
-    if item.name == "clip":
+    if item.name == "clip_score":
         return max(0.0, min(1.0, val / 0.40))
-    if item.name == "yunet_geometry":
+    if item.name == "geometry":
         return 1.0 if item.passed else 0.25
-    if item.name == "delta_e":
+    if item.name == "delta_e_lab":
         return max(0.0, min(1.0, 1.0 - (val / max(1.0, thr * 2.0))))
-    if item.name == "seam_highlight":
+    if item.name == "seam_diff":
         return max(0.0, min(1.0, 1.0 - (val / max(1.0, thr * 2.0))))
     return 1.0 if item.passed else 0.0
 
@@ -241,7 +242,7 @@ def _collect_ffhq_source_choices(catalog: Dict[str, List[ShowcaseCatalogEntry]])
 def _render_live_sandbox(
     catalog: Dict[str, List[ShowcaseCatalogEntry]],
     bundle: Optional[DetectorBundle],
-) -> None:
+) -> Optional[DetectorBundle]:
     """Render collapsible Upload Ảnh Lạ & Live SD 1.5 generator sandbox."""
     with st.expander("Upload Ảnh Lạ / Sinh thử 1 ảnh Live (SD 1.5)", expanded=False):
         col_up, col_sd = st.columns(2)
@@ -272,12 +273,17 @@ def _render_live_sandbox(
                 if up_target is None:
                     st.warning("Vui lòng chọn file ảnh trước khi phân tích.")
                 else:
-                    target_pil = Image.open(up_target).convert("RGB")
-                    source_pil = Image.open(up_source).convert("RGB") if up_source is not None else None
+                    target_pil = ImageOps.exif_transpose(Image.open(up_target)).convert("RGB")
+                    source_pil = (
+                        ImageOps.exif_transpose(Image.open(up_source)).convert("RGB")
+                        if up_source is not None
+                        else None
+                    )
+                    upload_mode = "sd_img2img" if source_pil is not None else "custom_upload"
                     st.session_state.custom_target = {
                         "kind": "upload",
                         "title": f"Upload: {up_target.name}",
-                        "mode": "custom_upload",
+                        "mode": upload_mode,
                         "target_image": target_pil,
                         "source_image": source_pil,
                         "mask_region": None,
@@ -364,6 +370,9 @@ def _render_live_sandbox(
                         st.rerun()
                     except Exception as exc:
                         st.error(f"Sinh ảnh Live SD 1.5 thất bại: {exc}")
+                        bundle = get_detector_bundle()
+
+    return bundle
 
 
 def _render_xray_inspector(
@@ -476,8 +485,10 @@ def _render_xray_inspector(
     # Cột C: Tầng 3 & 4 — M0 Mining -> M0..M3 & Explainability
     with col_c:
         st.markdown("#### Cột C · Tầng 3 & 4: M0 Mining & M0..M3")
-        if not inspection.detector_scores:
+        if not inspection.gate_passed and not inspection.detector_scores:
             st.warning("Ảnh bị loại tại Cổng Data — Detector không chấm (bật tùy chọn ép chấm nếu muốn xem).")
+        elif not inspection.detector_scores:
+            st.warning("Không có điểm Detector — kiểm tra tải checkpoint / VRAM.")
         else:
             m0_prob = inspection.detector_scores.get("M0", 0.0)
             m3_prob = inspection.detector_scores.get("M3", 0.0)
@@ -691,7 +702,7 @@ def main() -> None:
                 st.session_state.gallery_limit += 12
                 st.rerun()
 
-    _render_live_sandbox(catalog, bundle)
+    bundle = _render_live_sandbox(catalog, bundle)
 
     # Khối 2: 4-Stage X-Ray Inspector
     st.divider()
@@ -714,7 +725,7 @@ def main() -> None:
             min_clip=min_clip,
             tau=tau,
             ground_truth_label=custom.get("ground_truth_label"),
-            run_detector_if_rejected=bool(custom.get("run_detector_if_rejected", False)),
+            run_detector_if_rejected=bool(st.session_state.get("force_detector_checkbox", False)),
             clip_scorer=clip_scorer,
             compute_heatmaps=True,
         )

@@ -396,7 +396,10 @@ def test_launch_live_sd_worker_raises_contextual_error_on_nonzero_exit(
 
 def test_catalog_entries_passed_are_strictly_held_out_and_cover_all_tabs() -> None:
     """Verify UI catalog covers all 4 tabs with strictly held-out passed items, failed items, and cheek_fft_ratio."""
-    catalog = load_curated_showcase_catalog()
+    catalog_path = Path("experiments/demo_runs/ui_showcase_catalog.json")
+    if not catalog_path.is_file() or not Path("data/raw/faces/ffhq").is_dir():
+        pytest.skip("Required UI showcase catalog or local data/ image directories missing.")
+    catalog = load_curated_showcase_catalog(catalog_path)
     assert set(catalog.keys()) == {"sd_text2img", "sd_img2img", "sd_inpaint", "ood_and_real"}
 
     for tab in ("sd_text2img", "sd_img2img", "sd_inpaint"):
@@ -549,3 +552,106 @@ def test_streamlit_app_boots_renders_4_modes_and_handles_sliders() -> None:
     sliders_by_label[tau_key].set_value(0.60)
     at.run()
     assert not at.exception, f"AppTest raised exception after slider updates: {at.exception}"
+
+    img2img_btn = next((b for b in at.button if "Img2Img" in str(b.label) and "Ca " not in str(b.label)), None)
+    assert img2img_btn is not None, f"Missing Img2Img mode button in {[str(b.label) for b in at.button]}"
+    img2img_btn.click()
+    at.run()
+    assert not at.exception, f"AppTest raised exception after switching to Img2Img: {at.exception}"
+    sliders_after = {str(s.label): s for s in at.slider}
+    clip_key = next((k for k in sliders_after if "Min CLIP" in k), None)
+    assert clip_key is not None, f"Missing Min CLIP slider in {list(sliders_after)}"
+    assert float(sliders_after[clip_key].value) == pytest.approx(0.12, abs=1e-6)
+
+
+@pytest.mark.smoke
+def test_metric_progress_ratio_matches_curation_metric_names() -> None:
+    """Verify _metric_progress_ratio handles all 6 CurationMetricItem names emitted by _build_curation_metric_items."""
+    from scripts.app_streamlit import _metric_progress_ratio
+
+    items = [
+        CurationMetricItem(name="sharpness", label="Sharpness", value=5.2, threshold=1.3, passed=True),
+        CurationMetricItem(name="cheek_fft", label="Cheek FFT", value=0.0125, threshold=0.005, passed=True),
+        CurationMetricItem(name="clip_score", label="CLIP", value=0.20, threshold=0.20, passed=True),
+        CurationMetricItem(name="geometry", label="Geometry", value=0.95, threshold=0.60, passed=True),
+        CurationMetricItem(name="geometry", label="Geometry Fail", value=0.0, threshold=0.60, passed=False),
+        CurationMetricItem(name="delta_e_lab", label="Delta E", value=9.0, threshold=18.0, passed=True),
+        CurationMetricItem(name="seam_diff", label="Seam", value=17.5, threshold=35.0, passed=True),
+    ]
+    ratios = [_metric_progress_ratio(it) for it in items]
+    assert ratios[0] == pytest.approx(1.0)
+    assert ratios[1] == pytest.approx(1.0)
+    assert ratios[2] == pytest.approx(0.5)
+    assert ratios[3] == pytest.approx(1.0)
+    assert ratios[4] == pytest.approx(0.25)
+    assert ratios[5] == pytest.approx(0.75)
+    assert ratios[6] == pytest.approx(0.75)
+
+
+@pytest.mark.smoke
+def test_bg_delta_e_and_paired_upload_and_weights_only(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Verify bg_delta_e gating, paired upload metrics, weights_only=True checkpoint loading, and empty-pool guard."""
+    # 1. bg_delta_e gating in apply_interactive_thresholds
+    measured_bg_fail = {
+        "sharpness_score": 15.0,
+        "geometry_valid": True,
+        "eye_passed": True,
+        "fft_high_freq_ratio": 0.04,
+        "texture_flag": "normal",
+        "cheek_fft_ratio": 0.008,
+        "clip_score": 0.25,
+        "delta_e_lab": 5.0,
+        "bg_delta_e": 14.5,
+        "seam_diff": 10.0,
+    }
+    ok_bg, reasons_bg = apply_interactive_thresholds(
+        measured_bg_fail,
+        mode="sd_inpaint",
+        min_sharpness=1.3,
+        min_cheek_fft=0.005,
+        min_clip=0.12,
+    )
+    assert ok_bg is False
+    assert any("Background CIELab" in r for r in reasons_bg)
+
+    # 2. Paired upload (sd_img2img with source_image) computes delta_e_lab & structure_corr
+    src_img = np.full((512, 512, 3), 100, dtype=np.uint8)
+    tgt_img = np.full((512, 512, 3), 115, dtype=np.uint8)
+    paired_res = inspect_pipeline_sample(
+        tgt_img,
+        bundle=None,
+        source_image=src_img,
+        mode="sd_img2img",
+        prompt="",
+        compute_heatmaps=False,
+    )
+    assert paired_res.measured["delta_e_lab"] is not None
+    assert paired_res.measured["structure_corr"] is not None
+
+    # 3. load_detector_bundle uses torch.load(..., weights_only=True)
+    dummy_model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    ckpt_path = tmp_path / "dummy.pt"
+    torch.save({"model_state_dict": dummy_model.state_dict()}, ckpt_path)
+
+    seen_weights_only: list[object] = []
+    orig_load = torch.load
+
+    def spy_load(*args: object, **kwargs: object) -> object:
+        seen_weights_only.append(kwargs.get("weights_only"))
+        return orig_load(*args, **kwargs)
+
+    monkeypatch.setattr(torch, "load", spy_load)
+    loaded_bundle = load_detector_bundle(
+        checkpoint_map={"M0": str(ckpt_path)},
+        preferred_device="cpu",
+    )
+    try:
+        assert seen_weights_only == [True]
+    finally:
+        unload_detector_bundle(loaded_bundle)
+
+    # 4. get_golden_presets raises ValueError on empty pool
+    with pytest.raises(ValueError, match="empty"):
+        get_golden_presets({"sd_text2img": [], "sd_img2img": [], "sd_inpaint": [], "ood_and_real": []})

@@ -9,6 +9,7 @@ import gc
 import html
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -514,6 +515,10 @@ def apply_interactive_thresholds(
     if delta_e is not None and float(delta_e) > float(max_delta_e):
         reasons.append(f"CIELab color drift {float(delta_e):.2f} exceeds {float(max_delta_e):.2f}")
 
+    bg_delta_e = measured.get("bg_delta_e")
+    if bg_delta_e is not None and float(bg_delta_e) > 12.0:
+        reasons.append(f"Background CIELab drift {float(bg_delta_e):.2f} exceeds 12.00")
+
     structure_corr = measured.get("structure_corr")
     if structure_corr is not None and float(structure_corr) < 0.35:
         reasons.append(f"Structure correlation {float(structure_corr):.3f} below 0.35")
@@ -744,7 +749,7 @@ def load_detector_bundle(
             if not ckpt_file.is_file():
                 raise FileNotFoundError(f"Verified checkpoint for {label} not found at: {ckpt_file}")
 
-            ckpt = torch.load(ckpt_file, map_location="cpu", weights_only=False)
+            ckpt = torch.load(ckpt_file, map_location="cpu", weights_only=True)
             if not isinstance(ckpt, dict) or "model_state_dict" not in ckpt:
                 raise ValueError(
                     f"Checkpoint {ckpt_file} for {label} is missing required 'model_state_dict'."
@@ -1145,6 +1150,15 @@ def inspect_pipeline_sample(
     ]
     face_detected_val = yunet_face is not None
 
+    bg_delta_e: Optional[float] = None
+    if source_512 is not None and mask_512 is not None and np.any(mask_512 > 0.5):
+        bg_mask = mask_512 < 0.25
+        if np.any(bg_mask):
+            syn_lab = cv2.cvtColor(rgb_512, cv2.COLOR_RGB2LAB).astype(np.float32)
+            src_lab = cv2.cvtColor(source_512, cv2.COLOR_RGB2LAB).astype(np.float32)
+            lab_diff_map = np.linalg.norm(syn_lab - src_lab, axis=-1)
+            bg_delta_e = float(np.mean(lab_diff_map[bg_mask]))
+
     measured: Dict[str, Any] = {
         "face_detected": face_detected_val,
         "sharpness_score": float(ext_rep.sharpness_score),
@@ -1160,6 +1174,7 @@ def inspect_pipeline_sample(
         "cheek_fft_ratio": cheek_fft_ratio,
         "clip_score": float(ext_rep.clip_score) if ext_rep.clip_score is not None else None,
         "delta_e_lab": float(ext_rep.delta_e_lab) if ext_rep.delta_e_lab is not None else None,
+        "bg_delta_e": bg_delta_e,
         "structure_corr": float(ext_rep.structure_corr) if ext_rep.structure_corr is not None else None,
         "seam_diff": float(ext_rep.seam_diff) if ext_rep.seam_diff is not None else None,
         "is_seamless": ext_rep.is_seamless,
@@ -1386,7 +1401,13 @@ def launch_live_sd_worker(
             f"Live SD worker finished without producing expected artifacts in {run_dir}."
         )
 
-    metadata: Dict[str, Any] = json.loads(meta_path.read_text(encoding="utf-8"))
+    try:
+        metadata: Dict[str, Any] = json.loads(meta_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        shutil.rmtree(run_dir, ignore_errors=True)
+        raise RuntimeError(
+            f"Live SD worker produced malformed metadata.json in {run_dir}: {exc}"
+        ) from exc
     result: Dict[str, Any] = dict(metadata)
     result["output_dir"] = str(run_dir)
     result["output_path"] = str(out_img_path)
@@ -1584,12 +1605,17 @@ def resync_demo_run_scores(
     )
     summary["threshold_tau"] = float(threshold)
     summary["model_metrics"] = model_metrics
+    def _to_repo_relpath(p: Path) -> str:
+        if not p.is_absolute():
+            return p.as_posix()
+        return Path(os.path.relpath(p.resolve(), Path.cwd().resolve())).as_posix()
+
     summary.setdefault("artifacts", {})
-    summary["artifacts"]["fake_manifest"] = str(fake_path.resolve())
-    summary["artifacts"]["curated_manifest"] = str(curated_path.resolve())
-    summary["artifacts"]["curation_report"] = str(curation_report_path.resolve())
-    summary["artifacts"]["hard_manifest"] = str(hard_path.resolve())
-    summary["artifacts"]["scored_manifest"] = str(scored_path.resolve())
+    summary["artifacts"]["fake_manifest"] = _to_repo_relpath(fake_path)
+    summary["artifacts"]["curated_manifest"] = _to_repo_relpath(curated_path)
+    summary["artifacts"]["curation_report"] = _to_repo_relpath(curation_report_path)
+    summary["artifacts"]["hard_manifest"] = _to_repo_relpath(hard_path)
+    summary["artifacts"]["scored_manifest"] = _to_repo_relpath(scored_path)
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
 
     logger.info(
@@ -1720,7 +1746,7 @@ def _audit_and_build_catalog_entry(
         rejection_reasons=list(insp.rejection_reasons),
         measured=measured,
         scores={k: float(v) for k, v in scores.items()},
-        cheek_fft_ratio=insp.cheek_fft_ratio if hasattr(insp, "cheek_fft_ratio") else measured.get("cheek_fft_ratio"),
+        cheek_fft_ratio=measured.get("cheek_fft_ratio"),
         is_hard_sample=is_hard,
     )
 
@@ -2103,6 +2129,8 @@ def get_golden_presets(
     active_catalog = catalog if catalog is not None else load_curated_showcase_catalog()
 
     def _pick_pass(entries: Sequence[ShowcaseCatalogEntry]) -> ShowcaseCatalogEntry:
+        if not entries:
+            raise ValueError("Cannot select golden preset from empty catalog pool.")
         passed = [e for e in entries if e.gate_passed]
         if not passed:
             return entries[0]
@@ -2124,6 +2152,8 @@ def get_golden_presets(
         entries: Sequence[ShowcaseCatalogEntry],
         preferred_keywords: Tuple[str, ...],
     ) -> ShowcaseCatalogEntry:
+        if not entries:
+            raise ValueError("Cannot select golden preset from empty catalog pool.")
         failed = [e for e in entries if not e.gate_passed]
         if not failed:
             return entries[-1]
@@ -2190,9 +2220,11 @@ def get_golden_presets(
         }
     )
 
-    ood_real_entries = active_catalog["ood_and_real"]
+    ood_real_entries = active_catalog.get("ood_and_real", [])
     ood_list = [e for e in ood_real_entries if e.mode == "rv51_ood"]
     real_list = [e for e in ood_real_entries if e.label == 0]
+    if not ood_list or not real_list:
+        raise ValueError("Cannot select OOD/Real golden preset: missing rv51_ood or real_ffhq entries.")
     ood_primary = max(
         ood_list,
         key=lambda e: (

@@ -133,10 +133,10 @@
     }
   },
   "artifacts": {
-    "fake_manifest": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/fake_manifest.jsonl",
-    "curated_manifest": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/curated_manifest.jsonl",
-    "curation_report": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/curation_report.jsonl",
-    "hard_manifest": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/hard_samples_manifest.jsonl",
-    "scored_manifest": "/home/bush/Projects/uth-cv-coursework/experiments/demo_runs/sd15_pregen_200/scored_manifest.jsonl"
+    "fake_manifest": "experiments/demo_runs/sd15_pregen_200/fake_manifest.jsonl",
+    "curated_manifest": "experiments/demo_runs/sd15_pregen_200/curated_manifest.jsonl",
+    "curation_report": "experiments/demo_runs/sd15_pregen_200/curation_report.jsonl",
+    "hard_manifest": "experiments/demo_runs/sd15_pregen_200/hard_samples_manifest.jsonl",
+    "scored_manifest": "experiments/demo_runs/sd15_pregen_200/scored_manifest.jsonl"
   }
 }
