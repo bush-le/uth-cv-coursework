@@ -66,6 +66,7 @@ experiments/predictions/*
 !experiments/predictions/.gitkeep
 experiments/runs/*
 !experiments/runs/.gitkeep
+experiments/demo_runs/
 experiments/archive_v1/
 
 # Weights & Biases (Wandb)
