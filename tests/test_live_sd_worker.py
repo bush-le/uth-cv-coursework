@@ -246,3 +246,94 @@ def test_live_worker_cli_requires_source_for_paired_modes(
     with pytest.raises(SystemExit) as main_exc:
         main(argv)
     assert main_exc.value.code != 0
+
+
+def test_run_batch_live_generation_mixed_modes_mock_sd(tmp_path: Path) -> None:
+    """Verify batch generation handles mixed mode order, preserves item indices, and writes batch_manifest.json."""
+    from src.pipelines.live_sd_worker import run_batch_live_generation
+
+    src_path = tmp_path / "source_rgba.png"
+    rgba = Image.new("RGBA", (640, 480), color=(180, 140, 120, 255))
+    rgba.save(src_path)
+
+    out_dir = tmp_path / "batch_out"
+    configs = [
+        {
+            "mode": "inpaint",
+            "prompt": "natural smiling lips",
+            "source_image": str(src_path),
+            "mask_region": "lips",
+            "model_id": "mock_sd",
+            "steps": 10,
+            "guidance_scale": 6.0,
+            "seed": 100,
+        },
+        {
+            "mode": "text2img",
+            "prompt": "a photorealistic portrait",
+            "model_id": "mock_sd",
+            "steps": 10,
+            "guidance_scale": 6.0,
+            "seed": 101,
+        },
+        {
+            "mode": "img2img",
+            "prompt": "warm studio lighting portrait",
+            "source_image": str(src_path),
+            "model_id": "mock_sd",
+            "steps": 10,
+            "guidance_scale": 6.0,
+            "strength": 0.3,
+            "seed": 102,
+        },
+    ]
+
+    result = run_batch_live_generation(configs, out_dir)
+
+    manifest_path = out_dir / "batch_manifest.json"
+    assert manifest_path.is_file()
+    assert len(result["items"]) == 3
+    assert [item["item_index"] for item in result["items"]] == [0, 1, 2]
+    assert (out_dir / "item_000" / "mask.png").is_file()
+    assert (out_dir / "item_002" / "input.png").is_file()
+
+    for idx in range(3):
+        out_img_path = out_dir / f"item_{idx:03d}" / "output.png"
+        assert out_img_path.is_file()
+        with Image.open(out_img_path) as im:
+            assert im.size == (512, 512)
+            assert im.mode == "RGB"
+
+    disk_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert [item["item_index"] for item in disk_manifest["items"]] == [0, 1, 2]
+
+
+def test_run_batch_live_generation_validates_empty_and_missing_source(tmp_path: Path) -> None:
+    """Verify ValueError is raised for empty configs or img2img/inpaint configs missing source_image."""
+    from src.pipelines.live_sd_worker import run_batch_live_generation
+
+    with pytest.raises(ValueError):
+        run_batch_live_generation([], tmp_path / "empty_out")
+
+    with pytest.raises(ValueError):
+        run_batch_live_generation(
+            [{"mode": "img2img", "prompt": "missing source"}],
+            tmp_path / "missing_src_out",
+        )
+
+
+def test_live_worker_cli_batch_manifest_executes(tmp_path: Path) -> None:
+    """Verify CLI --batch-manifest executes batch generation and writes batch_manifest.json."""
+    from src.pipelines.live_sd_worker import main
+
+    manifest_path = tmp_path / "manifest.json"
+    manifest_payload = [
+        {"mode": "text2img", "prompt": "portrait one", "model_id": "mock_sd", "steps": 5, "seed": 11},
+        {"mode": "text2img", "prompt": "portrait two", "model_id": "mock_sd", "steps": 5, "seed": 12},
+    ]
+    manifest_path.write_text(json.dumps(manifest_payload), encoding="utf-8")
+
+    out_dir = tmp_path / "cli_batch_out"
+    rc = main(["--batch-manifest", str(manifest_path), "--output-dir", str(out_dir)])
+    assert rc == 0
+    assert (out_dir / "batch_manifest.json").is_file()
