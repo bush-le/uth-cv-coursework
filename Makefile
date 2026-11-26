@@ -2,7 +2,7 @@
 # Makefile for UTH Computer Vision Coursework
 # ==============================================================================
 
-.PHONY: help install install-dev install-all setup-hooks format lint type-check test test-smoke clean run
+.PHONY: help install install-dev install-all setup-hooks format lint type-check test test-smoke clean run ui
 
 SHELL := /bin/bash
 
@@ -37,6 +37,7 @@ help:
 	@echo "  make test-smoke     Run quick sanity smoke tests (< 5s)"
 	@echo "  make clean          Clean temporary files, caches, and build artifacts"
 	@echo "  make run            Run default pipeline training"
+	@echo "  make ui             Launch Streamlit Hybrid presentation UI"
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -83,6 +84,9 @@ test-smoke:
 
 run:
 	bash scripts/run_pipeline.sh train configs/config.yaml
+
+ui:
+	$(PYTHON) -m streamlit run scripts/app_streamlit.py
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +

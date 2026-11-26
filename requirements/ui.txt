@@ -1,0 +1,2 @@
+# Streamlit Hybrid Presentation UI Dependencies (kept separate from requirements/notebook.txt)
+streamlit>=1.38.0,<2.0.0

@@ -510,3 +510,42 @@ def test_sd15_pregen_200_scores_match_live_checkpoints() -> None:
     for short_key, full_key in key_map.items():
         recorded = float(rec_scores.get(short_key, rec_scores.get(full_key)))
         assert abs(recorded - live_scores[short_key]) <= 1e-3
+
+
+@pytest.mark.smoke
+def test_streamlit_app_boots_renders_4_modes_and_handles_sliders() -> None:
+    """Verify Streamlit app boots, renders 4 modes, Golden Presets, global Scorecard, and handles sliders."""
+    from streamlit.testing.v1 import AppTest
+
+    app_path = Path(__file__).resolve().parents[1] / "scripts" / "app_streamlit.py"
+    at = AppTest.from_file(app_path, default_timeout=30)
+    at.run()
+    assert not at.exception, f"AppTest raised exception on initial boot: {at.exception}"
+
+    button_labels = [str(b.label) for b in at.button]
+    for mode_kw in ("Text2Img", "Img2Img", "Inpaint", "OOD RV5.1 & Real FFHQ"):
+        assert any(mode_kw in lbl for lbl in button_labels), f"Missing mode button '{mode_kw}' in {button_labels}"
+
+    for preset_kw in ("Ca 1:", "Ca 2:", "Ca 3:", "Ca 4:"):
+        assert any(preset_kw in lbl for lbl in button_labels), (
+            f"Missing Golden Preset button '{preset_kw}' in {button_labels}"
+        )
+
+    expander_labels = [str(e.label) for e in at.expander]
+    assert any("Scorecard" in lbl or "Proof of Utility" in lbl for lbl in expander_labels), (
+        f"Missing global Scorecard expander in {expander_labels}"
+    )
+
+    sliders_by_label = {str(s.label): s for s in at.slider}
+    sharp_key = next((k for k in sliders_by_label if "Min Sharpness" in k), None)
+    fft_key = next((k for k in sliders_by_label if "Min Cheek FFT" in k), None)
+    tau_key = next((k for k in sliders_by_label if "τ" in k or "Ngưỡng" in k), None)
+    assert sharp_key is not None, f"Missing Min Sharpness slider in {list(sliders_by_label)}"
+    assert fft_key is not None, f"Missing Min Cheek FFT slider in {list(sliders_by_label)}"
+    assert tau_key is not None, f"Missing tau slider in {list(sliders_by_label)}"
+
+    sliders_by_label[sharp_key].set_value(2.0)
+    sliders_by_label[fft_key].set_value(0.008)
+    sliders_by_label[tau_key].set_value(0.60)
+    at.run()
+    assert not at.exception, f"AppTest raised exception after slider updates: {at.exception}"
