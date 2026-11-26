@@ -194,6 +194,8 @@ def _synthesize_item_with_engine(
     out_dir.mkdir(parents=True, exist_ok=True)
     seed_everything(seed)
     start_time = time.perf_counter()
+    input_path_str: Optional[str] = None
+    mask_path_str: Optional[str] = None
 
     if mode == "text2img":
         # Output tensor shape: (C=3, H=512, W=512) float32 RGB in [0.0, 1.0]
@@ -209,7 +211,9 @@ def _synthesize_item_with_engine(
         if source_path is None:
             raise ValueError(f"Mode '{mode}' requires a resolved source_path.")
         pil_input, source_tensor, source_rgb = _normalize_source_image(source_path, size=NATIVE_SD_SIZE)
-        pil_input.save(out_dir / "input.png")
+        input_file = out_dir / "input.png"
+        pil_input.save(input_file)
+        input_path_str = str(input_file)
 
         if mode == "img2img":
             # source_tensor shape: (C=3, H=512, W=512) float32 RGB in [0.0, 1.0]
@@ -234,7 +238,9 @@ def _synthesize_item_with_engine(
             mask_u8 = np.rint(
                 mask_tensor.detach().cpu().clamp(0.0, 1.0).squeeze(0).numpy() * 255.0
             ).astype(np.uint8)
-            Image.fromarray(mask_u8, mode="L").save(out_dir / "mask.png")
+            mask_file = out_dir / "mask.png"
+            Image.fromarray(mask_u8, mode="L").save(mask_file)
+            mask_path_str = str(mask_file)
 
             out_tensor = engine.generate_inpaint(
                 source_image=source_tensor,
@@ -247,7 +253,8 @@ def _synthesize_item_with_engine(
 
     latency_ms = (time.perf_counter() - start_time) * 1000.0
     out_pil = tensor_to_pil(out_tensor.detach().cpu().clamp(0.0, 1.0))
-    out_pil.save(out_dir / "output.png")
+    output_file = out_dir / "output.png"
+    out_pil.save(output_file)
 
     metadata: Dict[str, Any] = {
         "mode": mode,
@@ -259,7 +266,12 @@ def _synthesize_item_with_engine(
         "strength": strength,
         "mask_region": mask_region,
         "latency_ms": round(latency_ms, 2),
+        "output_path": str(output_file),
     }
+    if input_path_str is not None:
+        metadata["input_path"] = input_path_str
+    if mask_path_str is not None:
+        metadata["mask_path"] = mask_path_str
     (out_dir / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     logger.info(
         "Live SD generation finished (mode=%s, model=%s, latency_ms=%.2f, output_dir=%s)",
@@ -399,6 +411,18 @@ def run_batch_live_generation(
 
     base_item = next((item for item in prepared_items if item["mode"] != "inpaint"), prepared_items[0])
     inpaint_item = next((item for item in prepared_items if item["mode"] == "inpaint"), prepared_items[0])
+
+    base_models = {item["resolved_model_id"] for item in prepared_items if item["mode"] != "inpaint"}
+    inpaint_models = {item["resolved_inpaint_id"] for item in prepared_items if item["mode"] == "inpaint"}
+    if len(base_models) > 1 or len(inpaint_models) > 1:
+        logger.warning(
+            "Heterogeneous model_id/inpaint_model_id values in batch (base=%s, inpaint=%s); "
+            "using single shared engine (base=%s, inpaint=%s).",
+            sorted(base_models),
+            sorted(inpaint_models),
+            base_item["resolved_model_id"],
+            inpaint_item["resolved_inpaint_id"],
+        )
 
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

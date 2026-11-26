@@ -900,6 +900,85 @@ def test_evaluate_batch_with_bundle_computes_funnel_counts_and_precomputed_cache
 
 
 @pytest.mark.smoke
+def test_inspect_pipeline_sample_precomputed_empty_scores_runs_on_demand_detector(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify precomputed with empty detector_scores/heatmaps runs on-demand scoring+heatmaps when forced."""
+    import src.analysis.ui_showcase as ui_showcase
+
+    rng = np.random.default_rng(77)
+    arr = rng.integers(0, 255, size=(512, 512, 3), dtype=np.uint8)
+
+    scorer_calls = 0
+    heatmap_calls: list[str] = []
+
+    def spy_score_image(bundle: object, image_512_rgb: np.ndarray) -> dict[str, float]:
+        nonlocal scorer_calls
+        scorer_calls += 1
+        return {"M0": 0.22, "M2*": 0.61, "M3": 0.88}
+
+    def spy_heatmap(model: object, image_512_rgb: np.ndarray, device: object) -> dict[str, object]:
+        heatmap_calls.append("called")
+        return {"heatmap_rgb": np.zeros((512, 512, 3), dtype=np.uint8)}
+
+    monkeypatch.setattr(ui_showcase, "score_image_with_bundle", spy_score_image)
+    monkeypatch.setattr(ui_showcase, "compute_dinov2_patch_heatmap", spy_heatmap)
+
+    dummy_model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    dummy_bundle = DetectorBundle(models={"M0": dummy_model, "M3": dummy_model}, device=torch.device("cpu"))
+
+    base_res = inspect_pipeline_sample(
+        arr,
+        bundle=dummy_bundle,
+        mode="sd_text2img",
+        prompt="",
+        min_sharpness=999.0,
+        min_cheek_fft=0.005,
+        min_clip=0.12,
+        tau=0.50,
+        run_detector_if_rejected=False,
+        compute_heatmaps=True,
+    )
+    assert base_res.gate_passed is False
+    assert base_res.detector_scores == {}
+    assert base_res.heatmaps == {}
+    assert scorer_calls == 0
+
+    precomputed_empty = {
+        "rgb_512": base_res.image_512_rgb,
+        "source_512": base_res.source_512_rgb,
+        "mask_512": base_res.mask_512,
+        "yunet_face": base_res.yunet_face,
+        "cheek_boxes": base_res.cheek_boxes,
+        "biometrics": base_res.biometrics,
+        "measured_base": dict(base_res.measured),
+        "before_after_html": base_res.before_after_html,
+        "detector_scores": {},
+        "heatmaps": {},
+        "warnings": list(base_res.warnings),
+    }
+
+    forced_res = inspect_pipeline_sample(
+        arr,
+        bundle=dummy_bundle,
+        mode="sd_text2img",
+        prompt="",
+        min_sharpness=999.0,
+        min_cheek_fft=0.005,
+        min_clip=0.12,
+        tau=0.50,
+        run_detector_if_rejected=True,
+        compute_heatmaps=True,
+        precomputed=precomputed_empty,
+    )
+    assert scorer_calls == 1
+    assert len(heatmap_calls) == 2
+    assert forced_res.detector_scores == {"M0": 0.22, "M2*": 0.61, "M3": 0.88}
+    assert set(forced_res.heatmaps.keys()) == {"M0", "M3"}
+    assert forced_res.is_hard_sample is True
+
+
+@pytest.mark.smoke
 def test_streamlit_studio_v2_random_config_auto_batch_and_pipeline_flow(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

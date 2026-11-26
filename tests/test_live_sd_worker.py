@@ -300,12 +300,83 @@ def test_run_batch_live_generation_mixed_modes_mock_sd(tmp_path: Path) -> None:
     for idx in range(3):
         out_img_path = out_dir / f"item_{idx:03d}" / "output.png"
         assert out_img_path.is_file()
+        assert result["items"][idx]["output_path"] == str(out_img_path)
         with Image.open(out_img_path) as im:
             assert im.size == (512, 512)
             assert im.mode == "RGB"
 
+    assert result["items"][0]["input_path"] == str(out_dir / "item_000" / "input.png")
+    assert result["items"][0]["mask_path"] == str(out_dir / "item_000" / "mask.png")
+    assert "input_path" not in result["items"][1]
+    assert "mask_path" not in result["items"][1]
+    assert result["items"][2]["input_path"] == str(out_dir / "item_002" / "input.png")
+    assert "mask_path" not in result["items"][2]
+
     disk_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert [item["item_index"] for item in disk_manifest["items"]] == [0, 1, 2]
+    assert disk_manifest["items"][0]["output_path"] == str(out_dir / "item_000" / "output.png")
+    assert disk_manifest["items"][0]["mask_path"] == str(out_dir / "item_000" / "mask.png")
+
+
+@pytest.mark.smoke
+def test_run_batch_live_generation_mock_sd_e2e_evaluate_batch(tmp_path: Path) -> None:
+    """End-to-end integration test chaining run_batch_live_generation(mock_sd) -> evaluate_batch_with_bundle."""
+    from src.analysis.ui_showcase import evaluate_batch_with_bundle
+    from src.pipelines.live_sd_worker import run_batch_live_generation
+
+    src_path = tmp_path / "source_face.png"
+    Image.new("RGB", (512, 512), color=(175, 135, 115)).save(src_path)
+
+    out_dir = tmp_path / "e2e_batch"
+    configs = [
+        {
+            "mode": "text2img",
+            "prompt": "",
+            "model_id": "mock_sd",
+            "steps": 4,
+            "guidance_scale": 6.0,
+            "seed": 11,
+        },
+        {
+            "mode": "img2img",
+            "prompt": "",
+            "source_image": str(src_path),
+            "model_id": "mock_sd",
+            "steps": 4,
+            "guidance_scale": 6.0,
+            "strength": 0.3,
+            "seed": 12,
+        },
+        {
+            "mode": "inpaint",
+            "prompt": "",
+            "source_image": str(src_path),
+            "mask_region": "lips",
+            "model_id": "mock_sd",
+            "steps": 4,
+            "guidance_scale": 6.0,
+            "seed": 13,
+        },
+    ]
+
+    manifest = run_batch_live_generation(configs, out_dir)
+    eval_res = evaluate_batch_with_bundle(
+        manifest["items"],
+        bundle=None,
+        min_sharpness=1.3,
+        min_cheek_fft=0.005,
+        min_clip=None,
+        tau=0.50,
+    )
+
+    funnel = eval_res["funnel"]
+    assert funnel["generated"] == 3
+    assert funnel["gate_passed"] + funnel["gate_rejected"] == 3
+    assert len(eval_res["items"]) == 3
+    assert eval_res["items"][0]["inspection"].measured["effective_min_clip"] == pytest.approx(0.20)
+    assert eval_res["items"][1]["inspection"].measured["effective_min_clip"] == pytest.approx(0.12)
+    assert eval_res["items"][2]["inspection"].measured["effective_min_clip"] == pytest.approx(0.12)
+    assert eval_res["items"][2]["inspection"].mask_512 is not None
 
 
 def test_run_batch_live_generation_validates_empty_and_missing_source(tmp_path: Path) -> None:

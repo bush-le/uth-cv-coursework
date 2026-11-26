@@ -1645,6 +1645,19 @@ def launch_live_sd_batch_worker(
         ) from exc
 
     manifest_payload.setdefault("output_dir", str(run_dir))
+    for item in manifest_payload.get("items", []):
+        if not isinstance(item, dict):
+            continue
+        item_dir_raw = item.get("output_dir")
+        if not item_dir_raw:
+            continue
+        item_dir = Path(str(item_dir_raw))
+        if not item.get("output_path") and (item_dir / "output.png").is_file():
+            item["output_path"] = str(item_dir / "output.png")
+        if not item.get("input_path") and (item_dir / "input.png").is_file():
+            item["input_path"] = str(item_dir / "input.png")
+        if not item.get("mask_path") and (item_dir / "mask.png").is_file():
+            item["mask_path"] = str(item_dir / "mask.png")
     return manifest_payload
 
 
@@ -1671,17 +1684,33 @@ def evaluate_batch_with_bundle(
         if target_image is None:
             raise ValueError("Batch item must include 'output_path' or 'image_path'.")
         source_image = item.get("input_path") or item.get("source_image")
+        mask_img: Optional[Image.Image] = None
+        mask_path_raw = item.get("mask_path")
+        if mask_path_raw is not None and Path(str(mask_path_raw)).is_file():
+            with Image.open(str(mask_path_raw)) as m_im:
+                mask_img = m_im.convert("L")
+
+        raw_mode = str(item.get("mode", "sd_text2img"))
+        canonical_mode = _CANONICAL_MODE_MAP.get(raw_mode, raw_mode)
+        item_min_clip = float(
+            resolve_effective_min_clip(
+                float(min_clip) if min_clip is not None else 0.20,
+                canonical_mode,
+            )
+        )
+
         res = inspect_pipeline_sample(
             Path(str(target_image)),
             bundle=bundle,
             source_image=Path(str(source_image)) if source_image is not None else None,
+            mask=mask_img,
             mask_region=item.get("mask_region"),
-            mode=str(item.get("mode", "sd_text2img")),
+            mode=raw_mode,
             prompt=str(item.get("prompt", "")),
             seed=item.get("seed"),
             min_sharpness=float(min_sharpness),
             min_cheek_fft=float(min_cheek_fft),
-            min_clip=min_clip,
+            min_clip=item_min_clip,
             tau=float(tau),
             clip_scorer=clip_scorer,
             compute_heatmaps=False,

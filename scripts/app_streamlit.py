@@ -352,15 +352,20 @@ def _inspect_with_cache(
     cache: Dict[Tuple[Any, ...], Dict[str, Any]] = st.session_state._xray_cache
     bundle_dev = str(bundle.device) if bundle is not None else "none"
     img_hash = _compute_target_sha256(target_image)
+    src_hash = _compute_target_sha256(source_image) if source_image is not None else "none"
+    mask_hash = _compute_target_sha256(mask) if mask is not None else "none"
     cache_key = (
         img_hash,
+        src_hash,
+        mask_hash,
         str(mode),
         str(prompt or ""),
         str(mask_region or ""),
-        bool(run_detector_if_rejected),
         bundle_dev,
     )
-    cached_payload = cache.get(cache_key)
+    cached_payload = cache.pop(cache_key, None)
+    if cached_payload is not None:
+        cache[cache_key] = cached_payload
 
     inspection = inspect_pipeline_sample(
         target_image,
@@ -401,6 +406,7 @@ def _inspect_with_cache(
             "biometrics": inspection.biometrics,
             "measured_base": dict(inspection.measured),
             "before_after_html": inspection.before_after_html,
+            "source_with_mask_overlay": inspection.overlays.get("source_with_mask"),
             "detector_scores": dict(inspection.detector_scores),
             "heatmaps": dict(inspection.heatmaps),
             "warnings": list(inspection.warnings),
@@ -766,7 +772,7 @@ def _render_live_and_batch_tab(
         if sd_mode in ("inpaint", "mixed"):
             sd_mask_region = st.selectbox(
                 "Vùng Mask Inpaint",
-                options=["lips", "periocular", "full"],
+                options=["lips", "periocular", "nose", "full"],
                 key="live_sd_mask_region",
             )
         else:
@@ -802,10 +808,10 @@ def _render_live_and_batch_tab(
             key="batch_count",
         )
         if st.button("🚀 Auto Sinh & Kiểm Định Lô (N mẫu)", key="btn_auto_batch_run", width="stretch"):
-            configs = sample_random_batch_configs(catalog, count=int(batch_n), mode=sd_mode)
-            get_detector_bundle.clear()
-            unload_detector_bundle(bundle)
             try:
+                configs = sample_random_batch_configs(catalog, count=int(batch_n), mode=sd_mode)
+                get_detector_bundle.clear()
+                unload_detector_bundle(bundle)
                 with st.spinner(f"Đang sinh lô {batch_n} ảnh SD 1.5 trong 1 worker cô lập..."):
                     worker_batch = launch_live_sd_batch_worker(configs)
                 bundle = get_detector_bundle()
@@ -814,7 +820,7 @@ def _render_live_and_batch_tab(
                     bundle=bundle,
                     min_sharpness=min_sharpness,
                     min_cheek_fft=min_cheek_fft,
-                    min_clip=min_clip,
+                    min_clip=None if sd_mode == "mixed" else min_clip,
                     tau=tau,
                     clip_scorer=clip_scorer,
                 )
@@ -990,7 +996,7 @@ def _render_pipeline_ribbon(
     # Stage 3: M0 Hard-Sample Mining
     if not inspection.detector_scores:
         s3_color = "#64748b"
-        s3_status = "Skipped (Gate loại)"
+        s3_status = "Skipped (Gate loại)" if not inspection.gate_passed else "Chưa nạp Detector"
     elif inspection.is_hard_sample:
         s3_color = "#d97706"
         s3_status = f"🔥 M0 Bỏ Lọt ({inspection.detector_scores.get('M0', 0.0):.3f} < {tau:.2f})"
