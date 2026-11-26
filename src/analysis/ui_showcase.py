@@ -38,6 +38,7 @@ from src.common.metrics import (
 )
 from src.common.seed import seed_everything
 from src.models.detector.image_detector import DeepfakeImageDetector
+from src.models.diffusion.prompt_engine import PromptGrammarEngine
 from src.models.diffusion.stable_diffusion_engine import generate_dynamic_face_mask
 
 logger = get_logger(__name__)
@@ -1032,6 +1033,7 @@ def inspect_pipeline_sample(
     run_detector_if_rejected: bool = False,
     clip_scorer: Optional[Any] = None,
     compute_heatmaps: bool = True,
+    precomputed: Optional[Dict[str, Any]] = None,
 ) -> InspectionResult:
     """Run the 4-stage live inspection pipeline (Normalize -> Curation Gate -> Overlays -> Detectors & Heatmaps).
 
@@ -1054,36 +1056,31 @@ def inspect_pipeline_sample(
         run_detector_if_rejected: Run detector inference even when the curation gate rejects the image.
         clip_scorer: Optional pre-initialized `ClipScorer` instance.
         compute_heatmaps: Whether to compute `M0` and `M3` DINOv2 spatial patch sensitivity heatmaps.
+        precomputed: Optional cached intermediate payload to skip redundant YuNet/CLIP/detector/heatmap work
+            while still recomputing interactive thresholds, metric items, face audit overlay, and `is_hard_sample`.
 
     Returns:
         Populated `InspectionResult` dataclass.
     """
     t_total_start = time.perf_counter()
     mode = _CANONICAL_MODE_MAP.get(str(mode), str(mode))
+    pre = precomputed or {}
     latencies_ms: Dict[str, float] = {}
-    warnings: List[str] = []
+    warnings: List[str] = list(pre["warnings"]) if pre.get("warnings") is not None else []
 
     t_pre = time.perf_counter()
-    rgb_512 = _to_512_rgb_u8(target_image)
-    source_512 = _to_512_rgb_u8(source_image) if source_image is not None else None
-    mask_512 = _resolve_inpaint_mask_512(rgb_512, source_512, mask, mask_region, mode)
+    rgb_512 = pre["rgb_512"] if pre.get("rgb_512") is not None else _to_512_rgb_u8(target_image)
+    if "source_512" in pre:
+        source_512 = pre["source_512"]
+    else:
+        source_512 = _to_512_rgb_u8(source_image) if source_image is not None else None
+    if "mask_512" in pre:
+        mask_512 = pre["mask_512"]
+    else:
+        mask_512 = _resolve_inpaint_mask_512(rgb_512, source_512, mask, mask_region, mode)
     latencies_ms["preprocess"] = round((time.perf_counter() - t_pre) * 1000.0, 2)
 
     t_cur = time.perf_counter()
-    yunet_face = detect_face_yunet(rgb_512)
-    cheek_boxes = compute_cheek_roi_boxes(yunet_face, width=512, height=512)
-    biometrics = extract_face_biometrics_rgb(rgb_512, prompt=prompt)
-    cheek_res = compute_cheek_skin_fft(
-        rgb_512,
-        yunet_face=yunet_face,
-        min_cheek_ratio=float(min_cheek_fft),
-    )
-    cheek_fft_ratio = (
-        float(cheek_res["cheek_fft_ratio"])
-        if cheek_res.get("cheek_fft_ratio") is not None
-        else None
-    )
-
     eff_min_clip = float(min_clip) if min_clip is not None else float(resolve_effective_min_clip(0.20, mode))
     p_low = str(prompt or "").lower()
     has_sg_intent = mode == "sd_inpaint" and any(
@@ -1091,99 +1088,132 @@ def inspect_pipeline_sample(
     )
     eff_max_delta_e = max(float(max_delta_e), 45.0) if has_sg_intent else float(max_delta_e)
 
-    clip_score_val: Optional[float] = None
-    has_prompt = bool(prompt and str(prompt).strip())
-    if has_prompt and mode != "real_ffhq":
-        active_clip = clip_scorer
-        owns_clip = False
-        try:
-            if active_clip is None:
-                scorer_cls = ClipScorer if ClipScorer is not _ORIG_CLIP_SCORER else _metrics_mod.ClipScorer
-                active_clip = scorer_cls(device="cpu")
-                owns_clip = True
-            clip_score_val = float(active_clip.score(rgb_512, prompt))
-        except Exception as clip_err:
-            logger.warning("Offline/unavailable CLIP scorer fallback (clip_score=None): %s", clip_err)
-            warnings.append(f"CLIP scorer unavailable ({clip_err}); clip_score set to None.")
-            clip_score_val = None
-        finally:
-            if owns_clip and active_clip is not None and hasattr(active_clip, "close"):
-                try:
-                    active_clip.close()
-                except Exception:
-                    pass
+    if pre.get("measured_base") is not None:
+        yunet_face = pre.get("yunet_face")
+        cheek_boxes = (
+            list(pre["cheek_boxes"])
+            if pre.get("cheek_boxes") is not None
+            else compute_cheek_roi_boxes(yunet_face, width=512, height=512)
+        )
+        biometrics = (
+            dict(pre["biometrics"])
+            if pre.get("biometrics") is not None
+            else extract_face_biometrics_rgb(rgb_512, prompt=prompt)
+        )
+        measured = dict(pre["measured_base"])
+        measured["mask_region"] = mask_region
+        measured["seed"] = seed
+        measured["tau"] = float(tau)
+        measured["effective_min_clip"] = eff_min_clip
+        measured["effective_max_delta_e"] = eff_max_delta_e
+    else:
+        yunet_face = detect_face_yunet(rgb_512)
+        cheek_boxes = compute_cheek_roi_boxes(yunet_face, width=512, height=512)
+        biometrics = extract_face_biometrics_rgb(rgb_512, prompt=prompt)
+        cheek_res = compute_cheek_skin_fft(
+            rgb_512,
+            yunet_face=yunet_face,
+            min_cheek_ratio=float(min_cheek_fft),
+        )
+        cheek_fft_ratio = (
+            float(cheek_res["cheek_fft_ratio"])
+            if cheek_res.get("cheek_fft_ratio") is not None
+            else None
+        )
 
-    mask_tensor_arg = torch.from_numpy(mask_512).unsqueeze(0) if mask_512 is not None else None
-    ext_rep = audit_image_extended(
-        rgb_512,
-        mode=mode,
-        prompt=prompt,
-        source_image=source_512,
-        mask=mask_tensor_arg,
-        clip_scorer=None,
-        min_clip_score=eff_min_clip,
-        min_sharpness=float(min_sharpness),
-        face_backend="yunet",
-        clip_score_override=clip_score_val,
-    )
+        clip_score_val: Optional[float] = None
+        has_prompt = bool(prompt and str(prompt).strip())
+        if has_prompt and mode != "real_ffhq":
+            active_clip = clip_scorer
+            owns_clip = False
+            try:
+                if active_clip is None:
+                    scorer_cls = ClipScorer if ClipScorer is not _ORIG_CLIP_SCORER else _metrics_mod.ClipScorer
+                    active_clip = scorer_cls(device="cpu")
+                    owns_clip = True
+                clip_score_val = float(active_clip.score(rgb_512, prompt))
+            except Exception as clip_err:
+                logger.warning("Offline/unavailable CLIP scorer fallback (clip_score=None): %s", clip_err)
+                warnings.append(f"CLIP scorer unavailable ({clip_err}); clip_score set to None.")
+                clip_score_val = None
+            finally:
+                if owns_clip and active_clip is not None and hasattr(active_clip, "close"):
+                    try:
+                        active_clip.close()
+                    except Exception:
+                        pass
 
-    face_box = yunet_face["bbox_xyxy"] if yunet_face is not None else None
-    whole_fft = compute_fft_high_freq_ratio(rgb_512, bbox_xyxy=face_box)
+        mask_tensor_arg = torch.from_numpy(mask_512).unsqueeze(0) if mask_512 is not None else None
+        ext_rep = audit_image_extended(
+            rgb_512,
+            mode=mode,
+            prompt=prompt,
+            source_image=source_512,
+            mask=mask_tensor_arg,
+            clip_scorer=None,
+            min_clip_score=eff_min_clip,
+            min_sharpness=float(min_sharpness),
+            face_backend="yunet",
+            clip_score_override=clip_score_val,
+        )
 
-    eye_reasons = [
-        r
-        for r in ext_rep.rejection_reasons
-        if any(tok in r.lower() for tok in ("bilateral facial symmetry", "expected >= 2 eyes", "eye-pair"))
-    ]
-    geometry_reasons = [
-        r
-        for r in ext_rep.rejection_reasons
-        if r not in eye_reasons
-        and not r.startswith("Sharpness ")
-        and not r.startswith("FFT texture")
-        and not r.startswith("Plastic/waxy")
-        and not r.startswith("CLIP score")
-        and not r.startswith("CIELab ")
-        and not r.startswith("Background CIELab")
-        and not r.startswith("Structure correlation")
-        and not r.startswith("Boundary seam")
-    ]
-    face_detected_val = yunet_face is not None
+        face_box = yunet_face["bbox_xyxy"] if yunet_face is not None else None
+        whole_fft = compute_fft_high_freq_ratio(rgb_512, bbox_xyxy=face_box)
 
-    bg_delta_e: Optional[float] = None
-    if source_512 is not None and mask_512 is not None and np.any(mask_512 > 0.5):
-        bg_mask = mask_512 < 0.25
-        if np.any(bg_mask):
-            syn_lab = cv2.cvtColor(rgb_512, cv2.COLOR_RGB2LAB).astype(np.float32)
-            src_lab = cv2.cvtColor(source_512, cv2.COLOR_RGB2LAB).astype(np.float32)
-            lab_diff_map = np.linalg.norm(syn_lab - src_lab, axis=-1)
-            bg_delta_e = float(np.mean(lab_diff_map[bg_mask]))
+        eye_reasons = [
+            r
+            for r in ext_rep.rejection_reasons
+            if any(tok in r.lower() for tok in ("bilateral facial symmetry", "expected >= 2 eyes", "eye-pair"))
+        ]
+        geometry_reasons = [
+            r
+            for r in ext_rep.rejection_reasons
+            if r not in eye_reasons
+            and not r.startswith("Sharpness ")
+            and not r.startswith("FFT texture")
+            and not r.startswith("Plastic/waxy")
+            and not r.startswith("CLIP score")
+            and not r.startswith("CIELab ")
+            and not r.startswith("Background CIELab")
+            and not r.startswith("Structure correlation")
+            and not r.startswith("Boundary seam")
+        ]
+        face_detected_val = yunet_face is not None
 
-    measured: Dict[str, Any] = {
-        "face_detected": face_detected_val,
-        "sharpness_score": float(ext_rep.sharpness_score),
-        "geometry_valid": bool(ext_rep.geometry_valid),
-        "geometry_reasons": geometry_reasons,
-        "eye_passed": len(eye_reasons) == 0,
-        "eye_reasons": eye_reasons,
-        "eye_count": int(ext_rep.eye_count),
-        "sunglasses_occluded": bool(ext_rep.sunglasses_occluded),
-        "bilateral_symmetry": float(ext_rep.bilateral_symmetry),
-        "fft_high_freq_ratio": float(whole_fft["high_freq_ratio"]),
-        "texture_flag": str(whole_fft["texture_flag"]),
-        "cheek_fft_ratio": cheek_fft_ratio,
-        "clip_score": float(ext_rep.clip_score) if ext_rep.clip_score is not None else None,
-        "delta_e_lab": float(ext_rep.delta_e_lab) if ext_rep.delta_e_lab is not None else None,
-        "bg_delta_e": bg_delta_e,
-        "structure_corr": float(ext_rep.structure_corr) if ext_rep.structure_corr is not None else None,
-        "seam_diff": float(ext_rep.seam_diff) if ext_rep.seam_diff is not None else None,
-        "is_seamless": ext_rep.is_seamless,
-        "mask_region": mask_region,
-        "seed": seed,
-        "tau": float(tau),
-        "effective_min_clip": eff_min_clip,
-        "effective_max_delta_e": eff_max_delta_e,
-    }
+        bg_delta_e: Optional[float] = None
+        if source_512 is not None and mask_512 is not None and np.any(mask_512 > 0.5):
+            bg_mask = mask_512 < 0.25
+            if np.any(bg_mask):
+                syn_lab = cv2.cvtColor(rgb_512, cv2.COLOR_RGB2LAB).astype(np.float32)
+                src_lab = cv2.cvtColor(source_512, cv2.COLOR_RGB2LAB).astype(np.float32)
+                lab_diff_map = np.linalg.norm(syn_lab - src_lab, axis=-1)
+                bg_delta_e = float(np.mean(lab_diff_map[bg_mask]))
+
+        measured = {
+            "face_detected": face_detected_val,
+            "sharpness_score": float(ext_rep.sharpness_score),
+            "geometry_valid": bool(ext_rep.geometry_valid),
+            "geometry_reasons": geometry_reasons,
+            "eye_passed": len(eye_reasons) == 0,
+            "eye_reasons": eye_reasons,
+            "eye_count": int(ext_rep.eye_count),
+            "sunglasses_occluded": bool(ext_rep.sunglasses_occluded),
+            "bilateral_symmetry": float(ext_rep.bilateral_symmetry),
+            "fft_high_freq_ratio": float(whole_fft["high_freq_ratio"]),
+            "texture_flag": str(whole_fft["texture_flag"]),
+            "cheek_fft_ratio": cheek_fft_ratio,
+            "clip_score": float(ext_rep.clip_score) if ext_rep.clip_score is not None else None,
+            "delta_e_lab": float(ext_rep.delta_e_lab) if ext_rep.delta_e_lab is not None else None,
+            "bg_delta_e": bg_delta_e,
+            "structure_corr": float(ext_rep.structure_corr) if ext_rep.structure_corr is not None else None,
+            "seam_diff": float(ext_rep.seam_diff) if ext_rep.seam_diff is not None else None,
+            "is_seamless": ext_rep.is_seamless,
+            "mask_region": mask_region,
+            "seed": seed,
+            "tau": float(tau),
+            "effective_min_clip": eff_min_clip,
+            "effective_max_delta_e": eff_max_delta_e,
+        }
 
     gate_passed, rejection_reasons = apply_interactive_thresholds(
         measured,
@@ -1216,7 +1246,9 @@ def inspect_pipeline_sample(
             mask=mask_512,
         )
     }
-    if source_512 is not None and mask_512 is not None:
+    if pre.get("source_with_mask_overlay") is not None:
+        overlays["source_with_mask"] = pre["source_with_mask_overlay"]
+    elif source_512 is not None and mask_512 is not None:
         overlays["source_with_mask"] = render_face_audit_overlay(
             source_512,
             yunet_face=detect_face_yunet(source_512),
@@ -1228,7 +1260,9 @@ def inspect_pipeline_sample(
         overlays["latent_noise"] = render_latent_noise_preview(int(seed), size=256)
 
     before_after_html: Optional[str] = None
-    if source_512 is not None:
+    if pre.get("before_after_html") is not None:
+        before_after_html = pre["before_after_html"]
+    elif source_512 is not None:
         before_after_html = build_before_after_wipe_html(
             source_512,
             rgb_512,
@@ -1242,11 +1276,15 @@ def inspect_pipeline_sample(
     is_hard_sample = False
 
     should_run_detector = bundle is not None and (gate_passed or mode == "real_ffhq" or run_detector_if_rejected)
-    if should_run_detector and bundle is not None:
+    cached_scores = pre.get("detector_scores")
+    if cached_scores:
+        detector_scores = dict(cached_scores)
+    elif should_run_detector and bundle is not None:
         t_det = time.perf_counter()
         detector_scores = score_image_with_bundle(bundle, rgb_512)
         latencies_ms["detector"] = round((time.perf_counter() - t_det) * 1000.0, 2)
 
+    if detector_scores:
         m0_prob = detector_scores.get("M0")
         is_hard_sample = bool(
             m0_prob is not None
@@ -1255,7 +1293,11 @@ def inspect_pipeline_sample(
             and (ground_truth_label is None or int(ground_truth_label) == 1)
         )
 
-        if compute_heatmaps:
+    if compute_heatmaps:
+        cached_heatmaps = pre.get("heatmaps")
+        if cached_heatmaps:
+            heatmaps = dict(cached_heatmaps)
+        elif should_run_detector and bundle is not None:
             t_hm = time.perf_counter()
             for hm_key in ("M0", "M3"):
                 if hm_key in bundle.models:
@@ -1416,6 +1458,265 @@ def launch_live_sd_worker(
     if (run_dir / "mask.png").is_file():
         result["mask_path"] = str(run_dir / "mask.png")
     return result
+
+
+_LIVE_MASK_REGIONS: Tuple[str, ...] = ("lips", "periocular", "nose", "full")
+_LIVE_MODES: Tuple[str, ...] = ("text2img", "img2img", "inpaint")
+
+
+def _collect_valid_ffhq_paths(catalog: Dict[str, List[ShowcaseCatalogEntry]]) -> List[str]:
+    """Collect deduplicated, existing FFHQ source image paths from a showcase catalog."""
+    paths: List[str] = []
+    seen: set[str] = set()
+    for tab_entries in (catalog or {}).values():
+        for entry in tab_entries:
+            candidates: List[Optional[str]] = []
+            if entry.mode == "real_ffhq":
+                candidates.append(entry.image_path)
+            if entry.source_image_path:
+                candidates.append(entry.source_image_path)
+            for cand in candidates:
+                if not cand or cand in seen:
+                    continue
+                if Path(cand).is_file():
+                    seen.add(cand)
+                    paths.append(cand)
+    return paths
+
+
+def _normalize_live_mode(mode: Optional[str]) -> Optional[str]:
+    """Map canonical `sd_*` mode names to live worker mode names."""
+    if mode is None:
+        return None
+    reverse_map = {"sd_text2img": "text2img", "sd_img2img": "img2img", "sd_inpaint": "inpaint"}
+    return reverse_map.get(str(mode), str(mode))
+
+
+def sample_random_live_config(
+    catalog: Dict[str, List[ShowcaseCatalogEntry]],
+    *,
+    mode: Optional[str] = None,
+    seed: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Sample a reproducible single-image live SD config using `PromptGrammarEngine`.
+
+    Args:
+        catalog: Showcase catalog mapping tab names to `ShowcaseCatalogEntry` lists.
+        mode: Optional mode (`text2img`, `img2img`, `inpaint`, or `sd_*` aliases).
+        seed: Optional deterministic seed; random positive integer if omitted.
+
+    Returns:
+        Dictionary with keys `mode`, `prompt`, `seed`, `source_image`, and `mask_region`.
+    """
+    resolved_seed = int(seed) if seed is not None else int(np.random.SeedSequence().entropy % 999_999) + 1
+    rng = np.random.RandomState(resolved_seed)
+    ffhq_paths = _collect_valid_ffhq_paths(catalog)
+
+    norm_mode = _normalize_live_mode(mode)
+    if norm_mode is None:
+        resolved_mode = str(_LIVE_MODES[int(rng.randint(0, len(_LIVE_MODES)))]) if ffhq_paths else "text2img"
+    else:
+        if norm_mode not in _LIVE_MODES:
+            raise ValueError(f"Unsupported live SD mode: '{mode}'.")
+        resolved_mode = norm_mode
+
+    source_image: Optional[str] = None
+    if resolved_mode in ("img2img", "inpaint"):
+        if not ffhq_paths:
+            raise ValueError(f"Mode '{resolved_mode}' requires at least one valid FFHQ source image in catalog.")
+        source_image = ffhq_paths[int(rng.randint(0, len(ffhq_paths)))]
+
+    mask_region = (
+        str(_LIVE_MASK_REGIONS[int(rng.randint(0, len(_LIVE_MASK_REGIONS)))])
+        if resolved_mode == "inpaint"
+        else "lips"
+    )
+    engine = PromptGrammarEngine(seed=resolved_seed)
+    prompt = engine.generate_prompt(mode=resolved_mode, seed_offset=resolved_seed % 10000)
+
+    return {
+        "mode": resolved_mode,
+        "prompt": prompt,
+        "seed": resolved_seed,
+        "source_image": source_image,
+        "mask_region": mask_region,
+    }
+
+
+def sample_random_batch_configs(
+    catalog: Dict[str, List[ShowcaseCatalogEntry]],
+    *,
+    count: int,
+    mode: str = "mixed",
+    base_seed: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """Sample a list of reproducible live SD batch configs, falling back to `text2img` if FFHQ is absent."""
+    if int(count) < 1:
+        raise ValueError(f"count must be >= 1, got {count}.")
+
+    seed_base = int(base_seed) if base_seed is not None else int(np.random.SeedSequence().entropy % 900_000) + 1
+    ffhq_paths = _collect_valid_ffhq_paths(catalog)
+
+    configs: List[Dict[str, Any]] = []
+    for idx in range(int(count)):
+        if mode == "mixed":
+            item_mode = _LIVE_MODES[idx % len(_LIVE_MODES)] if ffhq_paths else "text2img"
+        else:
+            item_mode = _normalize_live_mode(mode) or "text2img"
+        configs.append(
+            sample_random_live_config(
+                catalog,
+                mode=item_mode,
+                seed=seed_base + idx,
+            )
+        )
+    return configs
+
+
+def launch_live_sd_batch_worker(
+    configs: Sequence[Dict[str, Any]],
+    *,
+    output_root: Path = Path("experiments/demo_runs/streamlit_live_batch"),
+    timeout_s: int = 360,
+) -> Dict[str, Any]:
+    """Launch isolated `src.pipelines.live_sd_worker --batch-manifest` subprocess for a batch of configs."""
+    if not configs:
+        raise ValueError("Batch configs must be non-empty.")
+
+    run_dir = Path(output_root) / f"batch_{len(configs)}_{uuid.uuid4().hex[:8]}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    manifest_in_path = run_dir / "batch_configs.json"
+
+    serializable_configs: List[Dict[str, Any]] = []
+    for cfg in configs:
+        item = dict(cfg)
+        if item.get("source_image") is not None:
+            item["source_image"] = str(item["source_image"])
+        serializable_configs.append(item)
+    manifest_in_path.write_text(json.dumps(serializable_configs, indent=2), encoding="utf-8")
+
+    cmd: List[str] = [
+        sys.executable,
+        "-m",
+        "src.pipelines.live_sd_worker",
+        "--batch-manifest",
+        str(manifest_in_path),
+        "--output-dir",
+        str(run_dir),
+    ]
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired as exc:
+        shutil.rmtree(run_dir, ignore_errors=True)
+        raise RuntimeError(
+            f"Live SD batch worker timed out after {timeout_s}s (items={len(configs)})."
+        ) from exc
+    except Exception:
+        shutil.rmtree(run_dir, ignore_errors=True)
+        raise
+
+    if proc.returncode != 0:
+        err_tail = (proc.stderr or proc.stdout or "unknown error").strip()[-1000:]
+        shutil.rmtree(run_dir, ignore_errors=True)
+        raise RuntimeError(
+            f"Live SD batch worker failed with exit code {proc.returncode}: {err_tail}"
+        )
+
+    batch_manifest_path = run_dir / "batch_manifest.json"
+    if not batch_manifest_path.is_file():
+        shutil.rmtree(run_dir, ignore_errors=True)
+        raise RuntimeError(
+            f"Live SD batch worker finished without producing batch_manifest.json in {run_dir}."
+        )
+
+    try:
+        manifest_payload: Dict[str, Any] = json.loads(batch_manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        shutil.rmtree(run_dir, ignore_errors=True)
+        raise RuntimeError(
+            f"Live SD batch worker produced malformed batch_manifest.json in {run_dir}: {exc}"
+        ) from exc
+
+    manifest_payload.setdefault("output_dir", str(run_dir))
+    return manifest_payload
+
+
+def evaluate_batch_with_bundle(
+    items: Sequence[Dict[str, Any]],
+    *,
+    bundle: Optional[DetectorBundle],
+    min_sharpness: float,
+    min_cheek_fft: float,
+    min_clip: Optional[float],
+    tau: float,
+    clip_scorer: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """Run 4-stage inspection across a generated batch and aggregate curation/hard-sample funnel counts."""
+    evaluated_items: List[Dict[str, Any]] = []
+    generated = 0
+    gate_passed = 0
+    gate_rejected = 0
+    hard_samples = 0
+    m3_rescued = 0
+
+    for item in items:
+        target_image = item.get("output_path") or item.get("image_path")
+        if target_image is None:
+            raise ValueError("Batch item must include 'output_path' or 'image_path'.")
+        source_image = item.get("input_path") or item.get("source_image")
+        res = inspect_pipeline_sample(
+            Path(str(target_image)),
+            bundle=bundle,
+            source_image=Path(str(source_image)) if source_image is not None else None,
+            mask_region=item.get("mask_region"),
+            mode=str(item.get("mode", "sd_text2img")),
+            prompt=str(item.get("prompt", "")),
+            seed=item.get("seed"),
+            min_sharpness=float(min_sharpness),
+            min_cheek_fft=float(min_cheek_fft),
+            min_clip=min_clip,
+            tau=float(tau),
+            clip_scorer=clip_scorer,
+            compute_heatmaps=False,
+        )
+        generated += 1
+        if res.gate_passed:
+            gate_passed += 1
+        else:
+            gate_rejected += 1
+        if res.is_hard_sample:
+            hard_samples += 1
+            m3_prob = res.detector_scores.get("M3")
+            if m3_prob is not None and float(m3_prob) >= float(tau):
+                m3_rescued += 1
+
+        evaluated_items.append(
+            {
+                "item": dict(item),
+                "inspection": res,
+                "gate_passed": res.gate_passed,
+                "is_hard_sample": res.is_hard_sample,
+                "detector_scores": dict(res.detector_scores),
+            }
+        )
+
+    return {
+        "items": evaluated_items,
+        "funnel": {
+            "generated": generated,
+            "gate_passed": gate_passed,
+            "gate_rejected": gate_rejected,
+            "hard_samples": hard_samples,
+            "m3_rescued": m3_rescued,
+        },
+    }
 
 
 def _read_jsonl_records(path: Path) -> List[Dict[str, Any]]:

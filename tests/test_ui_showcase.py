@@ -22,13 +22,17 @@ from src.analysis.ui_showcase import (
     compute_dinov2_patch_heatmap,
     get_golden_presets,
     inspect_pipeline_sample,
+    launch_live_sd_batch_worker,
     launch_live_sd_worker,
     load_curated_showcase_catalog,
     load_detector_bundle,
     render_face_audit_overlay,
     render_latent_noise_preview,
+    sample_random_batch_configs,
+    sample_random_live_config,
     score_image_with_bundle,
     unload_detector_bundle,
+    evaluate_batch_with_bundle,
 )
 from src.models.detector.image_detector import DeepfakeImageDetector
 
@@ -696,3 +700,201 @@ def test_streamlit_live_sd_submit_updates_min_clip_without_widget_error(
     assert not any("Sinh ảnh Live SD 1.5 thất bại" in str(e.value) for e in at.error)
     assert at.session_state["custom_target"]["kind"] == "live_sd"
     assert at.session_state["min_clip"] == pytest.approx(0.20)
+
+
+@pytest.mark.smoke
+def test_sample_random_live_and_batch_configs_uses_prompt_grammar_and_handles_missing_ffhq(
+    tmp_path: Path,
+) -> None:
+    """Verify random single/batch samplers use PromptGrammarEngine and handle missing FFHQ gracefully."""
+    ffhq_png = tmp_path / "ffhq_sample.png"
+    Image.new("RGB", (64, 64), color=(140, 120, 110)).save(ffhq_png)
+
+    catalog = {
+        "sd_text2img": [],
+        "sd_img2img": [],
+        "sd_inpaint": [],
+        "ood_and_real": [
+            ShowcaseCatalogEntry(
+                sample_id="real_001",
+                mode="real_ffhq",
+                tab="ood_and_real",
+                image_path=str(ffhq_png),
+                label=0,
+            )
+        ],
+    }
+
+    cfg = sample_random_live_config(catalog, mode="text2img", seed=123)
+    assert set(cfg.keys()) == {"mode", "prompt", "seed", "source_image", "mask_region"}
+    assert cfg["mode"] == "text2img"
+    assert isinstance(cfg["prompt"], str) and len(cfg["prompt"].strip()) > 0
+    assert cfg["seed"] == 123
+    assert cfg["source_image"] is None
+
+    batch = sample_random_batch_configs(catalog, count=5, mode="mixed", base_seed=77)
+    assert len(batch) == 5
+    assert [item["mode"] for item in batch] == ["text2img", "img2img", "inpaint", "text2img", "img2img"]
+    assert [item["seed"] for item in batch] == [77, 78, 79, 80, 81]
+    assert batch[0]["source_image"] is None
+    assert batch[1]["source_image"] == str(ffhq_png)
+    assert batch[2]["source_image"] == str(ffhq_png)
+
+    empty_t2i = sample_random_live_config({}, mode="text2img", seed=11)
+    assert empty_t2i["mode"] == "text2img"
+    assert empty_t2i["source_image"] is None
+
+    empty_batch = sample_random_batch_configs({}, count=3, mode="mixed", base_seed=20)
+    assert len(empty_batch) == 3
+    assert all(item["mode"] == "text2img" for item in empty_batch)
+
+    with pytest.raises(ValueError):
+        sample_random_live_config({}, mode="img2img")
+
+
+@pytest.mark.smoke
+def test_launch_live_sd_batch_worker_mock_and_error_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify launch_live_sd_batch_worker invokes --batch-manifest and cleans run_dir on failure."""
+    seen_cmds: list[list[str]] = []
+
+    def fake_run_ok(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        seen_cmds.append(list(cmd))
+        out_idx = cmd.index("--output-dir") + 1
+        out_dir = Path(cmd[out_idx])
+        out_dir.mkdir(parents=True, exist_ok=True)
+        manifest = {
+            "output_dir": str(out_dir),
+            "total_items": 1,
+            "items": [
+                {
+                    "item_index": 0,
+                    "mode": "text2img",
+                    "prompt": "test prompt",
+                    "output_path": str(out_dir / "item_000" / "output.png"),
+                }
+            ],
+        }
+        (out_dir / "batch_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run_ok)
+    configs = [{"mode": "text2img", "prompt": "test prompt", "seed": 42}]
+    res = launch_live_sd_batch_worker(configs, output_root=tmp_path)
+    assert len(seen_cmds) == 1
+    assert "--batch-manifest" in seen_cmds[0]
+    assert res["total_items"] == 1
+    assert len(res["items"]) == 1
+
+    def fake_run_fail(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        out_idx = cmd.index("--output-dir") + 1
+        out_dir = Path(cmd[out_idx])
+        out_dir.mkdir(parents=True, exist_ok=True)
+        return subprocess.CompletedProcess(args=cmd, returncode=1, stdout="", stderr="boom")
+
+    monkeypatch.setattr(subprocess, "run", fake_run_fail)
+    fail_root = tmp_path / "fail_root"
+    with pytest.raises(RuntimeError, match="exit code 1"):
+        launch_live_sd_batch_worker(configs, output_root=fail_root)
+    assert not fail_root.exists() or list(fail_root.iterdir()) == []
+
+
+@pytest.mark.smoke
+def test_evaluate_batch_with_bundle_computes_funnel_counts_and_precomputed_cache_matches(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify evaluate_batch_with_bundle funnel counts and inspect_pipeline_sample precomputed hook."""
+    img1_path = tmp_path / "batch_1.png"
+    img2_path = tmp_path / "batch_2.png"
+    rng = np.random.default_rng(1234)
+    arr1 = rng.integers(0, 255, size=(512, 512, 3), dtype=np.uint8)
+    arr2 = np.full((512, 512, 3), 128, dtype=np.uint8)
+    Image.fromarray(arr1).save(img1_path)
+    Image.fromarray(arr2).save(img2_path)
+
+    items = [
+        {"mode": "text2img", "prompt": "", "seed": 1, "output_path": str(img1_path)},
+        {"mode": "text2img", "prompt": "", "seed": 2, "output_path": str(img2_path)},
+    ]
+    batch_res = evaluate_batch_with_bundle(
+        items,
+        bundle=None,
+        min_sharpness=1.3,
+        min_cheek_fft=0.005,
+        min_clip=0.12,
+        tau=0.50,
+    )
+    funnel = batch_res["funnel"]
+    assert set(funnel.keys()) == {"generated", "gate_passed", "gate_rejected", "hard_samples", "m3_rescued"}
+    assert funnel["generated"] == 2
+    assert funnel["gate_passed"] + funnel["gate_rejected"] == 2
+
+    # Now test precomputed cache hook on inspect_pipeline_sample
+    import src.analysis.ui_showcase as ui_showcase
+
+    fake_scores = {"M0": 0.25, "M2*": 0.65, "M3": 0.85}
+    scorer_calls = 0
+
+    def spy_score_image(bundle: object, image_512_rgb: np.ndarray) -> dict[str, float]:
+        nonlocal scorer_calls
+        scorer_calls += 1
+        return dict(fake_scores)
+
+    monkeypatch.setattr(ui_showcase, "score_image_with_bundle", spy_score_image)
+
+    dummy_model = DeepfakeImageDetector(backbone="dinov2_small", num_classes=1, pretrained=False)
+    dummy_bundle = DetectorBundle(models={"M0": dummy_model}, device=torch.device("cpu"))
+
+    first_res = inspect_pipeline_sample(
+        arr1,
+        bundle=dummy_bundle,
+        mode="sd_text2img",
+        prompt="",
+        min_sharpness=1.3,
+        min_cheek_fft=0.005,
+        min_clip=0.12,
+        tau=0.50,
+        run_detector_if_rejected=True,
+        compute_heatmaps=False,
+    )
+    assert scorer_calls == 1
+    assert first_res.detector_scores == fake_scores
+
+    precomputed_payload = {
+        "rgb_512": first_res.image_512_rgb,
+        "source_512": first_res.source_512_rgb,
+        "mask_512": first_res.mask_512,
+        "yunet_face": first_res.yunet_face,
+        "cheek_boxes": first_res.cheek_boxes,
+        "biometrics": first_res.biometrics,
+        "measured_base": dict(first_res.measured),
+        "before_after_html": first_res.before_after_html,
+        "detector_scores": dict(first_res.detector_scores),
+        "heatmaps": dict(first_res.heatmaps),
+        "warnings": list(first_res.warnings),
+    }
+
+    cached_res = inspect_pipeline_sample(
+        arr1,
+        bundle=dummy_bundle,
+        mode="sd_text2img",
+        prompt="",
+        min_sharpness=999.0,
+        min_cheek_fft=0.005,
+        min_clip=0.12,
+        tau=0.50,
+        run_detector_if_rejected=False,
+        compute_heatmaps=False,
+        precomputed=precomputed_payload,
+    )
+    assert cached_res.gate_passed is False
+    sharp_metric = next(m for m in cached_res.metrics if m.name == "sharpness")
+    assert sharp_metric.threshold == pytest.approx(999.0)
+    assert sharp_metric.passed is False
+    assert cached_res.detector_scores == fake_scores
+    assert scorer_calls == 1
+    assert cached_res.is_hard_sample is True
+
