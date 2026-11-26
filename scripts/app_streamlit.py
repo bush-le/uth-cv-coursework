@@ -300,22 +300,32 @@ def _render_live_sandbox(
         with col_sd:
             st.markdown("**Sinh thử 1 ảnh Live (SD 1.5 — 4GB VRAM Safe)**")
             ffhq_choices = _collect_ffhq_source_choices(catalog)
+            sd_mode = st.selectbox(
+                "Chế độ sinh ảnh",
+                options=["text2img", "img2img", "inpaint"],
+                index=0,
+                key="live_sd_mode",
+            )
             with st.form("live_sd_generator_form"):
-                sd_mode = st.selectbox(
-                    "Chế độ sinh ảnh",
-                    options=["text2img", "img2img", "inpaint"],
-                    index=0,
-                )
-                sd_source = st.selectbox(
-                    "Ảnh nguồn FFHQ (cho Img2Img / Inpaint)",
-                    options=ffhq_choices if ffhq_choices else ["(Không có ảnh FFHQ cục bộ)"],
-                    index=0,
-                )
-                sd_mask_region = st.selectbox(
-                    "Vùng Mask Inpaint",
-                    options=["lips", "periocular", "full"],
-                    index=0,
-                )
+                if sd_mode in ("img2img", "inpaint"):
+                    sd_source = st.selectbox(
+                        "Ảnh nguồn FFHQ (cho Img2Img / Inpaint)",
+                        options=ffhq_choices if ffhq_choices else ["(Không có ảnh FFHQ cục bộ)"],
+                        index=0,
+                    )
+                else:
+                    sd_source = ""
+                    st.caption("Text2Img sinh ảnh mới từ nhiễu Gauss + Prompt (không dùng ảnh nguồn).")
+
+                if sd_mode == "inpaint":
+                    sd_mask_region = st.selectbox(
+                        "Vùng Mask Inpaint",
+                        options=["lips", "periocular", "full"],
+                        index=0,
+                    )
+                else:
+                    sd_mask_region = "lips"
+
                 sd_prompt = st.text_input(
                     "Prompt sinh ảnh",
                     value="studio headshot portrait of a person, natural skin pores, realistic lighting",
