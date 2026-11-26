@@ -898,3 +898,97 @@ def test_evaluate_batch_with_bundle_computes_funnel_counts_and_precomputed_cache
     assert scorer_calls == 1
     assert cached_res.is_hard_sample is True
 
+
+@pytest.mark.smoke
+def test_streamlit_studio_v2_random_config_auto_batch_and_pipeline_flow(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify Studio v2 semantic bars, Random config button, Auto Batch submission, and 4-stage pipeline ribbon."""
+    from streamlit.testing.v1 import AppTest
+    import src.analysis.ui_showcase as ui_showcase
+    from scripts.app_streamlit import _render_semantic_bar_html
+
+    # 1. Unit check for _render_semantic_bar_html colors: green (#16a34a), red (#dc2626), gray (#64748b)
+    pass_html = _render_semantic_bar_html(ratio=0.80, color="#16a34a", label_left="Sharpness", label_right="PASS")
+    fail_html = _render_semantic_bar_html(ratio=0.25, color="#dc2626", label_left="Cheek FFT", label_right="FAIL")
+    na_html = _render_semantic_bar_html(ratio=0.0, color="#64748b", label_left="Seam", label_right="N/A")
+    assert "#16a34a" in pass_html and "80%" in pass_html
+    assert "#dc2626" in fail_html and "25%" in fail_html
+    assert "#64748b" in na_html and "N/A" in na_html
+
+    # 2. Mock launch_live_sd_batch_worker returning 2 synthetic 512x512 items
+    src_png = tmp_path / "batch_src.png"
+    out0_png = tmp_path / "item_000_out.png"
+    out1_png = tmp_path / "item_001_out.png"
+    Image.new("RGB", (512, 512), color=(120, 110, 100)).save(src_png)
+    Image.new("RGB", (512, 512), color=(135, 125, 115)).save(out0_png)
+    Image.new("RGB", (512, 512), color=(145, 130, 120)).save(out1_png)
+
+    def fake_launch_batch_worker(configs: list[dict[str, object]], **kwargs: object) -> dict[str, object]:
+        return {
+            "output_dir": str(tmp_path),
+            "total_items": 2,
+            "items": [
+                {
+                    "item_index": 0,
+                    "mode": "text2img",
+                    "prompt": str(configs[0].get("prompt", "random t2i prompt")),
+                    "seed": int(configs[0].get("seed", 101)),
+                    "steps": 20,
+                    "guidance_scale": 6.2,
+                    "strength": 0.30,
+                    "mask_region": "lips",
+                    "output_path": str(out0_png),
+                    "latency_ms": 110.0,
+                },
+                {
+                    "item_index": 1,
+                    "mode": "img2img",
+                    "prompt": str(configs[-1].get("prompt", "random i2i prompt")),
+                    "seed": int(configs[-1].get("seed", 102)),
+                    "steps": 20,
+                    "guidance_scale": 6.2,
+                    "strength": 0.30,
+                    "mask_region": "lips",
+                    "input_path": str(src_png),
+                    "output_path": str(out1_png),
+                    "latency_ms": 130.0,
+                },
+            ],
+        }
+
+    monkeypatch.setattr(ui_showcase, "launch_live_sd_batch_worker", fake_launch_batch_worker)
+
+    app_path = Path(__file__).resolve().parents[1] / "scripts" / "app_streamlit.py"
+    at = AppTest.from_file(str(app_path), default_timeout=30)
+    at.run()
+    assert not at.exception, f"Initial boot failed: {at.exception}"
+
+    # Verify 4-stage pipeline flow ribbon labels appear in rendered markdown
+    all_md = "\n".join(str(m.value) for m in at.markdown)
+    for stage_kw in ("Input", "Data Gate", "M0", "M3"):
+        assert stage_kw in all_md, f"Missing pipeline flow label '{stage_kw}' in rendered markdown"
+
+    # Click Random config button
+    init_prompt = str(at.session_state["live_sd_prompt"])
+    init_seed = int(at.session_state["live_sd_seed"])
+    random_btn = next(b for b in at.button if "Random cấu hình" in str(b.label))
+    random_btn.click().run()
+    assert not at.exception, f"Random config click raised: {at.exception}"
+    assert (
+        str(at.session_state["live_sd_prompt"]) != init_prompt
+        or int(at.session_state["live_sd_seed"]) != init_seed
+    )
+
+    # Click Auto Batch submit button
+    batch_btn = next(b for b in at.button if "Auto Sinh & Kiểm Định Lô" in str(b.label))
+    batch_btn.click().run()
+    assert not at.exception, f"Auto Batch click raised: {at.exception}"
+    batch_res = at.session_state["batch_results"]
+    assert batch_res is not None
+    assert len(batch_res["items"]) == 2
+    assert at.session_state["custom_target"] is not None
+    assert at.session_state["custom_target"]["kind"] == "batch_item"
+
+
