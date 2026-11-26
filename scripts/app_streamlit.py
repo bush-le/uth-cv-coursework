@@ -294,12 +294,12 @@ def _render_semantic_bar_html(
     safe_right = html.escape(str(label_right))
     safe_color = html.escape(str(color))
     return (
-        "<div style='margin:4px 0 8px 0;'>"
-        "<div style='display:flex;justify-content:space-between;font-size:0.84rem;margin-bottom:3px;'>"
-        f"<span style='font-weight:600;color:#e2e8f0;'>{safe_left}</span>"
-        f"<span style='font-family:monospace;color:{safe_color};font-weight:600;'>{safe_right}</span>"
+        "<div style='margin:6px 0 10px 0;'>"
+        "<div style='display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:0.86rem;margin-bottom:4px;'>"
+        f"<span style='font-weight:600;color:inherit;'>{safe_left}</span>"
+        f"<span style='font-family:monospace;color:{safe_color};font-weight:700;white-space:nowrap;'>{safe_right}</span>"
         "</div>"
-        "<div style='width:100%;height:9px;background:#1e293b;border-radius:999px;overflow:hidden;border:1px solid #334155;'>"
+        "<div style='width:100%;height:9px;background:rgba(148,163,184,0.22);border-radius:999px;overflow:hidden;border:1px solid rgba(148,163,184,0.45);'>"
         f"<div style='width:{pct}%;height:100%;background:{safe_color};border-radius:999px;transition:width 0.2s ease;'></div>"
         "</div>"
         "</div>"
@@ -1029,10 +1029,11 @@ def _render_pipeline_ribbon(
     cards_html = []
     for title, status, color in stages:
         cards_html.append(
-            "<div style='flex:1;min-width:170px;background:#0f172a;border:1px solid "
-            f"{color};border-left:4px solid {color};border-radius:8px;padding:8px 10px;'>"
-            f"<div style='font-size:0.78rem;font-weight:700;color:#cbd5e1;'>{html.escape(title)}</div>"
-            f"<div style='font-size:0.84rem;font-weight:600;color:{color};margin-top:2px;'>{html.escape(status)}</div>"
+            "<div style='flex:1;min-width:170px;background:rgba(148,163,184,0.12);"
+            "border:1px solid rgba(148,163,184,0.35);"
+            f"border-left:4px solid {color};border-radius:8px;padding:8px 10px;'>"
+            f"<div style='font-size:0.78rem;font-weight:700;color:inherit;opacity:0.82;'>{html.escape(title)}</div>"
+            f"<div style='font-size:0.86rem;font-weight:700;color:{color};margin-top:2px;'>{html.escape(status)}</div>"
             "</div>"
         )
     ribbon_html = (
@@ -1154,10 +1155,10 @@ def _render_xray_inspector(
                 right_lbl = "N/A"
             elif item.passed:
                 bar_color = "#16a34a"
-                right_lbl = f"✓ {val_str} ({item.direction} {thr_str})"
+                right_lbl = f"{val_str} ({item.direction} {thr_str})"
             else:
                 bar_color = "#dc2626"
-                right_lbl = f"✕ {val_str} ({item.direction} {thr_str})"
+                right_lbl = f"{val_str} ({item.direction} {thr_str})"
 
             st.markdown(
                 _render_semantic_bar_html(
