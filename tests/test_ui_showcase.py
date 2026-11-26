@@ -655,3 +655,44 @@ def test_bg_delta_e_and_paired_upload_and_weights_only(
     # 4. get_golden_presets raises ValueError on empty pool
     with pytest.raises(ValueError, match="empty"):
         get_golden_presets({"sd_text2img": [], "sd_img2img": [], "sd_inpaint": [], "ood_and_real": []})
+
+
+def test_streamlit_live_sd_submit_updates_min_clip_without_widget_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Submitting Live SD 1.5 form must not raise StreamlitAPIException on min_clip."""
+    from streamlit.testing.v1 import AppTest
+    import src.analysis.ui_showcase as ui_showcase
+
+    out_png = tmp_path / "live_out.png"
+    Image.new("RGB", (512, 512), color=(128, 128, 128)).save(out_png)
+
+    def fake_launch_worker(**kwargs: object) -> dict[str, object]:
+        return {
+            "mode": kwargs.get("mode", "text2img"),
+            "prompt": kwargs.get("prompt", "test prompt"),
+            "seed": kwargs.get("seed", 42),
+            "steps": 20,
+            "guidance_scale": 6.2,
+            "strength": 0.30,
+            "mask_region": kwargs.get("mask_region", "lips"),
+            "output_path": str(out_png),
+            "latency_ms": 123.4,
+        }
+
+    monkeypatch.setattr(ui_showcase, "launch_live_sd_worker", fake_launch_worker)
+
+    app_path = Path(__file__).resolve().parents[1] / "scripts" / "app_streamlit.py"
+    at = AppTest.from_file(str(app_path), default_timeout=30)
+    at.run()
+    assert not at.exception
+
+    submit_btn = next(
+        btn for btn in at.button if "Sinh thử 1 ảnh Live (SD 1.5)" in str(btn.label)
+    )
+    submit_btn.click().run()
+    assert not at.exception
+    assert not any("Sinh ảnh Live SD 1.5 thất bại" in str(e.value) for e in at.error)
+    assert at.session_state["custom_target"]["kind"] == "live_sd"
+    assert at.session_state["min_clip"] == pytest.approx(0.20)

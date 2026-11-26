@@ -79,6 +79,8 @@ def _init_session_state(
     """Initialize Streamlit session state keys deterministically on first boot."""
     if "active_tab" not in st.session_state:
         st.session_state.active_tab = "sd_text2img"
+    if "_pending_min_clip" in st.session_state:
+        st.session_state.min_clip = float(st.session_state.pop("_pending_min_clip"))
     if "min_sharpness" not in st.session_state:
         st.session_state.min_sharpness = 1.3
     if "min_cheek_fft" not in st.session_state:
@@ -355,7 +357,7 @@ def _render_live_sandbox(
                             "inpaint": "sd_inpaint",
                         }[sd_mode]
                         st.session_state.active_tab = canonical_mode
-                        st.session_state.min_clip = TAB_DEFAULT_CLIP[canonical_mode]
+                        st.session_state["_pending_min_clip"] = TAB_DEFAULT_CLIP[canonical_mode]
                         st.session_state.custom_target = {
                             "kind": "live_sd",
                             "title": f"Live SD 1.5 ({sd_mode}, seed={int(sd_seed)})",
